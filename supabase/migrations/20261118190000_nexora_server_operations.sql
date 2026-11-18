@@ -385,7 +385,7 @@ begin
  insert into nexora.transactions(id,from_uid,to_uid,amount,fee,net_amount,type,reference_id,description,status) values(v_tx,'ORG',p_uid,p_amount,0,p_amount,'org_withdraw',p_org_id,'Org treasury withdrawal ['||v_org.tag||']','completed');
  insert into nexora.organization_transactions(id,org_id,user_id,username,type,amount,note) values(v_otx,p_org_id,p_uid,v_member.username,'withdraw',p_amount,'Withdrawal by '||v_member.username);
  return jsonb_build_object('ok',true);
-end;$function$
+end;$function$;
 
 REVOKE ALL ON FUNCTION nexora.claim_mission_reward(p_uid text, p_mission_id text) FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION nexora.complete_organization_upgrade(p_uid text, p_org_id text) FROM PUBLIC, anon, authenticated;
