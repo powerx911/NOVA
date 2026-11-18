@@ -442,5 +442,16 @@ The user explicitly requires NOVA to be online and socially connected from its f
 - Supabase security advisor reported two warnings because the public RPC functions were SECURITY DEFINER and callable by authenticated users. This behavior was intentional for atomic authoritative mutations, but the advisor correctly highlighted the exposed-schema risk.
 - Created follow-up branch fix/harden-player-command-rpcs. Added a migration to move the privileged SECURITY DEFINER implementations into the non-exposed private schema and replace the public API functions with SECURITY INVOKER wrappers.
 - Updated the server-authoritative foundation documentation and CI static checks to enforce this boundary.
-- The follow-up migration 20261118151500_harden_player_rpc_schema has not yet been applied to Supabase. The current live database still has the two security advisor warnings until the follow-up PR is reviewed, merged, and applied.
-- Performance advisor reports two unused indexes on empty tables; this is expected before gameplay traffic exists and will be re-evaluated after usage.
+- PR #16 merged successfully as c7a63a8efb9ac5af98db770676e70049a7372888. The hardening migration was applied to Supabase as version 20261118151655 (name: 20261118151500_harden_player_rpc_schema).
+- Verified function placement and permissions with SQL: private implementations are SECURITY DEFINER; public RPC wrappers are SECURITY INVOKER; authenticated can execute both; anon cannot execute either.
+- Re-ran Supabase security advisors: **zero security findings**. Performance advisor reports two INFO-level unused indexes on empty tables; expected before gameplay traffic and to be re-evaluated after usage.
+
+
+## 22. Player command RPC hardening applied (2026-11-18)
+
+- PR #16 merged as c7a63a8efb9ac5af98db770676e70049a7372888 after CI run 44333723681 passed.
+- Applied migration 20261118151500_harden_player_rpc_schema to the existing Supabase project; Supabase recorded version 20261118151655.
+- Moved privileged SECURITY DEFINER implementations into the non-exposed private schema. Public RPC functions are SECURITY INVOKER wrappers.
+- Verified with a read-only SQL query: both private functions are SECURITY DEFINER and executable by authenticated but not anon; both public wrappers are SECURITY INVOKER and executable by authenticated but not anon.
+- Re-ran Supabase security advisors: zero security findings. Performance advisor has two INFO-level unused indexes on currently empty ledger/receipt tables; retain pending real usage data.
+- The player schema remains empty. Authenticated player initialization, multi-user isolation, and replay-safe upgrade integration tests still need to be performed using real test accounts before client integration.
