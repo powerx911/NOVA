@@ -225,6 +225,9 @@ export interface Factory {
   skillLevel: number;
   isActive: boolean;
   warehouseQty: number;
+  warehouseLevel?: number;
+  warehouseUpgradeEndsAt?: number | null;
+  warehouseUpgradeTargetLevel?: number | null;
   productionRemainder: number;
   operatingCostRemainder: number;
   lastProducedAt: number;
