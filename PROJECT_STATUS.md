@@ -359,3 +359,13 @@ The user explicitly requires NOVA to be online and socially connected from its f
 - Initial alliance-to-alliance diplomatic states are only neutral, war, and peace. More complex treaties are excluded from the initial scope.
 - Detailed design recorded in docs/PRODUCT_VISION.md and docs/ONLINE_GAME_FOUNDATION.md.
 - This is a documentation-only clarification. No game client, production database schema, or live gameplay behavior was changed. No deployment is claimed.
+
+
+## 16. Map, player bag, relocation, and quality-of-life systems (design requirements)
+
+- Added the shared kingdom map interaction model: touch zoom/pan, layers, location details, search, bookmarks, recent destinations, alliance markers, and clear distinction between shared locations and personal castles.
+- Added persistent player inventory/bag requirements: categories, stacks, sorting/search, capacity, item details, acquisition/consumption history, and server-authoritative idempotent item use.
+- Added two intended relocation items: Advanced Relocation (player-selected valid destination) and Random Relocation (server-selected eligible destination), with destination preview, safety, fairness, cooldown, anti-abuse, and atomic-consumption requirements.
+- Added player command overview, activity/report inbox, bookmarks, and configurable notifications as core quality-of-life systems.
+- Detailed requirements recorded in docs/ONLINE_GAME_FOUNDATION.md, docs/PLAYER_EXPERIENCE_AND_OPERATIONS.md, and docs/PRODUCT_VISION.md.
+- Documentation-only change. No gameplay code, database schema, item balances, or live relocation behavior has been implemented. No deployment is claimed.
