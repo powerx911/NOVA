@@ -406,6 +406,27 @@ Deno.serve(async (req: Request) => {
       return json({ ok: true, data }, 200, origin);
     }
 
+    const companyId = typeof body.companyId === "string" ? body.companyId : "";
+    if (body.action === "company_upgrade" || body.action === "company_complete" ||
+        body.action === "vault_upgrade" || body.action === "vault_complete" || body.action === "company_collect") {
+      if (!companyId || companyId.length > 128) return json({ error: "INVALID_ARGUMENT" }, 400, origin);
+      const rpcName = body.action === "company_upgrade" ? "start_company_upgrade"
+        : body.action === "company_complete" ? "complete_company_upgrade"
+        : body.action === "vault_upgrade" ? "upgrade_company_vault"
+        : body.action === "vault_complete" ? "complete_company_vault_upgrade"
+        : "collect_company_revenue";
+      const { data, error } = await db.rpc(rpcName, { p_uid: identity.uid, p_company_id: companyId });
+      if (error) {
+        const known = [
+          "COMPANY_NOT_FOUND","UNAUTHORIZED","MAX_LEVEL","UPGRADE_IN_PROGRESS","ACCOUNT_NOT_FOUND",
+          "INSUFFICIENT_FUNDS","NO_UPGRADE_IN_PROGRESS","UPGRADE_NOT_FINISHED","INVALID_UPGRADE_STATE",
+          "VAULT_MAX_LEVEL","MISSING_VAULT_MATERIALS","NOTHING_TO_COLLECT",
+        ].find((code) => error.message.includes(code));
+        return json({ error: known ?? "COMPANY_OPERATION_FAILED" }, 409, origin);
+      }
+      return json({ ok: true, data }, 200, origin);
+    }
+
     return json({ error: "UNKNOWN_ACTION" }, 400, origin);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
