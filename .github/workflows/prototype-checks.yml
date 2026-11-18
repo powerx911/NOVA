@@ -36,5 +36,8 @@ jobs:
       - name: Validate competitive backend security contract
         run: node scripts/check-competitive-migration.mjs
 
+      - name: Validate shared player market security contract
+        run: node scripts/check-market-migration.mjs
+
       - name: Check patch whitespace
         run: git diff --check origin/main...HEAD
