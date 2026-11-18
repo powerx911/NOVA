@@ -756,8 +756,6 @@ export function BusinessHubView({
         </div>
       )}
 
-      {/* 5. FINANCIAL SUMMARY */}
-}
-    </div>
+      </div>
   );
 }
