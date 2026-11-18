@@ -7,8 +7,8 @@ NOVA is an Android-first, portrait-oriented online competitive simulation game i
 The mobile-first client includes:
 - A command center with player metrics, event highlights, and activity feed.
 - Competitive operations and challenge surfaces.
-- Asset management and inventory.
-- A market interface.
+- Asset management and persistent inventory.
+- A shared player-to-player market with listings, partial purchases, and cancellation.
 - Player rankings, organization entry points, and profile/settings.
 - Thumb-friendly navigation, translucent panels, responsive feedback, and reduced-motion support.
 
@@ -16,15 +16,17 @@ The mobile-first client includes:
 
 The current main branch includes:
 - Supabase email/password registration and login client.
-- Persistent competitive player profiles and wallets.
+- Persistent competitive player profiles, wallets, and assets.
 - Server-authoritative operation simulation and asset upgrades.
 - Idempotent command receipts and an auditable resource ledger.
 - A safe public leaderboard RPC and public activity feed with Realtime inserts.
 - Row Level Security on all competitive tables. Clients cannot directly mutate wallets, assets, or ledgers.
 
-The competitive migration has been applied to the existing Supabase project. Security advisors report zero findings. However, no real player accounts have been created or integration-tested yet, so do not describe signup, two-player isolation, operation RPCs, or Realtime client delivery as verified. Email confirmation requires the Pages URL `https://powerx911.github.io/NOVA/` to be present in Supabase Auth's redirect allowlist.
+**Shared market status:** A second migration and client integration are being developed on the open shared-market PR. It adds inventory-backed player listings, partial purchases, cancellation, atomic buyer/seller wallet transfers, and order/inventory ledgers. It is not live until that PR passes checks, is merged, and the migration is applied.
 
-The shared market, matchmaking/challenges, organizations, season system, and full PvP loop are still future implementation phases.
+No real player accounts have been created or end-to-end integration-tested yet. Email confirmation requires the Pages URL `https://powerx911.github.io/NOVA/` to be present in Supabase Auth's redirect allowlist.
+
+Matchmaking/challenges, organizations, season system, and full PvP loop remain future implementation phases.
 
 ## Infrastructure and safety
 
@@ -32,5 +34,5 @@ The shared market, matchmaking/challenges, organizations, season system, and ful
 - GitHub Pages deployment succeeded for main commit `fc52f0420072d6a6484170a71204b34dd09f0a6a`: https://powerx911.github.io/NOVA/.
 - Existing Supabase project is used; no new project is required.
 - The browser uses only the Supabase publishable key. Never expose a service-role or secret key in client code.
-- Server-side functions own balances, asset upgrades, operation rewards, and ranking calculations.
+- Server-side functions own balances, asset upgrades, operation rewards, market transfers, and ranking calculations.
 - Vercel is not used.
