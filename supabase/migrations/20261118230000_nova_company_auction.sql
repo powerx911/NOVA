@@ -39,6 +39,11 @@ create table if not exists nexora.company_auction_bids (
   created_at timestamptz not null default now()
 );
 
+alter table nexora.company_auctions drop constraint if exists company_auctions_company_id_fkey;
+alter table nexora.company_auctions alter column company_id drop not null;
+alter table nexora.company_auctions add constraint company_auctions_company_id_fkey
+  foreign key (company_id) references nexora.companies(id) on delete set null;
+
 create index if not exists company_auctions_active_ends_idx
   on nexora.company_auctions(status, ends_at);
 create index if not exists company_auctions_seller_idx
