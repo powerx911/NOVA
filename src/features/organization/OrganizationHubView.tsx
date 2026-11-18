@@ -78,6 +78,7 @@ export function OrganizationHubView({
   const [kickTarget, setKickTarget] = useState<{ uid: string; username: string } | null>(null);
   const [clockNow, setClockNow] = useState(Date.now());
   const [donationRanking, setDonationRanking] = useState<Array<{ uid: string; username: string; amount: number }>>([]);
+  const [activeOrgTab, setActiveOrgTab] = useState<'info' | 'members' | 'research' | 'treasury'>('info');
 
   const currentOrg = myOrgMember
     ? organizations.find((o) => o.id === myOrgMember.orgId) || null
@@ -516,300 +517,328 @@ export function OrganizationHubView({
 
   return (
     <div className="w-full min-w-0 space-y-4 sm:space-y-5">
-      {/* Organization Header */}
-      <div id="org-info" className="min-w-0 w-full bg-[#141821] border border-white/8 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="space-y-1">
-          <p className="text-[10px] font-semibold tracking-wide text-[#E5A0A8]">{language === 'ar' ? 'معلومات المنظمة' : 'Organization information'}</p>
-          <div className="flex items-center gap-2.5">
-            <Shield className="w-5 h-5 text-[#E04455]" />
-            <h1 className="min-w-0 break-words text-lg sm:text-xl font-bold text-[#F4F5F7]">
-              [{currentOrg.tag}] {currentOrg.name}
-            </h1>
-          </div>
-          <p className="text-xs text-[#9299A6]">
-            {t.level} <span className="font-mono-num text-[#F4F5F7]">{currentOrg.level}</span> ·{' '}
-            {t.members}{' '}
-            <span className="font-mono-num text-[#F4F5F7]">{currentOrg.memberCount}/{memberCapacity}</span> ·{' '}
-            {t.reputation}{' '}
-            <span className="font-mono-num text-[#F4F5F7]">{currentOrg.reputation}</span> ·{' '}
-            {language === 'ar' ? 'القائد' : 'Leader'}{' '}
-            <span className="text-[#F4F5F7]">{currentOrg.leaderName}</span>
-          </p>
-        </div>
-
-        <div className="flex w-full sm:w-auto flex-wrap items-center gap-2 sm:gap-3">
-          <div className="text-end">
-            <p className="text-xs text-[#9299A6]">{t.orgTreasury}</p>
-            <p className="text-lg font-bold font-mono-num text-emerald-400">
-              {'$'}{currentOrg.treasuryBalance.toLocaleString()}
-            </p>
-          </div>
-          {upgradeInProgress && (
-            <p className="w-full text-xs text-amber-300">{language === 'ar' ? `ينتهي تطوير المنظمة خلال نحو ${upgradeHoursLeft} ساعة.` : `Organization upgrade completes in about ${upgradeHoursLeft} hours.`}</p>
-          )}
-          {canManageOrg && (
-            <button
-              type="button"
-              disabled={
-                isOrgMaxLevel ||
-                upgradeInProgress ||
-                busyKey === 'upgrade_org' ||
-                currentOrg.treasuryBalance < orgUpgradeCost
-              }
-              onClick={handleUpgradeOrg}
-              className="min-h-[42px] w-full sm:w-auto justify-center px-3.5 rounded-xl bg-[#B91C32] hover:bg-[#E04455] text-white text-xs font-semibold flex items-center gap-1.5 whitespace-nowrap disabled:bg-[#1B2230] disabled:text-[#9299A6]"
-            >
-              <ArrowUpCircle className="w-4 h-4" />
-              <span>
-                {isOrgMaxLevel
-                  ? t.maxLevelReached
-                  : upgradeInProgress
-                  ? (language === 'ar' ? `جارٍ التطوير · المستوى ${currentOrg.upgradeTargetLevel}` : `Upgrading · Lv.${currentOrg.upgradeTargetLevel}`)
-                  : `${t.upgradeOrg} (${orgUpgradeCost.toLocaleString()})`}
-              </span>
-            </button>
-          )}
-          {myOrgMember.role !== 'leader' && (
-            <button
-              type="button"
-              onClick={() => setConfirmLeaveOpen(true)}
-              className="min-h-[40px] px-3.5 rounded-xl bg-[#1B2230] hover:bg-[#232C3E] text-[#E04455] text-xs font-semibold whitespace-nowrap"
-            >
-              {t.leaveOrg}
-            </button>
-          )}
-        </div>
-      </div>
-
-      <nav aria-label={language === 'ar' ? 'أقسام المنظمة' : 'Organization sections'} className="flex gap-2 overflow-x-auto rounded-xl border border-white/8 bg-[#141821] p-2 text-xs">
-        {[['org-info', language === 'ar' ? 'معلومات المنظمة' : 'Information'], ['org-members', t.members], ['org-research', language === 'ar' ? 'الأبحاث' : 'Research'], ['org-treasury', language === 'ar' ? 'الخزنة' : 'Treasury'], ['org-donations', language === 'ar' ? 'ترتيب التبرعات' : 'Donations']].map(([id, label]) => <a key={id} href={`#${id}`} className="shrink-0 rounded-lg bg-[#0B0D12] px-3 py-2 text-[#D5D9E1] hover:bg-[#252B36]">{label}</a>)}
+      {/* Segmented organization navigation */}
+      <nav aria-label={language === 'ar' ? 'أقسام المنظمة' : 'Organization sections'} className="flex items-center gap-1.5 overflow-x-auto pb-1">
+        {([
+          ['info', language === 'ar' ? 'معلومات المنظمة' : 'Information'],
+          ['members', t.members],
+          ['research', language === 'ar' ? 'الأبحاث' : 'Research'],
+          ['treasury', language === 'ar' ? 'الخزنة' : 'Treasury'],
+        ] as const).map(([id, label]) => (
+          <button
+            key={id}
+            type="button"
+            onClick={() => setActiveOrgTab(id)}
+            aria-pressed={activeOrgTab === id}
+            className={`min-h-[40px] px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap shrink-0 transition-colors ${
+              activeOrgTab === id
+                ? 'bg-[#B91C32] text-white'
+                : 'bg-[#141821] text-[#9299A6] border border-white/8 hover:text-[#F4F5F7]'
+            }`}
+          >
+            {label}
+          </button>
+        ))}
       </nav>
 
-      <section id="org-research" className="min-w-0 rounded-2xl border border-white/8 bg-[#141821] p-4 sm:p-5 space-y-4">
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <h2 className="text-base font-bold text-[#F4F5F7]">{language === 'ar' ? 'أبحاث المنظمة' : 'Organization Research'}</h2>
-            <p className="mt-1 text-xs text-[#9299A6]">{language === 'ar' ? 'خمسة مسارات بحثية، لكل مسار 10 مستويات وتأثير محدود.' : 'Five research paths, each with 10 levels and balanced effects.'}</p>
-          </div>
-          <span className="rounded-lg bg-[#0B0D12] px-3 py-1.5 text-xs text-[#E5A0A8]">{language === 'ar' ? '10 مستويات' : '10 levels'}</span>
-        </div>
-        <div className="grid min-w-0 grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
-          {(Object.keys(ORG_RESEARCH_DEFINITIONS) as OrganizationResearchId[]).map((researchId) => {
-            const definition = ORG_RESEARCH_DEFINITIONS[researchId];
-            const level = currentOrg.research?.[researchId] ?? 0;
-            const cost = calculateOrgResearchCost(researchId, level);
-            const isMax = level >= 10;
-            return (
-              <div key={researchId} className="rounded-xl border border-white/8 bg-[#0B0D12] p-4 space-y-3">
-                <div className="flex items-center justify-between gap-2">
-                  <h3 className="text-sm font-bold text-[#F4F5F7]">{language === 'ar' ? definition.titleAr : definition.titleEn}</h3>
-                  <span className="font-mono-num text-xs text-[#E5A0A8]">{level}/10</span>
-                </div>
-                <p className="min-h-[38px] text-xs leading-relaxed text-[#9299A6]">{language === 'ar' ? definition.effectAr : definition.effectEn}</p>
-                <div className="h-1.5 overflow-hidden rounded-full bg-white/8">
-                  <div className="h-full rounded-full bg-[#B91C32]" style={{ width: `${level * 10}%` }} />
-                </div>
-                <button
-                  type="button"
-                  disabled={!canManageOrg || isMax || busyKey === `research_${researchId}` || currentOrg.treasuryBalance < cost}
-                  onClick={() => handleResearchUpgrade(researchId)}
-                  className="min-h-[40px] w-full rounded-lg bg-[#1B2230] px-3 text-xs font-semibold text-[#F4F5F7] hover:bg-[#B91C32] disabled:cursor-not-allowed disabled:opacity-40"
-                >
-                  {isMax
-                    ? (language === 'ar' ? 'اكتمل البحث' : 'Research maxed')
-                    : busyKey === `research_${researchId}`
-                    ? '...'
-                    : (language === 'ar' ? `تطوير · $${cost.toLocaleString()}` : `Research · $${cost.toLocaleString()}`)}
-                </button>
-              </div>
-            );
-          })}
-        </div>
-        {!canManageOrg && <p className="text-xs text-[#9299A6]">{language === 'ar' ? 'تطوير الأبحاث متاح للقائد والنائب.' : 'Research upgrades are available to the leader and deputy.'}</p>}
-      </section>
-
-      <div className="grid min-w-0 grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5">
-        {/* Shared Treasury Operations & RBAC Matrix */}
-        <div className="w-full min-w-0 space-y-4 sm:space-y-5">
-          <div id="org-treasury" className="min-w-0 bg-[#141821] border border-white/8 rounded-2xl p-4 sm:p-5 space-y-4">
-            <div className="flex items-center justify-between">
-              <h2 className="text-base font-semibold text-[#F4F5F7]">{language === 'ar' ? 'خزينة المنظمة والتبرعات' : 'Organization treasury & donations'}</h2>
-              <Vault className="w-4 h-4 text-[#E04455]" />
-            </div>
-
-            <div className="flex min-w-0 flex-wrap items-center gap-2.5">
-              <input
-                type="number"
-                min={1}
-                value={treasuryAmt || ''}
-                onChange={(e) => {
-                  const v = e.target.value;
-                  setTreasuryAmt(v === '' ? 0 : sanitizePositiveInt(v, 1));
-                }}
-                onBlur={() => setTreasuryAmt((v) => sanitizePositiveInt(v, 1))}
-                className="w-full sm:flex-1 min-w-0 min-h-[44px] px-3.5 rounded-xl bg-[#0B0D12] border border-white/10 text-sm font-mono-num text-[#F4F5F7]"
-              />
-              <button
-                type="button"
-                disabled={busyKey === 'dep' || treasuryAmt < 1 || (wallet?.balance ?? 0) < treasuryAmt}
-                onClick={handleDeposit}
-                className="flex-1 sm:flex-none min-w-0 min-h-[44px] px-3 sm:px-4 rounded-xl bg-[#B91C32] hover:bg-[#E04455] text-white text-xs font-semibold whitespace-nowrap disabled:bg-[#1B2230] disabled:text-[#9299A6]"
-              >
-                {language === 'ar' ? 'تبرع للخزنة' : 'Donate to treasury'}
-              </button>
-              {canManageTreasury && (
-                <button
-                  type="button"
-                  disabled={busyKey === 'wdr' || treasuryAmt < 1 || currentOrg.treasuryBalance < treasuryAmt}
-                  onClick={handleWithdraw}
-                  className="flex-1 sm:flex-none min-w-0 min-h-[44px] px-3 sm:px-4 rounded-xl bg-[#1B2230] hover:bg-[#232C3E] text-[#F4F5F7] text-xs font-semibold whitespace-nowrap disabled:opacity-50"
-                >
-                  {t.withdraw}
-                </button>
-              )}
-            </div>
-
-            <div className="space-y-2 pt-2 border-t border-white/8">
-              {orgTransactions.length === 0 ? (
-                <p className="text-xs text-[#9299A6] py-4 text-center">{t.noActivity}</p>
-              ) : (
-                orgTransactions.slice(0, 8).map((otx) => {
-                  const isInflow = otx.type === 'deposit';
-                  const typeLabel =
-                    otx.type === 'upgrade'
-                      ? t.upgradeOrg
-                      : otx.type === 'deposit'
-                      ? t.deposit
-                      : t.withdraw;
-                  return (
-                    <div
-                      key={otx.id}
-                      className="flex items-center justify-between text-xs py-2 border-b border-white/6 last:border-0"
-                    >
-                      <span className="text-[#9299A6]">
-                        {otx.username} · {typeLabel}
-                      </span>
-                      <span
-                        className={`font-mono-num font-semibold ${
-                          isInflow ? 'text-emerald-400' : 'text-[#E04455]'
-                        }`}
-                      >
-                        {isInflow ? '+' : '-'}
-                        {'$'}{otx.amount.toLocaleString()}
-                      </span>
-                    </div>
-                  );
-                })
-              )}
-            </div>
-          </div>
-
-          {/* Donation leaderboard */}
-          <div id="org-donations" className="min-w-0 bg-[#141821] border border-white/8 rounded-2xl p-4 sm:p-5 space-y-3">
-            <h2 className="text-sm font-semibold text-[#F4F5F7]">{language === 'ar' ? 'ترتيب التبرعات' : 'Donation leaderboard'}</h2>
-            {donationRanking.length === 0 ? <p className="py-4 text-center text-xs text-[#9299A6]">{language === 'ar' ? 'لا توجد تبرعات صافية حتى الآن.' : 'No net donations yet.'}</p> : donationRanking.map((entry, index) => (
-              <div key={entry.uid} className="flex items-center justify-between rounded-xl border border-white/6 bg-[#0B0D12] px-3 py-2.5"><span className="flex items-center gap-3 min-w-0"><span className="w-6 text-center text-xs font-bold text-amber-200">#{index + 1}</span><span className="truncate text-sm text-[#F4F5F7]">{entry.username}</span></span><span className="text-xs font-semibold font-mono-num text-emerald-400">${entry.amount.toLocaleString()}</span></div>
-            ))}
-          </div>
-        </div>
-
-        {/* Members & RBAC + Join Requests */}
-        <div className="space-y-5">
-          {canManageMembers && orgRequests.length > 0 && (
-            <div className="bg-[#141821] border border-white/8 rounded-2xl p-5 space-y-3">
-              <h2 className="text-base font-semibold text-[#F4F5F7]">{t.joinRequests}</h2>
-              <div className="space-y-2">
-                {orgRequests.map((req) => (
-                  <div
-                    key={req.id}
-                    className="p-3 rounded-xl bg-[#0B0D12] border border-white/6 flex items-center justify-between gap-3"
-                  >
-                    <span className="text-sm font-medium text-[#F4F5F7]">{req.username}</span>
-                    <div className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        disabled={busyKey === `req_${req.id}`}
-                        onClick={() => handleJoinDecision(req, 'approved')}
-                        className="min-h-[38px] px-3 rounded-lg bg-[#B91C32] hover:bg-[#E04455] text-white text-xs font-semibold flex items-center gap-1 disabled:opacity-50"
-                      >
-                        <Check className="w-3.5 h-3.5" />
-                        <span>{t.approve}</span>
-                      </button>
-                      <button
-                        type="button"
-                        disabled={busyKey === `req_${req.id}`}
-                        onClick={() => handleJoinDecision(req, 'rejected')}
-                        className="min-h-[38px] px-3 rounded-lg bg-[#1B2230] hover:bg-[#232C3E] text-[#9299A6] text-xs font-semibold flex items-center gap-1 disabled:opacity-50"
-                      >
-                        <X className="w-3.5 h-3.5" />
-                        <span>{t.reject}</span>
-                      </button>
-                    </div>
+      {activeOrgTab === 'info' && (
+        <>
+              {/* Organization Header */}
+              <div id="org-info" className="min-w-0 w-full bg-[#141821] border border-white/8 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="space-y-1">
+                  <p className="text-[10px] font-semibold tracking-wide text-[#E5A0A8]">{language === 'ar' ? 'معلومات المنظمة' : 'Organization information'}</p>
+                  <div className="flex items-center gap-2.5">
+                    <Shield className="w-5 h-5 text-[#E04455]" />
+                    <h1 className="min-w-0 break-words text-lg sm:text-xl font-bold text-[#F4F5F7]">
+                      [{currentOrg.tag}] {currentOrg.name}
+                    </h1>
                   </div>
-                ))}
+                  <p className="text-xs text-[#9299A6]">
+                    {t.level} <span className="font-mono-num text-[#F4F5F7]">{currentOrg.level}</span> ·{' '}
+                    {t.members}{' '}
+                    <span className="font-mono-num text-[#F4F5F7]">{currentOrg.memberCount}/{memberCapacity}</span> ·{' '}
+                    {t.reputation}{' '}
+                    <span className="font-mono-num text-[#F4F5F7]">{currentOrg.reputation}</span> ·{' '}
+                    {language === 'ar' ? 'القائد' : 'Leader'}{' '}
+                    <span className="text-[#F4F5F7]">{currentOrg.leaderName}</span>
+                  </p>
+                </div>
+        
+                <div className="flex w-full sm:w-auto flex-wrap items-center gap-2 sm:gap-3">
+                  <div className="text-end">
+                    <p className="text-xs text-[#9299A6]">{t.orgTreasury}</p>
+                    <p className="text-lg font-bold font-mono-num text-emerald-400">
+                      {'$'}{currentOrg.treasuryBalance.toLocaleString()}
+                    </p>
+                  </div>
+                  {upgradeInProgress && (
+                    <p className="w-full text-xs text-amber-300">{language === 'ar' ? `ينتهي تطوير المنظمة خلال نحو ${upgradeHoursLeft} ساعة.` : `Organization upgrade completes in about ${upgradeHoursLeft} hours.`}</p>
+                  )}
+                  {canManageOrg && (
+                    <button
+                      type="button"
+                      disabled={
+                        isOrgMaxLevel ||
+                        upgradeInProgress ||
+                        busyKey === 'upgrade_org' ||
+                        currentOrg.treasuryBalance < orgUpgradeCost
+                      }
+                      onClick={handleUpgradeOrg}
+                      className="min-h-[42px] w-full sm:w-auto justify-center px-3.5 rounded-xl bg-[#B91C32] hover:bg-[#E04455] text-white text-xs font-semibold flex items-center gap-1.5 whitespace-nowrap disabled:bg-[#1B2230] disabled:text-[#9299A6]"
+                    >
+                      <ArrowUpCircle className="w-4 h-4" />
+                      <span>
+                        {isOrgMaxLevel
+                          ? t.maxLevelReached
+                          : upgradeInProgress
+                          ? (language === 'ar' ? `جارٍ التطوير · المستوى ${currentOrg.upgradeTargetLevel}` : `Upgrading · Lv.${currentOrg.upgradeTargetLevel}`)
+                          : `${t.upgradeOrg} (${orgUpgradeCost.toLocaleString()})`}
+                      </span>
+                    </button>
+                  )}
+                  {myOrgMember.role !== 'leader' && (
+                    <button
+                      type="button"
+                      onClick={() => setConfirmLeaveOpen(true)}
+                      className="min-h-[40px] px-3.5 rounded-xl bg-[#1B2230] hover:bg-[#232C3E] text-[#E04455] text-xs font-semibold whitespace-nowrap"
+                    >
+                      {t.leaveOrg}
+                    </button>
+                  )}
+                </div>
               </div>
-            </div>
-          )}
+        </>
+      )}
 
-          <div id="org-members" className="bg-[#141821] border border-white/8 rounded-2xl p-5 space-y-3">
-            <div className="flex items-center justify-between">
-              <h2 className="text-base font-semibold text-[#F4F5F7]">{t.members}</h2>
-              <Users className="w-4 h-4 text-[#9299A6]" />
-            </div>
-            <div className="space-y-2">
-              {orgMembers.map((m) => {
-                const canChangeRole =
-                  canManageRoles &&
-                  m.uid !== profile.uid &&
-                  m.role !== 'leader' &&
-                  (myOrgMember.role === 'leader' || m.role !== 'deputy');
-                const canKick =
-                  canManageMembers &&
-                  m.uid !== profile.uid &&
-                  canManageOrgMember(myOrgMember.role, m.role);
-
-                return (
-                  <div
-                    key={m.uid}
-                    className="p-3 rounded-xl bg-[#0B0D12] border border-white/6 flex items-center justify-between gap-3"
-                  >
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium text-[#F4F5F7] truncate">{m.username}</p>
-                      <p className="text-xs text-[#9299A6] mt-0.5">
-                        {formatOrgRole(m.role, language)}
-
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      {canChangeRole && (
-                        <div className="flex flex-col items-end gap-1">
-                          <select value={m.role} disabled={busyKey === `role_${m.uid}`} onChange={(e) => handleRoleChange(m.uid, e.target.value as Exclude<OrgRole, 'leader'>)} className="min-h-[38px] px-2.5 rounded-lg bg-[#141821] border border-white/10 text-xs text-[#F4F5F7]">
-                            {myOrgMember.role === 'leader' && <option value="deputy">{formatOrgRole('deputy', language)}</option>}
-                            <option value="officer">{formatOrgRole('officer', language)}</option>
-                            <option value="member">{formatOrgRole('member', language)}</option>
-                          </select>
-                          <span className="max-w-[190px] text-[10px] text-[#9299A6] text-end">{(ROLE_DEFAULT_PERMISSIONS[m.role] || []).length === 0 ? (language === 'ar' ? 'صلاحيات العضو الأساسية' : 'Basic member access') : (ROLE_DEFAULT_PERMISSIONS[m.role] || []).map((p) => p === 'manage_members' ? (language === 'ar' ? 'إدارة الأعضاء' : 'Members') : p === 'manage_roles' ? (language === 'ar' ? 'إدارة الرتب' : 'Roles') : p === 'manage_treasury' ? (language === 'ar' ? 'الخزينة' : 'Treasury') : (language === 'ar' ? 'إدارة المنظمة' : 'Organization')).join(' · ')}</span>
+      {activeOrgTab === 'research' && (
+              <section id="org-research" className="min-w-0 rounded-2xl border border-white/8 bg-[#141821] p-4 sm:p-5 space-y-4">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <h2 className="text-base font-bold text-[#F4F5F7]">{language === 'ar' ? 'أبحاث المنظمة' : 'Organization Research'}</h2>
+                    <p className="mt-1 text-xs text-[#9299A6]">{language === 'ar' ? 'خمسة مسارات بحثية، لكل مسار 10 مستويات وتأثير محدود.' : 'Five research paths, each with 10 levels and balanced effects.'}</p>
+                  </div>
+                  <span className="rounded-lg bg-[#0B0D12] px-3 py-1.5 text-xs text-[#E5A0A8]">{language === 'ar' ? '10 مستويات' : '10 levels'}</span>
+                </div>
+                <div className="grid min-w-0 grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
+                  {(Object.keys(ORG_RESEARCH_DEFINITIONS) as OrganizationResearchId[]).map((researchId) => {
+                    const definition = ORG_RESEARCH_DEFINITIONS[researchId];
+                    const level = currentOrg.research?.[researchId] ?? 0;
+                    const cost = calculateOrgResearchCost(researchId, level);
+                    const isMax = level >= 10;
+                    return (
+                      <div key={researchId} className="rounded-xl border border-white/8 bg-[#0B0D12] p-4 space-y-3">
+                        <div className="flex items-center justify-between gap-2">
+                          <h3 className="text-sm font-bold text-[#F4F5F7]">{language === 'ar' ? definition.titleAr : definition.titleEn}</h3>
+                          <span className="font-mono-num text-xs text-[#E5A0A8]">{level}/10</span>
                         </div>
-                      )}
-                      {canKick && (
+                        <p className="min-h-[38px] text-xs leading-relaxed text-[#9299A6]">{language === 'ar' ? definition.effectAr : definition.effectEn}</p>
+                        <div className="h-1.5 overflow-hidden rounded-full bg-white/8">
+                          <div className="h-full rounded-full bg-[#B91C32]" style={{ width: `${level * 10}%` }} />
+                        </div>
                         <button
                           type="button"
-                          disabled={busyKey === `kick_${m.uid}`}
-                          onClick={() => setKickTarget({ uid: m.uid, username: m.username })}
-                          title={t.kick}
-                          aria-label={t.kick}
-                          className="min-h-[38px] px-2.5 rounded-lg bg-[#1B2230] hover:bg-[#B91C32]/30 text-[#E04455] text-xs font-semibold flex items-center gap-1"
+                          disabled={!canManageOrg || isMax || busyKey === `research_${researchId}` || currentOrg.treasuryBalance < cost}
+                          onClick={() => handleResearchUpgrade(researchId)}
+                          className="min-h-[40px] w-full rounded-lg bg-[#1B2230] px-3 text-xs font-semibold text-[#F4F5F7] hover:bg-[#B91C32] disabled:cursor-not-allowed disabled:opacity-40"
                         >
-                          <UserMinus className="w-3.5 h-3.5" />
+                          {isMax
+                            ? (language === 'ar' ? 'اكتمل البحث' : 'Research maxed')
+                            : busyKey === `research_${researchId}`
+                            ? '...'
+                            : (language === 'ar' ? `تطوير · $${cost.toLocaleString()}` : `Research · $${cost.toLocaleString()}`)}
                         </button>
-                      )}
+                      </div>
+                    );
+                  })}
+                </div>
+                {!canManageOrg && <p className="text-xs text-[#9299A6]">{language === 'ar' ? 'تطوير الأبحاث متاح للقائد والنائب.' : 'Research upgrades are available to the leader and deputy.'}</p>}
+              </section>
+      )}
+
+      <div className="grid min-w-0 grid-cols-1 gap-4 sm:gap-5">
+        {activeOrgTab === 'treasury' && (
+                  <div className="w-full min-w-0 space-y-4 sm:space-y-5">
+                    <div id="org-treasury" className="min-w-0 bg-[#141821] border border-white/8 rounded-2xl p-4 sm:p-5 space-y-4">
+                      <div className="flex items-center justify-between">
+                        <h2 className="text-base font-semibold text-[#F4F5F7]">{language === 'ar' ? 'خزينة المنظمة والتبرعات' : 'Organization treasury & donations'}</h2>
+                        <Vault className="w-4 h-4 text-[#E04455]" />
+                      </div>
+          
+                      <div className="flex min-w-0 flex-wrap items-center gap-2.5">
+                        <input
+                          type="number"
+                          min={1}
+                          value={treasuryAmt || ''}
+                          onChange={(e) => {
+                            const v = e.target.value;
+                            setTreasuryAmt(v === '' ? 0 : sanitizePositiveInt(v, 1));
+                          }}
+                          onBlur={() => setTreasuryAmt((v) => sanitizePositiveInt(v, 1))}
+                          className="w-full sm:flex-1 min-w-0 min-h-[44px] px-3.5 rounded-xl bg-[#0B0D12] border border-white/10 text-sm font-mono-num text-[#F4F5F7]"
+                        />
+                        <button
+                          type="button"
+                          disabled={busyKey === 'dep' || treasuryAmt < 1 || (wallet?.balance ?? 0) < treasuryAmt}
+                          onClick={handleDeposit}
+                          className="flex-1 sm:flex-none min-w-0 min-h-[44px] px-3 sm:px-4 rounded-xl bg-[#B91C32] hover:bg-[#E04455] text-white text-xs font-semibold whitespace-nowrap disabled:bg-[#1B2230] disabled:text-[#9299A6]"
+                        >
+                          {language === 'ar' ? 'تبرع للخزنة' : 'Donate to treasury'}
+                        </button>
+                        {canManageTreasury && (
+                          <button
+                            type="button"
+                            disabled={busyKey === 'wdr' || treasuryAmt < 1 || currentOrg.treasuryBalance < treasuryAmt}
+                            onClick={handleWithdraw}
+                            className="flex-1 sm:flex-none min-w-0 min-h-[44px] px-3 sm:px-4 rounded-xl bg-[#1B2230] hover:bg-[#232C3E] text-[#F4F5F7] text-xs font-semibold whitespace-nowrap disabled:opacity-50"
+                          >
+                            {t.withdraw}
+                          </button>
+                        )}
+                      </div>
+          
+                      <div className="space-y-2 pt-2 border-t border-white/8">
+                        {orgTransactions.length === 0 ? (
+                          <p className="text-xs text-[#9299A6] py-4 text-center">{t.noActivity}</p>
+                        ) : (
+                          orgTransactions.slice(0, 8).map((otx) => {
+                            const isInflow = otx.type === 'deposit';
+                            const typeLabel =
+                              otx.type === 'upgrade'
+                                ? t.upgradeOrg
+                                : otx.type === 'deposit'
+                                ? t.deposit
+                                : t.withdraw;
+                            return (
+                              <div
+                                key={otx.id}
+                                className="flex items-center justify-between text-xs py-2 border-b border-white/6 last:border-0"
+                              >
+                                <span className="text-[#9299A6]">
+                                  {otx.username} · {typeLabel}
+                                </span>
+                                <span
+                                  className={`font-mono-num font-semibold ${
+                                    isInflow ? 'text-emerald-400' : 'text-[#E04455]'
+                                  }`}
+                                >
+                                  {isInflow ? '+' : '-'}
+                                  {'$'}{otx.amount.toLocaleString()}
+                                </span>
+                              </div>
+                            );
+                          })
+                        )}
+                      </div>
+                    </div>
+          
+                    {/* Donation leaderboard */}
+                    <div id="org-donations" className="min-w-0 bg-[#141821] border border-white/8 rounded-2xl p-4 sm:p-5 space-y-3">
+                      <h2 className="text-sm font-semibold text-[#F4F5F7]">{language === 'ar' ? 'ترتيب التبرعات' : 'Donation leaderboard'}</h2>
+                      {donationRanking.length === 0 ? <p className="py-4 text-center text-xs text-[#9299A6]">{language === 'ar' ? 'لا توجد تبرعات صافية حتى الآن.' : 'No net donations yet.'}</p> : donationRanking.map((entry, index) => (
+                        <div key={entry.uid} className="flex items-center justify-between rounded-xl border border-white/6 bg-[#0B0D12] px-3 py-2.5"><span className="flex items-center gap-3 min-w-0"><span className="w-6 text-center text-xs font-bold text-amber-200">#{index + 1}</span><span className="truncate text-sm text-[#F4F5F7]">{entry.username}</span></span><span className="text-xs font-semibold font-mono-num text-emerald-400">${entry.amount.toLocaleString()}</span></div>
+                      ))}
                     </div>
                   </div>
-                );
-              })}
-            </div>
-          </div>
-        </div>
+          
+        )}
+        {activeOrgTab === 'members' && (
+                  <div className="space-y-5">
+                    {canManageMembers && orgRequests.length > 0 && (
+                      <div className="bg-[#141821] border border-white/8 rounded-2xl p-5 space-y-3">
+                        <h2 className="text-base font-semibold text-[#F4F5F7]">{t.joinRequests}</h2>
+                        <div className="space-y-2">
+                          {orgRequests.map((req) => (
+                            <div
+                              key={req.id}
+                              className="p-3 rounded-xl bg-[#0B0D12] border border-white/6 flex items-center justify-between gap-3"
+                            >
+                              <span className="text-sm font-medium text-[#F4F5F7]">{req.username}</span>
+                              <div className="flex items-center gap-2">
+                                <button
+                                  type="button"
+                                  disabled={busyKey === `req_${req.id}`}
+                                  onClick={() => handleJoinDecision(req, 'approved')}
+                                  className="min-h-[38px] px-3 rounded-lg bg-[#B91C32] hover:bg-[#E04455] text-white text-xs font-semibold flex items-center gap-1 disabled:opacity-50"
+                                >
+                                  <Check className="w-3.5 h-3.5" />
+                                  <span>{t.approve}</span>
+                                </button>
+                                <button
+                                  type="button"
+                                  disabled={busyKey === `req_${req.id}`}
+                                  onClick={() => handleJoinDecision(req, 'rejected')}
+                                  className="min-h-[38px] px-3 rounded-lg bg-[#1B2230] hover:bg-[#232C3E] text-[#9299A6] text-xs font-semibold flex items-center gap-1 disabled:opacity-50"
+                                >
+                                  <X className="w-3.5 h-3.5" />
+                                  <span>{t.reject}</span>
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+          
+                    <div id="org-members" className="bg-[#141821] border border-white/8 rounded-2xl p-5 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <h2 className="text-base font-semibold text-[#F4F5F7]">{t.members}</h2>
+                        <Users className="w-4 h-4 text-[#9299A6]" />
+                      </div>
+                      <div className="space-y-2">
+                        {orgMembers.map((m) => {
+                          const canChangeRole =
+                            canManageRoles &&
+                            m.uid !== profile.uid &&
+                            m.role !== 'leader' &&
+                            (myOrgMember.role === 'leader' || m.role !== 'deputy');
+                          const canKick =
+                            canManageMembers &&
+                            m.uid !== profile.uid &&
+                            canManageOrgMember(myOrgMember.role, m.role);
+          
+                          return (
+                            <div
+                              key={m.uid}
+                              className="p-3 rounded-xl bg-[#0B0D12] border border-white/6 flex items-center justify-between gap-3"
+                            >
+                              <div className="min-w-0">
+                                <p className="text-sm font-medium text-[#F4F5F7] truncate">{m.username}</p>
+                                <p className="text-xs text-[#9299A6] mt-0.5">
+                                  {formatOrgRole(m.role, language)}
+          
+                                </p>
+                              </div>
+                              <div className="flex items-center gap-2 shrink-0">
+                                {canChangeRole && (
+                                  <div className="flex flex-col items-end gap-1">
+                                    <select value={m.role} disabled={busyKey === `role_${m.uid}`} onChange={(e) => handleRoleChange(m.uid, e.target.value as Exclude<OrgRole, 'leader'>)} className="min-h-[38px] px-2.5 rounded-lg bg-[#141821] border border-white/10 text-xs text-[#F4F5F7]">
+                                      {myOrgMember.role === 'leader' && <option value="deputy">{formatOrgRole('deputy', language)}</option>}
+                                      <option value="officer">{formatOrgRole('officer', language)}</option>
+                                      <option value="member">{formatOrgRole('member', language)}</option>
+                                    </select>
+                                    <span className="max-w-[190px] text-[10px] text-[#9299A6] text-end">{(ROLE_DEFAULT_PERMISSIONS[m.role] || []).length === 0 ? (language === 'ar' ? 'صلاحيات العضو الأساسية' : 'Basic member access') : (ROLE_DEFAULT_PERMISSIONS[m.role] || []).map((p) => p === 'manage_members' ? (language === 'ar' ? 'إدارة الأعضاء' : 'Members') : p === 'manage_roles' ? (language === 'ar' ? 'إدارة الرتب' : 'Roles') : p === 'manage_treasury' ? (language === 'ar' ? 'الخزينة' : 'Treasury') : (language === 'ar' ? 'إدارة المنظمة' : 'Organization')).join(' · ')}</span>
+                                  </div>
+                                )}
+                                {canKick && (
+                                  <button
+                                    type="button"
+                                    disabled={busyKey === `kick_${m.uid}`}
+                                    onClick={() => setKickTarget({ uid: m.uid, username: m.username })}
+                                    title={t.kick}
+                                    aria-label={t.kick}
+                                    className="min-h-[38px] px-2.5 rounded-lg bg-[#1B2230] hover:bg-[#B91C32]/30 text-[#E04455] text-xs font-semibold flex items-center gap-1"
+                                  >
+                                    <UserMinus className="w-3.5 h-3.5" />
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+        )}
       </div>
 
       <ConfirmDialog
