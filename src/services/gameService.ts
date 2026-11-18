@@ -56,7 +56,7 @@ function applyXpAndLevel(
 }
 
 export async function ensureBootstrapWorldData(): Promise<void> {
-  // Global market listings and world events are provisioned in the NEXORA Supabase schema.
+  // Global market listings and world events are provisioned in the NOVA Supabase schema.
 }
 
 export async function isUsernameAvailable(username: string): Promise<boolean> {
