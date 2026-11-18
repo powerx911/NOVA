@@ -493,3 +493,18 @@ The user explicitly requires NOVA to be online and socially connected from its f
 - GitHub Pages deployment run `44338016649` — **success**. Setup Pages, artifact upload (67,468 bytes), and Deploy to GitHub Pages all passed. GitHub Actions reported the environment URL https://powerx911.github.io/NOVA/. Independent HTTP/browser and real Android device verification remain outstanding.
 - The new UI interactions remain a local browser preview. No live multiplayer, player accounts, shared economy, realtime chat, or authoritative conflict simulation is connected yet.
 - Existing Supabase project, RLS-protected player foundation, and GitHub Pages infrastructure were preserved. No production data or secrets were changed.
+
+
+
+### 2026-11-18 — Mobile-first competitive simulation prototype
+
+- Reframed the client around the owner's clarified product constraints: portrait mobile game, UI-and-number-driven simulation, direct competition between players, and **no world map or open-world character presentation**.
+- Replaced the previous sector/city simulation presentation with an original command-center and operations experience. Navigation and screen taxonomy were redesigned independently rather than copying the reference example's labels or tab count.
+- Added command metrics, event/activity surfaces, competitive challenges, asset/inventory management, market presentation, player rankings, organization entry points, and profile/settings surfaces.
+- Added thumb-oriented bottom navigation, translucent layered panels, touch feedback, optional short vibration where supported, safe-area padding, keyboard focus styles, and reduced-motion support.
+- Local interactions remain explicitly demo-only; no live player, server economy, market, rankings, alliance, or combat API is claimed or connected by this change.
+- Files changed: `index.html`, `styles.css`, `app.js`, `README.md`, `PROJECT_STATUS.md`.
+- Branch: `feature/nova-mobile-competitive-prototype`.
+- Validation planned: JavaScript syntax check, HTML structure/ID wiring review, responsive/CSS review, diff whitespace check, and configured GitHub Actions checks. Real Android device verification remains outstanding.
+- Backend: existing Supabase project and player foundation preserved; no database migration or production data mutation in this change.
+- Deployment: not deployed from this branch. Deployment verification is required after merge.
