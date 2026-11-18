@@ -26,6 +26,7 @@ interface AppShellProps {
   profile: PlayerProfile;
   wallet: Wallet | null;
   notifications: GameNotification[];
+  socialUnreadCount: number;
   language: Language;
   children: ReactNode;
 }
@@ -36,6 +37,7 @@ export function AppShell({
   profile,
   wallet,
   notifications,
+  socialUnreadCount,
   language,
   children,
 }: AppShellProps) {
@@ -89,7 +91,7 @@ export function AppShell({
                       : 'text-[#9299A6] border-transparent hover:text-[#F4F5F7]'
                   }`}
                 >
-                  {item.label}
+                  {item.label}{item.id === 'social' && socialUnreadCount > 0 && <span className="ms-1 inline-flex min-w-4 h-4 px-1 rounded-full bg-red-600 text-[9px] font-bold text-white items-center justify-center">{socialUnreadCount}</span>}
                 </button>
               );
             })}
@@ -145,11 +147,12 @@ export function AppShell({
                 key={item.id}
                 type="button"
                 onClick={() => onTabChange(item.id)}
-                className={`min-w-0 flex flex-col items-center justify-center gap-1 min-h-[44px] transition-colors ${
+                className={`relative min-w-0 flex flex-col items-center justify-center gap-1 min-h-[44px] transition-colors ${
                   isActive ? 'text-[#E04455]' : 'text-[#9299A6] hover:text-[#F4F5F7]'
                 }`}
               >
                 <Icon className="w-5 h-5" strokeWidth={isActive ? 2.3 : 1.8} />
+                {item.id === 'social' && socialUnreadCount > 0 && <span className="absolute top-1 end-2 min-w-4 h-4 px-1 rounded-full bg-red-600 text-[9px] font-bold text-white flex items-center justify-center">{socialUnreadCount}</span>}
                 <span className="block w-full min-w-0 overflow-hidden text-ellipsis whitespace-nowrap px-0.5 text-center text-[10px] sm:text-[11px] font-medium">{item.label}</span>
               </button>
             );
