@@ -532,7 +532,9 @@ export function BusinessHubView({
                   ? Object.entries(vaultUpgrade.materials).every(([itemId, qty]) => (invMap.get(itemId) || 0) >= qty)
                   : false;
                 const vaultProgress = Math.min(100, (accrued / vaultCapacity) * 100);
-                const upgradeCost = c.level * 550;\n                const companyUpgradeMaterials = getCompanyUpgradeMaterials(c.sector, c.level + 1);\n                const companyMaterialsAvailable = Object.entries(companyUpgradeMaterials).every(([itemId, qty]) => (invMap.get(itemId) || 0) >= qty);
+                const upgradeCost = c.level * 550;
+                const companyUpgradeMaterials = getCompanyUpgradeMaterials(c.sector, c.level + 1);
+                const companyMaterialsAvailable = Object.entries(companyUpgradeMaterials).every(([itemId, qty]) => (invMap.get(itemId) || 0) >= qty);
                 const companyUpgradeEndsAt = c.levelUpgradeEndsAt ? timestampToMs(c.levelUpgradeEndsAt) : 0;
                 const vaultUpgradeEndsAt = c.vaultUpgradeEndsAt ? timestampToMs(c.vaultUpgradeEndsAt) : 0;
                 const companyUpgradeRemaining = companyUpgradeEndsAt ? Math.max(0, companyUpgradeEndsAt - nowMs) : 0;
