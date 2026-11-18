@@ -427,7 +427,7 @@ The user explicitly requires NOVA to be online and socially connected from its f
 ### First server-authoritative player foundation — in progress
 
 - Created feature branch feat/server-authoritative-player-foundation from latest main.
-- Added supabase/migrations/20261118160000_nova_player_core.sql proposing six RLS-protected tables: profiles, economy, personal castles, buildings, idempotent command receipts, and resource ledger.
+- Added supabase/migrations/20261118151416_nova_player_core.sql proposing six RLS-protected tables: profiles, economy, personal castles, buildings, idempotent command receipts, and resource ledger.
 - Added two authenticated RPC commands: nova_initialize_player and nova_upgrade_building. The upgrade command validates ownership, calculates costs server-side, locks state, deducts resources and increments the building in one transaction, records a ledger, and returns a replay-safe receipt.
 - Castle coordinates are allocated uniquely within an initial 1000×1000 kingdom grid. Terrain, map placement rules, and relocation remain future work.
 - Added docs/SERVER_AUTHORITATIVE_PLAYER_FOUNDATION.md documenting scope, security, limitations, and the post-merge verification plan.
