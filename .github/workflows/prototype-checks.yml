@@ -1,0 +1,41 @@
+name: NOVA Prototype Checks
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Validate JavaScript syntax
+        run: node --check app.js
+
+      - name: Verify prototype assets and entry points
+        shell: bash
+        run: |
+          test -s index.html
+          test -s styles.css
+          test -s app.js
+          grep -Fq 'href="./styles.css"' index.html
+          grep -Fq 'src="./app.js"' index.html
+          grep -Fq 'id="map-grid"' index.html
+          grep -Fq 'id="inventory-grid"' index.html
+          grep -Fq 'id="quest-list"' index.html
+
+      - name: Check patch whitespace
+        run: git diff --check origin/main...HEAD
