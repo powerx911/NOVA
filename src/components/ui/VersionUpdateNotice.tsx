@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 
-const STORAGE_KEY = 'nova-installed-version';
+const STORAGE_KEY = 'nexora-installed-version';
 const CHECK_INTERVAL_MS = 45_000;
 
 /** Detects a newly deployed build without requiring a page refresh. */
