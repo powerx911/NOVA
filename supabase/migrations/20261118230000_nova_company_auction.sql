@@ -171,7 +171,7 @@ begin
 
   v_tx:='tx_'||gen_random_uuid()::text;
   insert into nexora.transactions(id,from_uid,to_uid,amount,fee,net_amount,type,reference_id,description,status)
-    values(v_tx,v_auction.highest_bidder_uid,v_auction.seller_uid,v_auction.current_price,0,
+    values(v_tx,'SYSTEM',v_auction.seller_uid,v_auction.current_price,0,
       v_auction.current_price,'company_auction_sale',v_auction.company_id,
       'Purchased company at auction: '||v_auction.company_name,'completed');
   insert into nexora.company_logs(id,company_id,owner_uid,action,amount,details)
