@@ -3,7 +3,7 @@ const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
 const fmt=n=>new Intl.NumberFormat("en-US").format(Number(n||0));
 const SUPABASE_URL="https://hmrprnjhyzyefocdmnxf.supabase.co";
 const SUPABASE_KEY="sb_publishable_T0zWZ-2mi1K5CW7nVlWy5w_TL9AMWAj";
-let db=null,user=null,profile=null,wallet=null,assets=[],inventory=[],channel=null,toastTimer,authMode="login",loadingUser=null;
+let db=null,user=null,profile=null,wallet=null,assets=[],inventory=[],channel=null,toastTimer,energyTimer=null,authMode="login",loadingUser=null;
 function notify(msg){const el=$("#toast");el.textContent=msg;el.classList.add("show");clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove("show"),2600)}
 function feedback(){if(navigator.vibrate)navigator.vibrate(8)}
 function dialog(title,message,mark="✦",kicker="NOVA SYSTEM"){$("#dialog-title").textContent=title;$("#dialog-message").textContent=message;$("#dialog-mark").textContent=mark;$("#dialog-kicker").textContent=kicker;$("#action-dialog").showModal()}
