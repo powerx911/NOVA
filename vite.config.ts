@@ -5,6 +5,8 @@ import {defineConfig} from 'vite';
 
 export default defineConfig(() => {
   return {
+    // GitHub Pages hosts this repository under /NOVA/; local/Vercel builds stay at root.
+    base: process.env.GITHUB_PAGES === 'true' ? '/NOVA/' : '/',
     plugins: [react(), tailwindcss()],
     resolve: {
       alias: {
