@@ -74,7 +74,7 @@
   function switchScreen(name) {
     $$(".screen").forEach(screen => screen.classList.toggle("active", screen.id === `screen-${name}`));
     $$(".nav-item").forEach(button => button.classList.toggle("active", button.dataset.screen === name));
-    if (name === "map") { state.visitedMap = true; checkQuests(); save(); renderQuests(); }
+    if (name === "map") { state.visitedMap = true; checkQuests(); save(); renderResources(); renderQuests(); renderProfile(); }
     if (name === "profile") renderProfile();
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
