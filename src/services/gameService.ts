@@ -17,6 +17,7 @@ import { nexoraApi } from '../lib/nexoraApi';
 import type {
   Company,
   CompanySector,
+  CompanyAuction,
   InventoryItem,
   Language,
   MarketListing,
@@ -250,6 +251,42 @@ export async function completeCompanyVaultUpgrade(_uid: string, companyId: strin
 export async function collectCompanyRevenue(_uid: string, companyId: string): Promise<number> {
   const result = await callSupabaseCompanyAction<{ payout: number }>('company_collect', companyId);
   return result.payout;
+}
+
+export async function fetchCompanyAuctions(): Promise<CompanyAuction[]> {
+  return nexoraApi<CompanyAuction[]>('fetch_company_auctions');
+}
+
+export async function listCompanyForAuction(companyId: string, startingPriceRaw: number): Promise<void> {
+  const startingPrice = Number.isFinite(startingPriceRaw) ? Math.floor(startingPriceRaw) : 0;
+  if (!companyId || startingPrice < 1) throw new Error('INVALID_STARTING_PRICE');
+  try {
+    await nexoraApi('list_company_for_auction', { companyId, startingPrice });
+  } catch (error) {
+    if (error instanceof Error && 'code' in error) throw new Error(String((error as { code?: unknown }).code ?? 'COMPANY_AUCTION_LIST_FAILED'));
+    throw error;
+  }
+}
+
+export async function placeCompanyAuctionBid(auctionId: string, amountRaw: number): Promise<void> {
+  const amount = Number.isFinite(amountRaw) ? Math.floor(amountRaw) : 0;
+  if (!auctionId || amount < 1) throw new Error('INVALID_BID');
+  try {
+    const result = await nexoraApi<{ ended?: boolean }>('place_company_auction_bid', { auctionId, amount });
+    if (result.ended) throw new Error('AUCTION_ENDED');
+  } catch (error) {
+    if (error instanceof Error && 'code' in error) throw new Error(String((error as { code?: unknown }).code ?? 'COMPANY_AUCTION_BID_FAILED'));
+    throw error;
+  }
+}
+
+export async function deleteCompany(companyId: string): Promise<void> {
+  try {
+    await nexoraApi('delete_company', { companyId });
+  } catch (error) {
+    if (error instanceof Error && 'code' in error) throw new Error(String((error as { code?: unknown }).code ?? 'COMPANY_DELETE_FAILED'));
+    throw error;
+  }
 }
 
 export async function claimMissionReward(_uid: string, missionId: string): Promise<void> {
