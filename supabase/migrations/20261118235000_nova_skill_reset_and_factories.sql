@@ -88,7 +88,7 @@ language sql immutable set search_path = '' as $$
   select cfg.founding_cost,cfg.production_rate,cfg.operating_cost,cfg.rarity_factor from (values
     ('copper_wire'::text, 5000::bigint, 5.00::numeric, 125.00::numeric, 1.00::numeric),
     ('silicon_ore', 6500, 4.20, 130.00, 1.20),
-    ('energy_cells', 8000, 3.50, 140.00, 1.40),
+    ('energy_cells', 8000, 4.00, 140.00, 1.40),
     ('crude_alloy', 9500, 3.80, 145.00, 1.65),
     ('carbon_fiber', 12500, 3.00, 150.00, 2.10),
     ('rare_minerals', 26000, 2.50, 160.00, 3.60)
