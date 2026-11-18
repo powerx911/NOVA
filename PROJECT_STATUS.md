@@ -182,6 +182,18 @@ Statuses below distinguish completed source changes from verified live behavior.
 
 ## 8. Change log
 
+### 2026-11-18 — Android-first standard and game-reuse research
+
+- Added mandatory Android-first product/UX requirements for NOVA.
+- Added `docs/REUSE_RESEARCH.md` summarizing the user's prior NEXORA and VORZANE projects and selected external open-source references.
+- This is a research/documentation change only: no game code, assets, dependencies, backend schema, secrets, or deployment settings were changed.
+- Findings explicitly separate reusable design ideas from incomplete/unsafe legacy implementation paths and third-party assets requiring license review.
+- Branch: `research/old-games-and-open-source-systems`.
+- PR: pending.
+- Checks: source links and repository contents reviewed; documentation consistency review only. Runtime tests are not applicable because no executable code changed.
+- Deployment: not applicable; no deployment configuration or runtime code changed.
+
+
 ### 2026-11-18 — Record baseline PR merge
 
 - Updated this file to record PR #2 and its squash merge commit.
@@ -224,3 +236,33 @@ Before changing anything:
 7. Run and report relevant checks honestly, then merge and verify deployment only when all required gates pass.
 
 **If this document and live GitHub/Supabase state disagree, verify the live state, correct this document in a branch, and preserve the discrepancy in the change log.**
+
+
+## 10. Android-first product and UX requirements (mandatory)
+
+NOVA is intended to feel like a real Android game/app on a phone, not a conventional responsive website. These requirements apply to every future screen, feature, and gameplay interaction:
+
+- Design mobile-first for Android portrait screens by default; support landscape when the gameplay mode benefits from it.
+- Adapt to different Android screen sizes, aspect ratios, densities, and browser/system UI insets without clipping controls or important content.
+- Use safe-area-aware layouts and appropriate edge-to-edge/fullscreen behavior. Where the delivery format is an installable PWA, provide a standalone app experience and request fullscreen only through supported Android/user-initiated behavior.
+- Make touch the primary input: large finger-friendly targets, clear spacing, readable typography, visible pressed/disabled/loading states, and gestures that do not conflict with browser navigation.
+- Keep navigation and core actions comfortable for one-handed use where practical; avoid desktop-style tiny controls and dense admin-dashboard layouts.
+- Provide smooth, short transitions and responsive feedback without blocking gameplay or tying animation completion to slow network/save operations.
+- Optimize startup, asset loading, memory, rendering, and battery use for mid-range Android devices as well as high-end phones.
+- Plan offline behavior intentionally: clear offline status, local progress protection, retry/reconciliation behavior, and no silent loss or overwrite of player progress.
+- Test real interactions and layouts across representative Android viewport sizes and at least one real Android device before calling a screen complete. Automated mobile browser tests are useful but do not replace device verification.
+- Do not call the experience Android-native or claim an APK exists unless an actual native package has been built and verified.
+
+The selected game engine/rendering stack has not yet been decided. Choose it only after the game genre and interaction model are defined; do not force a desktop-first engine or port a legacy stack merely because it exists.
+
+## 11. Prior-game and open-source research status
+
+Research findings and candidate systems are recorded in `docs/REUSE_RESEARCH.md`.
+
+- Prior projects inspected: `luffyk124-del/nexora-game` (economic/corporate simulation) and `luffyk124-del/vorzane` (fantasy RPG).
+- External references inspected: Violencetown, CodingQuests Godot systems, Embervale, and Phaser/PWA/asset licensing documentation.
+- Research only: no legacy code, assets, database, authentication provider, deployment configuration, or third-party dependency has been copied into NOVA.
+- Reuse decisions are conditional on NOVA's still-unconfirmed game genre, code ownership, dependency compatibility, and per-asset/per-component license review.
+- Do not import VORZANE's generic client full-save mutation path or client-computed battle settlement as authoritative game state. Its own audit identifies these as unresolved server-authority blockers.
+- Do not import old Firebase or Vercel-specific infrastructure into NOVA. NOVA remains on GitHub + its existing Supabase project; Vercel is prohibited for this project.
+- Do not begin game implementation until the user explicitly approves the game direction and first feature scope.
