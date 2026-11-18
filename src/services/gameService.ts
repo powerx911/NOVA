@@ -340,6 +340,9 @@ export async function completeFactoryUpgrade(factoryId: string): Promise<void> {
 export async function upgradeFactorySkill(factoryId: string): Promise<void> {
   await callFactoryAction('upgrade_factory_skill', factoryId);
 }
+export async function setFactoryActive(factoryId: string, active: boolean): Promise<void> {
+  await callFactoryAction('set_factory_active', factoryId, { active });
+}
 export async function withdrawFactoryWarehouse(factoryId: string, quantityRaw: number): Promise<void> {
   const quantity = Number.isFinite(quantityRaw) ? Math.floor(quantityRaw) : 0;
   if (quantity < 1) throw new Error('INVALID_QUANTITY');
