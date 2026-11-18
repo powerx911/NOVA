@@ -29,7 +29,6 @@ import {
   calculateLevelProgress,
   canManageOrgMember,
   getAchievementProgress,
-  getMissionProgress,
   hasOrgPermission,
   isValidUsername,
   LISTING_MAX_PRICE,
@@ -337,84 +336,15 @@ export async function collectPropertyRent(_uid: string, propertyId: string): Pro
   return result.payout;
 }
 
-export async function claimMissionReward(uid: string, missionId: string): Promise<void> {
-  const mission = MISSIONS.find((m) => m.id === missionId);
-  if (!mission) throw new Error('INVALID_MISSION');
-
-  const claimDocId = `${uid}_${missionId}`;
-  const txId = genId('tx');
-
+export async function claimMissionReward(_uid: string, missionId: string): Promise<void> {
+  if (!MISSIONS.some((mission) => mission.id === missionId)) throw new Error('INVALID_MISSION');
   try {
-    await runTransaction(db, async (tx) => {
-      const claimRef = doc(db, 'player_missions', claimDocId);
-      const walletRef = doc(db, 'wallets', uid);
-      const profileRef = doc(db, 'profiles', uid);
-      const [claimSnap, walletSnap, profileSnap] = await Promise.all([
-        tx.get(claimRef),
-        tx.get(walletRef),
-        tx.get(profileRef),
-      ]);
-
-      if (claimSnap.exists()) throw new Error('MISSION_ALREADY_CLAIMED');
-      if (!walletSnap.exists() || !profileSnap.exists()) throw new Error('ACCOUNT_NOT_FOUND');
-
-      const wallet = walletSnap.data() as Wallet;
-      const profile = profileSnap.data() as PlayerProfile;
-
-      const currentProgress = getMissionProgress(mission.metric, profile);
-
-      if (currentProgress < mission.targetCount) {
-        throw new Error('MISSION_NOT_COMPLETE');
-      }
-
-      tx.set(claimRef, {
-        uid,
-        missionId,
-        category: mission.category,
-        rewardCredits: mission.rewardCredits,
-        rewardXp: mission.rewardXp,
-        claimedAt: serverTimestamp(),
-      });
-
-      tx.set(doc(db, 'transactions', txId), {
-        id: txId,
-        fromUid: 'SYSTEM',
-        toUid: uid,
-        amount: mission.rewardCredits,
-        fee: 0,
-        netAmount: mission.rewardCredits,
-        type: 'mission_reward',
-        referenceId: claimDocId,
-        description: `Mission reward: ${mission.titleEn}`,
-        status: 'completed',
-        createdAt: serverTimestamp(),
-      });
-
-      tx.update(walletRef, {
-        balance: wallet.balance + mission.rewardCredits,
-        totalEarned: wallet.totalEarned + mission.rewardCredits,
-        lastTxId: txId,
-        updatedAt: serverTimestamp(),
-      });
-
-      const xpUpdate = applyXpAndLevel(profile, mission.rewardXp, mission.rewardReputation, 5);
-      tx.update(profileRef, {
-        ...xpUpdate,
-        stats: {
-          ...profile.stats,
-          missionsCompleted: profile.stats.missionsCompleted + 1,
-        },
-        updatedAt: serverTimestamp(),
-      });
-    });
+    await nexoraApi('claim_mission_reward', { missionId });
   } catch (error) {
-    if (error instanceof Error && ['INVALID_MISSION', 'MISSION_ALREADY_CLAIMED', 'MISSION_NOT_COMPLETE'].includes(error.message)) {
-      throw error;
-    }
-    handleFirestoreError(error, OperationType.WRITE, `player_missions/${claimDocId}`);
+    if (error instanceof Error && 'code' in error) throw new Error(String((error as { code?: unknown }).code ?? 'MISSION_CLAIM_FAILED'));
+    throw error;
   }
 }
-
 export async function createOrganization(
   uid: string,
   _username: string,
