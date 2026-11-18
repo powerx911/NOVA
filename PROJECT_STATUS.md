@@ -45,7 +45,7 @@ If deployment fails after merge, record the failure and create a separate fix br
 | Control service | Supabase Edge Function `nova-control` (deployment pending verification) |
 | Vercel | **Not used.** The project owner explicitly requires GitHub-based source control, integration, and deployment; do not introduce Vercel. |
 
-The user is preparing infrastructure first. **Do not start building the game itself until explicitly instructed.**
+The user has requested an online-first competitive multiplayer game foundation before choosing the final game genre, setting, camera, or engine. Prepare and document the social, alliance, economy, war, security, and delivery requirements first; do not lock the final game category or begin the playable implementation prematurely.
 
 ---
 
@@ -53,7 +53,7 @@ The user is preparing infrastructure first. **Do not start building the game its
 
 Known files on `main` as of this baseline:
 
-- `README.md` — project overview.
+- `README.md` — project overview and current online multiplayer scope.
 - `.gitignore` — ignored files.
 - `index.html` — temporary/static placeholder.
 - `.github/workflows/pages.yml` — GitHub Pages deployment workflow; Pages enablement and a successful live deployment have not yet been confirmed.
@@ -168,7 +168,7 @@ Statuses below distinguish completed source changes from verified live behavior.
 | GitHub Pages enabled | **Pending** | `has_pages: false` appeared in an earlier repository snapshot. |
 | First Pages deployment | **Unverified** | Check Pages settings, workflow run, and live URL. |
 | Automated branch/PR/test/merge/deploy lifecycle | **Process agreed; not yet fully validated** | Follow the mandatory lifecycle in section 1 for every future change. |
-| Game implementation | **Not started by instruction** | Wait for explicit user direction. |
+| Game implementation | **Not started** | Current work is foundation preparation only. Complete the online-first requirements and technical evaluation before selecting the final game presentation or starting the playable slice. The user has delegated ordinary product/engineering decisions; do not ask for technical choices that can be resolved by research. |
 
 ### Known risks / checks still required
 
@@ -185,7 +185,7 @@ Statuses below distinguish completed source changes from verified live behavior.
 ### 2026-11-18 — Autonomous product-development mandate
 
 - The user explicitly delegated day-to-day product, design, engineering, quality, and prioritization decisions for NOVA. The assistant should proactively identify and implement necessary features, improvements, fixes, and polish without requiring the user to specify each task.
-- Established the initial product direction as an original Android-first adventure RPG, using selected RPG systems from VORZANE as research and considering NEXORA-inspired economy/social systems only when they strengthen the core game loop.
+- Recorded a provisional Android-first adventure-RPG idea as an early proposal. **Superseded on 2026-11-18** by the owner's explicit online-first competitive multiplayer requirements in section 13; it is not the selected genre.
 - Added `docs/PRODUCT_VISION.md` as the product decision and quality charter.
 - This mandate does not authorize spending money, accepting legal terms, making identity/account ownership declarations, exposing secrets, or destructive production data changes without explicit user approval.
 - All implementation continues to follow branch → review/tests → PR → merge → deployment verification. No direct pushes to `main`.
@@ -279,14 +279,14 @@ Research findings and candidate systems are recorded in `docs/REUSE_RESEARCH.md`
 - Reuse decisions are conditional on NOVA's still-unconfirmed game genre, code ownership, dependency compatibility, and per-asset/per-component license review.
 - Do not import VORZANE's generic client full-save mutation path or client-computed battle settlement as authoritative game state. Its own audit identifies these as unresolved server-authority blockers.
 - Do not import old Firebase or Vercel-specific infrastructure into NOVA. NOVA remains on GitHub + its existing Supabase project; Vercel is prohibited for this project.
-- Do not begin game implementation until the user explicitly approves the game direction and first feature scope.
+- Do not begin the playable game implementation until the online-first foundation and a documented technical/product evaluation identify a justified first vertical slice. The user has delegated ordinary product and engineering decisions; no separate approval is needed for routine technical choices.
 
 
 ## 12. Autonomous product-development mandate
 
 The user has explicitly delegated day-to-day product, design, engineering, prioritization, and quality decisions to the development agent. Do not wait for the user to name every feature or technical task. Proactively inspect the product, identify gaps and risks, propose priorities internally, and implement the highest-value improvements in small reviewable increments.
 
-Initial product direction: an original Android-first adventure RPG with a strong character-progression, exploration, and discovery loop. Use VORZANE as a source of selectively reusable RPG design patterns. Consider NEXORA-inspired economy, crafting, trade, and social systems only when they improve the core loop; do not turn NOVA into an unfocused feature collection. The product vision and roadmap live in `docs/PRODUCT_VISION.md` and may evolve based on playtesting and evidence.
+Current user-defined direction: an online-first persistent multiplayer experience centered on competitive alliances, diplomacy, economy, armies, and wars, with polished profiles, friends, private messages, and global chat as foundational systems. The final genre label, world/theme, camera, combat presentation, session structure, client engine, and launch platform packaging remain intentionally undecided pending a documented evaluation. Do not silently revert to the previously suggested single-player adventure RPG direction. The product vision and requirements live in `docs/PRODUCT_VISION.md` and `docs/ONLINE_GAME_FOUNDATION.md` and must evolve from prototypes, tests, and evidence.
 
 Autonomy boundaries:
 - The agent may make ordinary product, UX, architecture, code, test, documentation, and non-destructive development decisions without asking the user each time.
@@ -299,3 +299,37 @@ Autonomy boundaries:
 Quality gate: no placeholder copy, lorem ipsum, dead controls, fake functionality, unhandled error states, preventable data loss, obvious spelling/grammar defects, or unverified claims. All player-facing text must be reviewed in its target language and context. A feature is not complete until its real user flow, loading/empty/error/offline states, accessibility/touch behavior, and relevant Android layouts have been checked.
 
 Release aspiration: target a polished, stable, store-quality Android game. Google Play release readiness requires separate verification of Android packaging/signing, target API requirements, privacy/data disclosures, content rating, store assets/listing, device compatibility, crash/performance behavior, and Play Console submission. Do not claim Play Store publication or native APK/AAB readiness until those steps have actually been completed and any account-owner approvals obtained.
+
+
+## 13. Online-first multiplayer requirements (user-confirmed)
+
+The user explicitly requires NOVA to be online and socially connected from its foundations. The experience must include professional player profiles, friend/player connections, private conversations, global chat, organized high-quality menus and visual presentation, competitive alliances, an economy, armies, and wars. The game should create long-term player attachment through meaningful social, economic, diplomatic, and competitive systems.
+
+- The final game category, setting, theme, camera, exact gameplay presentation, and engine must **not** be locked yet. First complete the online-first foundation and technical evaluation.
+- The previous adventure-RPG direction is superseded as an unapproved early proposal. Do not treat it as the final category.
+- Detailed requirements and architectural principles: `docs/ONLINE_GAME_FOUNDATION.md`.
+- Player profile/social baseline: identity and public profile, privacy controls, friend requests, blocking, reporting, online status, private messaging, global chat, and later alliance communications.
+- Persistent competitive systems: alliances, memberships/roles, diplomacy, shared goals and treasury, resources, production, trade, armies, conflict resolution, seasons, and fair leaderboards.
+- The backend must be authoritative for valuable shared state: currency, resources, inventory, production, market transactions, alliance membership/treasury, military orders, battle outcomes, rankings, and rewards.
+- Realtime transport must not be confused with durable storage or trusted game rules. Store durable messages and game events, and authorize private channels by player/alliance/room membership.
+- Global and private chat require moderation and abuse controls: rate limiting, mute/block/report, anti-spam, retention controls, and safe escalation processes.
+- No real-money purchases, pay-to-win, ads, or personal-data analytics without separate explicit approval.
+- Brand/domain/social-share metadata and a properly licensed music/audio plan are required foundations. A short free subdomain may be acceptable as an interim URL, but stability, ownership, and share-preview behavior must be tested before relying on it.
+- Current infrastructure audit on 2026-11-18: Supabase project `NOVA` is `ACTIVE_HEALTHY`; public schema contains no game tables yet; Edge Function `nova-control` is listed as ACTIVE version 1. GitHub repository is writable. These facts do not prove Pages is enabled or the game deployment is live.
+- A Figma workspace file was created for the product/interface foundation: https://www.figma.com/design/5bVPOQxGkZC8DXpm4yznvy.
+- Figma and Context7 have been connected in ChatGPT for design workflow and current technical documentation. No paid Figma AI generation or paid services were invoked.
+- Technical research verified Supabase Realtime's intended split: Broadcast for low-latency transient messages/events, Presence for low-frequency online state, and durable Postgres rows for stored messages and canonical game state. Private channels require explicit Realtime Authorization/RLS; public channel access should be disabled for production private topics. See citations/links in `docs/ONLINE_GAME_FOUNDATION.md`.
+- No game client, schema, monetization, domain purchase, or production data mutation was made in this foundation-preparation change.
+
+### 2026-11-18 — Online-first competitive multiplayer foundation
+
+- Replaced the provisional adventure-RPG proposal with the user's actual requirements: online-first persistent multiplayer, player profiles/social features, alliances, economy, armies, wars, and sustained competitive play.
+- Preserved the final genre, setting, gameplay presentation, and engine as open decisions pending evaluation.
+- Added `docs/ONLINE_GAME_FOUNDATION.md` with player/social/gameplay requirements, server-authoritative backend principles, chat safety, realtime architecture, domain/share metadata, licensed audio, and technical decision gates.
+- Updated `README.md` so the public project description reflects the confirmed online-first direction without prematurely claiming a final genre or client platform.
+- Created Figma workspace: https://www.figma.com/design/5bVPOQxGkZC8DXpm4yznvy.
+- Connected Figma and Context7; used Context7 and current Supabase documentation to validate Realtime role separation and private-channel authorization principles.
+- Audited current Supabase project: ACTIVE_HEALTHY; no public game tables; nova-control function ACTIVE version 1.
+- Branch: `docs/online-world-foundation`.
+- Validation: reviewed source docs and Supabase project/table/function state; re-fetched changed documents and checked alignment across README, product vision, foundation requirements, and project status. Runtime game tests are not applicable because no executable game code or database schema was changed.
+- Deployment: no runtime code or deployment workflow changed; no deployment is claimed.

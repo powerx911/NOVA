@@ -10,16 +10,15 @@ Build NOVA as an original, polished, Android-first game with the quality discipl
 
 The ambition is to create a memorable game with a coherent world, satisfying moment-to-moment play, meaningful progression, responsive controls, excellent presentation, reliable saving, and enough depth to keep players returning. "Global quality" is an aspiration, not a claim that can be made before real testing, localization review, and release validation.
 
-## 2. Initial genre and product direction
+## 2. Confirmed product direction; final genre remains open
 
-Initial direction: **adventure RPG**, with exploration, character growth, equipment, quests, encounters, and a clear progression loop.
+Current user-defined direction: **online-first, persistent multiplayer competition**, with alliances, diplomacy, economy, armies, and wars at its core. Professional player profiles, friends, private messaging, and global chat are foundational—not optional add-ons.
 
 Why this direction:
-- VORZANE provides a relevant prior RPG design foundation: character classes, progression, equipment, dungeons, expeditions, roaming events, and long quests.
-- NEXORA provides optional supporting patterns for crafting, resource economies, trading, organizations, and world events.
-- The two projects should not be indiscriminately merged. NOVA must have one understandable core fantasy and gameplay loop; secondary systems are added only when they strengthen it.
-
-The exact setting, art direction, camera, combat model, multiplayer scope, and engine remain product decisions to be resolved through prototypes and technical evaluation. The agent is authorized to make and document these decisions without asking the user to design the game.
+- The owner requires a persistent online world where players form alliances, communicate, build economic strength, negotiate, command armies, and compete over time.
+- The social and strategic loops must reinforce one another: diplomacy affects trade and war; the economy enables military readiness; wars change territory, resources, and alliance standing; profiles and communication make relationships visible.
+- NEXORA may inform carefully scoped economy, market, organization, and production patterns. VORZANE may inform selected progression or event systems only if later evidence shows they fit. Neither project's code or assets should be copied without technical and license review.
+- The final genre label, setting, art direction, camera, battle presentation, session cadence, map/world structure, and client engine remain intentionally undecided. Compare options and validate a focused prototype against the online-first requirements before locking them.
 
 ## 3. Delegated autonomy
 
@@ -49,16 +48,17 @@ Never ask the user to paste secrets into chat. Use authorized integrations and s
 
 ## 5. Product principles
 
-1. **Gameplay before feature count:** every system must support the core fantasy, create meaningful choices, or improve the player experience.
-2. **Mobile-first, Android-first:** touch-first controls, portrait-first layouts unless gameplay demands landscape, safe areas, responsive scaling, readable type, haptics where useful, and efficient performance on mid-range devices.
-3. **Immediate clarity:** the player should understand what they can do, what happened, what they earned, and what to do next.
-4. **Meaningful progression:** rewards, equipment, quests, difficulty, and unlocks should form a coherent progression curve.
-5. **Fairness and trust:** no fake rewards, deceptive timers, pay-to-win pressure, hidden costs, or arbitrary loss of progress.
-6. **Reliable persistence:** versioned saves, recovery paths, clear offline behavior, and server authority for valuable shared state.
-7. **Distinctive art and sound:** a consistent visual language and intentional audio identity; no random asset collage or unlicensed content.
-8. **Accessibility and localization:** legible contrast, scalable text, understandable icons, accessible labels, and reviewed Arabic RTL/English LTR experiences.
-9. **Performance as a feature:** fast startup, stable frame pacing, controlled memory use, responsive input, and graceful handling of weak networks/devices.
-10. **Honest quality claims:** prototype, beta, release candidate, native package, and store publication must be described accurately.
+1. **Connected world before feature count:** profiles, friends, messages, chat, alliances, diplomacy, economy, armies, and conflict must form one coherent multiplayer ecosystem.
+2. **Gameplay before feature count:** every system must support the core fantasy, create meaningful choices, or improve the player experience.
+3. **Mobile-first, Android-first:** touch-first controls, portrait-first layouts unless gameplay demands landscape, safe areas, responsive scaling, readable type, haptics where useful, and efficient performance on mid-range devices.
+4. **Immediate clarity:** the player should understand what they can do, what happened, what they earned, and what to do next.
+5. **Meaningful strategic progression:** personal reputation, alliance contribution, economic development, military capabilities, diplomatic influence, and seasonal achievements should create long-term goals without runaway power gaps.
+6. **Fairness and trust:** no fake rewards, deceptive timers, pay-to-win pressure, hidden costs, or arbitrary loss of progress.
+7. **Reliable persistence:** versioned saves, recovery paths, clear offline behavior, and server authority for valuable shared state.
+8. **Distinctive art and sound:** a consistent visual language and intentional audio identity; no random asset collage or unlicensed content.
+9. **Accessibility and localization:** legible contrast, scalable text, understandable icons, accessible labels, and reviewed Arabic RTL/English LTR experiences.
+10. **Performance as a feature:** fast startup, stable frame pacing, controlled memory use, responsive input, and graceful handling of weak networks/devices.
+11. **Honest quality claims:** prototype, beta, release candidate, native package, and store publication must be described accurately.
 
 ## 6. Player-facing content and language quality gate
 
@@ -69,7 +69,7 @@ Before a screen or feature is considered complete:
 - Check Arabic spelling, grammar, punctuation, terminology, RTL ordering, numerals, and text expansion/clipping.
 - Check English spelling, grammar, tone, consistency, and natural phrasing when English is supported.
 - Keep copy concise and useful. Remove text that does not help the player understand, decide, act, or recover.
-- Use a consistent glossary for character attributes, currencies, items, quests, combat actions, and system messages.
+- Use a consistent glossary for player profiles, alliances, resources, currencies, diplomacy, military orders, battles, and system messages; finalize exact terms only after the game model is selected.
 - Test long strings and different screen sizes; do not rely on visual inspection of a single device size.
 
 ## 7. Definition of done
@@ -94,21 +94,23 @@ A feature is not complete merely because code exists or a build succeeds. Its de
 - Update `PROJECT_STATUS.md` in the same PR as every project change.
 - Verify the deployed service/site after deployment. A merge is not proof of deployment.
 - Do not add dependencies without checking maintenance, license, bundle size, security, and Android/browser compatibility.
-- Keep game rules deterministic and testable where practical; keep valuable economy, inventory, progression, and reward mutations server-authoritative.
+- Keep game rules deterministic and testable where practical; all valuable economy, inventory, production, alliance, military, ranking, and reward mutations must be server-authoritative.
+- Realtime transports events; it is not the durable source of truth for chat history, balances, battle results, or world state.
+- The final client engine and rendering stack remain open until a prototype and technical scorecard establish the right fit for this online-first product.
 
 ## 9. Autonomous roadmap
 
 The agent should maintain and reprioritize a living roadmap. Initial order:
 
-1. **Foundation audit:** inspect repository, CI, deployment, Supabase function health, security boundaries, and current runtime state. Resolve blockers and document actual status.
-2. **Game definition:** prototype the core loop, camera/perspective, input model, world structure, combat/interaction model, and progression before committing to a full engine/content pipeline.
-3. **Technical selection:** compare a small number of viable stacks against Android feel, 2D/3D needs, performance, deployment constraints, testability, and long-term maintenance.
-4. **Vertical slice:** build one small but polished playable segment demonstrating the real game loop, touch controls, visual direction, audio feedback, save/reload, and error/offline behavior.
-5. **Core systems:** implement only the systems needed by the validated loop; add quests, inventory, equipment, progression, economy, social, or live operations in dependency order.
-6. **Content and polish:** build coherent environments, characters, animations, sound, localization, onboarding, accessibility, and balanced progression.
-7. **Quality and release:** device matrix, performance/crash testing, security review, privacy/data disclosures, Android package/signing, Play Console requirements, store listing, staged testing, and release approval.
+1. **Foundation audit:** verify repository, CI, deployment, Supabase services, security boundaries, and current runtime status.
+2. **Online product definition:** detail player identity, profiles, friends, private/global/alliance chat, moderation, presence, alliances and roles, diplomacy, persistent economy, armies, war, seasons, and competition.
+3. **Technical selection:** compare client/game stacks and hosting patterns against the online-first requirements, mobile experience, concurrency, authoritative simulation, cost, testability, and long-term maintenance.
+4. **Prototype gate:** validate one narrow end-to-end online loop, including authentication, a player-facing social interaction, a server-authoritative shared-world action, persistence, and reconnect/retry behavior.
+5. **Vertical slice:** turn the validated loop into a polished, cohesive experience with the required visual, audio, localization, accessibility, and mobile quality.
+6. **Core systems and live world:** expand alliance, economy, diplomacy, military, social, event, and competitive systems in dependency order.
+7. **Quality and release:** test security, anti-abuse, concurrency, performance, backups, device compatibility, privacy/data disclosures, Android packaging where selected, store requirements, staged rollout, and release approval.
 
-Do not mistake this roadmap for a promise that all systems must be built. Remove or defer features that do not improve the game.
+The agent is authorized to select ordinary product and technical details based on evidence and document the decision. Stop for owner approval only when a defined financial, legal, identity, privacy/monetization, destructive-production, or public-release boundary is reached. Do not mistake this roadmap for a promise that all systems must be built; remove or defer features that do not improve the coherent online game.
 
 ## 10. Reporting standard
 
