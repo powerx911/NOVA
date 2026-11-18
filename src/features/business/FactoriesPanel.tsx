@@ -182,6 +182,7 @@ export function FactoriesPanel({ factories, inventory, profile, wallet, language
             <div className="space-y-1.5">
               <div className="flex items-center justify-between text-xs"><span className="text-[#9299A6]">{isAr ? 'المستودع' : 'Warehouse'} · {resourceItem ? (isAr ? resourceItem.nameAr : resourceItem.nameEn) : selected.resourceId}</span><span className="font-mono-num text-[#F4F5F7]">{selected.warehouseQty.toLocaleString()} / {warehouseCapacity.toLocaleString()}</span></div>
               <div className="h-2 overflow-hidden rounded-full bg-white/8"><div className="h-full rounded-full bg-[#B91C32]" style={{ width: `${selectedWarehousePercent}%` }} /></div>
+            </div>
             <div className="rounded-xl border border-white/8 bg-[#141821] p-3 space-y-2">
               <div className="flex items-center justify-between gap-2">
                 <div><p className="text-xs font-semibold text-[#F4F5F7]">{isAr ? 'توسعة المستودع' : 'Warehouse expansion'} · Lv.{warehouseLevel}/5</p><p className="mt-1 text-[11px] text-[#9299A6]">{isAr ? 'السعة مرتبطة بقيمة المورد مثل خزينة أرباح الشركات.' : 'Capacity follows resource value, like company profit vault tiers.'}</p></div>
