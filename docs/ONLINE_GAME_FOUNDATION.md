@@ -230,3 +230,43 @@ The world map and castle city view are separate but connected screens: selecting
 - Alliance-to-alliance diplomatic states: neutral, war, and peace only for the initial design. Do not add non-aggression, trade, mutual-defense, or formal alliance treaties to the initial scope.
 
 The map's exact geometry, plot allocation, protection radius, village interactions, and territory-capture rules remain design tasks. The recommended starting point is a readable region/tile map with fixed shared locations and eligible castle sites, followed by prototype testing for fairness, mobile usability, and strategic depth. No production database schema or game implementation is implied by this design clarification.
+
+
+## Map, player inventory, and castle relocation systems
+
+The kingdom map is the shared strategic navigation layer; the player's castle screen is the personal city-management layer. They must remain visually and functionally distinct.
+
+### World map
+- Provide a zoomable, pannable, touch-first map with a clear return-to-castle action and useful overview/minimap.
+- Distinguish the player's castle, other castles, alliance members, shared core cities, villages, neutral sites, resource locations, forts/strategic locations, marches, and conflicts through consistent markers and filters.
+- Tapping a marker opens a contextual panel showing owner/status, distance and travel estimate when known, available actions, restrictions, and relevant history.
+- Include search for players, castles, cities, villages, and regions; bookmarks/favorites; recent destinations; shareable map references; and permission-controlled alliance markers.
+- Cluster dense markers and provide an accessible list alternative. The map must remain readable at different zoom levels and on small Android screens.
+- Server validates coordinates, pathing, terrain, travel, arrival, ownership, combat, and rewards. Client animation is presentation only.
+
+### Player bag / inventory
+- A persistent bag is accessible from main navigation. Each item shows icon, name, category, quantity, concise description, rarity/quality when meaningful, and clear inspect/use/equip actions.
+- Categories may include relocation, resource/production boosts, defense/protection, march utilities, scouting, and quest/event materials. Add categories only when gameplay needs them.
+- Support stack limits, sorting, category filters, search, capacity, and understandable full-bag behavior.
+- Acquisition and consumption are server-authoritative and recorded in an item ledger. Item use is an intent validated for ownership, quantity, eligibility, cooldown, and target, then applied atomically. Idempotency prevents duplicate effects or consumption on retries.
+- Show acquisition source, expiry, and binding/tradeability where applicable. No surprise expiration. Do not introduce loot boxes, paid random rewards, or pay-to-win inventory items without separate explicit approval.
+
+### Castle relocation items
+Two distinct consumables are intended, inspired by familiar strategy-game convenience but implemented with original NOVA names, art, rules, and UI:
+1. **Advanced Relocation:** player chooses a valid destination on the kingdom map. Before confirmation, show destination, nearby players/locations, resource access, terrain, alliance/region context, and restrictions/cooldown consequences.
+2. **Random Relocation:** server selects a valid destination from eligible sites using transparent fairness and safety rules. Preview the destination before final confirmation whenever possible; otherwise explain the selection rule and show the result immediately.
+
+Relocation protections and rules:
+- Never allow an occupied/reserved site, prohibited city bounds, restricted region, inaccessible tile, or invalid map edge.
+- Set fair minimum spacing from castles/strategic sites where needed; protect new players from spawn camping and hostile relocation.
+- Define treatment of marches, reinforcements, outgoing attacks, gathering parties, sieges, and construction timers before execution. Explain blocked/cancelled actions before consuming an item.
+- Prevent relocation to evade an already-resolved battle or legitimate active siege; apply cooldowns, rate limits, and anti-fishing controls.
+- Revalidate destination at confirmation to handle race conditions. Failed validation must not consume the item.
+- Commit location change and item consumption atomically on the server, with an auditable event record; publish map updates only after commit.
+
+### Convenience systems
+- A command overview for construction, research, training, marches, incoming attacks, reinforcements, and completed tasks.
+- An activity/report inbox for battle and scouting reports, alliance/system notices, rewards, and support updates.
+- Map bookmarks, recent destinations, quick access to alliance members, one-tap return to castle, and configurable notification priorities/quiet hours.
+
+These are product requirements, not evidence of implementation. Prototype and test them before production rollout.
