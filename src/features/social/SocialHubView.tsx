@@ -54,7 +54,7 @@ export function SocialHubView({ profile, myOrgMember, organizations, language }:
   const [draft, setDraft] = useState('');
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState('');
-  const [dismissedUnread, setDismissedUnread] = useState<string[]>([]);
+  const [dismissedUnread, setDismissedUnread] = useState<Record<string, number>>({});
   const [selectedOrganization, setSelectedOrganization] = useState<Organization | null>(null);
   const [presenceByUid, setPresenceByUid] = useState<Record<string, SocialPresence>>({});
 
@@ -95,15 +95,14 @@ export function SocialHubView({ profile, myOrgMember, organizations, language }:
   ));
 
   const selectedConversationData = conversations.find((item) => item.id === selectedConversation) || null;
-  const unreadConversations = conversations.filter((item) => item.lastSenderUid !== profile.uid && !dismissedUnread.includes(item.id));
+  const unreadConversations = conversations.filter((item) => item.lastSenderUid !== profile.uid && (!dismissedUnread[item.id] || timestampToMs(item.lastMessageAt, 0) > dismissedUnread[item.id]));
   const targetUid = selectedConversationData?.participants.find((uid) => uid !== profile.uid) || '';
 
   useEffect(() => {
-    let active = true;
     const heartbeat = () => { void touchPlayerPresence().catch(() => undefined); };
     heartbeat();
     const timer = window.setInterval(heartbeat, 30_000);
-    return () => { active = false; window.clearInterval(timer); };
+    return () => window.clearInterval(timer);
   }, [profile.uid]);
 
   useEffect(() => {
@@ -195,7 +194,7 @@ export function SocialHubView({ profile, myOrgMember, organizations, language }:
       const result = await openDirectConversation(player.uid);
       setSelectedPlayer(player);
       setSelectedConversation(result.conversationId);
-      setDismissedUnread((previous) => previous.includes(result.conversationId) ? previous : [...previous, result.conversationId]);
+      setDismissedUnread((previous) => ({ ...previous, [result.conversationId]: timestampToMs(conversations.find((item) => item.id === result.conversationId)?.lastMessageAt, Date.now()) }));
       setMode('messages');
     } catch {
       setError(ar ? 'تعذر فتح المحادثة.' : 'Could not open conversation.');
@@ -335,7 +334,7 @@ export function SocialHubView({ profile, myOrgMember, organizations, language }:
         })}
       </nav>
 
-      {mode === 'messages' && unreadConversations.length > 0 && <div className="flex items-center justify-between gap-3 rounded-xl border border-red-500/20 bg-red-500/5 px-3 py-2"><p className="text-xs text-[#F4F5F7]">{ar ? `${unreadConversations.length} محادثة فيها رسائل جديدة` : `${unreadConversations.length} conversation(s) with new messages`}</p><button type="button" onClick={() => setDismissedUnread((previous) => [...new Set([...previous, ...unreadConversations.map((item) => item.id)])])} className="text-[11px] text-red-300 underline underline-offset-2">{ar ? 'إغلاق الإشعارات' : 'Dismiss notifications'}</button></div>}
+      {mode === 'messages' && unreadConversations.length > 0 && <div className="flex items-center justify-between gap-3 rounded-xl border border-red-500/20 bg-red-500/5 px-3 py-2"><p className="text-xs text-[#F4F5F7]">{ar ? `${unreadConversations.length} محادثة فيها رسائل جديدة` : `${unreadConversations.length} conversation(s) with new messages`}</p><button type="button" onClick={() => setDismissedUnread((previous) => ({ ...previous, ...Object.fromEntries(unreadConversations.map((item) => [item.id, timestampToMs(item.lastMessageAt, Date.now())])) }))} className="text-[11px] text-red-300 underline underline-offset-2">{ar ? 'إغلاق الإشعارات' : 'Dismiss notifications'}</button></div>}
       {error && <p className="rounded-xl border border-white/10 bg-[#141821] px-3 py-2 text-xs text-[#F4C66A]">{error}</p>}
 
       {mode === 'players' && (
@@ -427,7 +426,7 @@ export function SocialHubView({ profile, myOrgMember, organizations, language }:
               const otherUid = conversation.participants.find((uid) => uid !== profile.uid) || '';
               const name = conversation.participantNames?.[otherUid] || (ar ? 'لاعب' : 'Player');
               return (
-                <button key={conversation.id} type="button" onClick={() => { setSelectedConversation(conversation.id); setDismissedUnread((previous) => previous.includes(conversation.id) ? previous : [...previous, conversation.id]); }}
+                <button key={conversation.id} type="button" onClick={() => { setSelectedConversation(conversation.id); setDismissedUnread((previous) => ({ ...previous, [conversation.id]: timestampToMs(conversation.lastMessageAt, Date.now()) })); }}
                   className={'w-full rounded-xl border border-white/8 p-3 text-start transition-colors ' + (selectedConversation === conversation.id ? 'bg-[#252B36] border-white/20' : 'bg-[#0B0D12] hover:bg-[#1B2230]')}>
                   <span className="flex items-center gap-2 text-sm font-semibold text-[#F4F5F7]">
                     <img src={avatarUrl(conversation.participantAvatars?.[otherUid])} alt="" className="h-8 w-8 rounded-lg object-cover bg-[#252B36]" />
@@ -479,7 +478,6 @@ export function SocialHubView({ profile, myOrgMember, organizations, language }:
             {globalMessages.filter((message) => !blockedUids.includes(message.senderUid)).map((message) => (
               <div key={message.id} className="rounded-xl bg-[#0B0D12] p-3">
                 <div className="flex items-center gap-2 mb-1">
-                  <img src={avatarUrl(message.avatarId)} alt="" className="h-7 w-7 rounded-lg object-cover bg-[#252B36]" />
                   <button type="button" onClick={() => void openPlayerProfile(message.senderUid)} className="flex items-center gap-2 min-w-0 text-start hover:underline"><img src={avatarUrl(message.avatarId)} alt="" className="h-7 w-7 rounded-lg object-cover bg-[#252B36]" /><span className="text-xs font-semibold text-amber-200 truncate">{message.senderName}</span></button>
                   <span className="text-[10px] text-[#9299A6]">{presenceLabel(message.senderUid)} · {dateLabel(message.createdAt)}</span>
                 </div>
