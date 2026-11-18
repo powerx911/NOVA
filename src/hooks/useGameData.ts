@@ -1,23 +1,13 @@
 import { createUserWithEmailAndPassword, getRedirectResult, onAuthStateChanged, sendEmailVerification, signInAnonymously, signInWithEmailAndPassword, signInWithPopup, signInWithRedirect, signOut, type User } from 'firebase/auth';
-import {
-  collection,
-  doc,
-  limit,
-  onSnapshot,
-  orderBy,
-  query,
-  where,
-} from 'firebase/firestore';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ACHIEVEMENTS } from '../data/catalog';
-import { hasOrgPermission, timestampToMs } from '../lib/economy';
-import { auth, db, googleAuthProvider, handleFirestoreError, OperationType } from '../lib/firebase';
+import { timestampToMs } from '../lib/economy';
+import { auth, googleAuthProvider } from '../lib/firebase';
 import {
   checkAndUnlockAchievements,
-  ensureBootstrapWorldData,
   getUtcDateKey,
-  syncSelfOrgMembership,
 } from '../services/gameService';
+import { nexoraApi } from '../lib/nexoraApi';
 import type {
   Company,
   CompanyLog,
@@ -73,12 +63,6 @@ export interface GameDataState {
   registerWithEmail: (email: string, password: string) => Promise<void>;
   loginAsGuest: () => Promise<void>;
   logout: () => Promise<void>;
-}
-
-function sortByCreatedAtDesc<T extends { createdAt?: unknown }>(items: T[]): T[] {
-  return [...items].sort(
-    (a, b) => timestampToMs(b.createdAt, 0) - timestampToMs(a.createdAt, 0)
-  );
 }
 
 export function useGameData(): GameDataState {
@@ -210,342 +194,56 @@ export function useGameData(): GameDataState {
 
   useEffect(() => {
     if (!authUser) return;
+    let cancelled = false;
     setProfileLoading(true);
-    setOrgMemberLoaded(false);
-
     const uid = authUser.uid;
-    if (bootstrappedUidRef.current !== uid) {
-      bootstrappedUidRef.current = uid;
-      ensureBootstrapWorldData();
-    }
-    const unsubs: (() => void)[] = [];
 
-    const onSnapErr = (path: string) => (error: unknown) => {
+    const loadGameState = async () => {
       try {
-        handleFirestoreError(error, OperationType.GET, path);
-      } catch {
-        // Error already logged cleanly via handleFirestoreError
+        const data = await nexoraApi<Record<string, any>>('bootstrap');
+        if (cancelled) return;
+        setProfile(data.profile as PlayerProfile | null);
+        setUserPrivate(data.userPrivate as UserPrivate | null);
+        if (data.userPrivate?.language) setLanguageLocal(data.userPrivate.language as Language);
+        setWallet(data.wallet as Wallet | null);
+        setInventory((data.inventory ?? []) as InventoryItem[]);
+        setTransactions((data.transactions ?? []) as TransactionRecord[]);
+        setMarketListings((data.marketListings ?? []) as MarketListing[]);
+        setMarketOrders((data.marketOrders ?? []) as MarketOrder[]);
+        setCompanies((data.companies ?? []) as Company[]);
+        setCompanyLogs((data.companyLogs ?? []) as CompanyLog[]);
+        setProperties((data.properties ?? []) as PropertyAsset[]);
+        setOrganizations((data.organizations ?? []) as Organization[]);
+        setMyOrgMember(data.myOrgMember as OrganizationMember | null);
+        setOrgMemberLoaded(true);
+        setOrgMembers((data.orgMembers ?? []) as OrganizationMember[]);
+        setOrgRequests((data.orgRequests ?? []) as OrganizationRequest[]);
+        setMyPendingOrgIds(new Set((data.myPendingOrgIds ?? []) as string[]));
+        setOrgTransactions((data.orgTransactions ?? []) as OrganizationTransaction[]);
+        setClaimedMissions((data.playerMissions ?? []) as PlayerMissionClaim[]);
+        setClaimedDailyToday(Boolean(data.claimedDailyToday));
+        setClaimedContractsToday(new Set((data.claimedContractsToday ?? []) as string[]));
+        setUnlockedAchievements(new Set(
+          ((data.playerAchievements ?? []) as Array<{ achievementId?: string }>).map((item) => item.achievementId).filter(Boolean) as string[]
+        ));
+        setNotifications((data.notifications ?? []) as GameNotification[]);
+        setWorldEvents((data.worldEvents ?? []) as WorldEvent[]);
+        setProfileLoading(false);
+      } catch (error) {
+        if (cancelled) return;
+        console.error('NEXORA Supabase bootstrap failed:', error);
+        setProfile(null);
+        setProfileLoading(false);
       }
     };
 
-    unsubs.push(
-      onSnapshot(
-        doc(db, 'profiles', uid),
-        (snap) => {
-          setProfile(snap.exists() ? (snap.data() as PlayerProfile) : null);
-          setProfileLoading(false);
-        },
-        (err) => {
-          setProfileLoading(false);
-          onSnapErr(`profiles/${uid}`)(err);
-        }
-      )
-    );
-
-    unsubs.push(
-      onSnapshot(
-        doc(db, 'users_private', uid),
-        (snap) => {
-          if (snap.exists()) {
-            const data = snap.data() as UserPrivate;
-            setUserPrivate(data);
-            setLanguageLocal(data.language);
-          }
-        },
-        onSnapErr(`users_private/${uid}`)
-      )
-    );
-
-    unsubs.push(
-      onSnapshot(
-        doc(db, 'wallets', uid),
-        (snap) => {
-          setWallet(snap.exists() ? (snap.data() as Wallet) : null);
-        },
-        onSnapErr(`wallets/${uid}`)
-      )
-    );
-
-    unsubs.push(
-      onSnapshot(
-        query(collection(db, 'inventory'), where('uid', '==', uid)),
-        (snap) => {
-          setInventory(snap.docs.map((d) => d.data() as InventoryItem));
-        },
-        onSnapErr('inventory')
-      )
-    );
-
-    unsubs.push(
-      onSnapshot(
-        query(collection(db, 'transactions'), where('fromUid', '==', uid), limit(30)),
-        (fromSnap) => {
-          const sent = fromSnap.docs.map((d) => d.data() as TransactionRecord);
-          setTransactions((prev) => {
-            const receivedOnly = prev.filter((t) => t.toUid === uid && t.fromUid !== uid);
-            const map = new Map<string, TransactionRecord>();
-            [...sent, ...receivedOnly].forEach((t) => map.set(t.id, t));
-            return sortByCreatedAtDesc(Array.from(map.values())).slice(0, 40);
-          });
-        },
-        onSnapErr('transactions/fromUid')
-      )
-    );
-
-    unsubs.push(
-      onSnapshot(
-        query(collection(db, 'transactions'), where('toUid', '==', uid), limit(30)),
-        (toSnap) => {
-          const received = toSnap.docs.map((d) => d.data() as TransactionRecord);
-          setTransactions((prev) => {
-            const sentOnly = prev.filter((t) => t.fromUid === uid);
-            const map = new Map<string, TransactionRecord>();
-            [...sentOnly, ...received].forEach((t) => map.set(t.id, t));
-            return sortByCreatedAtDesc(Array.from(map.values())).slice(0, 40);
-          });
-        },
-        onSnapErr('transactions/toUid')
-      )
-    );
-
-    unsubs.push(
-      onSnapshot(
-        query(collection(db, 'market_listings'), where('status', '==', 'active'), limit(100)),
-        (snap) => {
-          setMarketListings(snap.docs.map((d) => d.data() as MarketListing));
-        },
-        onSnapErr('market_listings')
-      )
-    );
-
-    unsubs.push(
-      onSnapshot(
-        query(collection(db, 'market_orders'), where('buyerUid', '==', uid), limit(25)),
-        (snap) => {
-          setMarketOrders(sortByCreatedAtDesc(snap.docs.map((d) => d.data() as MarketOrder)));
-        },
-        onSnapErr('market_orders')
-      )
-    );
-
-    unsubs.push(
-      onSnapshot(
-        query(collection(db, 'companies'), where('ownerUid', '==', uid)),
-        (snap) => {
-          setCompanies(snap.docs.map((d) => d.data() as Company));
-        },
-        onSnapErr('companies')
-      )
-    );
-
-    unsubs.push(
-      onSnapshot(
-        query(collection(db, 'company_logs'), where('ownerUid', '==', uid), limit(25)),
-        (snap) => {
-          setCompanyLogs(sortByCreatedAtDesc(snap.docs.map((d) => d.data() as CompanyLog)));
-        },
-        onSnapErr('company_logs')
-      )
-    );
-
-    unsubs.push(
-      onSnapshot(
-        query(collection(db, 'properties'), where('ownerUid', '==', uid)),
-        (snap) => {
-          setProperties(snap.docs.map((d) => d.data() as PropertyAsset));
-        },
-        onSnapErr('properties')
-      )
-    );
-
-    unsubs.push(
-      onSnapshot(
-        query(collection(db, 'organizations'), where('reputation', '>=', 0), orderBy('reputation', 'desc'), limit(40)),
-        (snap) => {
-          setOrganizations(snap.docs.map((d) => d.data() as Organization));
-        },
-        onSnapErr('organizations')
-      )
-    );
-
-    unsubs.push(
-      onSnapshot(
-        query(collection(db, 'organization_members'), where('uid', '==', uid), limit(1)),
-        (snap) => {
-          const member = snap.docs[0]?.data() as OrganizationMember | undefined;
-          setMyOrgMember(member ?? null);
-          setOrgMemberLoaded(true);
-        },
-        (err) => {
-          setOrgMemberLoaded(true);
-          onSnapErr('organization_members/self')(err);
-        }
-      )
-    );
-
-    unsubs.push(
-      onSnapshot(
-        query(collection(db, 'organization_requests'), where('uid', '==', uid)),
-        (snap) => {
-          const pendingIds = new Set<string>();
-          snap.docs.forEach((d) => {
-            const req = d.data() as OrganizationRequest;
-            if (req.status === 'pending') {
-              pendingIds.add(req.orgId);
-            }
-          });
-          setMyPendingOrgIds(pendingIds);
-        },
-        onSnapErr('organization_requests/self')
-      )
-    );
-
-    unsubs.push(
-      onSnapshot(
-        query(collection(db, 'player_missions'), where('uid', '==', uid)),
-        (snap) => {
-          setClaimedMissions(snap.docs.map((d) => d.data() as PlayerMissionClaim));
-        },
-        onSnapErr('player_missions')
-      )
-    );
-
-    unsubs.push(
-      onSnapshot(
-        doc(db, 'daily_claims', `${uid}_${utcDateKey}`),
-        (snap) => {
-          setClaimedDailyToday(snap.exists());
-        },
-        onSnapErr(`daily_claims/${uid}_${utcDateKey}`)
-      )
-    );
-
-    unsubs.push(
-      onSnapshot(
-        query(collection(db, 'contract_claims'), where('uid', '==', uid)),
-        (snap) => {
-          const ids = new Set<string>();
-          snap.docs.forEach((d) => {
-            const c = d.data() as { contractId: string };
-            ids.add(c.contractId);
-          });
-          setClaimedContractsToday(ids);
-        },
-        onSnapErr('contract_claims')
-      )
-    );
-
-    unsubs.push(
-      onSnapshot(
-        query(collection(db, 'player_achievements'), where('uid', '==', uid)),
-        (snap) => {
-          const ids = new Set<string>();
-          snap.docs.forEach((d) => {
-            const data = d.data() as { achievementId: string };
-            ids.add(data.achievementId);
-          });
-          setUnlockedAchievements(ids);
-        },
-        onSnapErr('player_achievements')
-      )
-    );
-
-    unsubs.push(
-      onSnapshot(
-        query(collection(db, 'notifications'), where('uid', '==', uid), limit(30)),
-        (snap) => {
-          setNotifications(sortByCreatedAtDesc(snap.docs.map((d) => d.data() as GameNotification)));
-        },
-        onSnapErr('notifications')
-      )
-    );
-
-    unsubs.push(
-      onSnapshot(
-        query(collection(db, 'world_events'), where('active', '==', true)),
-        (snap) => {
-          setWorldEvents(snap.docs.map((d) => d.data() as WorldEvent));
-        },
-        onSnapErr('world_events')
-      )
-    );
-
+    void loadGameState();
+    const refresh = window.setInterval(() => { void loadGameState(); }, 30_000);
     return () => {
-      unsubs.forEach((fn) => fn());
+      cancelled = true;
+      window.clearInterval(refresh);
     };
   }, [authUser, setLanguageLocal, utcDateKey]);
-
-  // Sync organization membership onto profile if approved while away
-  useEffect(() => {
-    if (!authUser || !profile || !orgMemberLoaded) return;
-    if (myOrgMember && profile.orgId !== myOrgMember.orgId) {
-      syncSelfOrgMembership(authUser.uid, myOrgMember.orgId);
-    } else if (!myOrgMember && profile.orgId) {
-      syncSelfOrgMembership(authUser.uid, null);
-    }
-  }, [authUser, profile, myOrgMember, orgMemberLoaded]);
-
-  // Subscribe to current organization's members, requests, and treasury ledger
-  useEffect(() => {
-    if (!authUser || !myOrgMember?.orgId) {
-      setOrgMembers([]);
-      setOrgRequests([]);
-      setOrgTransactions([]);
-      return;
-    }
-
-    const onOrgErr = (path: string) => (error: unknown) => {
-      try {
-        handleFirestoreError(error, OperationType.GET, path);
-      } catch {
-        // Logged via handleFirestoreError
-      }
-    };
-
-    const orgId = myOrgMember.orgId;
-    const canManageMembers = hasOrgPermission(myOrgMember, 'manage_members');
-
-    const u1 = onSnapshot(
-      query(collection(db, 'organization_members'), where('orgId', '==', orgId)),
-      (snap) => {
-        setOrgMembers(snap.docs.map((d) => d.data() as OrganizationMember));
-      },
-      onOrgErr(`organization_members/${orgId}`)
-    );
-
-    const u2 = canManageMembers
-      ? onSnapshot(
-          query(
-            collection(db, 'organization_requests'),
-            where('orgId', '==', orgId),
-            where('status', '==', 'pending')
-          ),
-          (snap) => {
-            setOrgRequests(snap.docs.map((d) => d.data() as OrganizationRequest));
-          },
-          onOrgErr(`organization_requests/${orgId}`)
-        )
-      : (() => {
-          setOrgRequests([]);
-          return () => {};
-        })();
-
-    const u3 = onSnapshot(
-      query(collection(db, 'organization_transactions'), where('orgId', '==', orgId), limit(40)),
-      (snap) => {
-        setOrgTransactions(
-          sortByCreatedAtDesc(snap.docs.map((d) => d.data() as OrganizationTransaction))
-        );
-      },
-      onOrgErr(`organization_transactions/${orgId}`)
-    );
-
-    return () => {
-      u1();
-      u2();
-      u3();
-    };
-  }, [authUser, myOrgMember]);
 
   // Auto-unlock eligible achievements (deduplicated per session)
   useEffect(() => {
