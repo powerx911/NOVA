@@ -398,10 +398,55 @@ Deno.serve(async (req: Request) => {
       const sector = typeof body.sector === "string" ? body.sector : "";
       const { data, error } = await db.rpc("found_company", { p_uid: identity.uid, p_name: name, p_sector: sector });
       if (error) {
-        const known = ["INVALID_NAME","INVALID_SECTOR","ACCOUNT_NOT_FOUND","INSUFFICIENT_FUNDS"].find((code) => error.message.includes(code));
+        const known = ["INVALID_NAME","INVALID_SECTOR","ACCOUNT_NOT_FOUND","INSUFFICIENT_FUNDS","COMPANY_CAPACITY_REACHED"].find((code) => error.message.includes(code));
         return json({ error: known ?? "COMPANY_FOUNDING_FAILED" }, 409, origin);
       }
       return json({ ok: true, data }, 201, origin);
+    }
+
+    if (body.action === "fetch_company_auctions") {
+      const { data, error } = await db.rpc("fetch_company_auctions", { p_uid: identity.uid });
+      if (error) return json({ error: "COMPANY_AUCTIONS_FETCH_FAILED" }, 500, origin);
+      return json({ ok: true, data }, 200, origin);
+    }
+
+    if (body.action === "list_company_for_auction") {
+      const companyId = typeof body.companyId === "string" ? body.companyId : "";
+      const startingPrice = typeof body.startingPrice === "number" && Number.isFinite(body.startingPrice)
+        ? Math.floor(body.startingPrice) : 0;
+      const { data, error } = await db.rpc("list_company_for_auction", {
+        p_uid: identity.uid, p_company_id: companyId, p_starting_price: startingPrice,
+      });
+      if (error) {
+        const known = ["COMPANY_NOT_FOUND","UNAUTHORIZED","COMPANY_LEVEL_TOO_LOW","COMPANY_ALREADY_LISTED",
+          "COMPANY_UPGRADE_IN_PROGRESS","INVALID_STARTING_PRICE"].find((code) => error.message.includes(code));
+        return json({ error: known ?? "COMPANY_AUCTION_LIST_FAILED" }, 409, origin);
+      }
+      return json({ ok: true, data }, 201, origin);
+    }
+
+    if (body.action === "place_company_auction_bid") {
+      const auctionId = typeof body.auctionId === "string" ? body.auctionId : "";
+      const amount = typeof body.amount === "number" && Number.isFinite(body.amount) ? Math.floor(body.amount) : 0;
+      const { data, error } = await db.rpc("place_company_auction_bid", {
+        p_uid: identity.uid, p_auction_id: auctionId, p_amount: amount,
+      });
+      if (error) {
+        const known = ["AUCTION_NOT_FOUND","AUCTION_NOT_ACTIVE","CANNOT_BID_OWN_COMPANY","INVALID_BID",
+          "BID_TOO_LOW","ACCOUNT_NOT_FOUND","COMPANY_CAPACITY_REACHED","INSUFFICIENT_FUNDS"].find((code) => error.message.includes(code));
+        return json({ error: known ?? "COMPANY_AUCTION_BID_FAILED" }, 409, origin);
+      }
+      return json({ ok: true, data }, 200, origin);
+    }
+
+    if (body.action === "delete_company") {
+      const companyId = typeof body.companyId === "string" ? body.companyId : "";
+      const { data, error } = await db.rpc("delete_company", { p_uid: identity.uid, p_company_id: companyId });
+      if (error) {
+        const known = ["COMPANY_NOT_FOUND","UNAUTHORIZED","COMPANY_IN_AUCTION"].find((code) => error.message.includes(code));
+        return json({ error: known ?? "COMPANY_DELETE_FAILED" }, 409, origin);
+      }
+      return json({ ok: true, data }, 200, origin);
     }
 
     const companyId = typeof body.companyId === "string" ? body.companyId : "";
