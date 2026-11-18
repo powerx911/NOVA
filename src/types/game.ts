@@ -230,6 +230,9 @@ export interface Factory {
   warehouseLevel?: number;
   warehouseUpgradeEndsAt?: number | null;
   warehouseUpgradeTargetLevel?: number | null;
+  auctionId?: string | null;
+  auctionEndsAt?: number | null;
+  auctionStatus?: string | null;
   productionRemainder: number;
   operatingCostRemainder: number;
   lastProducedAt: number;
