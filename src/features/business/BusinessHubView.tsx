@@ -436,7 +436,24 @@ export function BusinessHubView({
                       </p>
                     </div>
                     <span className="text-xs font-mono-num font-semibold text-[#E04455]">
-                      {'
+                      {'$'}{s.foundingCost.toLocaleString()}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={busyKey === 'found_company'}
+              className="w-full min-h-[44px] px-4 rounded-xl bg-[#B91C32] hover:bg-[#E04455] text-white text-sm font-semibold flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
+            >
+              <Plus className="w-4 h-4" />
+              <span>{busyKey === 'found_company' ? '...' : t.foundCompany}</span>
+            </button>
+          </form>
+
+
             </div>
           )}
           {companyView === 'detail' && (
@@ -503,165 +520,7 @@ export function BusinessHubView({
                       <div className="text-end">
                         <p className="text-xs text-[#9299A6]">{t.netPerHour}</p>
                         <p className="text-sm font-mono-num font-bold text-emerald-400">
-                          +{')}
-              </div>
-                          {companyLogs.filter((log) => log.companyId === selectedCompanyId).length > 0 && (
-              <div className="bg-[#141821] border border-white/8 rounded-2xl p-5 space-y-3">
-                <h3 className="text-sm font-semibold text-[#F4F5F7]">
-                  {language === 'ar' ? 'سجل عمليات الشركات' : 'Company Operations Log'}
-                </h3>
-                <div className="space-y-2">
-                  {companyLogs.filter((log) => log.companyId === selectedCompanyId).slice(0, 20).map((log) => (
-                    <div
-                      key={log.id}
-                      className="flex items-center justify-between text-xs py-2 border-b border-white/6 last:border-0"
-                    >
-                      <span className="text-[#9299A6]">{log.details}</span>
-                      <span
-                        className={`font-mono-num font-semibold ${
-                          log.amount >= 0 ? 'text-emerald-400' : 'text-[#E04455]'
-                        }`}
-                      >
-                        {log.amount >= 0 ? `+${log.amount}` : log.amount}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-            </div>
-          )}
-        </div>
-      )}
-
-      {subTab === 'auction' && (
-        <div className="space-y-4">
-          <section className="rounded-2xl border border-amber-400/20 bg-[#141821] p-4 space-y-2">
-            <div className="flex items-center gap-2 text-sm font-bold text-amber-200"><Gavel className="w-4 h-4" />{language === 'ar' ? 'مزاد الشركات' : 'Company Auction'}</div>
-            <p className="text-xs text-[#AAB1BD]">{language === 'ar' ? 'الشركات من المستوى 50 فأعلى فقط. مدة المزاد 24 ساعة، ويُحجز مبلغ العرض في الضمان حتى الفوز أو تجاوزه.' : 'Level 50+ companies only. Auctions last 24 hours; bids are held in escrow until settlement or being outbid.'}</p>
-            <p className="text-xs text-[#9299A6]">{language === 'ar' ? 'المساحات المستخدمة: ' + occupiedCompanySlots + '/3 (الشركات المملوكة والعروض الأعلى)' : 'Company slots used: ' + occupiedCompanySlots + '/3 (owned companies and leading bids)'}</p>
-          </section>
-          <section className="rounded-2xl border border-white/8 bg-[#141821] p-4 space-y-3">
-            <h3 className="text-sm font-bold text-[#F4F5F7]">{language === 'ar' ? 'إدراج شركة في المزاد' : 'List a company'}</h3>
-            {visibleCompanies.filter((company) => company.level >= 50 && !company.auctionId).length === 0 ? <p className="text-xs text-[#9299A6]">{language === 'ar' ? 'لا توجد شركة مؤهلة حالياً. تحتاج الشركة إلى المستوى 50 على الأقل.' : 'No eligible company yet. A company must be level 50 or higher.'}</p> : visibleCompanies.filter((company) => company.level >= 50 && !company.auctionId).map((company) => (
-              <div key={company.id} className="rounded-xl bg-[#0B0D12] border border-white/8 p-3 space-y-2">
-                <div className="flex items-center justify-between gap-2"><span className="text-sm font-semibold text-[#F4F5F7]">{company.name}</span><span className="text-xs text-amber-200">Lv.{company.level}</span></div>
-                <div className="flex gap-2"><input type="number" min="1" step="1" value={startingPrices[company.id] ?? '10000'} onChange={(e) => setStartingPrices((previous) => ({ ...previous, [company.id]: e.target.value }))} placeholder={language === 'ar' ? 'سعر البداية' : 'Starting price'} className="min-w-0 flex-1 min-h-[42px] rounded-xl bg-[#141821] border border-white/10 px-3 text-sm text-[#F4F5F7]" />
-                  <button type="button" disabled={busyKey === 'auction_list_' + company.id} onClick={() => void handleListCompany(company.id)} className="min-h-[42px] px-4 rounded-xl bg-[#B91C32] text-white text-xs font-semibold disabled:opacity-50">{language === 'ar' ? 'إدراج' : 'List'}</button></div>
-              </div>
-            ))}
-          </section>
-          <section className="space-y-3">
-            <h3 className="text-sm font-bold text-[#F4F5F7]">{language === 'ar' ? 'المزادات المتاحة' : 'Available auctions'}</h3>
-            {activeAuctions.length === 0 ? <div className="rounded-2xl border border-white/8 bg-[#141821] p-8 text-center text-sm text-[#9299A6]">{language === 'ar' ? 'لا توجد مزادات نشطة حالياً.' : 'There are no active auctions right now.'}</div> : activeAuctions.map((auction) => {
-              const isLeading = auction.highestBidderUid === profile.uid;
-              const isSeller = auction.sellerUid === profile.uid;
-              const minBid = auction.highestBidderUid ? auction.currentPrice + 1 : auction.startingPrice;
-              const canBid = !isSeller && (isLeading || hasCompanySlot);
-              return (
-                <article key={auction.id} className="rounded-2xl border border-white/8 bg-[#141821] p-4 space-y-3">
-                  <div className="flex items-start justify-between gap-3"><div><h4 className="text-sm font-bold text-[#F4F5F7]">{auction.companyName}</h4><p className="mt-1 text-xs text-[#9299A6]">{language === 'ar' ? 'البائع' : 'Seller'}: {auction.sellerName} · Lv.{auction.companyLevel}</p></div>{isLeading && <span className="rounded-lg bg-emerald-500/10 px-2 py-1 text-[10px] text-emerald-300">{language === 'ar' ? 'أنت الأعلى' : 'You lead'}</span>}</div>
-                  <div className="grid grid-cols-2 gap-2 rounded-xl bg-[#0B0D12] p-3">
-                    <div><p className="text-[10px] text-[#9299A6]">{language === 'ar' ? 'سعر البداية' : 'Starting price'}</p><p className="text-sm font-mono-num font-semibold text-[#F4F5F7]">{'$'}{auction.startingPrice.toLocaleString()}</p></div>
-                    <div><p className="text-[10px] text-[#9299A6]">{language === 'ar' ? 'أعلى عرض' : 'Highest bid'}</p><p className="text-sm font-mono-num font-semibold text-amber-200">{'$'}{auction.currentPrice.toLocaleString()}</p></div>
-                  </div>
-                  <div className="flex items-center gap-2 text-xs text-[#9299A6]"><Clock className="w-3.5 h-3.5" />{language === 'ar' ? 'ينتهي خلال' : 'Ends in'} {formatAuctionRemaining(auction.endsAt)}</div>
-                  {auction.highestBidderName && <p className="text-[11px] text-[#9299A6]">{language === 'ar' ? 'صاحب أعلى عرض:' : 'Leading bidder:'} {auction.highestBidderName}</p>}
-                  {!isSeller && <div className="space-y-2">
-                    <input type="number" min={minBid} step="1" value={bidDrafts[auction.id] ?? String(minBid)} onChange={(e) => setBidDrafts((previous) => ({ ...previous, [auction.id]: e.target.value }))} disabled={!canBid || busyKey === 'auction_bid_' + auction.id} className="w-full min-h-[42px] rounded-xl bg-[#0B0D12] border border-white/10 px-3 text-sm text-[#F4F5F7] disabled:opacity-50" />
-                    <button type="button" disabled={!canBid || busyKey === 'auction_bid_' + auction.id} onClick={() => void handlePlaceBid(auction)} className="w-full min-h-[42px] rounded-xl bg-[#B91C32] text-white text-xs font-semibold disabled:opacity-40">{busyKey === 'auction_bid_' + auction.id ? '...' : isLeading ? (language === 'ar' ? 'ارفع عرضك' : 'Raise your bid') : (language === 'ar' ? 'تقديم عرض شراء' : 'Place bid')}</button>
-                    {!canBid && <p className="text-[11px] text-rose-300">{language === 'ar' ? 'لا توجد مساحة متاحة ضمن حد 3 شركات.' : 'No free company slot under the three-company limit.'}</p>}
-                  </div>}
-                  <p className="text-[10px] text-[#77808F]">{language === 'ar' ? 'يُحجز كامل عرضك في الضمان. عند تجاوزك أو إلغاء البيع يُعاد المبلغ تلقائياً.' : 'Your full bid is held in escrow and automatically refunded if outbid or the sale is cancelled.'}</p>
-                </article>
-              );
-            })}
-          </section>
-        </div>
-      )}
-
-}{s.foundingCost.toLocaleString()}
-                    </span>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <button
-              type="submit"
-              disabled={busyKey === 'found_company'}
-              className="w-full min-h-[44px] px-4 rounded-xl bg-[#B91C32] hover:bg-[#E04455] text-white text-sm font-semibold flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
-            >
-              <Plus className="w-4 h-4" />
-              <span>{busyKey === 'found_company' ? '...' : t.foundCompany}</span>
-            </button>
-          </form>
-
-
-            </div>
-          )}
-          {companyView === 'detail' && (
-            <div className="space-y-4">
-              <div className="flex items-center justify-between gap-2">
-                <button type="button" onClick={() => setCompanyView('overview')} className="inline-flex items-center gap-2 min-h-[40px] px-3 rounded-xl bg-[#1B2230] text-[#F4F5F7] text-xs font-semibold"><ArrowLeft className="w-4 h-4" />{language === 'ar' ? 'شركاتي' : 'My companies'}</button>
-                {visibleCompanies.find((c) => c.id === selectedCompanyId) && <button type="button" disabled={busyKey === 'delete_company_' + selectedCompanyId} onClick={() => { const selected = visibleCompanies.find((c) => c.id === selectedCompanyId); if (selected) void handleDeleteCompany(selected); }} className="inline-flex items-center gap-2 min-h-[40px] px-3 rounded-xl border border-rose-500/30 bg-rose-500/10 text-rose-300 text-xs font-semibold disabled:opacity-50"><Trash2 className="w-4 h-4" />{language === 'ar' ? 'حذف الشركة' : 'Delete company'}</button>}
-              </div>
-              <div className="space-y-4">
-                {visibleCompanies.filter((c) => c.id === selectedCompanyId).length === 0 ? <p className="text-sm text-[#9299A6]">{language === 'ar' ? 'الشركة غير متاحة.' : 'Company not found.'}</p> : (__COMPANY_MAP__)}
-              </div>
-              __LOGS__
-            </div>
-          )}
-        </div>
-      )}
-
-      {subTab === 'auction' && (
-        <div className="space-y-4">
-          <section className="rounded-2xl border border-amber-400/20 bg-[#141821] p-4 space-y-2">
-            <div className="flex items-center gap-2 text-sm font-bold text-amber-200"><Gavel className="w-4 h-4" />{language === 'ar' ? 'مزاد الشركات' : 'Company Auction'}</div>
-            <p className="text-xs text-[#AAB1BD]">{language === 'ar' ? 'الشركات من المستوى 50 فأعلى فقط. مدة المزاد 24 ساعة، ويُحجز مبلغ العرض في الضمان حتى الفوز أو تجاوزه.' : 'Level 50+ companies only. Auctions last 24 hours; bids are held in escrow until settlement or being outbid.'}</p>
-            <p className="text-xs text-[#9299A6]">{language === 'ar' ? 'المساحات المستخدمة: ' + occupiedCompanySlots + '/3 (الشركات المملوكة والعروض الأعلى)' : 'Company slots used: ' + occupiedCompanySlots + '/3 (owned companies and leading bids)'}</p>
-          </section>
-          <section className="rounded-2xl border border-white/8 bg-[#141821] p-4 space-y-3">
-            <h3 className="text-sm font-bold text-[#F4F5F7]">{language === 'ar' ? 'إدراج شركة في المزاد' : 'List a company'}</h3>
-            {visibleCompanies.filter((company) => company.level >= 50 && !company.auctionId).length === 0 ? <p className="text-xs text-[#9299A6]">{language === 'ar' ? 'لا توجد شركة مؤهلة حالياً. تحتاج الشركة إلى المستوى 50 على الأقل.' : 'No eligible company yet. A company must be level 50 or higher.'}</p> : visibleCompanies.filter((company) => company.level >= 50 && !company.auctionId).map((company) => (
-              <div key={company.id} className="rounded-xl bg-[#0B0D12] border border-white/8 p-3 space-y-2">
-                <div className="flex items-center justify-between gap-2"><span className="text-sm font-semibold text-[#F4F5F7]">{company.name}</span><span className="text-xs text-amber-200">Lv.{company.level}</span></div>
-                <div className="flex gap-2"><input type="number" min="1" step="1" value={startingPrices[company.id] ?? '10000'} onChange={(e) => setStartingPrices((previous) => ({ ...previous, [company.id]: e.target.value }))} placeholder={language === 'ar' ? 'سعر البداية' : 'Starting price'} className="min-w-0 flex-1 min-h-[42px] rounded-xl bg-[#141821] border border-white/10 px-3 text-sm text-[#F4F5F7]" />
-                  <button type="button" disabled={busyKey === 'auction_list_' + company.id} onClick={() => void handleListCompany(company.id)} className="min-h-[42px] px-4 rounded-xl bg-[#B91C32] text-white text-xs font-semibold disabled:opacity-50">{language === 'ar' ? 'إدراج' : 'List'}</button></div>
-              </div>
-            ))}
-          </section>
-          <section className="space-y-3">
-            <h3 className="text-sm font-bold text-[#F4F5F7]">{language === 'ar' ? 'المزادات المتاحة' : 'Available auctions'}</h3>
-            {activeAuctions.length === 0 ? <div className="rounded-2xl border border-white/8 bg-[#141821] p-8 text-center text-sm text-[#9299A6]">{language === 'ar' ? 'لا توجد مزادات نشطة حالياً.' : 'There are no active auctions right now.'}</div> : activeAuctions.map((auction) => {
-              const isLeading = auction.highestBidderUid === profile.uid;
-              const isSeller = auction.sellerUid === profile.uid;
-              const minBid = auction.highestBidderUid ? auction.currentPrice + 1 : auction.startingPrice;
-              const canBid = !isSeller && (isLeading || hasCompanySlot);
-              return (
-                <article key={auction.id} className="rounded-2xl border border-white/8 bg-[#141821] p-4 space-y-3">
-                  <div className="flex items-start justify-between gap-3"><div><h4 className="text-sm font-bold text-[#F4F5F7]">{auction.companyName}</h4><p className="mt-1 text-xs text-[#9299A6]">{language === 'ar' ? 'البائع' : 'Seller'}: {auction.sellerName} · Lv.{auction.companyLevel}</p></div>{isLeading && <span className="rounded-lg bg-emerald-500/10 px-2 py-1 text-[10px] text-emerald-300">{language === 'ar' ? 'أنت الأعلى' : 'You lead'}</span>}</div>
-                  <div className="grid grid-cols-2 gap-2 rounded-xl bg-[#0B0D12] p-3">
-                    <div><p className="text-[10px] text-[#9299A6]">{language === 'ar' ? 'سعر البداية' : 'Starting price'}</p><p className="text-sm font-mono-num font-semibold text-[#F4F5F7]">{'$'}{auction.startingPrice.toLocaleString()}</p></div>
-                    <div><p className="text-[10px] text-[#9299A6]">{language === 'ar' ? 'أعلى عرض' : 'Highest bid'}</p><p className="text-sm font-mono-num font-semibold text-amber-200">{'$'}{auction.currentPrice.toLocaleString()}</p></div>
-                  </div>
-                  <div className="flex items-center gap-2 text-xs text-[#9299A6]"><Clock className="w-3.5 h-3.5" />{language === 'ar' ? 'ينتهي خلال' : 'Ends in'} {formatAuctionRemaining(auction.endsAt)}</div>
-                  {auction.highestBidderName && <p className="text-[11px] text-[#9299A6]">{language === 'ar' ? 'صاحب أعلى عرض:' : 'Leading bidder:'} {auction.highestBidderName}</p>}
-                  {!isSeller && <div className="space-y-2">
-                    <input type="number" min={minBid} step="1" value={bidDrafts[auction.id] ?? String(minBid)} onChange={(e) => setBidDrafts((previous) => ({ ...previous, [auction.id]: e.target.value }))} disabled={!canBid || busyKey === 'auction_bid_' + auction.id} className="w-full min-h-[42px] rounded-xl bg-[#0B0D12] border border-white/10 px-3 text-sm text-[#F4F5F7] disabled:opacity-50" />
-                    <button type="button" disabled={!canBid || busyKey === 'auction_bid_' + auction.id} onClick={() => void handlePlaceBid(auction)} className="w-full min-h-[42px] rounded-xl bg-[#B91C32] text-white text-xs font-semibold disabled:opacity-40">{busyKey === 'auction_bid_' + auction.id ? '...' : isLeading ? (language === 'ar' ? 'ارفع عرضك' : 'Raise your bid') : (language === 'ar' ? 'تقديم عرض شراء' : 'Place bid')}</button>
-                    {!canBid && <p className="text-[11px] text-rose-300">{language === 'ar' ? 'لا توجد مساحة متاحة ضمن حد 3 شركات.' : 'No free company slot under the three-company limit.'}</p>}
-                  </div>}
-                  <p className="text-[10px] text-[#77808F]">{language === 'ar' ? 'يُحجز كامل عرضك في الضمان. عند تجاوزك أو إلغاء البيع يُعاد المبلغ تلقائياً.' : 'Your full bid is held in escrow and automatically refunded if outbid or the sale is cancelled.'}</p>
-                </article>
-              );
-            })}
-          </section>
-        </div>
-      )}
-
-}{netHourly.toLocaleString()}
+                          +{'$'}{netHourly.toLocaleString()}
                         </p>
                       </div>
                     </div>
@@ -670,571 +529,31 @@ export function BusinessHubView({
                       <div>
                         <p className="text-[#9299A6]">{t.grossRevenueHr}</p>
                         <p className="font-mono-num font-semibold text-emerald-400 mt-0.5">
-                          +{')}
-              </div>
-              __LOGS__
-            </div>
-          )}
-        </div>
-      )}
-
-      {subTab === 'auction' && (
-        <div className="space-y-4">
-          <section className="rounded-2xl border border-amber-400/20 bg-[#141821] p-4 space-y-2">
-            <div className="flex items-center gap-2 text-sm font-bold text-amber-200"><Gavel className="w-4 h-4" />{language === 'ar' ? 'مزاد الشركات' : 'Company Auction'}</div>
-            <p className="text-xs text-[#AAB1BD]">{language === 'ar' ? 'الشركات من المستوى 50 فأعلى فقط. مدة المزاد 24 ساعة، ويُحجز مبلغ العرض في الضمان حتى الفوز أو تجاوزه.' : 'Level 50+ companies only. Auctions last 24 hours; bids are held in escrow until settlement or being outbid.'}</p>
-            <p className="text-xs text-[#9299A6]">{language === 'ar' ? 'المساحات المستخدمة: ' + occupiedCompanySlots + '/3 (الشركات المملوكة والعروض الأعلى)' : 'Company slots used: ' + occupiedCompanySlots + '/3 (owned companies and leading bids)'}</p>
-          </section>
-          <section className="rounded-2xl border border-white/8 bg-[#141821] p-4 space-y-3">
-            <h3 className="text-sm font-bold text-[#F4F5F7]">{language === 'ar' ? 'إدراج شركة في المزاد' : 'List a company'}</h3>
-            {visibleCompanies.filter((company) => company.level >= 50 && !company.auctionId).length === 0 ? <p className="text-xs text-[#9299A6]">{language === 'ar' ? 'لا توجد شركة مؤهلة حالياً. تحتاج الشركة إلى المستوى 50 على الأقل.' : 'No eligible company yet. A company must be level 50 or higher.'}</p> : visibleCompanies.filter((company) => company.level >= 50 && !company.auctionId).map((company) => (
-              <div key={company.id} className="rounded-xl bg-[#0B0D12] border border-white/8 p-3 space-y-2">
-                <div className="flex items-center justify-between gap-2"><span className="text-sm font-semibold text-[#F4F5F7]">{company.name}</span><span className="text-xs text-amber-200">Lv.{company.level}</span></div>
-                <div className="flex gap-2"><input type="number" min="1" step="1" value={startingPrices[company.id] ?? '10000'} onChange={(e) => setStartingPrices((previous) => ({ ...previous, [company.id]: e.target.value }))} placeholder={language === 'ar' ? 'سعر البداية' : 'Starting price'} className="min-w-0 flex-1 min-h-[42px] rounded-xl bg-[#141821] border border-white/10 px-3 text-sm text-[#F4F5F7]" />
-                  <button type="button" disabled={busyKey === 'auction_list_' + company.id} onClick={() => void handleListCompany(company.id)} className="min-h-[42px] px-4 rounded-xl bg-[#B91C32] text-white text-xs font-semibold disabled:opacity-50">{language === 'ar' ? 'إدراج' : 'List'}</button></div>
-              </div>
-            ))}
-          </section>
-          <section className="space-y-3">
-            <h3 className="text-sm font-bold text-[#F4F5F7]">{language === 'ar' ? 'المزادات المتاحة' : 'Available auctions'}</h3>
-            {activeAuctions.length === 0 ? <div className="rounded-2xl border border-white/8 bg-[#141821] p-8 text-center text-sm text-[#9299A6]">{language === 'ar' ? 'لا توجد مزادات نشطة حالياً.' : 'There are no active auctions right now.'}</div> : activeAuctions.map((auction) => {
-              const isLeading = auction.highestBidderUid === profile.uid;
-              const isSeller = auction.sellerUid === profile.uid;
-              const minBid = auction.highestBidderUid ? auction.currentPrice + 1 : auction.startingPrice;
-              const canBid = !isSeller && (isLeading || hasCompanySlot);
-              return (
-                <article key={auction.id} className="rounded-2xl border border-white/8 bg-[#141821] p-4 space-y-3">
-                  <div className="flex items-start justify-between gap-3"><div><h4 className="text-sm font-bold text-[#F4F5F7]">{auction.companyName}</h4><p className="mt-1 text-xs text-[#9299A6]">{language === 'ar' ? 'البائع' : 'Seller'}: {auction.sellerName} · Lv.{auction.companyLevel}</p></div>{isLeading && <span className="rounded-lg bg-emerald-500/10 px-2 py-1 text-[10px] text-emerald-300">{language === 'ar' ? 'أنت الأعلى' : 'You lead'}</span>}</div>
-                  <div className="grid grid-cols-2 gap-2 rounded-xl bg-[#0B0D12] p-3">
-                    <div><p className="text-[10px] text-[#9299A6]">{language === 'ar' ? 'سعر البداية' : 'Starting price'}</p><p className="text-sm font-mono-num font-semibold text-[#F4F5F7]">{'$'}{auction.startingPrice.toLocaleString()}</p></div>
-                    <div><p className="text-[10px] text-[#9299A6]">{language === 'ar' ? 'أعلى عرض' : 'Highest bid'}</p><p className="text-sm font-mono-num font-semibold text-amber-200">{'$'}{auction.currentPrice.toLocaleString()}</p></div>
-                  </div>
-                  <div className="flex items-center gap-2 text-xs text-[#9299A6]"><Clock className="w-3.5 h-3.5" />{language === 'ar' ? 'ينتهي خلال' : 'Ends in'} {formatAuctionRemaining(auction.endsAt)}</div>
-                  {auction.highestBidderName && <p className="text-[11px] text-[#9299A6]">{language === 'ar' ? 'صاحب أعلى عرض:' : 'Leading bidder:'} {auction.highestBidderName}</p>}
-                  {!isSeller && <div className="space-y-2">
-                    <input type="number" min={minBid} step="1" value={bidDrafts[auction.id] ?? String(minBid)} onChange={(e) => setBidDrafts((previous) => ({ ...previous, [auction.id]: e.target.value }))} disabled={!canBid || busyKey === 'auction_bid_' + auction.id} className="w-full min-h-[42px] rounded-xl bg-[#0B0D12] border border-white/10 px-3 text-sm text-[#F4F5F7] disabled:opacity-50" />
-                    <button type="button" disabled={!canBid || busyKey === 'auction_bid_' + auction.id} onClick={() => void handlePlaceBid(auction)} className="w-full min-h-[42px] rounded-xl bg-[#B91C32] text-white text-xs font-semibold disabled:opacity-40">{busyKey === 'auction_bid_' + auction.id ? '...' : isLeading ? (language === 'ar' ? 'ارفع عرضك' : 'Raise your bid') : (language === 'ar' ? 'تقديم عرض شراء' : 'Place bid')}</button>
-                    {!canBid && <p className="text-[11px] text-rose-300">{language === 'ar' ? 'لا توجد مساحة متاحة ضمن حد 3 شركات.' : 'No free company slot under the three-company limit.'}</p>}
-                  </div>}
-                  <p className="text-[10px] text-[#77808F]">{language === 'ar' ? 'يُحجز كامل عرضك في الضمان. عند تجاوزك أو إلغاء البيع يُعاد المبلغ تلقائياً.' : 'Your full bid is held in escrow and automatically refunded if outbid or the sale is cancelled.'}</p>
-                </article>
-              );
-            })}
-          </section>
-        </div>
-      )}
-
-}{s.foundingCost.toLocaleString()}
-                    </span>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <button
-              type="submit"
-              disabled={busyKey === 'found_company'}
-              className="w-full min-h-[44px] px-4 rounded-xl bg-[#B91C32] hover:bg-[#E04455] text-white text-sm font-semibold flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
-            >
-              <Plus className="w-4 h-4" />
-              <span>{busyKey === 'found_company' ? '...' : t.foundCompany}</span>
-            </button>
-          </form>
-
-
-            </div>
-          )}
-          {companyView === 'detail' && (
-            <div className="space-y-4">
-              <div className="flex items-center justify-between gap-2">
-                <button type="button" onClick={() => setCompanyView('overview')} className="inline-flex items-center gap-2 min-h-[40px] px-3 rounded-xl bg-[#1B2230] text-[#F4F5F7] text-xs font-semibold"><ArrowLeft className="w-4 h-4" />{language === 'ar' ? 'شركاتي' : 'My companies'}</button>
-                {visibleCompanies.find((c) => c.id === selectedCompanyId) && <button type="button" disabled={busyKey === 'delete_company_' + selectedCompanyId} onClick={() => { const selected = visibleCompanies.find((c) => c.id === selectedCompanyId); if (selected) void handleDeleteCompany(selected); }} className="inline-flex items-center gap-2 min-h-[40px] px-3 rounded-xl border border-rose-500/30 bg-rose-500/10 text-rose-300 text-xs font-semibold disabled:opacity-50"><Trash2 className="w-4 h-4" />{language === 'ar' ? 'حذف الشركة' : 'Delete company'}</button>}
-              </div>
-              <div className="space-y-4">
-                {visibleCompanies.filter((c) => c.id === selectedCompanyId).length === 0 ? <p className="text-sm text-[#9299A6]">{language === 'ar' ? 'الشركة غير متاحة.' : 'Company not found.'}</p> : (__COMPANY_MAP__)}
-              </div>
-              __LOGS__
-            </div>
-          )}
-        </div>
-      )}
-
-      {subTab === 'auction' && (
-        <div className="space-y-4">
-          <section className="rounded-2xl border border-amber-400/20 bg-[#141821] p-4 space-y-2">
-            <div className="flex items-center gap-2 text-sm font-bold text-amber-200"><Gavel className="w-4 h-4" />{language === 'ar' ? 'مزاد الشركات' : 'Company Auction'}</div>
-            <p className="text-xs text-[#AAB1BD]">{language === 'ar' ? 'الشركات من المستوى 50 فأعلى فقط. مدة المزاد 24 ساعة، ويُحجز مبلغ العرض في الضمان حتى الفوز أو تجاوزه.' : 'Level 50+ companies only. Auctions last 24 hours; bids are held in escrow until settlement or being outbid.'}</p>
-            <p className="text-xs text-[#9299A6]">{language === 'ar' ? 'المساحات المستخدمة: ' + occupiedCompanySlots + '/3 (الشركات المملوكة والعروض الأعلى)' : 'Company slots used: ' + occupiedCompanySlots + '/3 (owned companies and leading bids)'}</p>
-          </section>
-          <section className="rounded-2xl border border-white/8 bg-[#141821] p-4 space-y-3">
-            <h3 className="text-sm font-bold text-[#F4F5F7]">{language === 'ar' ? 'إدراج شركة في المزاد' : 'List a company'}</h3>
-            {visibleCompanies.filter((company) => company.level >= 50 && !company.auctionId).length === 0 ? <p className="text-xs text-[#9299A6]">{language === 'ar' ? 'لا توجد شركة مؤهلة حالياً. تحتاج الشركة إلى المستوى 50 على الأقل.' : 'No eligible company yet. A company must be level 50 or higher.'}</p> : visibleCompanies.filter((company) => company.level >= 50 && !company.auctionId).map((company) => (
-              <div key={company.id} className="rounded-xl bg-[#0B0D12] border border-white/8 p-3 space-y-2">
-                <div className="flex items-center justify-between gap-2"><span className="text-sm font-semibold text-[#F4F5F7]">{company.name}</span><span className="text-xs text-amber-200">Lv.{company.level}</span></div>
-                <div className="flex gap-2"><input type="number" min="1" step="1" value={startingPrices[company.id] ?? '10000'} onChange={(e) => setStartingPrices((previous) => ({ ...previous, [company.id]: e.target.value }))} placeholder={language === 'ar' ? 'سعر البداية' : 'Starting price'} className="min-w-0 flex-1 min-h-[42px] rounded-xl bg-[#141821] border border-white/10 px-3 text-sm text-[#F4F5F7]" />
-                  <button type="button" disabled={busyKey === 'auction_list_' + company.id} onClick={() => void handleListCompany(company.id)} className="min-h-[42px] px-4 rounded-xl bg-[#B91C32] text-white text-xs font-semibold disabled:opacity-50">{language === 'ar' ? 'إدراج' : 'List'}</button></div>
-              </div>
-            ))}
-          </section>
-          <section className="space-y-3">
-            <h3 className="text-sm font-bold text-[#F4F5F7]">{language === 'ar' ? 'المزادات المتاحة' : 'Available auctions'}</h3>
-            {activeAuctions.length === 0 ? <div className="rounded-2xl border border-white/8 bg-[#141821] p-8 text-center text-sm text-[#9299A6]">{language === 'ar' ? 'لا توجد مزادات نشطة حالياً.' : 'There are no active auctions right now.'}</div> : activeAuctions.map((auction) => {
-              const isLeading = auction.highestBidderUid === profile.uid;
-              const isSeller = auction.sellerUid === profile.uid;
-              const minBid = auction.highestBidderUid ? auction.currentPrice + 1 : auction.startingPrice;
-              const canBid = !isSeller && (isLeading || hasCompanySlot);
-              return (
-                <article key={auction.id} className="rounded-2xl border border-white/8 bg-[#141821] p-4 space-y-3">
-                  <div className="flex items-start justify-between gap-3"><div><h4 className="text-sm font-bold text-[#F4F5F7]">{auction.companyName}</h4><p className="mt-1 text-xs text-[#9299A6]">{language === 'ar' ? 'البائع' : 'Seller'}: {auction.sellerName} · Lv.{auction.companyLevel}</p></div>{isLeading && <span className="rounded-lg bg-emerald-500/10 px-2 py-1 text-[10px] text-emerald-300">{language === 'ar' ? 'أنت الأعلى' : 'You lead'}</span>}</div>
-                  <div className="grid grid-cols-2 gap-2 rounded-xl bg-[#0B0D12] p-3">
-                    <div><p className="text-[10px] text-[#9299A6]">{language === 'ar' ? 'سعر البداية' : 'Starting price'}</p><p className="text-sm font-mono-num font-semibold text-[#F4F5F7]">{'$'}{auction.startingPrice.toLocaleString()}</p></div>
-                    <div><p className="text-[10px] text-[#9299A6]">{language === 'ar' ? 'أعلى عرض' : 'Highest bid'}</p><p className="text-sm font-mono-num font-semibold text-amber-200">{'$'}{auction.currentPrice.toLocaleString()}</p></div>
-                  </div>
-                  <div className="flex items-center gap-2 text-xs text-[#9299A6]"><Clock className="w-3.5 h-3.5" />{language === 'ar' ? 'ينتهي خلال' : 'Ends in'} {formatAuctionRemaining(auction.endsAt)}</div>
-                  {auction.highestBidderName && <p className="text-[11px] text-[#9299A6]">{language === 'ar' ? 'صاحب أعلى عرض:' : 'Leading bidder:'} {auction.highestBidderName}</p>}
-                  {!isSeller && <div className="space-y-2">
-                    <input type="number" min={minBid} step="1" value={bidDrafts[auction.id] ?? String(minBid)} onChange={(e) => setBidDrafts((previous) => ({ ...previous, [auction.id]: e.target.value }))} disabled={!canBid || busyKey === 'auction_bid_' + auction.id} className="w-full min-h-[42px] rounded-xl bg-[#0B0D12] border border-white/10 px-3 text-sm text-[#F4F5F7] disabled:opacity-50" />
-                    <button type="button" disabled={!canBid || busyKey === 'auction_bid_' + auction.id} onClick={() => void handlePlaceBid(auction)} className="w-full min-h-[42px] rounded-xl bg-[#B91C32] text-white text-xs font-semibold disabled:opacity-40">{busyKey === 'auction_bid_' + auction.id ? '...' : isLeading ? (language === 'ar' ? 'ارفع عرضك' : 'Raise your bid') : (language === 'ar' ? 'تقديم عرض شراء' : 'Place bid')}</button>
-                    {!canBid && <p className="text-[11px] text-rose-300">{language === 'ar' ? 'لا توجد مساحة متاحة ضمن حد 3 شركات.' : 'No free company slot under the three-company limit.'}</p>}
-                  </div>}
-                  <p className="text-[10px] text-[#77808F]">{language === 'ar' ? 'يُحجز كامل عرضك في الضمان. عند تجاوزك أو إلغاء البيع يُعاد المبلغ تلقائياً.' : 'Your full bid is held in escrow and automatically refunded if outbid or the sale is cancelled.'}</p>
-                </article>
-              );
-            })}
-          </section>
-        </div>
-      )}
-
-}{grossHourly.toLocaleString()}
+                          +{'$'}{grossHourly.toLocaleString()}
                         </p>
                       </div>
                       <div>
                         <p className="text-[#9299A6]">{t.operatingExpenseHr}</p>
                         <p className="font-mono-num font-semibold text-[#E04455] mt-0.5">
-                          -{')}
-              </div>
-              __LOGS__
-            </div>
-          )}
-        </div>
-      )}
-
-      {subTab === 'auction' && (
-        <div className="space-y-4">
-          <section className="rounded-2xl border border-amber-400/20 bg-[#141821] p-4 space-y-2">
-            <div className="flex items-center gap-2 text-sm font-bold text-amber-200"><Gavel className="w-4 h-4" />{language === 'ar' ? 'مزاد الشركات' : 'Company Auction'}</div>
-            <p className="text-xs text-[#AAB1BD]">{language === 'ar' ? 'الشركات من المستوى 50 فأعلى فقط. مدة المزاد 24 ساعة، ويُحجز مبلغ العرض في الضمان حتى الفوز أو تجاوزه.' : 'Level 50+ companies only. Auctions last 24 hours; bids are held in escrow until settlement or being outbid.'}</p>
-            <p className="text-xs text-[#9299A6]">{language === 'ar' ? 'المساحات المستخدمة: ' + occupiedCompanySlots + '/3 (الشركات المملوكة والعروض الأعلى)' : 'Company slots used: ' + occupiedCompanySlots + '/3 (owned companies and leading bids)'}</p>
-          </section>
-          <section className="rounded-2xl border border-white/8 bg-[#141821] p-4 space-y-3">
-            <h3 className="text-sm font-bold text-[#F4F5F7]">{language === 'ar' ? 'إدراج شركة في المزاد' : 'List a company'}</h3>
-            {visibleCompanies.filter((company) => company.level >= 50 && !company.auctionId).length === 0 ? <p className="text-xs text-[#9299A6]">{language === 'ar' ? 'لا توجد شركة مؤهلة حالياً. تحتاج الشركة إلى المستوى 50 على الأقل.' : 'No eligible company yet. A company must be level 50 or higher.'}</p> : visibleCompanies.filter((company) => company.level >= 50 && !company.auctionId).map((company) => (
-              <div key={company.id} className="rounded-xl bg-[#0B0D12] border border-white/8 p-3 space-y-2">
-                <div className="flex items-center justify-between gap-2"><span className="text-sm font-semibold text-[#F4F5F7]">{company.name}</span><span className="text-xs text-amber-200">Lv.{company.level}</span></div>
-                <div className="flex gap-2"><input type="number" min="1" step="1" value={startingPrices[company.id] ?? '10000'} onChange={(e) => setStartingPrices((previous) => ({ ...previous, [company.id]: e.target.value }))} placeholder={language === 'ar' ? 'سعر البداية' : 'Starting price'} className="min-w-0 flex-1 min-h-[42px] rounded-xl bg-[#141821] border border-white/10 px-3 text-sm text-[#F4F5F7]" />
-                  <button type="button" disabled={busyKey === 'auction_list_' + company.id} onClick={() => void handleListCompany(company.id)} className="min-h-[42px] px-4 rounded-xl bg-[#B91C32] text-white text-xs font-semibold disabled:opacity-50">{language === 'ar' ? 'إدراج' : 'List'}</button></div>
-              </div>
-            ))}
-          </section>
-          <section className="space-y-3">
-            <h3 className="text-sm font-bold text-[#F4F5F7]">{language === 'ar' ? 'المزادات المتاحة' : 'Available auctions'}</h3>
-            {activeAuctions.length === 0 ? <div className="rounded-2xl border border-white/8 bg-[#141821] p-8 text-center text-sm text-[#9299A6]">{language === 'ar' ? 'لا توجد مزادات نشطة حالياً.' : 'There are no active auctions right now.'}</div> : activeAuctions.map((auction) => {
-              const isLeading = auction.highestBidderUid === profile.uid;
-              const isSeller = auction.sellerUid === profile.uid;
-              const minBid = auction.highestBidderUid ? auction.currentPrice + 1 : auction.startingPrice;
-              const canBid = !isSeller && (isLeading || hasCompanySlot);
-              return (
-                <article key={auction.id} className="rounded-2xl border border-white/8 bg-[#141821] p-4 space-y-3">
-                  <div className="flex items-start justify-between gap-3"><div><h4 className="text-sm font-bold text-[#F4F5F7]">{auction.companyName}</h4><p className="mt-1 text-xs text-[#9299A6]">{language === 'ar' ? 'البائع' : 'Seller'}: {auction.sellerName} · Lv.{auction.companyLevel}</p></div>{isLeading && <span className="rounded-lg bg-emerald-500/10 px-2 py-1 text-[10px] text-emerald-300">{language === 'ar' ? 'أنت الأعلى' : 'You lead'}</span>}</div>
-                  <div className="grid grid-cols-2 gap-2 rounded-xl bg-[#0B0D12] p-3">
-                    <div><p className="text-[10px] text-[#9299A6]">{language === 'ar' ? 'سعر البداية' : 'Starting price'}</p><p className="text-sm font-mono-num font-semibold text-[#F4F5F7]">{'$'}{auction.startingPrice.toLocaleString()}</p></div>
-                    <div><p className="text-[10px] text-[#9299A6]">{language === 'ar' ? 'أعلى عرض' : 'Highest bid'}</p><p className="text-sm font-mono-num font-semibold text-amber-200">{'$'}{auction.currentPrice.toLocaleString()}</p></div>
-                  </div>
-                  <div className="flex items-center gap-2 text-xs text-[#9299A6]"><Clock className="w-3.5 h-3.5" />{language === 'ar' ? 'ينتهي خلال' : 'Ends in'} {formatAuctionRemaining(auction.endsAt)}</div>
-                  {auction.highestBidderName && <p className="text-[11px] text-[#9299A6]">{language === 'ar' ? 'صاحب أعلى عرض:' : 'Leading bidder:'} {auction.highestBidderName}</p>}
-                  {!isSeller && <div className="space-y-2">
-                    <input type="number" min={minBid} step="1" value={bidDrafts[auction.id] ?? String(minBid)} onChange={(e) => setBidDrafts((previous) => ({ ...previous, [auction.id]: e.target.value }))} disabled={!canBid || busyKey === 'auction_bid_' + auction.id} className="w-full min-h-[42px] rounded-xl bg-[#0B0D12] border border-white/10 px-3 text-sm text-[#F4F5F7] disabled:opacity-50" />
-                    <button type="button" disabled={!canBid || busyKey === 'auction_bid_' + auction.id} onClick={() => void handlePlaceBid(auction)} className="w-full min-h-[42px] rounded-xl bg-[#B91C32] text-white text-xs font-semibold disabled:opacity-40">{busyKey === 'auction_bid_' + auction.id ? '...' : isLeading ? (language === 'ar' ? 'ارفع عرضك' : 'Raise your bid') : (language === 'ar' ? 'تقديم عرض شراء' : 'Place bid')}</button>
-                    {!canBid && <p className="text-[11px] text-rose-300">{language === 'ar' ? 'لا توجد مساحة متاحة ضمن حد 3 شركات.' : 'No free company slot under the three-company limit.'}</p>}
-                  </div>}
-                  <p className="text-[10px] text-[#77808F]">{language === 'ar' ? 'يُحجز كامل عرضك في الضمان. عند تجاوزك أو إلغاء البيع يُعاد المبلغ تلقائياً.' : 'Your full bid is held in escrow and automatically refunded if outbid or the sale is cancelled.'}</p>
-                </article>
-              );
-            })}
-          </section>
-        </div>
-      )}
-
-}{s.foundingCost.toLocaleString()}
-                    </span>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <button
-              type="submit"
-              disabled={busyKey === 'found_company'}
-              className="w-full min-h-[44px] px-4 rounded-xl bg-[#B91C32] hover:bg-[#E04455] text-white text-sm font-semibold flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
-            >
-              <Plus className="w-4 h-4" />
-              <span>{busyKey === 'found_company' ? '...' : t.foundCompany}</span>
-            </button>
-          </form>
-
-
-            </div>
-          )}
-          {companyView === 'detail' && (
-            <div className="space-y-4">
-              <div className="flex items-center justify-between gap-2">
-                <button type="button" onClick={() => setCompanyView('overview')} className="inline-flex items-center gap-2 min-h-[40px] px-3 rounded-xl bg-[#1B2230] text-[#F4F5F7] text-xs font-semibold"><ArrowLeft className="w-4 h-4" />{language === 'ar' ? 'شركاتي' : 'My companies'}</button>
-                {visibleCompanies.find((c) => c.id === selectedCompanyId) && <button type="button" disabled={busyKey === 'delete_company_' + selectedCompanyId} onClick={() => { const selected = visibleCompanies.find((c) => c.id === selectedCompanyId); if (selected) void handleDeleteCompany(selected); }} className="inline-flex items-center gap-2 min-h-[40px] px-3 rounded-xl border border-rose-500/30 bg-rose-500/10 text-rose-300 text-xs font-semibold disabled:opacity-50"><Trash2 className="w-4 h-4" />{language === 'ar' ? 'حذف الشركة' : 'Delete company'}</button>}
-              </div>
-              <div className="space-y-4">
-                {visibleCompanies.filter((c) => c.id === selectedCompanyId).length === 0 ? <p className="text-sm text-[#9299A6]">{language === 'ar' ? 'الشركة غير متاحة.' : 'Company not found.'}</p> : (__COMPANY_MAP__)}
-              </div>
-              __LOGS__
-            </div>
-          )}
-        </div>
-      )}
-
-      {subTab === 'auction' && (
-        <div className="space-y-4">
-          <section className="rounded-2xl border border-amber-400/20 bg-[#141821] p-4 space-y-2">
-            <div className="flex items-center gap-2 text-sm font-bold text-amber-200"><Gavel className="w-4 h-4" />{language === 'ar' ? 'مزاد الشركات' : 'Company Auction'}</div>
-            <p className="text-xs text-[#AAB1BD]">{language === 'ar' ? 'الشركات من المستوى 50 فأعلى فقط. مدة المزاد 24 ساعة، ويُحجز مبلغ العرض في الضمان حتى الفوز أو تجاوزه.' : 'Level 50+ companies only. Auctions last 24 hours; bids are held in escrow until settlement or being outbid.'}</p>
-            <p className="text-xs text-[#9299A6]">{language === 'ar' ? 'المساحات المستخدمة: ' + occupiedCompanySlots + '/3 (الشركات المملوكة والعروض الأعلى)' : 'Company slots used: ' + occupiedCompanySlots + '/3 (owned companies and leading bids)'}</p>
-          </section>
-          <section className="rounded-2xl border border-white/8 bg-[#141821] p-4 space-y-3">
-            <h3 className="text-sm font-bold text-[#F4F5F7]">{language === 'ar' ? 'إدراج شركة في المزاد' : 'List a company'}</h3>
-            {visibleCompanies.filter((company) => company.level >= 50 && !company.auctionId).length === 0 ? <p className="text-xs text-[#9299A6]">{language === 'ar' ? 'لا توجد شركة مؤهلة حالياً. تحتاج الشركة إلى المستوى 50 على الأقل.' : 'No eligible company yet. A company must be level 50 or higher.'}</p> : visibleCompanies.filter((company) => company.level >= 50 && !company.auctionId).map((company) => (
-              <div key={company.id} className="rounded-xl bg-[#0B0D12] border border-white/8 p-3 space-y-2">
-                <div className="flex items-center justify-between gap-2"><span className="text-sm font-semibold text-[#F4F5F7]">{company.name}</span><span className="text-xs text-amber-200">Lv.{company.level}</span></div>
-                <div className="flex gap-2"><input type="number" min="1" step="1" value={startingPrices[company.id] ?? '10000'} onChange={(e) => setStartingPrices((previous) => ({ ...previous, [company.id]: e.target.value }))} placeholder={language === 'ar' ? 'سعر البداية' : 'Starting price'} className="min-w-0 flex-1 min-h-[42px] rounded-xl bg-[#141821] border border-white/10 px-3 text-sm text-[#F4F5F7]" />
-                  <button type="button" disabled={busyKey === 'auction_list_' + company.id} onClick={() => void handleListCompany(company.id)} className="min-h-[42px] px-4 rounded-xl bg-[#B91C32] text-white text-xs font-semibold disabled:opacity-50">{language === 'ar' ? 'إدراج' : 'List'}</button></div>
-              </div>
-            ))}
-          </section>
-          <section className="space-y-3">
-            <h3 className="text-sm font-bold text-[#F4F5F7]">{language === 'ar' ? 'المزادات المتاحة' : 'Available auctions'}</h3>
-            {activeAuctions.length === 0 ? <div className="rounded-2xl border border-white/8 bg-[#141821] p-8 text-center text-sm text-[#9299A6]">{language === 'ar' ? 'لا توجد مزادات نشطة حالياً.' : 'There are no active auctions right now.'}</div> : activeAuctions.map((auction) => {
-              const isLeading = auction.highestBidderUid === profile.uid;
-              const isSeller = auction.sellerUid === profile.uid;
-              const minBid = auction.highestBidderUid ? auction.currentPrice + 1 : auction.startingPrice;
-              const canBid = !isSeller && (isLeading || hasCompanySlot);
-              return (
-                <article key={auction.id} className="rounded-2xl border border-white/8 bg-[#141821] p-4 space-y-3">
-                  <div className="flex items-start justify-between gap-3"><div><h4 className="text-sm font-bold text-[#F4F5F7]">{auction.companyName}</h4><p className="mt-1 text-xs text-[#9299A6]">{language === 'ar' ? 'البائع' : 'Seller'}: {auction.sellerName} · Lv.{auction.companyLevel}</p></div>{isLeading && <span className="rounded-lg bg-emerald-500/10 px-2 py-1 text-[10px] text-emerald-300">{language === 'ar' ? 'أنت الأعلى' : 'You lead'}</span>}</div>
-                  <div className="grid grid-cols-2 gap-2 rounded-xl bg-[#0B0D12] p-3">
-                    <div><p className="text-[10px] text-[#9299A6]">{language === 'ar' ? 'سعر البداية' : 'Starting price'}</p><p className="text-sm font-mono-num font-semibold text-[#F4F5F7]">{'$'}{auction.startingPrice.toLocaleString()}</p></div>
-                    <div><p className="text-[10px] text-[#9299A6]">{language === 'ar' ? 'أعلى عرض' : 'Highest bid'}</p><p className="text-sm font-mono-num font-semibold text-amber-200">{'$'}{auction.currentPrice.toLocaleString()}</p></div>
-                  </div>
-                  <div className="flex items-center gap-2 text-xs text-[#9299A6]"><Clock className="w-3.5 h-3.5" />{language === 'ar' ? 'ينتهي خلال' : 'Ends in'} {formatAuctionRemaining(auction.endsAt)}</div>
-                  {auction.highestBidderName && <p className="text-[11px] text-[#9299A6]">{language === 'ar' ? 'صاحب أعلى عرض:' : 'Leading bidder:'} {auction.highestBidderName}</p>}
-                  {!isSeller && <div className="space-y-2">
-                    <input type="number" min={minBid} step="1" value={bidDrafts[auction.id] ?? String(minBid)} onChange={(e) => setBidDrafts((previous) => ({ ...previous, [auction.id]: e.target.value }))} disabled={!canBid || busyKey === 'auction_bid_' + auction.id} className="w-full min-h-[42px] rounded-xl bg-[#0B0D12] border border-white/10 px-3 text-sm text-[#F4F5F7] disabled:opacity-50" />
-                    <button type="button" disabled={!canBid || busyKey === 'auction_bid_' + auction.id} onClick={() => void handlePlaceBid(auction)} className="w-full min-h-[42px] rounded-xl bg-[#B91C32] text-white text-xs font-semibold disabled:opacity-40">{busyKey === 'auction_bid_' + auction.id ? '...' : isLeading ? (language === 'ar' ? 'ارفع عرضك' : 'Raise your bid') : (language === 'ar' ? 'تقديم عرض شراء' : 'Place bid')}</button>
-                    {!canBid && <p className="text-[11px] text-rose-300">{language === 'ar' ? 'لا توجد مساحة متاحة ضمن حد 3 شركات.' : 'No free company slot under the three-company limit.'}</p>}
-                  </div>}
-                  <p className="text-[10px] text-[#77808F]">{language === 'ar' ? 'يُحجز كامل عرضك في الضمان. عند تجاوزك أو إلغاء البيع يُعاد المبلغ تلقائياً.' : 'Your full bid is held in escrow and automatically refunded if outbid or the sale is cancelled.'}</p>
-                </article>
-              );
-            })}
-          </section>
-        </div>
-      )}
-
-}{expenseHourly.toLocaleString()}
+                          -{'$'}{expenseHourly.toLocaleString()}
                         </p>
                       </div>
                       <div>
                         <p className="text-[#9299A6]">{language === 'ar' ? 'الإيراد المتراكم' : 'Accrued'}</p>
                         <p className="font-mono-num font-semibold text-[#F4F5F7] mt-0.5">
-                          {')}
-              </div>
-              __LOGS__
-            </div>
-          )}
-        </div>
-      )}
-
-      {subTab === 'auction' && (
-        <div className="space-y-4">
-          <section className="rounded-2xl border border-amber-400/20 bg-[#141821] p-4 space-y-2">
-            <div className="flex items-center gap-2 text-sm font-bold text-amber-200"><Gavel className="w-4 h-4" />{language === 'ar' ? 'مزاد الشركات' : 'Company Auction'}</div>
-            <p className="text-xs text-[#AAB1BD]">{language === 'ar' ? 'الشركات من المستوى 50 فأعلى فقط. مدة المزاد 24 ساعة، ويُحجز مبلغ العرض في الضمان حتى الفوز أو تجاوزه.' : 'Level 50+ companies only. Auctions last 24 hours; bids are held in escrow until settlement or being outbid.'}</p>
-            <p className="text-xs text-[#9299A6]">{language === 'ar' ? 'المساحات المستخدمة: ' + occupiedCompanySlots + '/3 (الشركات المملوكة والعروض الأعلى)' : 'Company slots used: ' + occupiedCompanySlots + '/3 (owned companies and leading bids)'}</p>
-          </section>
-          <section className="rounded-2xl border border-white/8 bg-[#141821] p-4 space-y-3">
-            <h3 className="text-sm font-bold text-[#F4F5F7]">{language === 'ar' ? 'إدراج شركة في المزاد' : 'List a company'}</h3>
-            {visibleCompanies.filter((company) => company.level >= 50 && !company.auctionId).length === 0 ? <p className="text-xs text-[#9299A6]">{language === 'ar' ? 'لا توجد شركة مؤهلة حالياً. تحتاج الشركة إلى المستوى 50 على الأقل.' : 'No eligible company yet. A company must be level 50 or higher.'}</p> : visibleCompanies.filter((company) => company.level >= 50 && !company.auctionId).map((company) => (
-              <div key={company.id} className="rounded-xl bg-[#0B0D12] border border-white/8 p-3 space-y-2">
-                <div className="flex items-center justify-between gap-2"><span className="text-sm font-semibold text-[#F4F5F7]">{company.name}</span><span className="text-xs text-amber-200">Lv.{company.level}</span></div>
-                <div className="flex gap-2"><input type="number" min="1" step="1" value={startingPrices[company.id] ?? '10000'} onChange={(e) => setStartingPrices((previous) => ({ ...previous, [company.id]: e.target.value }))} placeholder={language === 'ar' ? 'سعر البداية' : 'Starting price'} className="min-w-0 flex-1 min-h-[42px] rounded-xl bg-[#141821] border border-white/10 px-3 text-sm text-[#F4F5F7]" />
-                  <button type="button" disabled={busyKey === 'auction_list_' + company.id} onClick={() => void handleListCompany(company.id)} className="min-h-[42px] px-4 rounded-xl bg-[#B91C32] text-white text-xs font-semibold disabled:opacity-50">{language === 'ar' ? 'إدراج' : 'List'}</button></div>
-              </div>
-            ))}
-          </section>
-          <section className="space-y-3">
-            <h3 className="text-sm font-bold text-[#F4F5F7]">{language === 'ar' ? 'المزادات المتاحة' : 'Available auctions'}</h3>
-            {activeAuctions.length === 0 ? <div className="rounded-2xl border border-white/8 bg-[#141821] p-8 text-center text-sm text-[#9299A6]">{language === 'ar' ? 'لا توجد مزادات نشطة حالياً.' : 'There are no active auctions right now.'}</div> : activeAuctions.map((auction) => {
-              const isLeading = auction.highestBidderUid === profile.uid;
-              const isSeller = auction.sellerUid === profile.uid;
-              const minBid = auction.highestBidderUid ? auction.currentPrice + 1 : auction.startingPrice;
-              const canBid = !isSeller && (isLeading || hasCompanySlot);
-              return (
-                <article key={auction.id} className="rounded-2xl border border-white/8 bg-[#141821] p-4 space-y-3">
-                  <div className="flex items-start justify-between gap-3"><div><h4 className="text-sm font-bold text-[#F4F5F7]">{auction.companyName}</h4><p className="mt-1 text-xs text-[#9299A6]">{language === 'ar' ? 'البائع' : 'Seller'}: {auction.sellerName} · Lv.{auction.companyLevel}</p></div>{isLeading && <span className="rounded-lg bg-emerald-500/10 px-2 py-1 text-[10px] text-emerald-300">{language === 'ar' ? 'أنت الأعلى' : 'You lead'}</span>}</div>
-                  <div className="grid grid-cols-2 gap-2 rounded-xl bg-[#0B0D12] p-3">
-                    <div><p className="text-[10px] text-[#9299A6]">{language === 'ar' ? 'سعر البداية' : 'Starting price'}</p><p className="text-sm font-mono-num font-semibold text-[#F4F5F7]">{'$'}{auction.startingPrice.toLocaleString()}</p></div>
-                    <div><p className="text-[10px] text-[#9299A6]">{language === 'ar' ? 'أعلى عرض' : 'Highest bid'}</p><p className="text-sm font-mono-num font-semibold text-amber-200">{'$'}{auction.currentPrice.toLocaleString()}</p></div>
-                  </div>
-                  <div className="flex items-center gap-2 text-xs text-[#9299A6]"><Clock className="w-3.5 h-3.5" />{language === 'ar' ? 'ينتهي خلال' : 'Ends in'} {formatAuctionRemaining(auction.endsAt)}</div>
-                  {auction.highestBidderName && <p className="text-[11px] text-[#9299A6]">{language === 'ar' ? 'صاحب أعلى عرض:' : 'Leading bidder:'} {auction.highestBidderName}</p>}
-                  {!isSeller && <div className="space-y-2">
-                    <input type="number" min={minBid} step="1" value={bidDrafts[auction.id] ?? String(minBid)} onChange={(e) => setBidDrafts((previous) => ({ ...previous, [auction.id]: e.target.value }))} disabled={!canBid || busyKey === 'auction_bid_' + auction.id} className="w-full min-h-[42px] rounded-xl bg-[#0B0D12] border border-white/10 px-3 text-sm text-[#F4F5F7] disabled:opacity-50" />
-                    <button type="button" disabled={!canBid || busyKey === 'auction_bid_' + auction.id} onClick={() => void handlePlaceBid(auction)} className="w-full min-h-[42px] rounded-xl bg-[#B91C32] text-white text-xs font-semibold disabled:opacity-40">{busyKey === 'auction_bid_' + auction.id ? '...' : isLeading ? (language === 'ar' ? 'ارفع عرضك' : 'Raise your bid') : (language === 'ar' ? 'تقديم عرض شراء' : 'Place bid')}</button>
-                    {!canBid && <p className="text-[11px] text-rose-300">{language === 'ar' ? 'لا توجد مساحة متاحة ضمن حد 3 شركات.' : 'No free company slot under the three-company limit.'}</p>}
-                  </div>}
-                  <p className="text-[10px] text-[#77808F]">{language === 'ar' ? 'يُحجز كامل عرضك في الضمان. عند تجاوزك أو إلغاء البيع يُعاد المبلغ تلقائياً.' : 'Your full bid is held in escrow and automatically refunded if outbid or the sale is cancelled.'}</p>
-                </article>
-              );
-            })}
-          </section>
-        </div>
-      )}
-
-}{s.foundingCost.toLocaleString()}
-                    </span>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <button
-              type="submit"
-              disabled={busyKey === 'found_company'}
-              className="w-full min-h-[44px] px-4 rounded-xl bg-[#B91C32] hover:bg-[#E04455] text-white text-sm font-semibold flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
-            >
-              <Plus className="w-4 h-4" />
-              <span>{busyKey === 'found_company' ? '...' : t.foundCompany}</span>
-            </button>
-          </form>
-
-
-            </div>
-          )}
-          {companyView === 'detail' && (
-            <div className="space-y-4">
-              <div className="flex items-center justify-between gap-2">
-                <button type="button" onClick={() => setCompanyView('overview')} className="inline-flex items-center gap-2 min-h-[40px] px-3 rounded-xl bg-[#1B2230] text-[#F4F5F7] text-xs font-semibold"><ArrowLeft className="w-4 h-4" />{language === 'ar' ? 'شركاتي' : 'My companies'}</button>
-                {visibleCompanies.find((c) => c.id === selectedCompanyId) && <button type="button" disabled={busyKey === 'delete_company_' + selectedCompanyId} onClick={() => { const selected = visibleCompanies.find((c) => c.id === selectedCompanyId); if (selected) void handleDeleteCompany(selected); }} className="inline-flex items-center gap-2 min-h-[40px] px-3 rounded-xl border border-rose-500/30 bg-rose-500/10 text-rose-300 text-xs font-semibold disabled:opacity-50"><Trash2 className="w-4 h-4" />{language === 'ar' ? 'حذف الشركة' : 'Delete company'}</button>}
-              </div>
-              <div className="space-y-4">
-                {visibleCompanies.filter((c) => c.id === selectedCompanyId).length === 0 ? <p className="text-sm text-[#9299A6]">{language === 'ar' ? 'الشركة غير متاحة.' : 'Company not found.'}</p> : (__COMPANY_MAP__)}
-              </div>
-              __LOGS__
-            </div>
-          )}
-        </div>
-      )}
-
-      {subTab === 'auction' && (
-        <div className="space-y-4">
-          <section className="rounded-2xl border border-amber-400/20 bg-[#141821] p-4 space-y-2">
-            <div className="flex items-center gap-2 text-sm font-bold text-amber-200"><Gavel className="w-4 h-4" />{language === 'ar' ? 'مزاد الشركات' : 'Company Auction'}</div>
-            <p className="text-xs text-[#AAB1BD]">{language === 'ar' ? 'الشركات من المستوى 50 فأعلى فقط. مدة المزاد 24 ساعة، ويُحجز مبلغ العرض في الضمان حتى الفوز أو تجاوزه.' : 'Level 50+ companies only. Auctions last 24 hours; bids are held in escrow until settlement or being outbid.'}</p>
-            <p className="text-xs text-[#9299A6]">{language === 'ar' ? 'المساحات المستخدمة: ' + occupiedCompanySlots + '/3 (الشركات المملوكة والعروض الأعلى)' : 'Company slots used: ' + occupiedCompanySlots + '/3 (owned companies and leading bids)'}</p>
-          </section>
-          <section className="rounded-2xl border border-white/8 bg-[#141821] p-4 space-y-3">
-            <h3 className="text-sm font-bold text-[#F4F5F7]">{language === 'ar' ? 'إدراج شركة في المزاد' : 'List a company'}</h3>
-            {visibleCompanies.filter((company) => company.level >= 50 && !company.auctionId).length === 0 ? <p className="text-xs text-[#9299A6]">{language === 'ar' ? 'لا توجد شركة مؤهلة حالياً. تحتاج الشركة إلى المستوى 50 على الأقل.' : 'No eligible company yet. A company must be level 50 or higher.'}</p> : visibleCompanies.filter((company) => company.level >= 50 && !company.auctionId).map((company) => (
-              <div key={company.id} className="rounded-xl bg-[#0B0D12] border border-white/8 p-3 space-y-2">
-                <div className="flex items-center justify-between gap-2"><span className="text-sm font-semibold text-[#F4F5F7]">{company.name}</span><span className="text-xs text-amber-200">Lv.{company.level}</span></div>
-                <div className="flex gap-2"><input type="number" min="1" step="1" value={startingPrices[company.id] ?? '10000'} onChange={(e) => setStartingPrices((previous) => ({ ...previous, [company.id]: e.target.value }))} placeholder={language === 'ar' ? 'سعر البداية' : 'Starting price'} className="min-w-0 flex-1 min-h-[42px] rounded-xl bg-[#141821] border border-white/10 px-3 text-sm text-[#F4F5F7]" />
-                  <button type="button" disabled={busyKey === 'auction_list_' + company.id} onClick={() => void handleListCompany(company.id)} className="min-h-[42px] px-4 rounded-xl bg-[#B91C32] text-white text-xs font-semibold disabled:opacity-50">{language === 'ar' ? 'إدراج' : 'List'}</button></div>
-              </div>
-            ))}
-          </section>
-          <section className="space-y-3">
-            <h3 className="text-sm font-bold text-[#F4F5F7]">{language === 'ar' ? 'المزادات المتاحة' : 'Available auctions'}</h3>
-            {activeAuctions.length === 0 ? <div className="rounded-2xl border border-white/8 bg-[#141821] p-8 text-center text-sm text-[#9299A6]">{language === 'ar' ? 'لا توجد مزادات نشطة حالياً.' : 'There are no active auctions right now.'}</div> : activeAuctions.map((auction) => {
-              const isLeading = auction.highestBidderUid === profile.uid;
-              const isSeller = auction.sellerUid === profile.uid;
-              const minBid = auction.highestBidderUid ? auction.currentPrice + 1 : auction.startingPrice;
-              const canBid = !isSeller && (isLeading || hasCompanySlot);
-              return (
-                <article key={auction.id} className="rounded-2xl border border-white/8 bg-[#141821] p-4 space-y-3">
-                  <div className="flex items-start justify-between gap-3"><div><h4 className="text-sm font-bold text-[#F4F5F7]">{auction.companyName}</h4><p className="mt-1 text-xs text-[#9299A6]">{language === 'ar' ? 'البائع' : 'Seller'}: {auction.sellerName} · Lv.{auction.companyLevel}</p></div>{isLeading && <span className="rounded-lg bg-emerald-500/10 px-2 py-1 text-[10px] text-emerald-300">{language === 'ar' ? 'أنت الأعلى' : 'You lead'}</span>}</div>
-                  <div className="grid grid-cols-2 gap-2 rounded-xl bg-[#0B0D12] p-3">
-                    <div><p className="text-[10px] text-[#9299A6]">{language === 'ar' ? 'سعر البداية' : 'Starting price'}</p><p className="text-sm font-mono-num font-semibold text-[#F4F5F7]">{'$'}{auction.startingPrice.toLocaleString()}</p></div>
-                    <div><p className="text-[10px] text-[#9299A6]">{language === 'ar' ? 'أعلى عرض' : 'Highest bid'}</p><p className="text-sm font-mono-num font-semibold text-amber-200">{'$'}{auction.currentPrice.toLocaleString()}</p></div>
-                  </div>
-                  <div className="flex items-center gap-2 text-xs text-[#9299A6]"><Clock className="w-3.5 h-3.5" />{language === 'ar' ? 'ينتهي خلال' : 'Ends in'} {formatAuctionRemaining(auction.endsAt)}</div>
-                  {auction.highestBidderName && <p className="text-[11px] text-[#9299A6]">{language === 'ar' ? 'صاحب أعلى عرض:' : 'Leading bidder:'} {auction.highestBidderName}</p>}
-                  {!isSeller && <div className="space-y-2">
-                    <input type="number" min={minBid} step="1" value={bidDrafts[auction.id] ?? String(minBid)} onChange={(e) => setBidDrafts((previous) => ({ ...previous, [auction.id]: e.target.value }))} disabled={!canBid || busyKey === 'auction_bid_' + auction.id} className="w-full min-h-[42px] rounded-xl bg-[#0B0D12] border border-white/10 px-3 text-sm text-[#F4F5F7] disabled:opacity-50" />
-                    <button type="button" disabled={!canBid || busyKey === 'auction_bid_' + auction.id} onClick={() => void handlePlaceBid(auction)} className="w-full min-h-[42px] rounded-xl bg-[#B91C32] text-white text-xs font-semibold disabled:opacity-40">{busyKey === 'auction_bid_' + auction.id ? '...' : isLeading ? (language === 'ar' ? 'ارفع عرضك' : 'Raise your bid') : (language === 'ar' ? 'تقديم عرض شراء' : 'Place bid')}</button>
-                    {!canBid && <p className="text-[11px] text-rose-300">{language === 'ar' ? 'لا توجد مساحة متاحة ضمن حد 3 شركات.' : 'No free company slot under the three-company limit.'}</p>}
-                  </div>}
-                  <p className="text-[10px] text-[#77808F]">{language === 'ar' ? 'يُحجز كامل عرضك في الضمان. عند تجاوزك أو إلغاء البيع يُعاد المبلغ تلقائياً.' : 'Your full bid is held in escrow and automatically refunded if outbid or the sale is cancelled.'}</p>
-                </article>
-              );
-            })}
-          </section>
-        </div>
-      )}
-
-}{accrued.toLocaleString()}
+                          {'$'}{accrued.toLocaleString()}
                         </p>
                       </div>
                       <div>
                         <p className="text-[#9299A6]">{language === 'ar' ? 'إجمالي العوائد' : 'Lifetime Rev'}</p>
                         <p className="font-mono-num font-semibold text-[#F4F5F7] mt-0.5">
-                          {')}
-              </div>
-              __LOGS__
-            </div>
-          )}
-        </div>
-      )}
-
-      {subTab === 'auction' && (
-        <div className="space-y-4">
-          <section className="rounded-2xl border border-amber-400/20 bg-[#141821] p-4 space-y-2">
-            <div className="flex items-center gap-2 text-sm font-bold text-amber-200"><Gavel className="w-4 h-4" />{language === 'ar' ? 'مزاد الشركات' : 'Company Auction'}</div>
-            <p className="text-xs text-[#AAB1BD]">{language === 'ar' ? 'الشركات من المستوى 50 فأعلى فقط. مدة المزاد 24 ساعة، ويُحجز مبلغ العرض في الضمان حتى الفوز أو تجاوزه.' : 'Level 50+ companies only. Auctions last 24 hours; bids are held in escrow until settlement or being outbid.'}</p>
-            <p className="text-xs text-[#9299A6]">{language === 'ar' ? 'المساحات المستخدمة: ' + occupiedCompanySlots + '/3 (الشركات المملوكة والعروض الأعلى)' : 'Company slots used: ' + occupiedCompanySlots + '/3 (owned companies and leading bids)'}</p>
-          </section>
-          <section className="rounded-2xl border border-white/8 bg-[#141821] p-4 space-y-3">
-            <h3 className="text-sm font-bold text-[#F4F5F7]">{language === 'ar' ? 'إدراج شركة في المزاد' : 'List a company'}</h3>
-            {visibleCompanies.filter((company) => company.level >= 50 && !company.auctionId).length === 0 ? <p className="text-xs text-[#9299A6]">{language === 'ar' ? 'لا توجد شركة مؤهلة حالياً. تحتاج الشركة إلى المستوى 50 على الأقل.' : 'No eligible company yet. A company must be level 50 or higher.'}</p> : visibleCompanies.filter((company) => company.level >= 50 && !company.auctionId).map((company) => (
-              <div key={company.id} className="rounded-xl bg-[#0B0D12] border border-white/8 p-3 space-y-2">
-                <div className="flex items-center justify-between gap-2"><span className="text-sm font-semibold text-[#F4F5F7]">{company.name}</span><span className="text-xs text-amber-200">Lv.{company.level}</span></div>
-                <div className="flex gap-2"><input type="number" min="1" step="1" value={startingPrices[company.id] ?? '10000'} onChange={(e) => setStartingPrices((previous) => ({ ...previous, [company.id]: e.target.value }))} placeholder={language === 'ar' ? 'سعر البداية' : 'Starting price'} className="min-w-0 flex-1 min-h-[42px] rounded-xl bg-[#141821] border border-white/10 px-3 text-sm text-[#F4F5F7]" />
-                  <button type="button" disabled={busyKey === 'auction_list_' + company.id} onClick={() => void handleListCompany(company.id)} className="min-h-[42px] px-4 rounded-xl bg-[#B91C32] text-white text-xs font-semibold disabled:opacity-50">{language === 'ar' ? 'إدراج' : 'List'}</button></div>
-              </div>
-            ))}
-          </section>
-          <section className="space-y-3">
-            <h3 className="text-sm font-bold text-[#F4F5F7]">{language === 'ar' ? 'المزادات المتاحة' : 'Available auctions'}</h3>
-            {activeAuctions.length === 0 ? <div className="rounded-2xl border border-white/8 bg-[#141821] p-8 text-center text-sm text-[#9299A6]">{language === 'ar' ? 'لا توجد مزادات نشطة حالياً.' : 'There are no active auctions right now.'}</div> : activeAuctions.map((auction) => {
-              const isLeading = auction.highestBidderUid === profile.uid;
-              const isSeller = auction.sellerUid === profile.uid;
-              const minBid = auction.highestBidderUid ? auction.currentPrice + 1 : auction.startingPrice;
-              const canBid = !isSeller && (isLeading || hasCompanySlot);
-              return (
-                <article key={auction.id} className="rounded-2xl border border-white/8 bg-[#141821] p-4 space-y-3">
-                  <div className="flex items-start justify-between gap-3"><div><h4 className="text-sm font-bold text-[#F4F5F7]">{auction.companyName}</h4><p className="mt-1 text-xs text-[#9299A6]">{language === 'ar' ? 'البائع' : 'Seller'}: {auction.sellerName} · Lv.{auction.companyLevel}</p></div>{isLeading && <span className="rounded-lg bg-emerald-500/10 px-2 py-1 text-[10px] text-emerald-300">{language === 'ar' ? 'أنت الأعلى' : 'You lead'}</span>}</div>
-                  <div className="grid grid-cols-2 gap-2 rounded-xl bg-[#0B0D12] p-3">
-                    <div><p className="text-[10px] text-[#9299A6]">{language === 'ar' ? 'سعر البداية' : 'Starting price'}</p><p className="text-sm font-mono-num font-semibold text-[#F4F5F7]">{'$'}{auction.startingPrice.toLocaleString()}</p></div>
-                    <div><p className="text-[10px] text-[#9299A6]">{language === 'ar' ? 'أعلى عرض' : 'Highest bid'}</p><p className="text-sm font-mono-num font-semibold text-amber-200">{'$'}{auction.currentPrice.toLocaleString()}</p></div>
-                  </div>
-                  <div className="flex items-center gap-2 text-xs text-[#9299A6]"><Clock className="w-3.5 h-3.5" />{language === 'ar' ? 'ينتهي خلال' : 'Ends in'} {formatAuctionRemaining(auction.endsAt)}</div>
-                  {auction.highestBidderName && <p className="text-[11px] text-[#9299A6]">{language === 'ar' ? 'صاحب أعلى عرض:' : 'Leading bidder:'} {auction.highestBidderName}</p>}
-                  {!isSeller && <div className="space-y-2">
-                    <input type="number" min={minBid} step="1" value={bidDrafts[auction.id] ?? String(minBid)} onChange={(e) => setBidDrafts((previous) => ({ ...previous, [auction.id]: e.target.value }))} disabled={!canBid || busyKey === 'auction_bid_' + auction.id} className="w-full min-h-[42px] rounded-xl bg-[#0B0D12] border border-white/10 px-3 text-sm text-[#F4F5F7] disabled:opacity-50" />
-                    <button type="button" disabled={!canBid || busyKey === 'auction_bid_' + auction.id} onClick={() => void handlePlaceBid(auction)} className="w-full min-h-[42px] rounded-xl bg-[#B91C32] text-white text-xs font-semibold disabled:opacity-40">{busyKey === 'auction_bid_' + auction.id ? '...' : isLeading ? (language === 'ar' ? 'ارفع عرضك' : 'Raise your bid') : (language === 'ar' ? 'تقديم عرض شراء' : 'Place bid')}</button>
-                    {!canBid && <p className="text-[11px] text-rose-300">{language === 'ar' ? 'لا توجد مساحة متاحة ضمن حد 3 شركات.' : 'No free company slot under the three-company limit.'}</p>}
-                  </div>}
-                  <p className="text-[10px] text-[#77808F]">{language === 'ar' ? 'يُحجز كامل عرضك في الضمان. عند تجاوزك أو إلغاء البيع يُعاد المبلغ تلقائياً.' : 'Your full bid is held in escrow and automatically refunded if outbid or the sale is cancelled.'}</p>
-                </article>
-              );
-            })}
-          </section>
-        </div>
-      )}
-
-}{s.foundingCost.toLocaleString()}
-                    </span>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <button
-              type="submit"
-              disabled={busyKey === 'found_company'}
-              className="w-full min-h-[44px] px-4 rounded-xl bg-[#B91C32] hover:bg-[#E04455] text-white text-sm font-semibold flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
-            >
-              <Plus className="w-4 h-4" />
-              <span>{busyKey === 'found_company' ? '...' : t.foundCompany}</span>
-            </button>
-          </form>
-
-
-            </div>
-          )}
-          {companyView === 'detail' && (
-            <div className="space-y-4">
-              <div className="flex items-center justify-between gap-2">
-                <button type="button" onClick={() => setCompanyView('overview')} className="inline-flex items-center gap-2 min-h-[40px] px-3 rounded-xl bg-[#1B2230] text-[#F4F5F7] text-xs font-semibold"><ArrowLeft className="w-4 h-4" />{language === 'ar' ? 'شركاتي' : 'My companies'}</button>
-                {visibleCompanies.find((c) => c.id === selectedCompanyId) && <button type="button" disabled={busyKey === 'delete_company_' + selectedCompanyId} onClick={() => { const selected = visibleCompanies.find((c) => c.id === selectedCompanyId); if (selected) void handleDeleteCompany(selected); }} className="inline-flex items-center gap-2 min-h-[40px] px-3 rounded-xl border border-rose-500/30 bg-rose-500/10 text-rose-300 text-xs font-semibold disabled:opacity-50"><Trash2 className="w-4 h-4" />{language === 'ar' ? 'حذف الشركة' : 'Delete company'}</button>}
-              </div>
-              <div className="space-y-4">
-                {visibleCompanies.filter((c) => c.id === selectedCompanyId).length === 0 ? <p className="text-sm text-[#9299A6]">{language === 'ar' ? 'الشركة غير متاحة.' : 'Company not found.'}</p> : (__COMPANY_MAP__)}
-              </div>
-              __LOGS__
-            </div>
-          )}
-        </div>
-      )}
-
-      {subTab === 'auction' && (
-        <div className="space-y-4">
-          <section className="rounded-2xl border border-amber-400/20 bg-[#141821] p-4 space-y-2">
-            <div className="flex items-center gap-2 text-sm font-bold text-amber-200"><Gavel className="w-4 h-4" />{language === 'ar' ? 'مزاد الشركات' : 'Company Auction'}</div>
-            <p className="text-xs text-[#AAB1BD]">{language === 'ar' ? 'الشركات من المستوى 50 فأعلى فقط. مدة المزاد 24 ساعة، ويُحجز مبلغ العرض في الضمان حتى الفوز أو تجاوزه.' : 'Level 50+ companies only. Auctions last 24 hours; bids are held in escrow until settlement or being outbid.'}</p>
-            <p className="text-xs text-[#9299A6]">{language === 'ar' ? 'المساحات المستخدمة: ' + occupiedCompanySlots + '/3 (الشركات المملوكة والعروض الأعلى)' : 'Company slots used: ' + occupiedCompanySlots + '/3 (owned companies and leading bids)'}</p>
-          </section>
-          <section className="rounded-2xl border border-white/8 bg-[#141821] p-4 space-y-3">
-            <h3 className="text-sm font-bold text-[#F4F5F7]">{language === 'ar' ? 'إدراج شركة في المزاد' : 'List a company'}</h3>
-            {visibleCompanies.filter((company) => company.level >= 50 && !company.auctionId).length === 0 ? <p className="text-xs text-[#9299A6]">{language === 'ar' ? 'لا توجد شركة مؤهلة حالياً. تحتاج الشركة إلى المستوى 50 على الأقل.' : 'No eligible company yet. A company must be level 50 or higher.'}</p> : visibleCompanies.filter((company) => company.level >= 50 && !company.auctionId).map((company) => (
-              <div key={company.id} className="rounded-xl bg-[#0B0D12] border border-white/8 p-3 space-y-2">
-                <div className="flex items-center justify-between gap-2"><span className="text-sm font-semibold text-[#F4F5F7]">{company.name}</span><span className="text-xs text-amber-200">Lv.{company.level}</span></div>
-                <div className="flex gap-2"><input type="number" min="1" step="1" value={startingPrices[company.id] ?? '10000'} onChange={(e) => setStartingPrices((previous) => ({ ...previous, [company.id]: e.target.value }))} placeholder={language === 'ar' ? 'سعر البداية' : 'Starting price'} className="min-w-0 flex-1 min-h-[42px] rounded-xl bg-[#141821] border border-white/10 px-3 text-sm text-[#F4F5F7]" />
-                  <button type="button" disabled={busyKey === 'auction_list_' + company.id} onClick={() => void handleListCompany(company.id)} className="min-h-[42px] px-4 rounded-xl bg-[#B91C32] text-white text-xs font-semibold disabled:opacity-50">{language === 'ar' ? 'إدراج' : 'List'}</button></div>
-              </div>
-            ))}
-          </section>
-          <section className="space-y-3">
-            <h3 className="text-sm font-bold text-[#F4F5F7]">{language === 'ar' ? 'المزادات المتاحة' : 'Available auctions'}</h3>
-            {activeAuctions.length === 0 ? <div className="rounded-2xl border border-white/8 bg-[#141821] p-8 text-center text-sm text-[#9299A6]">{language === 'ar' ? 'لا توجد مزادات نشطة حالياً.' : 'There are no active auctions right now.'}</div> : activeAuctions.map((auction) => {
-              const isLeading = auction.highestBidderUid === profile.uid;
-              const isSeller = auction.sellerUid === profile.uid;
-              const minBid = auction.highestBidderUid ? auction.currentPrice + 1 : auction.startingPrice;
-              const canBid = !isSeller && (isLeading || hasCompanySlot);
-              return (
-                <article key={auction.id} className="rounded-2xl border border-white/8 bg-[#141821] p-4 space-y-3">
-                  <div className="flex items-start justify-between gap-3"><div><h4 className="text-sm font-bold text-[#F4F5F7]">{auction.companyName}</h4><p className="mt-1 text-xs text-[#9299A6]">{language === 'ar' ? 'البائع' : 'Seller'}: {auction.sellerName} · Lv.{auction.companyLevel}</p></div>{isLeading && <span className="rounded-lg bg-emerald-500/10 px-2 py-1 text-[10px] text-emerald-300">{language === 'ar' ? 'أنت الأعلى' : 'You lead'}</span>}</div>
-                  <div className="grid grid-cols-2 gap-2 rounded-xl bg-[#0B0D12] p-3">
-                    <div><p className="text-[10px] text-[#9299A6]">{language === 'ar' ? 'سعر البداية' : 'Starting price'}</p><p className="text-sm font-mono-num font-semibold text-[#F4F5F7]">{'$'}{auction.startingPrice.toLocaleString()}</p></div>
-                    <div><p className="text-[10px] text-[#9299A6]">{language === 'ar' ? 'أعلى عرض' : 'Highest bid'}</p><p className="text-sm font-mono-num font-semibold text-amber-200">{'$'}{auction.currentPrice.toLocaleString()}</p></div>
-                  </div>
-                  <div className="flex items-center gap-2 text-xs text-[#9299A6]"><Clock className="w-3.5 h-3.5" />{language === 'ar' ? 'ينتهي خلال' : 'Ends in'} {formatAuctionRemaining(auction.endsAt)}</div>
-                  {auction.highestBidderName && <p className="text-[11px] text-[#9299A6]">{language === 'ar' ? 'صاحب أعلى عرض:' : 'Leading bidder:'} {auction.highestBidderName}</p>}
-                  {!isSeller && <div className="space-y-2">
-                    <input type="number" min={minBid} step="1" value={bidDrafts[auction.id] ?? String(minBid)} onChange={(e) => setBidDrafts((previous) => ({ ...previous, [auction.id]: e.target.value }))} disabled={!canBid || busyKey === 'auction_bid_' + auction.id} className="w-full min-h-[42px] rounded-xl bg-[#0B0D12] border border-white/10 px-3 text-sm text-[#F4F5F7] disabled:opacity-50" />
-                    <button type="button" disabled={!canBid || busyKey === 'auction_bid_' + auction.id} onClick={() => void handlePlaceBid(auction)} className="w-full min-h-[42px] rounded-xl bg-[#B91C32] text-white text-xs font-semibold disabled:opacity-40">{busyKey === 'auction_bid_' + auction.id ? '...' : isLeading ? (language === 'ar' ? 'ارفع عرضك' : 'Raise your bid') : (language === 'ar' ? 'تقديم عرض شراء' : 'Place bid')}</button>
-                    {!canBid && <p className="text-[11px] text-rose-300">{language === 'ar' ? 'لا توجد مساحة متاحة ضمن حد 3 شركات.' : 'No free company slot under the three-company limit.'}</p>}
-                  </div>}
-                  <p className="text-[10px] text-[#77808F]">{language === 'ar' ? 'يُحجز كامل عرضك في الضمان. عند تجاوزك أو إلغاء البيع يُعاد المبلغ تلقائياً.' : 'Your full bid is held in escrow and automatically refunded if outbid or the sale is cancelled.'}</p>
-                </article>
-              );
-            })}
-          </section>
-        </div>
-      )}
-
-}{c.totalRevenue.toLocaleString()}
+                          {'$'}{c.totalRevenue.toLocaleString()}
                         </p>
                       </div>
                       <div>
                         <p className="text-[#9299A6]">{language === 'ar' ? 'تكلفة التطوير' : 'Upgrade Cost'}</p>
                         <p className="font-mono-num font-semibold text-[#F4F5F7] mt-0.5">
-                          {isMaxLevel ? t.maxLevelReached : `${upgradeCost.toLocaleString()}`}
+                          {isMaxLevel ? t.maxLevelReached : `$${upgradeCost.toLocaleString()}`}
                         </p>
                       </div>
                     </div>
@@ -1316,10 +635,32 @@ export function BusinessHubView({
                     </div>
                   </div>
                 );
-              })
-            )})}
+              }))}
               </div>
-              __LOGS__
+                          {companyLogs.filter((log) => log.companyId === selectedCompanyId).length > 0 && (
+              <div className="bg-[#141821] border border-white/8 rounded-2xl p-5 space-y-3">
+                <h3 className="text-sm font-semibold text-[#F4F5F7]">
+                  {language === 'ar' ? 'سجل عمليات الشركات' : 'Company Operations Log'}
+                </h3>
+                <div className="space-y-2">
+                  {companyLogs.filter((log) => log.companyId === selectedCompanyId).slice(0, 20).map((log) => (
+                    <div
+                      key={log.id}
+                      className="flex items-center justify-between text-xs py-2 border-b border-white/6 last:border-0"
+                    >
+                      <span className="text-[#9299A6]">{log.details}</span>
+                      <span
+                        className={`font-mono-num font-semibold ${
+                          log.amount >= 0 ? 'text-emerald-400' : 'text-[#E04455]'
+                        }`}
+                      >
+                        {log.amount >= 0 ? `+${log.amount}` : log.amount}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )
             </div>
           )}
         </div>
@@ -1353,88 +694,7 @@ export function BusinessHubView({
                 <article key={auction.id} className="rounded-2xl border border-white/8 bg-[#141821] p-4 space-y-3">
                   <div className="flex items-start justify-between gap-3"><div><h4 className="text-sm font-bold text-[#F4F5F7]">{auction.companyName}</h4><p className="mt-1 text-xs text-[#9299A6]">{language === 'ar' ? 'البائع' : 'Seller'}: {auction.sellerName} · Lv.{auction.companyLevel}</p></div>{isLeading && <span className="rounded-lg bg-emerald-500/10 px-2 py-1 text-[10px] text-emerald-300">{language === 'ar' ? 'أنت الأعلى' : 'You lead'}</span>}</div>
                   <div className="grid grid-cols-2 gap-2 rounded-xl bg-[#0B0D12] p-3">
-                    <div><p className="text-[10px] text-[#9299A6]">{language === 'ar' ? 'سعر البداية' : 'Starting price'}</p><p className="text-sm font-mono-num font-semibold text-[#F4F5F7]">{'$'}{auction.startingPrice.toLocaleString()}</p></div>
-                    <div><p className="text-[10px] text-[#9299A6]">{language === 'ar' ? 'أعلى عرض' : 'Highest bid'}</p><p className="text-sm font-mono-num font-semibold text-amber-200">{'$'}{auction.currentPrice.toLocaleString()}</p></div>
-                  </div>
-                  <div className="flex items-center gap-2 text-xs text-[#9299A6]"><Clock className="w-3.5 h-3.5" />{language === 'ar' ? 'ينتهي خلال' : 'Ends in'} {formatAuctionRemaining(auction.endsAt)}</div>
-                  {auction.highestBidderName && <p className="text-[11px] text-[#9299A6]">{language === 'ar' ? 'صاحب أعلى عرض:' : 'Leading bidder:'} {auction.highestBidderName}</p>}
-                  {!isSeller && <div className="space-y-2">
-                    <input type="number" min={minBid} step="1" value={bidDrafts[auction.id] ?? String(minBid)} onChange={(e) => setBidDrafts((previous) => ({ ...previous, [auction.id]: e.target.value }))} disabled={!canBid || busyKey === 'auction_bid_' + auction.id} className="w-full min-h-[42px] rounded-xl bg-[#0B0D12] border border-white/10 px-3 text-sm text-[#F4F5F7] disabled:opacity-50" />
-                    <button type="button" disabled={!canBid || busyKey === 'auction_bid_' + auction.id} onClick={() => void handlePlaceBid(auction)} className="w-full min-h-[42px] rounded-xl bg-[#B91C32] text-white text-xs font-semibold disabled:opacity-40">{busyKey === 'auction_bid_' + auction.id ? '...' : isLeading ? (language === 'ar' ? 'ارفع عرضك' : 'Raise your bid') : (language === 'ar' ? 'تقديم عرض شراء' : 'Place bid')}</button>
-                    {!canBid && <p className="text-[11px] text-rose-300">{language === 'ar' ? 'لا توجد مساحة متاحة ضمن حد 3 شركات.' : 'No free company slot under the three-company limit.'}</p>}
-                  </div>}
-                  <p className="text-[10px] text-[#77808F]">{language === 'ar' ? 'يُحجز كامل عرضك في الضمان. عند تجاوزك أو إلغاء البيع يُعاد المبلغ تلقائياً.' : 'Your full bid is held in escrow and automatically refunded if outbid or the sale is cancelled.'}</p>
-                </article>
-              );
-            })}
-          </section>
-        </div>
-      )}
-
-}{s.foundingCost.toLocaleString()}
-                    </span>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <button
-              type="submit"
-              disabled={busyKey === 'found_company'}
-              className="w-full min-h-[44px] px-4 rounded-xl bg-[#B91C32] hover:bg-[#E04455] text-white text-sm font-semibold flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
-            >
-              <Plus className="w-4 h-4" />
-              <span>{busyKey === 'found_company' ? '...' : t.foundCompany}</span>
-            </button>
-          </form>
-
-
-            </div>
-          )}
-          {companyView === 'detail' && (
-            <div className="space-y-4">
-              <div className="flex items-center justify-between gap-2">
-                <button type="button" onClick={() => setCompanyView('overview')} className="inline-flex items-center gap-2 min-h-[40px] px-3 rounded-xl bg-[#1B2230] text-[#F4F5F7] text-xs font-semibold"><ArrowLeft className="w-4 h-4" />{language === 'ar' ? 'شركاتي' : 'My companies'}</button>
-                {visibleCompanies.find((c) => c.id === selectedCompanyId) && <button type="button" disabled={busyKey === 'delete_company_' + selectedCompanyId} onClick={() => { const selected = visibleCompanies.find((c) => c.id === selectedCompanyId); if (selected) void handleDeleteCompany(selected); }} className="inline-flex items-center gap-2 min-h-[40px] px-3 rounded-xl border border-rose-500/30 bg-rose-500/10 text-rose-300 text-xs font-semibold disabled:opacity-50"><Trash2 className="w-4 h-4" />{language === 'ar' ? 'حذف الشركة' : 'Delete company'}</button>}
-              </div>
-              <div className="space-y-4">
-                {visibleCompanies.filter((c) => c.id === selectedCompanyId).length === 0 ? <p className="text-sm text-[#9299A6]">{language === 'ar' ? 'الشركة غير متاحة.' : 'Company not found.'}</p> : (__COMPANY_MAP__)}
-              </div>
-              __LOGS__
-            </div>
-          )}
-        </div>
-      )}
-
-      {subTab === 'auction' && (
-        <div className="space-y-4">
-          <section className="rounded-2xl border border-amber-400/20 bg-[#141821] p-4 space-y-2">
-            <div className="flex items-center gap-2 text-sm font-bold text-amber-200"><Gavel className="w-4 h-4" />{language === 'ar' ? 'مزاد الشركات' : 'Company Auction'}</div>
-            <p className="text-xs text-[#AAB1BD]">{language === 'ar' ? 'الشركات من المستوى 50 فأعلى فقط. مدة المزاد 24 ساعة، ويُحجز مبلغ العرض في الضمان حتى الفوز أو تجاوزه.' : 'Level 50+ companies only. Auctions last 24 hours; bids are held in escrow until settlement or being outbid.'}</p>
-            <p className="text-xs text-[#9299A6]">{language === 'ar' ? 'المساحات المستخدمة: ' + occupiedCompanySlots + '/3 (الشركات المملوكة والعروض الأعلى)' : 'Company slots used: ' + occupiedCompanySlots + '/3 (owned companies and leading bids)'}</p>
-          </section>
-          <section className="rounded-2xl border border-white/8 bg-[#141821] p-4 space-y-3">
-            <h3 className="text-sm font-bold text-[#F4F5F7]">{language === 'ar' ? 'إدراج شركة في المزاد' : 'List a company'}</h3>
-            {visibleCompanies.filter((company) => company.level >= 50 && !company.auctionId).length === 0 ? <p className="text-xs text-[#9299A6]">{language === 'ar' ? 'لا توجد شركة مؤهلة حالياً. تحتاج الشركة إلى المستوى 50 على الأقل.' : 'No eligible company yet. A company must be level 50 or higher.'}</p> : visibleCompanies.filter((company) => company.level >= 50 && !company.auctionId).map((company) => (
-              <div key={company.id} className="rounded-xl bg-[#0B0D12] border border-white/8 p-3 space-y-2">
-                <div className="flex items-center justify-between gap-2"><span className="text-sm font-semibold text-[#F4F5F7]">{company.name}</span><span className="text-xs text-amber-200">Lv.{company.level}</span></div>
-                <div className="flex gap-2"><input type="number" min="1" step="1" value={startingPrices[company.id] ?? '10000'} onChange={(e) => setStartingPrices((previous) => ({ ...previous, [company.id]: e.target.value }))} placeholder={language === 'ar' ? 'سعر البداية' : 'Starting price'} className="min-w-0 flex-1 min-h-[42px] rounded-xl bg-[#141821] border border-white/10 px-3 text-sm text-[#F4F5F7]" />
-                  <button type="button" disabled={busyKey === 'auction_list_' + company.id} onClick={() => void handleListCompany(company.id)} className="min-h-[42px] px-4 rounded-xl bg-[#B91C32] text-white text-xs font-semibold disabled:opacity-50">{language === 'ar' ? 'إدراج' : 'List'}</button></div>
-              </div>
-            ))}
-          </section>
-          <section className="space-y-3">
-            <h3 className="text-sm font-bold text-[#F4F5F7]">{language === 'ar' ? 'المزادات المتاحة' : 'Available auctions'}</h3>
-            {activeAuctions.length === 0 ? <div className="rounded-2xl border border-white/8 bg-[#141821] p-8 text-center text-sm text-[#9299A6]">{language === 'ar' ? 'لا توجد مزادات نشطة حالياً.' : 'There are no active auctions right now.'}</div> : activeAuctions.map((auction) => {
-              const isLeading = auction.highestBidderUid === profile.uid;
-              const isSeller = auction.sellerUid === profile.uid;
-              const minBid = auction.highestBidderUid ? auction.currentPrice + 1 : auction.startingPrice;
-              const canBid = !isSeller && (isLeading || hasCompanySlot);
-              return (
-                <article key={auction.id} className="rounded-2xl border border-white/8 bg-[#141821] p-4 space-y-3">
-                  <div className="flex items-start justify-between gap-3"><div><h4 className="text-sm font-bold text-[#F4F5F7]">{auction.companyName}</h4><p className="mt-1 text-xs text-[#9299A6]">{language === 'ar' ? 'البائع' : 'Seller'}: {auction.sellerName} · Lv.{auction.companyLevel}</p></div>{isLeading && <span className="rounded-lg bg-emerald-500/10 px-2 py-1 text-[10px] text-emerald-300">{language === 'ar' ? 'أنت الأعلى' : 'You lead'}</span>}</div>
-                  <div className="grid grid-cols-2 gap-2 rounded-xl bg-[#0B0D12] p-3">
-                    <div><p className="text-[10px] text-[#9299A6]">{language === 'ar' ? 'سعر البداية' : 'Starting price'}</p><p className="text-sm font-mono-num font-semibold text-[#F4F5F7]">{'$'}{auction.startingPrice.toLocaleString()}</p></div>
+                    <div><p className="text-[10px] text-[#9299A6]">{language === 'ar' ? 'سعر البداية' : 'Starting price'}</p><p className="text-sm font-mono-num font-semibold text-[#F4F5F7">{'$'}{auction.startingPrice.toLocaleString()}</p></div>
                     <div><p className="text-[10px] text-[#9299A6]">{language === 'ar' ? 'أعلى عرض' : 'Highest bid'}</p><p className="text-sm font-mono-num font-semibold text-amber-200">{'$'}{auction.currentPrice.toLocaleString()}</p></div>
                   </div>
                   <div className="flex items-center gap-2 text-xs text-[#9299A6]"><Clock className="w-3.5 h-3.5" />{language === 'ar' ? 'ينتهي خلال' : 'Ends in'} {formatAuctionRemaining(auction.endsAt)}</div>
