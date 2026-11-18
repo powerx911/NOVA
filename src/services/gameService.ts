@@ -1,6 +1,4 @@
 import {
-} from 'firebase/firestore';
-import {
   COMPANY_SECTORS,
   ITEM_MAP,
   MANUFACTURING_RECIPES,
@@ -32,11 +30,6 @@ import type {
   SkillKey,
   Wallet,
 } from '../types/game';
-
-function genId(prefix: string): string {
-  const rand = Math.random().toString(36).slice(2, 10);
-  return `${prefix}_${Date.now()}_${rand}`;
-}
 
 export function getUtcDateKey(): string {
   return new Date().toISOString().slice(0, 10);
