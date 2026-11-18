@@ -54,7 +54,10 @@ export function SocialHubView({ profile, myOrgMember, organizations, language, o
   const [draft, setDraft] = useState('');
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState('');
-  const [dismissedUnread, setDismissedUnread] = useState<Record<string, number>>({});
+  const [dismissedUnread, setDismissedUnread] = useState<Record<string, number>>(() => {
+    try { return JSON.parse(window.localStorage.getItem(`nova:dm-read:${profile.uid}`) || '{}') as Record<string, number>; }
+    catch { return {}; }
+  });
   const [selectedOrganization, setSelectedOrganization] = useState<Organization | null>(null);
   const [presenceByUid, setPresenceByUid] = useState<Record<string, SocialPresence>>({});
 
@@ -96,6 +99,7 @@ export function SocialHubView({ profile, myOrgMember, organizations, language, o
 
   const selectedConversationData = conversations.find((item) => item.id === selectedConversation) || null;
   const unreadConversations = conversations.filter((item) => item.lastSenderUid !== profile.uid && (!dismissedUnread[item.id] || timestampToMs(item.lastMessageAt, 0) > dismissedUnread[item.id]));
+  useEffect(() => { try { window.localStorage.setItem(`nova:dm-read:${profile.uid}`, JSON.stringify(dismissedUnread)); } catch { /* Keep the current-session unread state if storage is unavailable. */ } }, [dismissedUnread, profile.uid]);
   useEffect(() => { onUnreadCountChange(unreadConversations.length); }, [unreadConversations.length, onUnreadCountChange]);
   const targetUid = selectedConversationData?.participants.find((uid) => uid !== profile.uid) || '';
 
