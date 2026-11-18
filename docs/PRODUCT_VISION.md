@@ -143,3 +143,14 @@ The broad inspiration is the player's childhood affection for *Al-Fatehoon*: lea
 - Army classes: **infantry, cavalry, archers, and chariots** (Arabic player-facing terminology: مشاة، فرسان، رماة، عجلات). Their counters, strengths, movement, and costs require balancing; no class should dominate every situation.
 - Alliance-to-alliance diplomatic status is deliberately limited to **neutral, war, and peace**. Do not add non-aggression pacts, trade treaties, defensive pacts, or alliance treaties to the initial diplomacy model. The exact transition permissions, declaration notice, cooldowns, and peace protections will be designed and tested before implementation.
 
+
+
+## 12. Essential map, bag, and relocation experience
+
+NOVA must include a functional shared kingdom map and persistent player bag. The map is how players understand and navigate the world; the bag manages useful items and consumables.
+- The map distinguishes shared core cities and villages from individually owned castles, neutral resource locations, strategic sites, alliance members, and moving armies.
+- Players can zoom, pan, search, inspect locations, bookmark destinations, and return to their own castle.
+- The bag supports categories, quantities/stacks, sorting, search, item details, use rules, and a trustworthy acquisition/consumption record.
+- **Advanced Relocation** allows the player to choose a valid destination; **Random Relocation** selects an eligible destination on the server. Names and visuals will be original to NOVA.
+- Relocation validates occupancy, terrain, region restrictions, spacing, new-player protection, active marches/sieges, cooldowns, and anti-abuse rules before atomically consuming an item and moving a castle.
+- A command overview, activity/report inbox, map bookmarks, and configurable notifications are high-value quality-of-life systems.
