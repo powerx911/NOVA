@@ -7,7 +7,7 @@ export interface CollectionSpec {
 }
 
 /**
- * Exact, immutable list of NEXORA Firestore collections verified against firebase-blueprint.json & firestore.rules.
+ * Exact, immutable list of NOVA Firestore collections verified against firebase-blueprint.json & firestore.rules.
  * Diagnostics backend NEVER accepts arbitrary collection names from the client.
  */
 export const ALLOWED_DIAGNOSTIC_COLLECTIONS: readonly CollectionSpec[] = [
@@ -21,7 +21,6 @@ export const ALLOWED_DIAGNOSTIC_COLLECTIONS: readonly CollectionSpec[] = [
   { name: 'market_orders', category: 'economy', piiRestricted: false },
   { name: 'companies', category: 'business', piiRestricted: false },
   { name: 'company_logs', category: 'business', piiRestricted: false },
-  { name: 'properties', category: 'business', piiRestricted: false },
   { name: 'organizations', category: 'social', piiRestricted: false },
   { name: 'organization_members', category: 'social', piiRestricted: false },
   { name: 'organization_requests', category: 'social', piiRestricted: false },
