@@ -223,6 +223,7 @@ export interface Factory {
   resourceId: FactoryResourceId;
   level: number;
   skillLevel: number;
+  isActive: boolean;
   warehouseQty: number;
   productionRemainder: number;
   operatingCostRemainder: number;
