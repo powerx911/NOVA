@@ -25,4 +25,11 @@ assert.doesNotMatch(sql, /create policy[^;]+on public\.nova_competitive_inventor
 assert.doesNotMatch(sql, /create policy[^;]+on public\.nova_market_listings for (insert|update|delete)/i, "clients must not write listings directly");
 assert.doesNotMatch(sql, /create policy[^;]+on public\.nova_market_orders for (insert|update|delete)/i, "clients must not write orders directly");
 assert.doesNotMatch(sql, /create policy[^;]+on public\.nova_market_inventory_ledger for (insert|update|delete)/i, "clients must not write the inventory ledger directly");
+assert.match(sql, /revoke all on function public\\.nova_market_create_listing\\(uuid,text,integer,bigint\\) from public, anon/i);
+assert.match(sql, /revoke all on function public\\.nova_market_buy_listing\\(uuid,uuid,integer\\) from public, anon/i);
+assert.match(sql, /revoke all on function public\\.nova_market_cancel_listing\\(uuid,uuid\\) from public, anon/i);
+assert.match(sql, /grant execute on function private\\.nova_market_create_listing\\(uuid,text,integer,bigint\\) to authenticated/i);
+assert.match(sql, /grant execute on function private\\.nova_market_buy_listing\\(uuid,uuid,integer\\) to authenticated/i);
+assert.match(sql, /grant execute on function private\\.nova_market_cancel_listing\\(uuid,uuid\\) to authenticated/i);
+assert.match(sql, /alter table public\\.nova_competitive_commands[\\s\\S]*?market_list[\\s\\S]*?market_buy[\\s\\S]*?market_cancel/i, "market command types must be permitted by the receipt constraint");
 console.log("NOVA shared market security-contract checks passed.");
