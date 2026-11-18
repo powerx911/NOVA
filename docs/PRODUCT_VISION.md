@@ -120,3 +120,26 @@ When reporting progress to the user:
 - Report test evidence and unresolved risks.
 - Avoid asking the user technical questions that the agent can reasonably decide through research or prototyping.
 - Ask only when a decision crosses an approval boundary or depends on personal preference that cannot be inferred safely.
+
+## 11. Kingdom, player castle, and tutorial model (owner-confirmed)
+
+NOVA's world has two distinct spatial layers. A **kingdom** is the shared world/map containing its own established core cities, villages, neutral lands, resource sites, roads, and strategic locations. A **player castle** is the player's own city/settlement, founded at a valid location on the kingdom map and developed independently. Players do not build their personal cities inside the kingdom's capital or inside a shared kingdom city. The castle is the player's home base and contains the palace/keep, farms, barracks, workshops, storage, and other upgradeable buildings.
+
+The first playable realm is provisionally **Kingdom 1**. The game entry flow is account sign-in/sign-up → kingdom selection → story-led tutorial (with a clearly visible skip option) → player's own castle. Additional separate kingdoms can be opened later using the same world rules and account identity, subject to capacity and fair-start design.
+
+The opening story is that the player's once-powerful homeland was devastated by invading enemies. After the invaders leave, the player returns with a small council/advisors to rebuild their own stronghold. Tutorial chapters teach real actions in sequence—repair/construct a farm, collect or produce resources, upgrade the palace, establish barracks, train the first troops, and discover the kingdom map. The story must teach through playable objectives, not long walls of text. Skipping the tutorial must preserve access to optional help and the same fair starting state.
+
+The broad inspiration is the player's childhood affection for *Al-Fatehoon*: learn from its satisfying strategic progression and sense of building a stronghold, but create original NOVA maps, names, rules, interface, art, story, and balance. Do not copy protected assets or exact expressive elements.
+
+### Recommended map model
+- The kingdom map is a shared strategic layer, divided into regions/provinces or tiles with distinct terrain, resource value, and travel connections.
+- Existing core cities and villages are world locations with defined roles; they are not each player's personal castle.
+- Each player owns one main castle placed on an eligible plot/settlement site. Its location matters for travel, nearby resources, neighbors, and strategic exposure.
+- Neutral resource sites, wilderness, ruins, and frontier locations create exploration and competition beyond the castle.
+- The map should communicate ownership, alliances, diplomacy, conflict, travel, and points of interest with clear mobile-friendly layers and filters.
+- Additional castles/territorial holdings, if introduced, must be earned through a carefully balanced expansion system; they are not assumed for the first release.
+
+### Confirmed initial combat and diplomacy scope
+- Army classes: **infantry, cavalry, archers, and chariots** (Arabic player-facing terminology: مشاة، فرسان، رماة، عجلات). Their counters, strengths, movement, and costs require balancing; no class should dominate every situation.
+- Alliance-to-alliance diplomatic status is deliberately limited to **neutral, war, and peace**. Do not add non-aggression pacts, trade treaties, defensive pacts, or alliance treaties to the initial diplomacy model. The exact transition permissions, declaration notice, cooldowns, and peace protections will be designed and tested before implementation.
+
