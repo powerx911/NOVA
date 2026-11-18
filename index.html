@@ -12,7 +12,7 @@
 <div class="app-shell">
 <header class="topbar">
  <a class="brand" href="#" aria-label="NOVA"><span class="brand-mark">N</span><span>NOVA</span><small>COMPETITIVE SIMULATION</small></a>
- <div class="top-actions"><span class="server-state"><i></i> بيئة تجريبية</span><button class="icon-btn" id="notifications" aria-label="الإشعارات">♧</button><button class="avatar" id="open-profile" aria-label="الملف الشخصي">N</button></div>
+ <div class="top-actions"><span class="server-state" id="server-state"><i></i><b id="server-label">جاري الاتصال</b></span><button class="account-btn" id="auth-open">دخول</button><button class="icon-btn" id="notifications" aria-label="الإشعارات">♧</button><button class="avatar" id="open-profile" aria-label="الملف الشخصي">N</button></div>
 </header>
 <main id="main-content">
 <section class="screen active" id="screen-command">
@@ -79,11 +79,11 @@
 
 <section class="screen" id="screen-community">
  <div class="page-intro"><span class="eyebrow">اللاعبون يصنعون العالم</span><h1>المجتمع</h1><p>راقب المنافسة، كوّن العلاقات، واصنع اسمك.</p></div>
- <div class="ranking-card"><div class="ranking-top"><div><span class="eyebrow">تصنيف عالمي</span><h2>قادة هذا الأسبوع</h2></div><span class="live-label"><i></i> تجريبي</span></div>
-  <div class="rank-row"><span class="medal gold">01</span><span class="rank-avatar">VX</span><div><b>Vortex</b><small>قيمة الكيان · 2.8M</small></div><strong>9,840</strong></div>
+ <div class="ranking-card"><div class="ranking-top"><div><span class="eyebrow">تصنيف عالمي</span><h2>قادة هذا الأسبوع</h2></div><span class="live-label"><i></i> مباشر</span></div>
+  <div id="leaderboard-list"><div class="rank-row"><span class="medal gold">01</span><span class="rank-avatar">VX</span><div><b>Vortex</b><small>قيمة الكيان · 2.8M</small></div><strong>9,840</strong></div>
   <div class="rank-row"><span class="medal silver">02</span><span class="rank-avatar violet">AR</span><div><b>Artemis</b><small>قيمة الكيان · 2.4M</small></div><strong>9,120</strong></div>
   <div class="rank-row"><span class="medal bronze">03</span><span class="rank-avatar amber">NX</span><div><b>Nex</b><small>قيمة الكيان · 2.1M</small></div><strong>8,760</strong></div>
-  <div class="rank-row own-rank"><span class="medal">184</span><span class="rank-avatar mint">N</span><div><b>المؤسس <small class="you-tag">أنت</small></b><small>قيمة الكيان · 186K</small></div><strong>2,860</strong></div>
+  <div class="rank-row own-rank"><span class="medal">184</span><span class="rank-avatar mint">N</span><div><b>المؤسس <small class="you-tag">أنت</small></b><small>قيمة الكيان · 186K</small></div><strong>2,860</strong></div></div>
  </div>
  <div class="section-heading"><div><span class="eyebrow">العمل الجماعي</span><h2>المنظمات</h2></div><button class="text-link" id="alliance-info">اكتشف المزيد ←</button></div>
  <article class="alliance-card"><div class="alliance-emblem">✦</div><div><b>أطياف الشمال</b><small>38 عضواً · مستوى 12</small><span class="positive">تبحث عن أعضاء جدد</span></div><button class="secondary-btn" id="request-alliance">طلب انضمام</button></article>
@@ -93,10 +93,10 @@
 
 <section class="screen" id="screen-profile">
  <div class="page-intro"><span class="eyebrow">هويتك التنافسية</span><h1>ملف اللاعب</h1></div>
- <div class="profile-card"><div class="profile-avatar">N</div><div><h2>المؤسس</h2><p>المستوى 08 · عضو منذ اليوم الأول</p><span class="online-chip"><i></i> حالة تجريبية</span></div><button class="icon-btn" id="edit-profile">✎</button></div>
+ <div class="profile-card"><div class="profile-avatar">N</div><div><h2 id="profile-name">زائر</h2><p id="profile-subtitle">أنشئ حسابك لحفظ تقدمك والمنافسة</p><span class="online-chip" id="profile-state"><i></i> وضع العرض</span></div><button class="icon-btn" id="edit-profile">✎</button></div>
  <div class="metric-grid profile-metrics"><article class="metric-card"><small>الإنجازات</small><b>24</b></article><article class="metric-card"><small>المواجهات</small><b id="battle-count">12</b></article><article class="metric-card"><small>السمعة</small><b>780</b></article><article class="metric-card"><small>الأصدقاء</small><b>36</b></article></div>
- <div class="settings-list"><button id="settings"><span>⚙</span> الإعدادات <b>←</b></button><button id="help"><span>◉</span> المساعدة والدعم <b>←</b></button><button id="reset-demo"><span>↺</span> إعادة ضبط بيانات العرض <b>←</b></button></div>
- <p class="prototype-note">هذه نسخة واجهة تفاعلية تجريبية. الحسابات والاقتصاد والتصنيفات والتواصل والمنافسات الحقيقية لم تُربط بالخادم بعد.</p>
+ <div class="settings-list"><button id="settings"><span>⚙</span> الإعدادات <b>←</b></button><button id="help"><span>◉</span> المساعدة والدعم <b>←</b></button><button id="sign-out"><span>⇥</span> تسجيل الخروج <b>←</b></button></div>
+ <p class="prototype-note" id="prototype-note">يمكنك استكشاف الواجهة كزائر. سجّل الدخول لحفظ حسابك وربط تقدمك بالخادم.</p>
 </section>
 </main>
 <nav class="bottom-nav" aria-label="التنقل الرئيسي">
@@ -108,5 +108,6 @@
 </nav>
 </div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
+<dialog id="auth-dialog" aria-labelledby="auth-title"><form id="auth-form" class="auth-form"><div class="auth-head"><span class="dialog-mark">N</span><span class="eyebrow">NOVA ACCOUNT</span><h2 id="auth-title">مرحباً بك في NOVA</h2><p id="auth-description">سجّل الدخول للعودة إلى منافساتك.</p></div><div class="auth-switch" id="auth-mode-switch"><button type="button" class="active" id="auth-mode-login">تسجيل الدخول</button><button type="button" id="auth-mode-signup">حساب جديد</button></div><label id="display-name-field" hidden>اسم اللاعب<input id="auth-display-name" type="text" minlength="3" maxlength="24" autocomplete="nickname" placeholder="اسم يظهر للمنافسين"></label><label id="email-field">البريد الإلكتروني<input id="auth-email" type="email" autocomplete="email" placeholder="name@example.com" required></label><label id="password-field">كلمة المرور<input id="auth-password" type="password" minlength="8" autocomplete="current-password" placeholder="8 أحرف على الأقل" required></label><p id="auth-message" class="auth-message" role="status" aria-live="polite"></p><button class="primary-btn" id="auth-submit" type="submit">تسجيل الدخول</button><button class="auth-cancel" id="auth-close" type="button">إغلاق</button></form></dialog>
 <dialog id="action-dialog"><div class="dialog-content"><span class="dialog-mark" id="dialog-mark">✦</span><span class="eyebrow" id="dialog-kicker">NOVA SYSTEM</span><h2 id="dialog-title">تفاصيل العملية</h2><p id="dialog-message"></p><button class="primary-btn" id="dialog-close">حسناً</button></div></dialog>
 </body></html>
