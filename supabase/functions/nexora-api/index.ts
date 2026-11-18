@@ -74,6 +74,7 @@ async function authenticate(req: Request) {
   return {
     uid: payload.sub,
     email: typeof payload.email === "string" ? payload.email : "",
+    emailVerified: payload.email_verified === true,
   };
 }
 
@@ -435,6 +436,39 @@ Deno.serve(async (req: Request) => {
           "VAULT_MAX_LEVEL","MISSING_VAULT_MATERIALS","NOTHING_TO_COLLECT",
         ].find((code) => error.message.includes(code));
         return json({ error: known ?? "COMPANY_OPERATION_FAILED" }, 409, origin);
+      }
+      return json({ ok: true, data }, 200, origin);
+    }
+
+    if (body.action === "create_organization") {
+      if (!identity.emailVerified) return json({ error: "EMAIL_NOT_VERIFIED" }, 403, origin);
+      const name = typeof body.name === "string" ? body.name.trim() : "";
+      const tag = typeof body.tag === "string" ? body.tag.trim().toUpperCase() : "";
+      const description = typeof body.description === "string" ? body.description.trim().slice(0, 240) : "";
+      const { data, error } = await db.rpc("create_organization", {
+        p_uid: identity.uid, p_name: name, p_tag: tag, p_description: description,
+      });
+      if (error) {
+        const known = ["INVALID_NAME","INVALID_TAG","ACCOUNT_NOT_FOUND","ALREADY_IN_ORG","INSUFFICIENT_FUNDS","TAG_TAKEN"].find((code) => error.message.includes(code));
+        return json({ error: known ?? "ORGANIZATION_CREATE_FAILED" }, 409, origin);
+      }
+      return json({ ok: true, data: { orgId: (data as Record<string, unknown>)?.org_id } }, 201, origin);
+    }
+
+    if (body.action === "organization_upgrade" || body.action === "organization_complete" || body.action === "organization_research") {
+      const orgId = typeof body.orgId === "string" ? body.orgId : "";
+      if (!/^[a-zA-Z0-9_-]{1,128}$/.test(orgId)) return json({ error: "INVALID_ORG" }, 400, origin);
+      const researchId = typeof body.researchId === "string" ? body.researchId : "";
+      const rpcName = body.action === "organization_upgrade" ? "start_organization_upgrade"
+        : body.action === "organization_complete" ? "complete_organization_upgrade"
+        : "research_organization";
+      const args = body.action === "organization_research"
+        ? { p_uid: identity.uid, p_org_id: orgId, p_research_id: researchId }
+        : { p_uid: identity.uid, p_org_id: orgId };
+      const { data, error } = await db.rpc(rpcName, args);
+      if (error) {
+        const known = ["NOT_FOUND","UNAUTHORIZED","UPGRADE_IN_PROGRESS","MAX_LEVEL","INSUFFICIENT_TREASURY","UPGRADE_NOT_READY","INVALID_UPGRADE_STATE","INVALID_RESEARCH","RESEARCH_MAX_LEVEL"].find((code) => error.message.includes(code));
+        return json({ error: known ?? "ORGANIZATION_UPGRADE_FAILED" }, 409, origin);
       }
       return json({ ok: true, data }, 200, origin);
     }
