@@ -1,0 +1,1154 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global safety net: deny everything by default
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- Global Helpers ---
+    function isSignedIn() {
+      return request.auth != null && (request.auth.token.email_verified == true || request.auth.token.firebase.sign_in_provider == 'anonymous');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isOwnerDocPrefix(docId) {
+      return docId.matches('^' + request.auth.uid + '_.*');
+    }
+
+    function walletNewTxId(uid) {
+      return getAfter(/databases/$(database)/documents/wallets/$(uid)).data.lastTxId;
+    }
+
+    function hasNewWalletTx(uid) {
+      return exists(/databases/$(database)/documents/wallets/$(uid))
+        && existsAfter(/databases/$(database)/documents/wallets/$(uid))
+        && walletNewTxId(uid) != get(/databases/$(database)/documents/wallets/$(uid)).data.lastTxId
+        && existsAfter(/databases/$(database)/documents/transactions/$(walletNewTxId(uid)));
+    }
+
+    function newWalletTx(uid) {
+      return getAfter(/databases/$(database)/documents/transactions/$(walletNewTxId(uid))).data;
+    }
+
+    // --- Validation Blueprints ---
+    function isValidSkillsMap(skills) {
+      return skills is map
+        && skills.keys().hasAll(['trade', 'management', 'industry', 'negotiation', 'finance', 'leadership'])
+        && skills.keys().hasOnly(['trade', 'management', 'industry', 'negotiation', 'finance', 'leadership'])
+        && skills.trade is int && skills.trade >= 0 && skills.trade <= 10
+        && skills.management is int && skills.management >= 0 && skills.management <= 10
+        && skills.industry is int && skills.industry >= 0 && skills.industry <= 10
+        && skills.negotiation is int && skills.negotiation >= 0 && skills.negotiation <= 10
+        && skills.finance is int && skills.finance >= 0 && skills.finance <= 10
+        && skills.leadership is int && skills.leadership >= 0 && skills.leadership <= 10;
+    }
+
+    function skillsTotal(skills) {
+      return skills.trade + skills.management + skills.industry + skills.negotiation + skills.finance + skills.leadership;
+    }
+
+    function isValidStatsMap(stats) {
+      return stats is map
+        && stats.keys().hasAll(['missionsCompleted', 'tradesCount', 'companiesOwned', 'propertiesOwned', 'totalProduced'])
+        && stats.keys().hasOnly(['missionsCompleted', 'tradesCount', 'companiesOwned', 'propertiesOwned', 'totalProduced'])
+        && stats.missionsCompleted is int && stats.missionsCompleted >= 0
+        && stats.tradesCount is int && stats.tradesCount >= 0
+        && stats.companiesOwned is int && stats.companiesOwned >= 0
+        && stats.propertiesOwned is int && stats.propertiesOwned >= 0
+        && stats.totalProduced is int && stats.totalProduced >= 0;
+    }
+
+    function isStatsStepValid(oldS, newS) {
+      return newS.missionsCompleted >= oldS.missionsCompleted
+        && newS.missionsCompleted <= oldS.missionsCompleted + 1
+        && newS.tradesCount >= oldS.tradesCount
+        && newS.tradesCount <= oldS.tradesCount + 1
+        && newS.companiesOwned >= oldS.companiesOwned
+        && newS.companiesOwned <= oldS.companiesOwned + 1
+        && newS.propertiesOwned >= oldS.propertiesOwned
+        && newS.propertiesOwned <= oldS.propertiesOwned + 1
+        && newS.totalProduced >= oldS.totalProduced
+        && newS.totalProduced <= oldS.totalProduced + 2;
+    }
+
+    function isValidProfile(data) {
+      return data.keys().hasAll([
+          'uid', 'username', 'usernameLower', 'avatarId', 'title',
+          'level', 'xp', 'reputation', 'influence', 'skillPoints',
+          'skills', 'stats', 'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'uid', 'username', 'usernameLower', 'avatarId', 'title',
+          'level', 'xp', 'reputation', 'influence', 'skillPoints',
+          'skills', 'stats', 'orgId', 'createdAt', 'updatedAt'
+        ])
+        && isValidId(data.uid)
+        && data.username is string && data.username.size() >= 3 && data.username.size() <= 24
+        && data.usernameLower is string && data.usernameLower.size() >= 3 && data.usernameLower.size() <= 24
+        && data.avatarId is string && data.avatarId.size() >= 1 && data.avatarId.size() <= 64
+        && data.title is string && data.title.size() >= 1 && data.title.size() <= 64
+        && data.level is int && data.level >= 1 && data.level <= 1000
+        && data.xp is int && data.xp >= 0
+        && data.reputation is int && data.reputation >= 0
+        && data.influence is int && data.influence >= 0
+        && data.skillPoints is int && data.skillPoints >= 0
+        && isValidSkillsMap(data.skills)
+        && isValidStatsMap(data.stats)
+        && (!('orgId' in data) || data.orgId == null || isValidId(data.orgId));
+    }
+
+    function isValidUsernameClaim(data) {
+      return data.keys().hasAll(['uid', 'username', 'createdAt'])
+        && data.keys().hasOnly(['uid', 'username', 'createdAt'])
+        && isValidId(data.uid)
+        && data.username is string && data.username.size() >= 3 && data.username.size() <= 24;
+    }
+
+    function isValidUserPrivate(data) {
+      return data.keys().hasAll(['uid', 'email', 'language', 'notificationsEnabled', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['uid', 'email', 'language', 'notificationsEnabled', 'createdAt', 'updatedAt'])
+        && isValidId(data.uid)
+        && data.email is string && data.email.size() >= 3 && data.email.size() <= 254
+        && data.language in ['ar', 'en']
+        && data.notificationsEnabled is bool;
+    }
+
+    function isValidWallet(data) {
+      return data.keys().hasAll(['uid', 'balance', 'totalEarned', 'totalSpent', 'lastTxId', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['uid', 'balance', 'totalEarned', 'totalSpent', 'lastTxId', 'createdAt', 'updatedAt'])
+        && isValidId(data.uid)
+        && data.balance is number && data.balance >= 0
+        && data.totalEarned is number && data.totalEarned >= 0
+        && data.totalSpent is number && data.totalSpent >= 0
+        && isValidId(data.lastTxId);
+    }
+
+    function isValidTransaction(data) {
+      return data.keys().hasAll(['id', 'fromUid', 'toUid', 'amount', 'fee', 'netAmount', 'type', 'referenceId', 'description', 'status', 'createdAt'])
+        && data.keys().hasOnly(['id', 'fromUid', 'toUid', 'amount', 'fee', 'netAmount', 'type', 'referenceId', 'description', 'status', 'createdAt'])
+        && isValidId(data.id)
+        && isValidId(data.fromUid)
+        && isValidId(data.toUid)
+        && data.amount is number && data.amount > 0 && data.amount <= 10000000
+        && data.fee is number && data.fee >= 0 && data.fee <= data.amount
+        && data.netAmount is number && data.netAmount >= 0 && data.netAmount == data.amount - data.fee
+        && data.type in [
+          'transfer', 'market_buy', 'mission_reward', 'daily_stipend',
+          'company_create', 'company_upgrade', 'company_collect', 'company_vault_upgrade',
+          'property_buy', 'property_upgrade', 'property_collect',
+          'manufacturing', 'org_create', 'org_deposit', 'org_withdraw', 'contract_deal'
+        ]
+        && isValidId(data.referenceId)
+        && data.description is string && data.description.size() >= 1 && data.description.size() <= 240
+        && data.status == 'completed';
+    }
+
+    function isWalletDeltaValid(uid, oldW, newW, tx) {
+      return tx.status == 'completed' && (
+        (
+          uid == tx.fromUid &&
+          request.auth.uid == uid &&
+          newW.balance == oldW.balance - tx.amount &&
+          newW.totalSpent == oldW.totalSpent + tx.amount &&
+          newW.totalEarned == oldW.totalEarned
+        ) || (
+          uid == tx.toUid &&
+          (tx.fromUid == request.auth.uid || tx.fromUid == 'SYSTEM' || tx.fromUid == 'ORG') &&
+          newW.balance == oldW.balance + tx.netAmount &&
+          newW.totalEarned == oldW.totalEarned + tx.netAmount &&
+          newW.totalSpent == oldW.totalSpent
+        )
+      );
+    }
+
+    function isAuthorizedMarketBuy(tx) {
+      return tx.fromUid == request.auth.uid
+        && tx.fee >= 0
+        && tx.fee <= (tx.amount * 0.12) + 0.5
+        && exists(/databases/$(database)/documents/market_listings/$(tx.referenceId))
+        && get(/databases/$(database)/documents/market_listings/$(tx.referenceId)).data.sellerUid == tx.toUid
+        && get(/databases/$(database)/documents/market_listings/$(tx.referenceId)).data.sellerUid != request.auth.uid
+        && getAfter(/databases/$(database)/documents/market_listings/$(tx.referenceId)).data.remainingQty < get(/databases/$(database)/documents/market_listings/$(tx.referenceId)).data.remainingQty
+        && tx.amount == get(/databases/$(database)/documents/market_listings/$(tx.referenceId)).data.unitPrice * (get(/databases/$(database)/documents/market_listings/$(tx.referenceId)).data.remainingQty - getAfter(/databases/$(database)/documents/market_listings/$(tx.referenceId)).data.remainingQty);
+    }
+
+    function isAuthorizedTransaction(tx) {
+      return (
+        (tx.type == 'transfer' && tx.fromUid == request.auth.uid && tx.toUid != request.auth.uid && tx.toUid != 'SYSTEM' && tx.toUid != 'ORG' && exists(/databases/$(database)/documents/wallets/$(tx.toUid))) ||
+        (tx.type == 'market_buy' && isAuthorizedMarketBuy(tx)) ||
+        (tx.type == 'mission_reward' && tx.fromUid == 'SYSTEM' && tx.toUid == request.auth.uid && tx.amount <= 5000 && tx.fee == 0 && !exists(/databases/$(database)/documents/player_missions/$(tx.referenceId)) && getAfter(/databases/$(database)/documents/player_missions/$(tx.referenceId)).data.uid == request.auth.uid && getAfter(/databases/$(database)/documents/player_missions/$(tx.referenceId)).data.rewardCredits == tx.amount) ||
+        (tx.type == 'daily_stipend' && tx.fromUid == 'SYSTEM' && tx.toUid == request.auth.uid && tx.amount <= 1500 && tx.fee == 0 && !exists(/databases/$(database)/documents/daily_claims/$(tx.referenceId)) && getAfter(/databases/$(database)/documents/daily_claims/$(tx.referenceId)).data.uid == request.auth.uid && getAfter(/databases/$(database)/documents/daily_claims/$(tx.referenceId)).data.amount == tx.amount) ||
+        (tx.type == 'contract_deal' && tx.fromUid == 'SYSTEM' && tx.toUid == request.auth.uid && tx.amount <= 2500 && tx.fee == 0 && !exists(/databases/$(database)/documents/contract_claims/$(tx.referenceId)) && getAfter(/databases/$(database)/documents/contract_claims/$(tx.referenceId)).data.uid == request.auth.uid && getAfter(/databases/$(database)/documents/contract_claims/$(tx.referenceId)).data.amount == tx.amount) ||
+        (tx.type == 'company_create' && tx.fromUid == request.auth.uid && tx.toUid == 'SYSTEM' && tx.amount >= 900 && tx.fee == 0 && !exists(/databases/$(database)/documents/companies/$(tx.referenceId)) && getAfter(/databases/$(database)/documents/companies/$(tx.referenceId)).data.ownerUid == request.auth.uid) ||
+        (tx.type == 'company_upgrade' && tx.fromUid == request.auth.uid && tx.toUid == 'SYSTEM' && tx.amount >= 550 && tx.fee == 0 && get(/databases/$(database)/documents/companies/$(tx.referenceId)).data.ownerUid == request.auth.uid && getAfter(/databases/$(database)/documents/companies/$(tx.referenceId)).data.level == get(/databases/$(database)/documents/companies/$(tx.referenceId)).data.level + 1) ||
+        (tx.type == 'company_vault_upgrade' && tx.fromUid == request.auth.uid && tx.toUid == 'SYSTEM' && tx.fee == 0 && exists(/databases/$(database)/documents/companies/$(tx.referenceId)) && get(/databases/$(database)/documents/companies/$(tx.referenceId)).data.ownerUid == request.auth.uid && getAfter(/databases/$(database)/documents/companies/$(tx.referenceId)).data.vaultLevel == companyVaultLevel(get(/databases/$(database)/documents/companies/$(tx.referenceId)).data) + 1 && tx.amount == (companyVaultLevel(get(/databases/$(database)/documents/companies/$(tx.referenceId)).data) == 1 ? 1500 : companyVaultLevel(get(/databases/$(database)/documents/companies/$(tx.referenceId)).data) == 2 ? 4000 : companyVaultLevel(get(/databases/$(database)/documents/companies/$(tx.referenceId)).data) == 3 ? 10000 : 25000)) ||
+        (tx.type == 'company_collect' && tx.fromUid == 'SYSTEM' && tx.toUid == request.auth.uid && tx.amount <= (companyVaultLevel(get(/databases/$(database)/documents/companies/$(tx.referenceId)).data) == 1 ? 3500 : companyVaultLevel(get(/databases/$(database)/documents/companies/$(tx.referenceId)).data) == 2 ? 7000 : companyVaultLevel(get(/databases/$(database)/documents/companies/$(tx.referenceId)).data) == 3 ? 14000 : companyVaultLevel(get(/databases/$(database)/documents/companies/$(tx.referenceId)).data) == 4 ? 25000 : 40000) && tx.fee == 0 && get(/databases/$(database)/documents/companies/$(tx.referenceId)).data.ownerUid == request.auth.uid && getAfter(/databases/$(database)/documents/companies/$(tx.referenceId)).data.lastCollectedAt == request.time && (request.time - get(/databases/$(database)/documents/companies/$(tx.referenceId)).data.lastCollectedAt).seconds() >= 30) ||
+        (tx.type == 'property_buy' && tx.fromUid == request.auth.uid && tx.toUid == 'SYSTEM' && tx.amount >= 950 && tx.fee == 0 && !exists(/databases/$(database)/documents/properties/$(tx.referenceId)) && getAfter(/databases/$(database)/documents/properties/$(tx.referenceId)).data.ownerUid == request.auth.uid) ||
+        (tx.type == 'property_upgrade' && tx.fromUid == request.auth.uid && tx.toUid == 'SYSTEM' && tx.amount >= 480 && tx.fee == 0 && get(/databases/$(database)/documents/properties/$(tx.referenceId)).data.ownerUid == request.auth.uid && getAfter(/databases/$(database)/documents/properties/$(tx.referenceId)).data.level == get(/databases/$(database)/documents/properties/$(tx.referenceId)).data.level + 1) ||
+        (tx.type == 'property_collect' && tx.fromUid == 'SYSTEM' && tx.toUid == request.auth.uid && tx.amount <= 15000 && tx.fee == 0 && get(/databases/$(database)/documents/properties/$(tx.referenceId)).data.ownerUid == request.auth.uid && get(/databases/$(database)/documents/properties/$(tx.referenceId)).data.isRented == true && getAfter(/databases/$(database)/documents/properties/$(tx.referenceId)).data.lastCollectedAt == request.time && (request.time - get(/databases/$(database)/documents/properties/$(tx.referenceId)).data.lastCollectedAt).seconds() >= 60 && tx.amount <= (request.time - get(/databases/$(database)/documents/properties/$(tx.referenceId)).data.lastCollectedAt).seconds() * 10) ||
+        (tx.type == 'manufacturing' && tx.fromUid == request.auth.uid && tx.toUid == 'SYSTEM' && tx.amount >= 10 && tx.fee == 0 && tx.referenceId in ['rec_microchips', 'rec_precision_frame', 'rec_synth_polymer', 'rec_quantum_server', 'rec_logistics_drone', 'rec_bio_module']) ||
+        (tx.type == 'org_create' && tx.fromUid == request.auth.uid && tx.toUid == 'SYSTEM' && tx.amount == 1000 && tx.fee == 0 && !exists(/databases/$(database)/documents/organizations/$(tx.referenceId))) ||
+        (tx.type == 'org_deposit' && tx.fromUid == request.auth.uid && tx.toUid == 'ORG' && tx.fee == 0 && isOrgMember(tx.referenceId) && getAfter(/databases/$(database)/documents/organizations/$(tx.referenceId)).data.treasuryBalance == get(/databases/$(database)/documents/organizations/$(tx.referenceId)).data.treasuryBalance + tx.amount) ||
+        (tx.type == 'org_withdraw' && tx.fromUid == 'ORG' && tx.toUid == request.auth.uid && tx.fee == 0 && hasOrgPermission(tx.referenceId, 'manage_treasury') && getAfter(/databases/$(database)/documents/organizations/$(tx.referenceId)).data.treasuryBalance == get(/databases/$(database)/documents/organizations/$(tx.referenceId)).data.treasuryBalance - tx.amount)
+      );
+    }
+
+    function isValidInventory(data) {
+      return data.keys().hasAll(['uid', 'itemId', 'quantity', 'updatedAt'])
+        && data.keys().hasOnly(['uid', 'itemId', 'quantity', 'lastListingId', 'updatedAt'])
+        && isValidId(data.uid)
+        && isValidId(data.itemId)
+        && data.quantity is int && data.quantity >= 0 && data.quantity <= 1000000
+        && (!('lastListingId' in data) || isValidId(data.lastListingId));
+    }
+
+    function isRecipeOutputMatch(recipeId, itemId, addedQty) {
+      return (recipeId == 'rec_microchips' && itemId == 'microchips' && addedQty == 2)
+        || (recipeId == 'rec_precision_frame' && itemId == 'precision_frame' && addedQty == 2)
+        || (recipeId == 'rec_synth_polymer' && itemId == 'synth_polymer' && addedQty == 2)
+        || (recipeId == 'rec_quantum_server' && itemId == 'quantum_server' && addedQty == 1)
+        || (recipeId == 'rec_logistics_drone' && itemId == 'logistics_drone' && addedQty == 1)
+        || (recipeId == 'rec_bio_module' && itemId == 'bio_module' && addedQty == 1);
+    }
+
+    function isAuthorizedInventoryIncrease(uid, itemId, addedQty, data) {
+      return (
+        hasNewWalletTx(uid) &&
+        newWalletTx(uid).fromUid == uid &&
+        (
+          (
+            newWalletTx(uid).type == 'market_buy' &&
+            exists(/databases/$(database)/documents/market_listings/$(newWalletTx(uid).referenceId)) &&
+            get(/databases/$(database)/documents/market_listings/$(newWalletTx(uid).referenceId)).data.itemId == itemId &&
+            addedQty == get(/databases/$(database)/documents/market_listings/$(newWalletTx(uid).referenceId)).data.remainingQty - getAfter(/databases/$(database)/documents/market_listings/$(newWalletTx(uid).referenceId)).data.remainingQty
+          ) ||
+          (
+            newWalletTx(uid).type == 'manufacturing' &&
+            isRecipeOutputMatch(newWalletTx(uid).referenceId, itemId, addedQty)
+          )
+        )
+      ) || (
+        'lastListingId' in data &&
+        exists(/databases/$(database)/documents/market_listings/$(data.lastListingId)) &&
+        get(/databases/$(database)/documents/market_listings/$(data.lastListingId)).data.sellerUid == uid &&
+        get(/databases/$(database)/documents/market_listings/$(data.lastListingId)).data.itemId == itemId &&
+        get(/databases/$(database)/documents/market_listings/$(data.lastListingId)).data.status == 'active' &&
+        getAfter(/databases/$(database)/documents/market_listings/$(data.lastListingId)).data.status == 'cancelled' &&
+        addedQty == get(/databases/$(database)/documents/market_listings/$(data.lastListingId)).data.remainingQty
+      );
+    }
+
+    function isValidMarketListing(data) {
+      return data.keys().hasAll(['id', 'sellerUid', 'sellerName', 'itemId', 'quantity', 'remainingQty', 'unitPrice', 'status', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['id', 'sellerUid', 'sellerName', 'itemId', 'quantity', 'remainingQty', 'unitPrice', 'status', 'createdAt', 'updatedAt'])
+        && isValidId(data.id)
+        && isValidId(data.sellerUid)
+        && data.sellerName is string && data.sellerName.size() >= 1 && data.sellerName.size() <= 64
+        && isValidId(data.itemId)
+        && data.quantity is int && data.quantity >= 1 && data.quantity <= 10000
+        && data.remainingQty is int && data.remainingQty >= 0 && data.remainingQty <= data.quantity
+        && data.unitPrice is number && data.unitPrice >= 1 && data.unitPrice <= 1000000
+        && data.status in ['active', 'sold', 'cancelled'];
+    }
+
+    function isCanonicalSeedListing(listingId, data) {
+      return (listingId == 'seed_silicon_ore' && data.itemId == 'silicon_ore' && data.quantity == 250 && data.unitPrice == 35)
+        || (listingId == 'seed_copper_wire' && data.itemId == 'copper_wire' && data.quantity == 250 && data.unitPrice == 28)
+        || (listingId == 'seed_energy_cells' && data.itemId == 'energy_cells' && data.quantity == 200 && data.unitPrice == 45)
+        || (listingId == 'seed_crude_alloy' && data.itemId == 'crude_alloy' && data.quantity == 200 && data.unitPrice == 40)
+        || (listingId == 'seed_carbon_fiber' && data.itemId == 'carbon_fiber' && data.quantity == 160 && data.unitPrice == 55)
+        || (listingId == 'seed_rare_minerals' && data.itemId == 'rare_minerals' && data.quantity == 140 && data.unitPrice == 70);
+    }
+
+    function isValidMarketOrder(data) {
+      return data.keys().hasAll(['id', 'listingId', 'buyerUid', 'sellerUid', 'itemId', 'quantity', 'unitPrice', 'totalPrice', 'taxAmount', 'txId', 'createdAt'])
+        && data.keys().hasOnly(['id', 'listingId', 'buyerUid', 'sellerUid', 'itemId', 'quantity', 'unitPrice', 'totalPrice', 'taxAmount', 'txId', 'createdAt'])
+        && isValidId(data.id)
+        && isValidId(data.listingId)
+        && isValidId(data.buyerUid)
+        && isValidId(data.sellerUid)
+        && isValidId(data.itemId)
+        && data.quantity is int && data.quantity >= 1 && data.quantity <= 10000
+        && data.unitPrice is number && data.unitPrice >= 1
+        && data.totalPrice is number && data.totalPrice == data.quantity * data.unitPrice
+        && data.taxAmount is number && data.taxAmount >= 0
+        && isValidId(data.txId);
+    }
+
+    function companyVaultLevel(data) {
+      return ('vaultLevel' in data) ? data.vaultLevel : 1;
+    }
+
+    function hasVaultMaterialSpend(uid, itemId, qty) {
+      return exists(/databases/$(database)/documents/inventory/$(uid + '_' + itemId))
+        && get(/databases/$(database)/documents/inventory/$(uid + '_' + itemId)).data.quantity >= qty
+        && getAfter(/databases/$(database)/documents/inventory/$(uid + '_' + itemId)).data.quantity ==
+          get(/databases/$(database)/documents/inventory/$(uid + '_' + itemId)).data.quantity - qty;
+    }
+
+    function isValidCompany(data) {
+      return data.keys().hasAll(['id', 'ownerUid', 'ownerName', 'name', 'sector', 'level', 'capital', 'baseRevenuePerHour', 'expensePerHour', 'totalRevenue', 'lastCollectedAt', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['id', 'ownerUid', 'ownerName', 'name', 'sector', 'level', 'capital', 'employeesCount', 'baseRevenuePerHour', 'expensePerHour', 'totalRevenue', 'vaultLevel', 'vaultBalance', 'levelUpgradeStartedAt', 'levelUpgradeEndsAt', 'levelUpgradeTargetLevel', 'levelUpgradeCost', 'vaultUpgradeStartedAt', 'vaultUpgradeEndsAt', 'vaultUpgradeTargetLevel', 'lastCollectedAt', 'createdAt', 'updatedAt'])
+        && isValidId(data.id)
+        && isValidId(data.ownerUid)
+        && data.ownerName is string && data.ownerName.size() >= 1 && data.ownerName.size() <= 64
+        && data.name is string && data.name.size() >= 2 && data.name.size() <= 48
+        && data.sector in ['trade', 'manufacturing', 'services', 'tech', 'logistics']
+        && data.level is int && data.level >= 1 && data.level <= 100
+        && data.capital is number && data.capital >= 0
+        && data.baseRevenuePerHour is number && data.baseRevenuePerHour >= 10 && data.baseRevenuePerHour <= 50000
+        && data.expensePerHour is number && data.expensePerHour >= 0
+        && data.totalRevenue is number && data.totalRevenue >= 0
+        && (!('vaultLevel' in data) || (data.vaultLevel is int && data.vaultLevel >= 1 && data.vaultLevel <= 5 && 'vaultBalance' in data && data.vaultBalance is number && data.vaultBalance >= 0 && data.vaultBalance <= (data.vaultLevel == 1 ? 3500 : data.vaultLevel == 2 ? 7000 : data.vaultLevel == 3 ? 14000 : data.vaultLevel == 4 ? 25000 : 40000)))
+        && (!('vaultBalance' in data) || 'vaultLevel' in data)
+        && (!('levelUpgradeEndsAt' in data) || (data.levelUpgradeEndsAt is number && data.levelUpgradeTargetLevel is int && data.levelUpgradeTargetLevel >= 2 && data.levelUpgradeTargetLevel <= 100 && data.levelUpgradeCost is number))
+        && (!('vaultUpgradeEndsAt' in data) || (data.vaultUpgradeEndsAt is number && data.vaultUpgradeTargetLevel is int && data.vaultUpgradeTargetLevel >= 2 && data.vaultUpgradeTargetLevel <= 5));
+    }
+
+    function isCanonicalCompanyCreate(data, txAmount) {
+      return (data.sector == 'trade' && txAmount == 900 && data.capital == 900 && data.baseRevenuePerHour == 140 && data.expensePerHour == 35)
+        || (data.sector == 'services' && txAmount == 1100 && data.capital == 1100 && data.baseRevenuePerHour == 175 && data.expensePerHour == 45)
+        || (data.sector == 'logistics' && txAmount == 1400 && data.capital == 1400 && data.baseRevenuePerHour == 225 && data.expensePerHour == 60)
+        || (data.sector == 'manufacturing' && txAmount == 1800 && data.capital == 1800 && data.baseRevenuePerHour == 290 && data.expensePerHour == 80)
+        || (data.sector == 'tech' && txAmount == 2200 && data.capital == 2200 && data.baseRevenuePerHour == 365 && data.expensePerHour == 95);
+    }
+
+    function isValidCompanyLog(data) {
+      return data.keys().hasAll(['id', 'companyId', 'ownerUid', 'action', 'amount', 'details', 'createdAt'])
+        && data.keys().hasOnly(['id', 'companyId', 'ownerUid', 'action', 'amount', 'details', 'createdAt'])
+        && isValidId(data.id)
+        && isValidId(data.companyId)
+        && isValidId(data.ownerUid)
+        && data.action is string && data.action.size() >= 1 && data.action.size() <= 64
+        && data.amount is number
+        && data.details is string && data.details.size() >= 1 && data.details.size() <= 200;
+    }
+
+    function isValidProperty(data) {
+      return data.keys().hasAll(['id', 'ownerUid', 'name', 'type', 'level', 'purchasePrice', 'rentPerHour', 'maintenancePerHour', 'isRented', 'lastCollectedAt', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['id', 'ownerUid', 'name', 'type', 'level', 'purchasePrice', 'rentPerHour', 'maintenancePerHour', 'isRented', 'lastCollectedAt', 'createdAt', 'updatedAt'])
+        && isValidId(data.id)
+        && isValidId(data.ownerUid)
+        && data.name is string && data.name.size() >= 2 && data.name.size() <= 48
+        && data.type in ['shop', 'office', 'facility']
+        && data.level is int && data.level >= 1 && data.level <= 15
+        && data.purchasePrice is number && data.purchasePrice >= 800
+        && data.rentPerHour is number && data.rentPerHour >= 10 && data.rentPerHour <= 20000
+        && data.maintenancePerHour is number && data.maintenancePerHour >= 0
+        && data.isRented is bool;
+    }
+
+    function isCanonicalPropertyCreate(data, txAmount) {
+      return (data.type == 'shop' && txAmount == 950 && data.purchasePrice == 950 && data.rentPerHour == 115 && data.maintenancePerHour == 25)
+        || (data.type == 'office' && txAmount == 1650 && data.purchasePrice == 1650 && data.rentPerHour == 205 && data.maintenancePerHour == 45)
+        || (data.type == 'facility' && txAmount == 2800 && data.purchasePrice == 2800 && data.rentPerHour == 350 && data.maintenancePerHour == 80);
+    }
+
+    function isValidOrgResearch(research) {
+      return research is map
+        && research.keys().hasOnly(['commerce', 'engineering', 'expansion', 'finance', 'diplomacy'])
+        && (!('commerce' in research) || (research.commerce is int && research.commerce >= 0 && research.commerce <= 10))
+        && (!('engineering' in research) || (research.engineering is int && research.engineering >= 0 && research.engineering <= 10))
+        && (!('expansion' in research) || (research.expansion is int && research.expansion >= 0 && research.expansion <= 10))
+        && (!('finance' in research) || (research.finance is int && research.finance >= 0 && research.finance <= 10))
+        && (!('diplomacy' in research) || (research.diplomacy is int && research.diplomacy >= 0 && research.diplomacy <= 10));
+    }
+
+    function isValidOrganization(data) {
+      return data.keys().hasAll(['id', 'name', 'tag', 'description', 'leaderUid', 'leaderName', 'treasuryBalance', 'memberCount', 'reputation', 'level', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['id', 'name', 'tag', 'description', 'leaderUid', 'leaderName', 'treasuryBalance', 'memberCount', 'reputation', 'level', 'memberCapacity', 'research', 'upgradeStartedAt', 'upgradeEndsAt', 'upgradeTargetLevel', 'createdAt', 'updatedAt'])
+        && isValidId(data.id)
+        && data.name is string && data.name.size() >= 3 && data.name.size() <= 40
+        && data.tag is string && data.tag.size() >= 2 && data.tag.size() <= 6
+        && data.description is string && data.description.size() <= 240
+        && isValidId(data.leaderUid)
+        && data.leaderName is string && data.leaderName.size() >= 1 && data.leaderName.size() <= 64
+        && data.treasuryBalance is number && data.treasuryBalance >= 0
+        && data.memberCount is int && data.memberCount >= 1 && data.memberCount <= 200
+        && data.reputation is int && data.reputation >= 0
+        && data.level is int && data.level >= 1 && data.level <= 50
+        && (!('memberCapacity' in data) || (data.memberCapacity is int && data.memberCapacity >= 20 && data.memberCapacity <= 80))
+        && (!('research' in data) || isValidOrgResearch(data.research))
+        && (!('upgradeStartedAt' in data) || data.upgradeStartedAt is number)
+        && (!('upgradeEndsAt' in data) || data.upgradeEndsAt == null || data.upgradeEndsAt is number)
+        && (!('upgradeTargetLevel' in data) || data.upgradeTargetLevel == null || (data.upgradeTargetLevel is int && data.upgradeTargetLevel >= 2 && data.upgradeTargetLevel <= 10));
+    }
+
+    function isCanonicalOrgRolePermissions(role, perms) {
+      return (role == 'leader' && perms.hasAll(['manage_members', 'manage_roles', 'manage_treasury', 'manage_org']) && perms.size() == 4)
+        || (role == 'deputy' && perms.hasAll(['manage_members', 'manage_roles', 'manage_treasury']) && perms.size() == 3)
+        || (role == 'officer' && perms.hasAll(['manage_members']) && perms.size() == 1)
+        || (role == 'member' && perms.size() == 0);
+    }
+
+    function isValidOrgMember(data) {
+      return data.keys().hasAll(['orgId', 'uid', 'username', 'role', 'permissions', 'joinedAt'])
+        && data.keys().hasOnly(['orgId', 'uid', 'username', 'role', 'permissions', 'joinedAt'])
+        && isValidId(data.orgId)
+        && isValidId(data.uid)
+        && data.username is string && data.username.size() >= 1 && data.username.size() <= 64
+        && data.role in ['leader', 'deputy', 'officer', 'member']
+        && data.permissions is list && data.permissions.size() <= 10
+        && isCanonicalOrgRolePermissions(data.role, data.permissions);
+    }
+
+    function isValidOrgRequest(data) {
+      return data.keys().hasAll(['id', 'orgId', 'uid', 'username', 'status', 'createdAt'])
+        && data.keys().hasOnly(['id', 'orgId', 'uid', 'username', 'status', 'createdAt'])
+        && isValidId(data.id)
+        && isValidId(data.orgId)
+        && isValidId(data.uid)
+        && data.username is string && data.username.size() >= 1 && data.username.size() <= 64
+        && data.status in ['pending', 'approved', 'rejected'];
+    }
+
+    function isValidOrgTransaction(data) {
+      return data.keys().hasAll(['id', 'orgId', 'uid', 'username', 'type', 'amount', 'note', 'createdAt'])
+        && data.keys().hasOnly(['id', 'orgId', 'uid', 'username', 'type', 'amount', 'note', 'createdAt'])
+        && isValidId(data.id)
+        && isValidId(data.orgId)
+        && isValidId(data.uid)
+        && data.username is string && data.username.size() >= 1 && data.username.size() <= 64
+        && data.type in ['deposit', 'withdraw', 'upgrade']
+        && data.amount is number && data.amount > 0
+        && data.note is string && data.note.size() >= 1 && data.note.size() <= 160;
+    }
+
+    function isValidPlayerMission(data) {
+      return data.keys().hasAll(['uid', 'missionId', 'category', 'rewardCredits', 'rewardXp', 'claimedAt'])
+        && data.keys().hasOnly(['uid', 'missionId', 'category', 'rewardCredits', 'rewardXp', 'claimedAt'])
+        && isValidId(data.uid)
+        && isValidId(data.missionId)
+        && data.category in ['tutorial', 'daily', 'weekly', 'seasonal']
+        && data.rewardCredits is number && data.rewardCredits >= 0 && data.rewardCredits <= 5000
+        && data.rewardXp is int && data.rewardXp >= 0 && data.rewardXp <= 2000;
+    }
+
+    function isValidDailyClaim(data) {
+      return data.keys().hasAll(['uid', 'dateKey', 'amount', 'claimedAt'])
+        && data.keys().hasOnly(['uid', 'dateKey', 'amount', 'claimedAt'])
+        && isValidId(data.uid)
+        && data.dateKey is string && data.dateKey.size() >= 8 && data.dateKey.size() <= 16
+        && data.amount is number && data.amount > 0 && data.amount <= 1500;
+    }
+
+    function isValidContractClaim(data) {
+      return data.keys().hasAll(['uid', 'contractId', 'amount', 'claimedAt'])
+        && data.keys().hasOnly(['uid', 'contractId', 'amount', 'claimedAt'])
+        && isValidId(data.uid)
+        && isValidId(data.contractId)
+        && data.amount is number && data.amount > 0 && data.amount <= 2500;
+    }
+
+    function isValidPlayerAchievement(data) {
+      return data.keys().hasAll(['uid', 'achievementId', 'unlockedAt'])
+        && data.keys().hasOnly(['uid', 'achievementId', 'unlockedAt'])
+        && isValidId(data.uid)
+        && isValidId(data.achievementId);
+    }
+
+    function isValidNotification(data) {
+      return data.keys().hasAll(['id', 'uid', 'title', 'body', 'type', 'read', 'createdAt'])
+        && data.keys().hasOnly(['id', 'uid', 'title', 'body', 'type', 'read', 'createdAt'])
+        && isValidId(data.id)
+        && isValidId(data.uid)
+        && data.title is string && data.title.size() >= 1 && data.title.size() <= 120
+        && data.body is string && data.body.size() >= 1 && data.body.size() <= 240
+        && data.type in ['economy', 'market', 'org', 'mission', 'system']
+        && data.read is bool;
+    }
+
+    function isValidWorldEvent(data) {
+      return data.keys().hasAll(['id', 'titleAr', 'titleEn', 'descriptionAr', 'descriptionEn', 'effectType', 'priceMultiplier', 'taxDelta', 'active', 'createdAt'])
+        && data.keys().hasOnly(['id', 'titleAr', 'titleEn', 'descriptionAr', 'descriptionEn', 'effectType', 'targetItemId', 'affectedSectors', 'revenueMultiplier', 'stackGroup', 'startsAt', 'endsAt', 'priceMultiplier', 'taxDelta', 'active', 'createdAt'])
+        && isValidId(data.id)
+        && data.titleAr is string && data.titleAr.size() >= 1 && data.titleAr.size() <= 120
+        && data.titleEn is string && data.titleEn.size() >= 1 && data.titleEn.size() <= 120
+        && data.descriptionAr is string && data.descriptionAr.size() >= 1 && data.descriptionAr.size() <= 280
+        && data.descriptionEn is string && data.descriptionEn.size() >= 1 && data.descriptionEn.size() <= 280
+        && data.effectType in ['demand_surge', 'supply_shortage', 'tax_cut', 'industrial_boom', 'service_crisis', 'logistics_boom']
+        && data.priceMultiplier is number && data.priceMultiplier >= 0.7 && data.priceMultiplier <= 1.35
+        && (!('revenueMultiplier' in data) || (data.revenueMultiplier is number && data.revenueMultiplier >= 0.7 && data.revenueMultiplier <= 1.35))
+        && (!('affectedSectors' in data) || (data.affectedSectors is list && data.affectedSectors.size() <= 5))
+        && (!('stackGroup' in data) || (data.stackGroup is string && data.stackGroup.size() <= 64))
+        && (!('startsAt' in data) || data.startsAt is timestamp)
+        && (!('endsAt' in data) || data.endsAt is timestamp)
+        && data.taxDelta is number && data.taxDelta >= -0.02 && data.taxDelta <= 0.03
+        && data.active is bool;
+    }
+
+    function isValidAuditLog(data) {
+      return data.keys().hasAll(['id', 'uid', 'action', 'entityType', 'entityId', 'createdAt'])
+        && data.keys().hasOnly(['id', 'uid', 'action', 'entityType', 'entityId', 'createdAt'])
+        && isValidId(data.id)
+        && isValidId(data.uid)
+        && data.action is string && data.action.size() >= 1 && data.action.size() <= 64
+        && data.entityType is string && data.entityType.size() >= 1 && data.entityType.size() <= 64
+        && isValidId(data.entityId);
+    }
+
+    function orgMemberRole(orgId) {
+      return get(/databases/$(database)/documents/organization_members/$(orgId + '_' + request.auth.uid)).data.role;
+    }
+
+    function orgMemberPermissions(orgId) {
+      return get(/databases/$(database)/documents/organization_members/$(orgId + '_' + request.auth.uid)).data.permissions;
+    }
+
+    function isOrgMember(orgId) {
+      return exists(/databases/$(database)/documents/organization_members/$(orgId + '_' + request.auth.uid));
+    }
+
+    function hasOrgPermission(orgId, perm) {
+      return isOrgMember(orgId) && (orgMemberRole(orgId) == 'leader' || perm in orgMemberPermissions(orgId));
+    }
+
+    function isProgressionTxType(txType) {
+      return txType in [
+        'market_buy', 'manufacturing', 'mission_reward', 'daily_stipend',
+        'contract_deal', 'company_create', 'company_upgrade', 'company_collect',
+        'property_buy', 'org_create'
+      ];
+    }
+
+    // --- Collection Rules ---
+
+    // Health check / connection verification
+    match /test/connection {
+      allow get: if true;
+    }
+
+    // Public Player Profiles (No PII)
+    match /profiles/{uid} {
+      allow get: if isSignedIn() && isValidId(uid);
+      allow list: if isSignedIn() && resource.data.influence >= 0;
+      allow create: if isSignedIn() && isValidId(uid) && request.auth.uid == uid
+        && isValidProfile(incoming())
+        && incoming().uid == uid
+        && incoming().level == 1
+        && incoming().xp == 0
+        && incoming().reputation == 10
+        && incoming().influence == 5
+        && incoming().skillPoints == 3
+        && skillsTotal(incoming().skills) == 0
+        && incoming().stats.missionsCompleted == 0
+        && incoming().stats.tradesCount == 0
+        && incoming().stats.companiesOwned == 0
+        && incoming().stats.propertiesOwned == 0
+        && incoming().stats.totalProduced == 0
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+      allow update: if isSignedIn() && isValidId(uid) && request.auth.uid == uid
+        && isValidProfile(incoming())
+        && incoming().uid == existing().uid
+        && incoming().username == existing().username
+        && incoming().usernameLower == existing().usernameLower
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && (
+          // Action 1: Avatar change
+          incoming().diff(existing()).affectedKeys().hasOnly(['avatarId', 'updatedAt']) ||
+          // Action 2: Organization membership sync / leave / kicked cleanup
+          (
+            incoming().diff(existing()).affectedKeys().hasOnly(['orgId', 'updatedAt']) &&
+            (
+              incoming().orgId == null ||
+              exists(/databases/$(database)/documents/organization_members/$(incoming().orgId + '_' + uid)) ||
+              existsAfter(/databases/$(database)/documents/organization_members/$(incoming().orgId + '_' + uid))
+            )
+          ) ||
+          // Action 3: Spend 1 skill point on skill tree (monotonically increasing, exact +1 delta)
+          (
+            incoming().diff(existing()).affectedKeys().hasOnly(['skillPoints', 'skills', 'updatedAt']) &&
+            incoming().skillPoints == existing().skillPoints - 1 &&
+            incoming().skills.trade >= existing().skills.trade &&
+            incoming().skills.management >= existing().skills.management &&
+            incoming().skills.industry >= existing().skills.industry &&
+            incoming().skills.negotiation >= existing().skills.negotiation &&
+            incoming().skills.finance >= existing().skills.finance &&
+            incoming().skills.leadership >= existing().skills.leadership &&
+            skillsTotal(incoming().skills) == skillsTotal(existing().skills) + 1
+          ) ||
+          // Action 4: Economic progression paired with an authorized progression wallet transaction
+          (
+            hasNewWalletTx(uid) &&
+            isProgressionTxType(newWalletTx(uid).type) &&
+            incoming().skills == existing().skills &&
+            isStatsStepValid(existing().stats, incoming().stats) &&
+            incoming().xp >= existing().xp &&
+            incoming().xp <= existing().xp + 350 &&
+            incoming().level >= existing().level &&
+            incoming().level <= existing().level + 2 &&
+            incoming().skillPoints >= existing().skillPoints &&
+            incoming().skillPoints <= existing().skillPoints + 4 &&
+            incoming().reputation >= existing().reputation &&
+            incoming().reputation <= existing().reputation + 60 &&
+            incoming().influence >= existing().influence &&
+            incoming().influence <= existing().influence + 50 &&
+            (
+              incoming().orgId == existing().orgId ||
+              incoming().orgId == null ||
+              existsAfter(/databases/$(database)/documents/organization_members/$(incoming().orgId + '_' + uid))
+            )
+          )
+        );
+      allow delete: if false;
+    }
+
+    // Unique Username Reservations
+    match /usernames/{usernameLower} {
+      allow get: if isSignedIn() && isValidId(usernameLower);
+      allow create: if isSignedIn() && isValidId(usernameLower)
+        && isValidUsernameClaim(incoming())
+        && incoming().uid == request.auth.uid
+        && incoming().createdAt == request.time;
+      allow update, delete: if false;
+    }
+
+    // Owner-Isolated Private Data (PII)
+    match /users_private/{uid} {
+      allow get: if isSignedIn() && isValidId(uid) && request.auth.uid == uid;
+      allow create: if isSignedIn() && isValidId(uid) && request.auth.uid == uid
+        && isValidUserPrivate(incoming())
+        && incoming().uid == uid
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+      allow update: if isSignedIn() && isValidId(uid) && request.auth.uid == uid
+        && isValidUserPrivate(incoming())
+        && incoming().uid == existing().uid
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && incoming().diff(existing()).affectedKeys().hasOnly(['language', 'notificationsEnabled', 'updatedAt']);
+      allow delete: if false;
+    }
+
+    // Player Wallets (Anti-Tamper Atomic Balance Gate)
+    match /wallets/{uid} {
+      allow get: if isSignedIn() && isValidId(uid) && request.auth.uid == uid;
+      allow create: if isSignedIn() && isValidId(uid) && request.auth.uid == uid
+        && isValidWallet(incoming())
+        && incoming().uid == uid
+        && incoming().balance == 2500
+        && incoming().totalEarned == 2500
+        && incoming().totalSpent == 0
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+      allow update: if isSignedIn() && isValidId(uid)
+        && isValidWallet(incoming())
+        && incoming().uid == existing().uid
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && incoming().lastTxId != existing().lastTxId
+        && isWalletDeltaValid(uid, existing(), incoming(), getAfter(/databases/$(database)/documents/transactions/$(incoming().lastTxId)).data);
+      allow delete: if false;
+    }
+
+    // Immutable Financial Ledger
+    match /transactions/{txId} {
+      allow get: if isSignedIn() && isValidId(txId)
+        && (resource == null || existing().fromUid == request.auth.uid || existing().toUid == request.auth.uid);
+      allow list: if isSignedIn()
+        && (resource.data.fromUid == request.auth.uid || resource.data.toUid == request.auth.uid);
+      allow create: if isSignedIn() && isValidId(txId)
+        && isValidTransaction(incoming())
+        && incoming().id == txId
+        && incoming().createdAt == request.time
+        && isAuthorizedTransaction(incoming());
+      allow update, delete: if false;
+    }
+
+    // Player Inventory (Anti-Minting Guard)
+    match /inventory/{docId} {
+      allow get: if isSignedIn() && isValidId(docId)
+        && (isOwnerDocPrefix(docId) || (resource != null && existing().uid == request.auth.uid));
+      allow list: if isSignedIn() && resource.data.uid == request.auth.uid;
+      allow create: if isSignedIn() && isValidId(docId)
+        && isValidInventory(incoming())
+        && incoming().uid == request.auth.uid
+        && docId == request.auth.uid + '_' + incoming().itemId
+        && incoming().updatedAt == request.time
+        && isAuthorizedInventoryIncrease(request.auth.uid, incoming().itemId, incoming().quantity, incoming());
+      allow update: if isSignedIn() && isValidId(docId)
+        && isValidInventory(incoming())
+        && existing().uid == request.auth.uid
+        && incoming().uid == existing().uid
+        && incoming().itemId == existing().itemId
+        && incoming().updatedAt == request.time
+        && (
+          incoming().quantity <= existing().quantity ||
+          isAuthorizedInventoryIncrease(request.auth.uid, incoming().itemId, incoming().quantity - existing().quantity, incoming())
+        );
+      allow delete: if false;
+    }
+
+    // Open Market Listings (Public active orderbook, zero PII)
+    match /market_listings/{listingId} {
+      allow get: if isSignedIn() && isValidId(listingId);
+      allow list: if isSignedIn() && resource.data.status == 'active';
+      allow create: if isSignedIn() && isValidId(listingId)
+        && isValidMarketListing(incoming())
+        && incoming().id == listingId
+        && incoming().status == 'active'
+        && incoming().remainingQty == incoming().quantity
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time
+        && (
+          (
+            incoming().sellerUid == request.auth.uid &&
+            exists(/databases/$(database)/documents/inventory/$(request.auth.uid + '_' + incoming().itemId)) &&
+            getAfter(/databases/$(database)/documents/inventory/$(request.auth.uid + '_' + incoming().itemId)).data.quantity ==
+              get(/databases/$(database)/documents/inventory/$(request.auth.uid + '_' + incoming().itemId)).data.quantity - incoming().quantity
+          ) ||
+          (incoming().sellerUid == 'SYSTEM' && isCanonicalSeedListing(listingId, incoming()))
+        );
+      allow update: if isSignedIn() && isValidId(listingId)
+        && isValidMarketListing(incoming())
+        && existing().status == 'active'
+        && incoming().id == existing().id
+        && incoming().sellerUid == existing().sellerUid
+        && incoming().sellerName == existing().sellerName
+        && incoming().itemId == existing().itemId
+        && incoming().quantity == existing().quantity
+        && incoming().unitPrice == existing().unitPrice
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && incoming().diff(existing()).affectedKeys().hasOnly(['remainingQty', 'status', 'updatedAt'])
+        && (
+          // Action 1: Atomic Market Buy paired with buyer wallet & transaction
+          (
+            existing().sellerUid != request.auth.uid &&
+            incoming().remainingQty < existing().remainingQty &&
+            ((incoming().remainingQty == 0 && incoming().status == 'sold') || (incoming().remainingQty > 0 && incoming().status == 'active')) &&
+            hasNewWalletTx(request.auth.uid) &&
+            newWalletTx(request.auth.uid).type == 'market_buy' &&
+            newWalletTx(request.auth.uid).referenceId == listingId &&
+            newWalletTx(request.auth.uid).fromUid == request.auth.uid
+          ) ||
+          // Action 2: Seller cancels own listing with atomic inventory refund
+          (
+            existing().sellerUid == request.auth.uid &&
+            incoming().status == 'cancelled' &&
+            incoming().remainingQty == 0 &&
+            (
+              (
+                exists(/databases/$(database)/documents/inventory/$(request.auth.uid + '_' + existing().itemId)) &&
+                getAfter(/databases/$(database)/documents/inventory/$(request.auth.uid + '_' + existing().itemId)).data.quantity ==
+                  get(/databases/$(database)/documents/inventory/$(request.auth.uid + '_' + existing().itemId)).data.quantity + existing().remainingQty
+              ) || (
+                !exists(/databases/$(database)/documents/inventory/$(request.auth.uid + '_' + existing().itemId)) &&
+                getAfter(/databases/$(database)/documents/inventory/$(request.auth.uid + '_' + existing().itemId)).data.quantity == existing().remainingQty
+              )
+            )
+          )
+        );
+      allow delete: if false;
+    }
+
+    // Executed Market Orders (1-to-1 bound to deterministic orderId = ord_<txId>)
+    match /market_orders/{orderId} {
+      allow get: if isSignedIn() && isValidId(orderId)
+        && (resource == null || existing().buyerUid == request.auth.uid || existing().sellerUid == request.auth.uid);
+      allow list: if isSignedIn()
+        && (resource.data.buyerUid == request.auth.uid || resource.data.sellerUid == request.auth.uid);
+      allow create: if isSignedIn() && isValidId(orderId)
+        && isValidMarketOrder(incoming())
+        && incoming().id == orderId
+        && orderId == 'ord_' + incoming().txId
+        && incoming().buyerUid == request.auth.uid
+        && incoming().createdAt == request.time
+        && hasNewWalletTx(request.auth.uid)
+        && incoming().txId == walletNewTxId(request.auth.uid)
+        && newWalletTx(request.auth.uid).type == 'market_buy'
+        && newWalletTx(request.auth.uid).referenceId == incoming().listingId
+        && newWalletTx(request.auth.uid).toUid == incoming().sellerUid
+        && newWalletTx(request.auth.uid).amount == incoming().totalPrice
+        && newWalletTx(request.auth.uid).fee == incoming().taxAmount
+        && incoming().itemId == get(/databases/$(database)/documents/market_listings/$(incoming().listingId)).data.itemId
+        && incoming().unitPrice == get(/databases/$(database)/documents/market_listings/$(incoming().listingId)).data.unitPrice;
+      allow update, delete: if false;
+    }
+
+    // Player Companies
+    match /companies/{companyId} {
+      allow get: if isSignedIn() && isValidId(companyId);
+      allow list: if isSignedIn() && (resource.data.ownerUid == request.auth.uid || resource.data.totalRevenue >= 0);
+      allow create: if isSignedIn() && isValidId(companyId)
+        && isValidCompany(incoming())
+        && incoming().id == companyId
+        && incoming().ownerUid == request.auth.uid
+        && incoming().level == 1
+        && incoming().totalRevenue == 0
+        && incoming().vaultLevel == 1
+        && incoming().vaultBalance == 0
+        && incoming().lastCollectedAt == request.time
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time
+        && hasNewWalletTx(request.auth.uid)
+        && newWalletTx(request.auth.uid).type == 'company_create'
+        && newWalletTx(request.auth.uid).referenceId == companyId
+        && isCanonicalCompanyCreate(incoming(), newWalletTx(request.auth.uid).amount);
+      allow update: if isSignedIn() && isValidId(companyId)
+        && isValidCompany(incoming())
+        && existing().ownerUid == request.auth.uid
+        && incoming().id == existing().id
+        && incoming().ownerUid == existing().ownerUid
+        && incoming().ownerName == existing().ownerName
+        && incoming().name == existing().name
+        && incoming().sector == existing().sector
+        && incoming().baseRevenuePerHour == existing().baseRevenuePerHour
+        && incoming().expensePerHour == existing().expensePerHour
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && (
+          // Action 1: Upgrade company
+          (
+            incoming().diff(existing()).affectedKeys().hasOnly(['level', 'capital', 'updatedAt']) &&
+            incoming().level == existing().level + 1 &&
+            incoming().capital == existing().capital + (existing().level * 550) &&
+            hasNewWalletTx(request.auth.uid) &&
+            newWalletTx(request.auth.uid).type == 'company_upgrade' &&
+            newWalletTx(request.auth.uid).referenceId == companyId &&
+            newWalletTx(request.auth.uid).amount == existing().level * 550
+          ) ||
+false
+        );
+      allow delete: if false;
+    }
+
+    // Company Operational Logs
+    match /company_logs/{logId} {
+      allow get: if isSignedIn() && isValidId(logId) && (resource == null || existing().ownerUid == request.auth.uid);
+      allow list: if isSignedIn() && resource.data.ownerUid == request.auth.uid;
+      allow create: if isSignedIn() && isValidId(logId)
+        && isValidCompanyLog(incoming())
+        && incoming().id == logId
+        && incoming().ownerUid == request.auth.uid
+        && incoming().createdAt == request.time;
+      allow update, delete: if false;
+    }
+
+    // Real Estate Properties
+    match /properties/{propertyId} {
+      allow get: if isSignedIn() && isValidId(propertyId) && (resource == null || existing().ownerUid == request.auth.uid);
+      allow list: if isSignedIn() && resource.data.ownerUid == request.auth.uid;
+      allow create: if isSignedIn() && isValidId(propertyId)
+        && isValidProperty(incoming())
+        && incoming().id == propertyId
+        && incoming().ownerUid == request.auth.uid
+        && incoming().level == 1
+        && incoming().lastCollectedAt == request.time
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time
+        && hasNewWalletTx(request.auth.uid)
+        && newWalletTx(request.auth.uid).type == 'property_buy'
+        && newWalletTx(request.auth.uid).referenceId == propertyId
+        && isCanonicalPropertyCreate(incoming(), newWalletTx(request.auth.uid).amount);
+      allow update: if isSignedIn() && isValidId(propertyId)
+        && isValidProperty(incoming())
+        && existing().ownerUid == request.auth.uid
+        && incoming().id == existing().id
+        && incoming().ownerUid == existing().ownerUid
+        && incoming().name == existing().name
+        && incoming().type == existing().type
+        && incoming().purchasePrice == existing().purchasePrice
+        && incoming().rentPerHour == existing().rentPerHour
+        && incoming().maintenancePerHour == existing().maintenancePerHour
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && (
+          // Action 1: Toggle lease
+          incoming().diff(existing()).affectedKeys().hasOnly(['isRented', 'updatedAt']) ||
+          // Action 2: Upgrade property
+          (
+            incoming().diff(existing()).affectedKeys().hasOnly(['level', 'updatedAt']) &&
+            incoming().level == existing().level + 1 &&
+            hasNewWalletTx(request.auth.uid) &&
+            newWalletTx(request.auth.uid).type == 'property_upgrade' &&
+            newWalletTx(request.auth.uid).referenceId == propertyId &&
+            newWalletTx(request.auth.uid).amount == existing().level * 480
+          ) ||
+          // Action 3: Collect rent
+          (
+            existing().isRented == true &&
+            incoming().diff(existing()).affectedKeys().hasOnly(['lastCollectedAt', 'updatedAt']) &&
+            incoming().lastCollectedAt == request.time &&
+            hasNewWalletTx(request.auth.uid) &&
+            newWalletTx(request.auth.uid).type == 'property_collect' &&
+            newWalletTx(request.auth.uid).referenceId == propertyId
+          )
+        );
+      allow delete: if false;
+    }
+
+    // Organizations (Public directory, zero PII)
+    match /organizations/{orgId} {
+      allow get: if isSignedIn() && isValidId(orgId);
+      allow list: if isSignedIn() && resource.data.reputation >= 0;
+      allow create: if isSignedIn() && isValidId(orgId)
+        && isValidOrganization(incoming())
+        && incoming().id == orgId
+        && incoming().leaderUid == request.auth.uid
+        && incoming().treasuryBalance == 0
+        && incoming().memberCount == 1
+        && incoming().reputation == 15
+        && incoming().level == 1
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time
+        && hasNewWalletTx(request.auth.uid)
+        && newWalletTx(request.auth.uid).type == 'org_create'
+        && newWalletTx(request.auth.uid).referenceId == orgId;
+      allow update: if isSignedIn() && isValidId(orgId)
+        && isValidOrganization(incoming())
+        && incoming().id == existing().id
+        && incoming().name == existing().name
+        && incoming().tag == existing().tag
+        && incoming().leaderUid == existing().leaderUid
+        && incoming().leaderName == existing().leaderName
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && (
+          // Action 1: Member deposits into treasury (paired with atomic wallet debit)
+          (
+            isOrgMember(orgId) &&
+            incoming().diff(existing()).affectedKeys().hasOnly(['treasuryBalance', 'reputation', 'updatedAt']) &&
+            incoming().treasuryBalance > existing().treasuryBalance &&
+            hasNewWalletTx(request.auth.uid) &&
+            newWalletTx(request.auth.uid).type == 'org_deposit' &&
+            newWalletTx(request.auth.uid).referenceId == orgId &&
+            incoming().treasuryBalance == existing().treasuryBalance + newWalletTx(request.auth.uid).amount &&
+            incoming().reputation >= existing().reputation &&
+            incoming().reputation == existing().reputation + math.max(1, math.floor((newWalletTx(request.auth.uid).amount / 100) * (1 + ((('research' in existing()) && ('diplomacy' in existing().research)) ? existing().research.diplomacy : 0) * 0.01)))
+          ) ||
+          // Action 2: Authorized treasurer withdraws from treasury (paired with atomic wallet credit)
+          (
+            hasOrgPermission(orgId, 'manage_treasury') &&
+            incoming().diff(existing()).affectedKeys().hasOnly(['treasuryBalance', 'updatedAt']) &&
+            incoming().treasuryBalance < existing().treasuryBalance &&
+            hasNewWalletTx(request.auth.uid) &&
+            newWalletTx(request.auth.uid).type == 'org_withdraw' &&
+            newWalletTx(request.auth.uid).referenceId == orgId &&
+            existing().treasuryBalance - incoming().treasuryBalance == newWalletTx(request.auth.uid).amount
+          ) ||
+          // Action 3: Authorized member manager approves new joiner
+          (
+            hasOrgPermission(orgId, 'manage_members') &&
+            incoming().diff(existing()).affectedKeys().hasOnly(['memberCount', 'updatedAt']) &&
+            incoming().memberCount == existing().memberCount + 1 &&
+            incoming().memberCount <= (('memberCapacity' in existing()) ? existing().memberCapacity : (existing().level >= 11 ? 70 : 20 + ((existing().level - 1) * 5)))
+          ) ||
+          // Action 4: Member leaves or manager removes member
+          (
+            incoming().diff(existing()).affectedKeys().hasOnly(['memberCount', 'updatedAt']) &&
+            existing().memberCount > 1 &&
+            incoming().memberCount == existing().memberCount - 1 &&
+            (
+              (isOrgMember(orgId) && !existsAfter(/databases/$(database)/documents/organization_members/$(orgId + '_' + request.auth.uid))) ||
+              hasOrgPermission(orgId, 'manage_members')
+            )
+          )
+        );
+      allow delete: if false;
+    }
+
+    // Organization Members & RBAC (Strictly scoped to self or same-org members)
+    match /organization_members/{memberDocId} {
+      allow get: if isSignedIn() && isValidId(memberDocId)
+        && (resource == null || existing().uid == request.auth.uid || isOrgMember(existing().orgId));
+      allow list: if isSignedIn()
+        && (resource.data.uid == request.auth.uid || isOrgMember(resource.data.orgId));
+      allow create: if isSignedIn() && isValidId(memberDocId)
+        && isValidOrgMember(incoming())
+        && memberDocId == incoming().orgId + '_' + incoming().uid
+        && incoming().joinedAt == request.time
+        && (
+          (incoming().uid == request.auth.uid && incoming().role == 'leader' && getAfter(/databases/$(database)/documents/organizations/$(incoming().orgId)).data.leaderUid == request.auth.uid) ||
+          (
+            hasOrgPermission(incoming().orgId, 'manage_members') &&
+            incoming().role == 'member' &&
+            getAfter(/databases/$(database)/documents/organizations/$(incoming().orgId)).data.memberCount == get(/databases/$(database)/documents/organizations/$(incoming().orgId)).data.memberCount + 1 &&
+            getAfter(/databases/$(database)/documents/organizations/$(incoming().orgId)).data.memberCount <= (('memberCapacity' in get(/databases/$(database)/documents/organizations/$(incoming().orgId)).data) ? get(/databases/$(database)/documents/organizations/$(incoming().orgId)).data.memberCapacity : (get(/databases/$(database)/documents/organizations/$(incoming().orgId)).data.level >= 11 ? 70 : 20 + ((get(/databases/$(database)/documents/organizations/$(incoming().orgId)).data.level - 1) * 5))) &&
+            (
+              !exists(/databases/$(database)/documents/profiles/$(incoming().uid)) ||
+              !('orgId' in get(/databases/$(database)/documents/profiles/$(incoming().uid)).data) ||
+              get(/databases/$(database)/documents/profiles/$(incoming().uid)).data.orgId == null
+            )
+          )
+        );
+      allow update: if isSignedIn() && isValidId(memberDocId)
+        && isValidOrgMember(incoming())
+        && incoming().orgId == existing().orgId
+        && incoming().uid == existing().uid
+        && incoming().joinedAt == existing().joinedAt
+        && existing().role != 'leader'
+        && incoming().role != 'leader'
+        && hasOrgPermission(existing().orgId, 'manage_roles')
+        && (
+          orgMemberRole(existing().orgId) == 'leader' ||
+          (existing().role != 'deputy' && incoming().role != 'deputy')
+        );
+      allow delete: if isSignedIn() && isValidId(memberDocId)
+        && existing().role != 'leader'
+        && (
+          existing().uid == request.auth.uid ||
+          (
+            hasOrgPermission(existing().orgId, 'manage_members') &&
+            (orgMemberRole(existing().orgId) == 'leader' || existing().role != 'deputy')
+          )
+        );
+    }
+
+    // Organization Join Requests
+    match /organization_requests/{reqId} {
+      allow get: if isSignedIn() && isValidId(reqId)
+        && (resource == null || existing().uid == request.auth.uid || hasOrgPermission(existing().orgId, 'manage_members'));
+      allow list: if isSignedIn()
+        && (resource.data.uid == request.auth.uid || (resource.data.status == 'pending' && hasOrgPermission(resource.data.orgId, 'manage_members')));
+      allow create: if isSignedIn() && isValidId(reqId)
+        && isValidOrgRequest(incoming())
+        && incoming().id == reqId
+        && incoming().uid == request.auth.uid
+        && incoming().status == 'pending'
+        && incoming().createdAt == request.time;
+      allow update: if isSignedIn() && isValidId(reqId)
+        && isValidOrgRequest(incoming())
+        && existing().status == 'pending'
+        && incoming().status in ['approved', 'rejected']
+        && incoming().diff(existing()).affectedKeys().hasOnly(['status'])
+        && hasOrgPermission(existing().orgId, 'manage_members');
+      allow delete: if false;
+    }
+
+    // Organization Treasury Transactions (Strictly scoped to org members only)
+    match /organization_transactions/{txId} {
+      allow get: if isSignedIn() && isValidId(txId) && (resource == null || isOrgMember(existing().orgId));
+      allow list: if isSignedIn() && (resource.data.uid == request.auth.uid || isOrgMember(resource.data.orgId));
+      allow create: if isSignedIn() && isValidId(txId)
+        && isValidOrgTransaction(incoming())
+        && incoming().id == txId
+        && incoming().uid == request.auth.uid
+        && incoming().createdAt == request.time
+        && isOrgMember(incoming().orgId)
+        && (
+          incoming().type == 'deposit' ||
+          (incoming().type == 'withdraw' && hasOrgPermission(incoming().orgId, 'manage_treasury')) ||
+          (incoming().type == 'upgrade' && hasOrgPermission(incoming().orgId, 'manage_org'))
+        );
+      allow update, delete: if false;
+    }
+
+    // Claimed Player Missions (No Duplicate Claims)
+    match /player_missions/{docId} {
+      allow get: if isSignedIn() && isValidId(docId)
+        && (isOwnerDocPrefix(docId) || (resource != null && existing().uid == request.auth.uid));
+      allow list: if isSignedIn() && resource.data.uid == request.auth.uid;
+      allow create: if isSignedIn() && isValidId(docId)
+        && isValidPlayerMission(incoming())
+        && incoming().uid == request.auth.uid
+        && docId == request.auth.uid + '_' + incoming().missionId
+        && incoming().claimedAt == request.time;
+      allow update, delete: if false;
+    }
+
+    // Daily Stipend Claims (One per dateKey)
+    match /daily_claims/{docId} {
+      allow get: if isSignedIn() && isValidId(docId)
+        && (isOwnerDocPrefix(docId) || (resource != null && existing().uid == request.auth.uid));
+      allow list: if isSignedIn() && resource.data.uid == request.auth.uid;
+      allow create: if isSignedIn() && isValidId(docId)
+        && isValidDailyClaim(incoming())
+        && incoming().uid == request.auth.uid
+        && docId == request.auth.uid + '_' + incoming().dateKey
+        && incoming().claimedAt == request.time;
+      allow update, delete: if false;
+    }
+
+    // Completed Contract Deals
+    match /contract_claims/{docId} {
+      allow get: if isSignedIn() && isValidId(docId)
+        && (isOwnerDocPrefix(docId) || (resource != null && existing().uid == request.auth.uid));
+      allow list: if isSignedIn() && resource.data.uid == request.auth.uid;
+      allow create: if isSignedIn() && isValidId(docId)
+        && isValidContractClaim(incoming())
+        && incoming().uid == request.auth.uid
+        && docId == request.auth.uid + '_' + incoming().contractId
+        && incoming().claimedAt == request.time;
+      allow update, delete: if false;
+    }
+
+    // Unlocked Achievements
+    match /player_achievements/{docId} {
+      allow get: if isSignedIn() && isValidId(docId)
+        && (isOwnerDocPrefix(docId) || (resource != null && existing().uid == request.auth.uid));
+      allow list: if isSignedIn() && resource.data.uid == request.auth.uid;
+      allow create: if isSignedIn() && isValidId(docId)
+        && isValidPlayerAchievement(incoming())
+        && incoming().uid == request.auth.uid
+        && docId == request.auth.uid + '_' + incoming().achievementId
+        && incoming().unlockedAt == request.time;
+      allow update, delete: if false;
+    }
+
+    // Player Notifications
+    match /notifications/{notifId} {
+      allow get: if isSignedIn() && isValidId(notifId) && (resource == null || existing().uid == request.auth.uid);
+      allow list: if isSignedIn() && resource.data.uid == request.auth.uid;
+      allow create: if isSignedIn() && isValidId(notifId)
+        && isValidNotification(incoming())
+        && incoming().id == notifId
+        && incoming().uid == request.auth.uid
+        && incoming().createdAt == request.time;
+      allow update: if isSignedIn() && isValidId(notifId)
+        && existing().uid == request.auth.uid
+        && isValidNotification(incoming())
+        && incoming().diff(existing()).affectedKeys().hasOnly(['read']);
+      allow delete: if false;
+    }
+
+    // Global World Events (Client cannot modify outcomes; only canonical seeds can be initialized once)
+    match /world_events/{eventId} {
+      allow get: if isSignedIn() && isValidId(eventId);
+      allow list: if isSignedIn() && resource.data.active == true;
+      allow create: if isSignedIn() && isValidId(eventId)
+        && isValidWorldEvent(incoming())
+        && incoming().id == eventId
+        && eventId in ['evt_silicon_boom', 'evt_tax_holiday', 'evt_logistics_boom']
+        && incoming().createdAt == request.time;
+      allow update, delete: if false;
+    }
+
+    // Immutable Audit Logs
+    match /audit_logs/{logId} {
+      allow get: if isSignedIn() && isValidId(logId) && (resource == null || existing().uid == request.auth.uid);
+      allow list: if isSignedIn() && resource.data.uid == request.auth.uid;
+      allow create: if isSignedIn() && isValidId(logId)
+        && isValidAuditLog(incoming())
+        && incoming().id == logId
+        && incoming().uid == request.auth.uid
+        && incoming().createdAt == request.time;
+      allow update, delete: if false;
+    }
+
+    // Read-only Diagnostics Owner Registry (Managed solely via Firebase Admin SDK / Console)
+    match /diagnostics_admins/{uid} {
+      allow get: if isSignedIn() && isValidId(uid) && request.auth.uid == uid;
+      allow list, create, update, delete: if false;
+    }
+  }
+}
+
+// NEXORA rules deployment trigger: 2026-11-16
+// NEXORA rules deployment retry: 2026-11-16
+// NEXORA Firestore rules deployment retry after Service Usage Viewer grant: 2026-11-16

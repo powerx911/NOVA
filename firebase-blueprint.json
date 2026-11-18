@@ -1,0 +1,397 @@
+{
+  "entities": {
+    "Profile": {
+      "title": "Profile",
+      "description": "Public player profile, progression, skills, and non-PII game statistics.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "username": { "type": "string", "minLength": 3, "maxLength": 24 },
+        "usernameLower": { "type": "string", "minLength": 3, "maxLength": 24 },
+        "avatarId": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "title": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "level": { "type": "integer" },
+        "xp": { "type": "integer" },
+        "reputation": { "type": "integer" },
+        "influence": { "type": "integer" },
+        "skillPoints": { "type": "integer" },
+        "skills": { "type": "object" },
+        "stats": { "type": "object" },
+        "orgId": { "type": "string", "maxLength": 128 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "username", "usernameLower", "avatarId", "level", "xp", "reputation", "influence", "skillPoints", "skills", "stats", "createdAt", "updatedAt"]
+    },
+    "UsernameClaim": {
+      "title": "UsernameClaim",
+      "description": "Unique username reservation mapping lowercase username to player UID.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "username": { "type": "string", "minLength": 3, "maxLength": 24 },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "username", "createdAt"]
+    },
+    "UserPrivate": {
+      "title": "UserPrivate",
+      "description": "Owner-isolated PII and user preferences.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "email": { "type": "string", "format": "email", "maxLength": 254 },
+        "language": { "type": "string", "enum": ["ar", "en"] },
+        "notificationsEnabled": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "email", "language", "notificationsEnabled", "createdAt", "updatedAt"]
+    },
+    "Wallet": {
+      "title": "Wallet",
+      "description": "Player N-Credits financial wallet protected by atomic transaction references.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "balance": { "type": "number" },
+        "totalEarned": { "type": "number" },
+        "totalSpent": { "type": "number" },
+        "lastTxId": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "balance", "totalEarned", "totalSpent", "lastTxId", "createdAt", "updatedAt"]
+    },
+    "Transaction": {
+      "title": "Transaction",
+      "description": "Immutable financial transaction ledger entry.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "fromUid": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "toUid": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "amount": { "type": "number" },
+        "fee": { "type": "number" },
+        "netAmount": { "type": "number" },
+        "type": { "type": "string", "enum": ["transfer", "market_buy", "mission_reward", "daily_stipend", "company_create", "company_upgrade", "company_collect", "company_hire", "property_buy", "property_upgrade", "property_collect", "manufacturing", "org_create", "org_deposit", "org_withdraw", "contract_deal"] },
+        "referenceId": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "description": { "type": "string", "maxLength": 240 },
+        "status": { "type": "string", "enum": ["completed"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "fromUid", "toUid", "amount", "fee", "netAmount", "type", "referenceId", "description", "status", "createdAt"]
+    },
+    "InventoryItem": {
+      "title": "InventoryItem",
+      "description": "Owned resource or product stack in a player's inventory.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "itemId": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "quantity": { "type": "integer" },
+        "lastListingId": { "type": "string", "maxLength": 128 },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "itemId", "quantity", "updatedAt"]
+    },
+    "MarketListing": {
+      "title": "MarketListing",
+      "description": "Open player or market-maker sell listing.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "sellerUid": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "sellerName": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "itemId": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "quantity": { "type": "integer" },
+        "remainingQty": { "type": "integer" },
+        "unitPrice": { "type": "number" },
+        "status": { "type": "string", "enum": ["active", "sold", "cancelled"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "sellerUid", "sellerName", "itemId", "quantity", "remainingQty", "unitPrice", "status", "createdAt", "updatedAt"]
+    },
+    "MarketOrder": {
+      "title": "MarketOrder",
+      "description": "Executed trade record on the open market.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "listingId": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "buyerUid": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "sellerUid": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "itemId": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "quantity": { "type": "integer" },
+        "unitPrice": { "type": "number" },
+        "totalPrice": { "type": "number" },
+        "taxAmount": { "type": "number" },
+        "txId": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "listingId", "buyerUid", "sellerUid", "itemId", "quantity", "unitPrice", "totalPrice", "taxAmount", "txId", "createdAt"]
+    },
+    "Company": {
+      "title": "Company",
+      "description": "Player-owned enterprise generating hourly revenue.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "ownerUid": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "ownerName": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "name": { "type": "string", "minLength": 2, "maxLength": 48 },
+        "sector": { "type": "string", "enum": ["trade", "manufacturing", "services", "tech", "logistics"] },
+        "level": { "type": "integer" },
+        "capital": { "type": "number" },
+        "employeesCount": { "type": "integer" },
+        "baseRevenuePerHour": { "type": "number" },
+        "expensePerHour": { "type": "number" },
+        "totalRevenue": { "type": "number" },
+        "lastCollectedAt": { "type": "string", "format": "date-time" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "ownerUid", "ownerName", "name", "sector", "level", "capital", "employeesCount", "baseRevenuePerHour", "expensePerHour", "totalRevenue", "lastCollectedAt", "createdAt", "updatedAt"]
+    },
+    "CompanyLog": {
+      "title": "CompanyLog",
+      "description": "Operational audit trail for a company.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "companyId": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "ownerUid": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "action": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "amount": { "type": "number" },
+        "details": { "type": "string", "maxLength": 200 },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "companyId", "ownerUid", "action", "amount", "details", "createdAt"]
+    },
+    "Property": {
+      "title": "Property",
+      "description": "Virtual real estate asset generating rent minus maintenance.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "ownerUid": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "name": { "type": "string", "minLength": 2, "maxLength": 48 },
+        "type": { "type": "string", "enum": ["shop", "office", "facility"] },
+        "level": { "type": "integer" },
+        "purchasePrice": { "type": "number" },
+        "rentPerHour": { "type": "number" },
+        "maintenancePerHour": { "type": "number" },
+        "isRented": { "type": "boolean" },
+        "lastCollectedAt": { "type": "string", "format": "date-time" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "ownerUid", "name", "type", "level", "purchasePrice", "rentPerHour", "maintenancePerHour", "isRented", "lastCollectedAt", "createdAt", "updatedAt"]
+    },
+    "Organization": {
+      "title": "Organization",
+      "description": "Player-founded economic syndicate or alliance.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "name": { "type": "string", "minLength": 3, "maxLength": 40 },
+        "tag": { "type": "string", "minLength": 2, "maxLength": 6 },
+        "description": { "type": "string", "maxLength": 240 },
+        "leaderUid": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "leaderName": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "treasuryBalance": { "type": "number" },
+        "memberCount": { "type": "integer" },
+        "reputation": { "type": "integer" },
+        "level": { "type": "integer" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "name", "tag", "description", "leaderUid", "leaderName", "treasuryBalance", "memberCount", "reputation", "level", "createdAt", "updatedAt"]
+    },
+    "OrganizationMember": {
+      "title": "OrganizationMember",
+      "description": "Membership record with RBAC role and granular permissions.",
+      "type": "object",
+      "properties": {
+        "orgId": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "uid": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "username": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "role": { "type": "string", "enum": ["leader", "deputy", "officer", "member"] },
+        "permissions": { "type": "array" },
+        "joinedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["orgId", "uid", "username", "role", "permissions", "joinedAt"]
+    },
+    "OrganizationRequest": {
+      "title": "OrganizationRequest",
+      "description": "Join application submitted by a player to an organization.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "orgId": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "uid": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "username": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "status": { "type": "string", "enum": ["pending", "approved", "rejected"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "orgId", "uid", "username", "status", "createdAt"]
+    },
+    "OrganizationTransaction": {
+      "title": "OrganizationTransaction",
+      "description": "Shared organization treasury ledger entry.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "orgId": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "uid": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "username": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "type": { "type": "string", "enum": ["deposit", "withdraw", "upgrade"] },
+        "amount": { "type": "number" },
+        "note": { "type": "string", "maxLength": 160 },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "orgId", "uid", "username", "type", "amount", "note", "createdAt"]
+    },
+    "PlayerMission": {
+      "title": "PlayerMission",
+      "description": "Claimed mission record preventing duplicate reward claims.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "missionId": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "category": { "type": "string", "enum": ["tutorial", "daily", "weekly", "seasonal"] },
+        "rewardCredits": { "type": "number" },
+        "rewardXp": { "type": "integer" },
+        "claimedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "missionId", "category", "rewardCredits", "rewardXp", "claimedAt"]
+    },
+    "DailyClaim": {
+      "title": "DailyClaim",
+      "description": "One-per-day economic stipend claim record.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "dateKey": { "type": "string", "minLength": 8, "maxLength": 16 },
+        "amount": { "type": "number" },
+        "claimedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "dateKey", "amount", "claimedAt"]
+    },
+    "ContractClaim": {
+      "title": "ContractClaim",
+      "description": "Completed interactive trade contract record.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "contractId": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "amount": { "type": "number" },
+        "claimedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "contractId", "amount", "claimedAt"]
+    },
+    "PlayerAchievement": {
+      "title": "PlayerAchievement",
+      "description": "Unlocked long-term achievement badge.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "achievementId": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "unlockedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "achievementId", "unlockedAt"]
+    },
+    "Notification": {
+      "title": "Notification",
+      "description": "Player-scoped event notification.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "uid": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "title": { "type": "string", "minLength": 1, "maxLength": 120 },
+        "body": { "type": "string", "minLength": 1, "maxLength": 240 },
+        "type": { "type": "string", "enum": ["economy", "market", "org", "mission", "system"] },
+        "read": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "uid", "title", "body", "type", "read", "createdAt"]
+    },
+    "WorldEvent": {
+      "title": "WorldEvent",
+      "description": "Global market and economic sector modifier event with time window and stacking guard.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "titleAr": { "type": "string", "minLength": 1, "maxLength": 120 },
+        "titleEn": { "type": "string", "minLength": 1, "maxLength": 120 },
+        "descriptionAr": { "type": "string", "minLength": 1, "maxLength": 280 },
+        "descriptionEn": { "type": "string", "minLength": 1, "maxLength": 280 },
+        "effectType": { "type": "string", "enum": ["demand_surge", "supply_shortage", "tax_cut", "industrial_boom", "service_crisis", "logistics_boom"] },
+        "targetItemId": { "type": "string", "maxLength": 64 },
+        "affectedSectors": { "type": "array" },
+        "priceMultiplier": { "type": "number" },
+        "revenueMultiplier": { "type": "number" },
+        "taxDelta": { "type": "number" },
+        "stackGroup": { "type": "string", "maxLength": 64 },
+        "startsAt": { "type": "string", "format": "date-time" },
+        "endsAt": { "type": "string", "format": "date-time" },
+        "active": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "titleAr", "titleEn", "descriptionAr", "descriptionEn", "effectType", "priceMultiplier", "taxDelta", "active", "createdAt"]
+    },
+    "AuditLog": {
+      "title": "AuditLog",
+      "description": "Immutable audit log for sensitive economic and RBAC actions.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "uid": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "action": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "entityType": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "entityId": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "uid", "action", "entityType", "entityId", "createdAt"]
+    },
+    "DiagnosticsAdmin": {
+      "title": "DiagnosticsAdmin",
+      "description": "Admin-managed read-only registry granting diagnostics access to authorized project owners.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "enabled": { "type": "boolean" },
+        "role": { "type": "string", "enum": ["owner"] },
+        "label": { "type": "string", "maxLength": 64 },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "enabled", "role", "updatedAt"]
+    }
+  },
+  "firestore": {
+    "/profiles/{uid}": { "schema": { "$ref": "#/entities/Profile" }, "description": "Public player profiles" },
+    "/usernames/{usernameLower}": { "schema": { "$ref": "#/entities/UsernameClaim" }, "description": "Unique username reservations" },
+    "/users_private/{uid}": { "schema": { "$ref": "#/entities/UserPrivate" }, "description": "Owner-only PII and preferences" },
+    "/wallets/{uid}": { "schema": { "$ref": "#/entities/Wallet" }, "description": "Player N-Credits wallets" },
+    "/transactions/{txId}": { "schema": { "$ref": "#/entities/Transaction" }, "description": "Immutable transaction ledger" },
+    "/inventory/{docId}": { "schema": { "$ref": "#/entities/InventoryItem" }, "description": "Player inventory stacks" },
+    "/market_listings/{listingId}": { "schema": { "$ref": "#/entities/MarketListing" }, "description": "Active and historical market sell listings" },
+    "/market_orders/{orderId}": { "schema": { "$ref": "#/entities/MarketOrder" }, "description": "Executed market orders" },
+    "/companies/{companyId}": { "schema": { "$ref": "#/entities/Company" }, "description": "Player-owned companies" },
+    "/company_logs/{logId}": { "schema": { "$ref": "#/entities/CompanyLog" }, "description": "Company operations logs" },
+    "/properties/{propertyId}": { "schema": { "$ref": "#/entities/Property" }, "description": "Player-owned real estate properties" },
+    "/organizations/{orgId}": { "schema": { "$ref": "#/entities/Organization" }, "description": "Player organizations and syndicates" },
+    "/organization_members/{memberDocId}": { "schema": { "$ref": "#/entities/OrganizationMember" }, "description": "Organization membership and RBAC permissions" },
+    "/organization_requests/{reqId}": { "schema": { "$ref": "#/entities/OrganizationRequest" }, "description": "Organization join requests" },
+    "/organization_transactions/{txId}": { "schema": { "$ref": "#/entities/OrganizationTransaction" }, "description": "Organization treasury logs" },
+    "/player_missions/{docId}": { "schema": { "$ref": "#/entities/PlayerMission" }, "description": "Claimed player missions" },
+    "/daily_claims/{docId}": { "schema": { "$ref": "#/entities/DailyClaim" }, "description": "Daily stipend claims" },
+    "/contract_claims/{docId}": { "schema": { "$ref": "#/entities/ContractClaim" }, "description": "Completed contract deals" },
+    "/player_achievements/{docId}": { "schema": { "$ref": "#/entities/PlayerAchievement" }, "description": "Unlocked achievements" },
+    "/notifications/{notifId}": { "schema": { "$ref": "#/entities/Notification" }, "description": "Player notifications" },
+    "/world_events/{eventId}": { "schema": { "$ref": "#/entities/WorldEvent" }, "description": "Global economic events" },
+    "/audit_logs/{logId}": { "schema": { "$ref": "#/entities/AuditLog" }, "description": "Sensitive action audit logs" },
+    "/diagnostics_admins/{uid}": { "schema": { "$ref": "#/entities/DiagnosticsAdmin" }, "description": "Read-only diagnostics owner registry" }
+  }
+}

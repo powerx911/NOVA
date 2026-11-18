@@ -1,0 +1,64 @@
+name: NEXORA CI
+
+on:
+  push:
+    branches:
+      - main
+      - "development/**"
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nexora-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: Typecheck, rules, tests and builds
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: |
+            functions/package-lock.json
+
+      - name: Install root dependencies
+        run: npm install --no-audit --no-fund --package-lock=false
+
+      - name: Install Cloud Functions dependencies
+        run: npm ci --prefix functions --no-audit --no-fund
+
+      - name: Lint Firestore rules
+        run: npm run lint:rules
+
+      - name: TypeScript typecheck
+        run: npx tsc --noEmit
+
+      - name: Check Firestore migration exporter script
+        run: node --check scripts/nexora-firestore-export.mjs
+
+      - name: Setup Deno
+        uses: denoland/setup-deno@v2
+
+      - name: Typecheck Supabase migration importer
+        run: deno check supabase/functions/nexora-migration-import/index.ts
+
+      - name: Unit tests
+        run: npm test
+
+      - name: Build web application
+        run: npm run build
+
+      - name: Build Cloud Functions
+        run: npm run build --prefix functions
