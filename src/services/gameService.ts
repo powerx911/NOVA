@@ -34,6 +34,13 @@ export async function getOrgDonationRanking(orgId: string): Promise<OrgDonationR
   return (await nexoraApi<{ ranking: OrgDonationRankEntry[] }>('get_org_donation_ranking', { orgId })).ranking;
 }
 
+export interface PlayerPresence { uid: string; isOnline: boolean; onlineSince: number | null; lastSeenAt: number | null }
+export async function getPlayersPresence(userIds: string[]): Promise<PlayerPresence[]> {
+  if (!userIds.length) return [];
+  const result = await nexoraApi<{ players: PlayerPresence[] }>('get_players_presence', { userIds: userIds.slice(0, 60) });
+  return result.players ?? [];
+}
+
 export function getUtcDateKey(): string {
   return new Date().toISOString().slice(0, 10);
 }
