@@ -694,7 +694,7 @@ export function BusinessHubView({
                 <article key={auction.id} className="rounded-2xl border border-white/8 bg-[#141821] p-4 space-y-3">
                   <div className="flex items-start justify-between gap-3"><div><h4 className="text-sm font-bold text-[#F4F5F7]">{auction.companyName}</h4><p className="mt-1 text-xs text-[#9299A6]">{language === 'ar' ? 'البائع' : 'Seller'}: {auction.sellerName} · Lv.{auction.companyLevel}</p></div>{isLeading && <span className="rounded-lg bg-emerald-500/10 px-2 py-1 text-[10px] text-emerald-300">{language === 'ar' ? 'أنت الأعلى' : 'You lead'}</span>}</div>
                   <div className="grid grid-cols-2 gap-2 rounded-xl bg-[#0B0D12] p-3">
-                    <div><p className="text-[10px] text-[#9299A6]">{language === 'ar' ? 'سعر البداية' : 'Starting price'}</p><p className="text-sm font-mono-num font-semibold text-[#F4F5F7">{'$'}{auction.startingPrice.toLocaleString()}</p></div>
+                    <div><p className="text-[10px] text-[#9299A6]">{language === 'ar' ? 'سعر البداية' : 'Starting price'}</p><p className="text-sm font-mono-num font-semibold text-[#F4F5F7]">{'$'}{auction.startingPrice.toLocaleString()}</p></div>
                     <div><p className="text-[10px] text-[#9299A6]">{language === 'ar' ? 'أعلى عرض' : 'Highest bid'}</p><p className="text-sm font-mono-num font-semibold text-amber-200">{'$'}{auction.currentPrice.toLocaleString()}</p></div>
                   </div>
                   <div className="flex items-center gap-2 text-xs text-[#9299A6]"><Clock className="w-3.5 h-3.5" />{language === 'ar' ? 'ينتهي خلال' : 'Ends in'} {formatAuctionRemaining(auction.endsAt)}</div>
