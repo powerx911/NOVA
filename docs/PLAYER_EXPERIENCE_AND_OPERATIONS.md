@@ -203,3 +203,15 @@ If it fails these questions, redesign or defer it.
 - Roblox Creator Hub, LiveOps Essentials: https://create.roblox.com/docs/production/game-design/liveops-essentials
 - Ofcom, Interactive Services Model: https://www.ofcom.org.uk/siteassets/resources/documents/research-and-data/online-research/interactive-services-model/interactive-services-model?v=329476
 - Fair Play Alliance / ADL, Disruption and Harms in Online Gaming Framework: https://www.adl.org/sites/default/files/fpa-framework-building-penalty-reporting-121520-1335.pdf
+
+
+## Map, bag, and relocation quality-of-life
+
+- Keep the shared kingdom map and personal castle/city view separate, with one-tap navigation between them.
+- Support touch zoom/pan, layers, filters, marker clustering, search, location details, bookmarks, recent destinations, and shareable map references.
+- Distinguish own castle, other castles, alliance members, shared cities, villages, neutral resource sites, strategic locations, and marches through consistent icons and accessible labels.
+- The bag is reachable from main navigation and shows item quantities, categories, sorting/search, capacity, details, acquisition source, expiry/binding status, and clear use eligibility.
+- Advanced Relocation lets the player select an eligible destination; Random Relocation selects an eligible destination on the server. Preview consequences and revalidate occupancy before confirmation.
+- Protect new players and prevent combat evasion, invalid spawns, alliance stacking, and relocation exploits. Failed validation must not consume an item.
+- Provide a command overview for buildings/research/training/marches/incoming threats, plus a unified inbox for battle/scout reports, alliance notices, rewards, and support updates.
+- Add notification preferences and quiet hours with clear priority controls.
