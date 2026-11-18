@@ -1,17 +1,4 @@
 import {
-  collection,
-  doc,
-  getDoc,
-  getDocs,
-  limit,
-  orderBy,
-  query,
-  runTransaction,
-  serverTimestamp,
-  setDoc,
-  Timestamp,
-  updateDoc,
-  where,
 } from 'firebase/firestore';
 import {
   COMPANY_SECTORS,
@@ -19,23 +6,15 @@ import {
   MANUFACTURING_RECIPES,
   MISSIONS,
   PROPERTY_SPECS,
-  ROLE_DEFAULT_PERMISSIONS,
-  SEED_MARKET_LISTINGS,
-  SEED_WORLD_EVENTS,
   SKILL_DEFINITIONS,
   TRADE_CONTRACTS,
 } from '../data/catalog';
 import {
-  calculateLevelProgress,
-  canManageOrgMember,
-  getAchievementProgress,
-  hasOrgPermission,
   isValidUsername,
   LISTING_MAX_PRICE,
   LISTING_MAX_QTY,
   timestampToMs as parseTimestampMs,
 } from '../lib/economy';
-import { auth, db, handleFirestoreError, OperationType } from '../lib/firebase';
 import { nexoraApi } from '../lib/nexoraApi';
 import type {
   Company,
@@ -86,43 +65,7 @@ function applyXpAndLevel(
 }
 
 export async function ensureBootstrapWorldData(): Promise<void> {
-  try {
-    const nowMs = Date.now();
-    for (const evt of SEED_WORLD_EVENTS) {
-      const ref = doc(db, 'world_events', evt.id);
-      const snap = await getDoc(ref);
-      if (!snap.exists()) {
-        const { durationHours, ...eventPayload } = evt;
-        await setDoc(ref, {
-          ...eventPayload,
-          startsAt: Timestamp.fromMillis(nowMs),
-          endsAt: Timestamp.fromMillis(nowMs + durationHours * 3_600_000),
-          createdAt: serverTimestamp(),
-        });
-      }
-    }
-
-    for (const seed of SEED_MARKET_LISTINGS) {
-      const ref = doc(db, 'market_listings', seed.id);
-      const snap = await getDoc(ref);
-      if (!snap.exists()) {
-        await setDoc(ref, {
-          id: seed.id,
-          sellerUid: 'SYSTEM',
-          sellerName: 'NEXORA Reserve',
-          itemId: seed.itemId,
-          quantity: seed.quantity,
-          remainingQty: seed.quantity,
-          unitPrice: seed.unitPrice,
-          status: 'active',
-          createdAt: serverTimestamp(),
-          updatedAt: serverTimestamp(),
-        });
-      }
-    }
-  } catch (error) {
-    console.warn('Bootstrap world data check skipped or partially seeded:', error);
-  }
+  // Global market listings and world events are provisioned in the NEXORA Supabase schema.
 }
 
 export async function isUsernameAvailable(username: string): Promise<boolean> {
@@ -475,49 +418,21 @@ export async function fetchLeaderboards(): Promise<{
   companies: Company[];
   organizations: Organization[];
 }> {
-  const [pSnap, cSnap, oSnap] = await Promise.all([
-    getDocs(query(collection(db, 'profiles'), where('influence', '>=', 0), orderBy('influence', 'desc'), limit(20))),
-    getDocs(query(collection(db, 'companies'), where('totalRevenue', '>=', 0), orderBy('totalRevenue', 'desc'), limit(20))),
-    getDocs(query(collection(db, 'organizations'), where('reputation', '>=', 0), orderBy('reputation', 'desc'), limit(20))),
-  ]);
-
-  return {
-    players: pSnap.docs.map((d) => d.data() as PlayerProfile),
-    companies: cSnap.docs.map((d) => d.data() as Company),
-    organizations: oSnap.docs.map((d) => d.data() as Organization),
-  };
+  return nexoraApi('fetch_leaderboards');
 }
 
 export async function checkAndUnlockAchievements(
-  uid: string,
-  profile: PlayerProfile,
+  _uid: string,
+  _profile: PlayerProfile,
   unlockedIds: Set<string>,
-  achievements: {
+  _achievements: {
     id: string;
     metric: 'trades' | 'companies' | 'properties' | 'produced' | 'level' | 'reputation';
     threshold: number;
   }[]
 ): Promise<string[]> {
-  const eligible = achievements.filter((ach) => {
-    if (unlockedIds.has(ach.id)) return false;
-    return getAchievementProgress(ach.metric, profile) >= ach.threshold;
-  });
-
-  if (eligible.length === 0) return [];
-
-  const unlockedNow: string[] = [];
-  await Promise.allSettled(
-    eligible.map(async (ach) => {
-      const docId = `${uid}_${ach.id}`;
-      await setDoc(doc(db, 'player_achievements', docId), {
-        uid,
-        achievementId: ach.id,
-        unlockedAt: serverTimestamp(),
-      });
-      unlockedNow.push(ach.id);
-    })
-  );
-  return unlockedNow;
+  const result = await nexoraApi<{ unlocked_ids: string[] }>('unlock_eligible_achievements');
+  return result.unlocked_ids.filter((id) => !unlockedIds.has(id));
 }
 
 export async function fetchOrgPendingRequests(orgId: string) {
