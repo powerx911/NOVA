@@ -111,7 +111,16 @@ begin
     return jsonb_build_object('settled',true,'status','cancelled','reason','ESCROW_INVALID');
   end if;
   update nexora.wallets set balance=balance+v_a.current_price,total_earned=total_earned+v_a.current_price,updated_at=now() where user_id=v_a.seller_uid;
-  if not found then raise exception 'SELLER_WALLET_MISSING'; end if;
+  if not found then
+    update nexora.wallets set balance=balance+v_e.amount,total_spent=greatest(0,total_spent-v_e.amount),updated_at=now() where user_id=v_a.highest_bidder_uid;
+    update nexora.company_auction_escrows set status='refunded',updated_at=now() where auction_id=p_auction_id and bidder_uid=v_a.highest_bidder_uid;
+    v_tx:='tx_'||gen_random_uuid()::text;
+    insert into nexora.transactions(id,from_uid,to_uid,amount,fee,net_amount,type,reference_id,description,status)
+    values(v_tx,'SYSTEM',v_a.highest_bidder_uid,v_e.amount,0,v_e.amount,'factory_auction_refund',p_auction_id,'Refund because seller wallet is unavailable','completed');
+    update nexora.company_auctions set status='cancelled',settled_at=now(),updated_at=now() where id=p_auction_id;
+    update nexora.factories set auction_id=null,auction_ends_at=null,auction_status='cancelled',updated_at=now() where id=v_a.factory_id;
+    return jsonb_build_object('settled',true,'status','cancelled','reason','SELLER_WALLET_MISSING');
+  end if;
   update nexora.factories set owner_uid=v_a.highest_bidder_uid,owner_name=v_a.highest_bidder_name,auction_id=null,auction_ends_at=null,auction_status='sold',updated_at=now() where id=v_a.factory_id;
   update nexora.company_auction_escrows set status='released',updated_at=now() where auction_id=p_auction_id and bidder_uid=v_a.highest_bidder_uid;
   update nexora.company_auctions set status='sold',winning_bid=v_a.current_price,settled_at=now(),updated_at=now() where id=p_auction_id;
