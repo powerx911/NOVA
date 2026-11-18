@@ -17,12 +17,12 @@ alter table public.nova_competitive_wallets
 
 create or replace function private.nova_track_energy_spend()
 returns trigger language plpgsql set search_path = pg_catalog, public
-as $
+as $$
 begin
   if new.energy < old.energy then new.energy_updated_at := clock_timestamp(); end if;
   return new;
 end;
-$;
+$$;
 revoke all on function private.nova_track_energy_spend() from public, anon, authenticated;
 drop trigger if exists nova_track_energy_spend on public.nova_competitive_wallets;
 create trigger nova_track_energy_spend before update of energy on public.nova_competitive_wallets
@@ -32,7 +32,7 @@ create or replace function private.nova_regenerate_energy(p_user_id uuid)
 returns public.nova_competitive_wallets
 language plpgsql security definer
 set search_path = pg_catalog, public
-as $
+as $$
 declare
   v_wallet public.nova_competitive_wallets%rowtype;
   v_ticks integer;
@@ -50,30 +50,31 @@ begin
     where user_id=p_user_id returning * into v_wallet;
   return v_wallet;
 end;
-$;
+$$;
 revoke all on function private.nova_regenerate_energy(uuid) from public, anon, authenticated;
 
 create or replace function private.nova_competitive_refresh_energy()
 returns jsonb language plpgsql security definer
 set search_path = pg_catalog, public
-as $
+as $$
 declare v_user_id uuid:=auth.uid(); v_wallet public.nova_competitive_wallets%rowtype;
 begin
   if v_user_id is null then raise exception 'Authentication required' using errcode='28000'; end if;
   v_wallet:=private.nova_regenerate_energy(v_user_id);
   return jsonb_build_object('wallet',to_jsonb(v_wallet));
 end;
-$;
+$$;
 revoke all on function private.nova_competitive_refresh_energy() from public, anon, authenticated;
 grant execute on function private.nova_competitive_refresh_energy() to authenticated;
 
 create or replace function public.nova_competitive_refresh_energy()
 returns jsonb language sql security invoker
 set search_path = pg_catalog, public, private
-as $ select private.nova_competitive_refresh_energy(); $;
+as $$ select private.nova_competitive_refresh_energy(); $$;
 revoke all on function public.nova_competitive_refresh_energy() from public, anon;
 grant execute on function public.nova_competitive_refresh_energy() to authenticated;
-\ncreate table if not exists public.nova_competitive_battles (
+
+create table if not exists public.nova_competitive_battles (
   id uuid primary key default gen_random_uuid(),
   challenger_id uuid not null references auth.users(id) on delete cascade,
   defender_id uuid not null references auth.users(id) on delete cascade,
@@ -113,7 +114,7 @@ returns jsonb
 language plpgsql
 security definer
 set search_path = pg_catalog, public
-as $
+as $$
 declare
   v_user_id uuid := auth.uid();
   v_existing jsonb;
@@ -144,10 +145,11 @@ begin
   values (v_user_id,p_command_id,'operation',v_result);
   return v_result;
 end;
-$;
+$$;
 revoke all on function private.nova_competitive_simulate(uuid) from public, anon, authenticated;
 grant execute on function private.nova_competitive_simulate(uuid) to authenticated;
-\ncreate or replace function private.nova_challenge_player(p_command_id uuid, p_target_name text)
+
+create or replace function private.nova_challenge_player(p_command_id uuid, p_target_name text)
 returns jsonb
 language plpgsql
 security definer
@@ -184,7 +186,8 @@ begin
     raise exception 'Challenge already pending' using errcode = '23505';
   end if;
   select p.display_name into v_challenger_name from public.nova_competitive_profiles p where p.user_id=v_user_id;
-  perform private.nova_regenerate_energy(v_user_id);\n  select power, energy into v_power, v_energy from public.nova_competitive_wallets where user_id=v_user_id for update;
+  perform private.nova_regenerate_energy(v_user_id);
+  select power, energy into v_power, v_energy from public.nova_competitive_wallets where user_id=v_user_id for update;
   if not found then raise exception 'Player wallet is missing' using errcode = 'P0002'; end if;
   select count(*) into v_pending from public.nova_competitive_battles
     where challenger_id=v_user_id and status='pending';
