@@ -28,7 +28,6 @@ import {
 } from '../data/catalog';
 import {
   calculateAccruedPayout,
-  calculateContractPayout,
   calculateLevelProgress,
   calculatePropertyHourlyNet,
   canManageOrgMember,
@@ -265,100 +264,14 @@ export async function manufactureRecipe(_uid: string, recipeId: string, batchQua
   }
 }
 
-export async function fulfillTradeContract(uid: string, contractId: string): Promise<number> {
-  const contract = TRADE_CONTRACTS.find((c) => c.id === contractId);
-  if (!contract) throw new Error('INVALID_CONTRACT');
-
-  const dateKey = getUtcDateKey();
-  const claimId = `${uid}_${contractId}_${dateKey}`;
-  const txId = genId('tx');
-
+export async function fulfillTradeContract(_uid: string, contractId: string): Promise<number> {
+  if (!TRADE_CONTRACTS.some((contract) => contract.id === contractId)) throw new Error('INVALID_CONTRACT');
   try {
-    let payout = 0;
-    await runTransaction(db, async (tx) => {
-      const claimRef = doc(db, 'contract_claims', claimId);
-      const invRef = doc(db, 'inventory', `${uid}_${contract.requiredItemId}`);
-      const walletRef = doc(db, 'wallets', uid);
-      const profileRef = doc(db, 'profiles', uid);
-
-      const [claimSnap, invSnap, walletSnap, profileSnap] = await Promise.all([
-        tx.get(claimRef),
-        tx.get(invRef),
-        tx.get(walletRef),
-        tx.get(profileRef),
-      ]);
-
-      if (claimSnap.exists()) throw new Error('CONTRACT_ALREADY_FULFILLED');
-      if (!invSnap.exists() || (invSnap.data() as InventoryItem).quantity < contract.requiredQty) {
-        throw new Error('MISSING_INPUTS');
-      }
-      if (!walletSnap.exists() || !profileSnap.exists()) throw new Error('ACCOUNT_NOT_FOUND');
-
-      const wallet = walletSnap.data() as Wallet;
-      const profile = profileSnap.data() as PlayerProfile;
-      payout = calculateContractPayout(
-        contract.payoutCredits,
-        profile.skills.negotiation || 0,
-        profile.reputation
-      );
-
-      tx.set(claimRef, {
-        uid,
-        contractId: `${contractId}_${dateKey}`,
-        amount: payout,
-        claimedAt: serverTimestamp(),
-      });
-
-      tx.set(doc(db, 'transactions', txId), {
-        id: txId,
-        fromUid: 'SYSTEM',
-        toUid: uid,
-        amount: payout,
-        fee: 0,
-        netAmount: payout,
-        type: 'contract_deal',
-        referenceId: claimId,
-        description: `Contract fulfilled: ${contract.titleEn}`,
-        status: 'completed',
-        createdAt: serverTimestamp(),
-      });
-
-      tx.update(walletRef, {
-        balance: wallet.balance + payout,
-        totalEarned: wallet.totalEarned + payout,
-        lastTxId: txId,
-        updatedAt: serverTimestamp(),
-      });
-
-      tx.update(invRef, {
-        quantity: (invSnap.data() as InventoryItem).quantity - contract.requiredQty,
-        updatedAt: serverTimestamp(),
-      });
-
-      const xpUpdate = applyXpAndLevel(
-        profile,
-        contract.xpReward,
-        contract.reputationReward,
-        5
-      );
-      tx.update(profileRef, {
-        ...xpUpdate,
-        stats: {
-          ...profile.stats,
-          tradesCount: profile.stats.tradesCount + 1,
-        },
-        updatedAt: serverTimestamp(),
-      });
-    });
-    return payout;
+    const result = await nexoraApi<{ payout: number }>('fulfill_trade_contract', { contractId });
+    return result.payout;
   } catch (error) {
-    if (
-      error instanceof Error &&
-      ['INVALID_CONTRACT', 'CONTRACT_ALREADY_FULFILLED', 'MISSING_INPUTS'].includes(error.message)
-    ) {
-      throw error;
-    }
-    handleFirestoreError(error, OperationType.WRITE, `contract_claims/${claimId}`);
+    if (error instanceof Error && 'code' in error) throw new Error(String((error as { code?: unknown }).code ?? 'CONTRACT_FULFILLMENT_FAILED'));
+    throw error;
   }
 }
 
