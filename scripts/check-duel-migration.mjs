@@ -1,6 +1,8 @@
 import { readFileSync } from "node:fs";
 import assert from "node:assert/strict";
 const sql=readFileSync("supabase/migrations/20261118174000_nova_competitive_duels.sql","utf8");
+assert.equal((sql.match(/\\$\\$/g)||[]).length%2,0,"all dollar-quoted SQL function bodies must be paired");
+assert.ok(!sql.includes("\\n"),"SQL migration must not contain escaped newline text");
 assert.match(sql,/create table if not exists public\.nova_competitive_battles/i);
 assert.match(sql,/alter table public\.nova_competitive_battles enable row level security/i);
 assert.match(sql,/auth\.uid\(\)[\s\S]*?challenger_id[\s\S]*?defender_id/i);
