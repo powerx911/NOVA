@@ -166,9 +166,9 @@ Statuses below distinguish completed source changes from verified live behavior.
 | MCP health endpoint | **Untested** | Verify HTTP health response after deployment. |
 | MCP protocol/tool calls | **Untested** | Test authenticated MCP connection and each required tool safely. |
 | GitHub Pages enabled | **Pending** | `has_pages: false` appeared in an earlier repository snapshot. |
-| First Pages deployment | **Unverified** | Check Pages settings, workflow run, and live URL. |
+| First Pages deployment | **Blocked — Pages site not enabled** | Workflow run `44329798929` failed at `actions/configure-pages@v5` with HTTP 404 (`Get Pages site failed`); artifact upload and deployment were skipped. Enable GitHub Pages for this repository with source `GitHub Actions`, then rerun the workflow. |
 | Automated branch/PR/test/merge/deploy lifecycle | **Process agreed; not yet fully validated** | Follow the mandatory lifecycle in section 1 for every future change. |
-| Game implementation | **Not started** | Current work is foundation preparation only. Complete the online-first requirements and technical evaluation before selecting the final game presentation or starting the playable slice. The user has delegated ordinary product/engineering decisions; do not ask for technical choices that can be resolved by research. |
+| Game implementation | **First local playable prototype merged** | Castle/buildings/resources, 7×7 map, bag and relocation simulations, starter quests, and local saving are implemented. Authentication, multiplayer, server-authoritative gameplay, combat, and production schema remain unimplemented. |
 
 ### Known risks / checks still required
 
@@ -384,4 +384,16 @@ The user explicitly requires NOVA to be online and socially connected from its f
 - Added a pull-request validation workflow for JavaScript syntax, required page assets/anchors, and whitespace checks.
 - Updated README to describe the prototype and its limitations accurately.
 - Validation: **passed** in GitHub Actions run `44329641543` (job `validate`): JavaScript syntax, required page assets/DOM anchors, and `git diff --check` all completed successfully. Real browser/device interaction and Android device testing are not yet verified.
-- PR: https://github.com/powerx911/NOVA/pull/12 — open, awaiting merge at this status update. Merge: pending. Deployment: not performed or verified. GitHub Pages activation remains unverified.
+- PR: https://github.com/powerx911/NOVA/pull/12 — merged (squash) as `22fadc3ff88ee219d076fb89a68a2bfd48f3cbb4`. Deployment: attempted by Pages workflow `44329798929`, but blocked because no Pages site is enabled for the repository. No live deployment is claimed.
+
+
+## 18. Prototype merge and GitHub Pages deployment blocker (2026-11-18)
+
+- Verified PR #12 is merged to `main` (squash): https://github.com/powerx911/NOVA/pull/12.
+- Merge commit: `22fadc3ff88ee219d076fb89a68a2bfd48f3cbb4`.
+- The prototype validation workflow passed in run `44329641543`; the follow-up documentation-only PR-head run `44329752584` also completed successfully.
+- The merge triggered GitHub Pages workflow run `44329798929`. Checkout passed, but `actions/configure-pages@v5` failed with HTTP 404 because the repository has no Pages site configured. Artifact upload and deployment were skipped.
+- This is a repository Pages enablement/configuration blocker, not a game-code build failure. GitHub Pages has not been activated and the game is not publicly deployed.
+- Required one-time owner-side setting if no authorized API path is available: repository Settings → Pages → Build and deployment → Source → GitHub Actions. Then rerun the existing Pages workflow.
+- Do not set `enablement: true` with the default `GITHUB_TOKEN`: the official configure-pages action documents that automatic enablement requires a token other than `GITHUB_TOKEN` with appropriate repository administration and Pages permissions.
+- No paid hosting, Vercel, production database changes, or secrets were introduced.
