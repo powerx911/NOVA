@@ -78,6 +78,38 @@ export function SocialHubView({ profile, myOrgMember, organizations, language, o
     if (presence.isOnline) return ar ? `متصل ${presenceDuration(presence.onlineSince)}` : `Online ${presenceDuration(presence.onlineSince)}`;
     return presence.lastSeenAt ? (ar ? `آخر ظهور ${presenceDuration(presence.lastSeenAt)}` : `Last seen ${presenceDuration(presence.lastSeenAt)}`) : (ar ? 'غير متصل' : 'Offline');
   };
+  const socialErrorMessage = (error: unknown, fallback: string) => {
+    const code = error instanceof Error ? error.message : '';
+    const messages: Record<string, string> = ar ? {
+      CHAT_RATE_LIMIT: 'أرسلت رسالة قبل قليل. انتظر بضع ثوانٍ ثم حاول مجدداً.',
+      INVALID_MESSAGE: 'الرسالة طويلة أكثر من المسموح. اختصرها ثم أعد الإرسال.',
+      EMPTY_MESSAGE: 'اكتب رسالة أولاً قبل الإرسال.',
+      PLAYER_BLOCKED: 'لا يمكن بدء محادثة لأن أحدكما حظر الآخر.',
+      PLAYER_NOT_FOUND: 'هذا اللاعب لم يعد متاحاً.',
+      CONVERSATION_ACCESS_DENIED: 'لا تملك صلاحية فتح هذه المحادثة.',
+      INVITE_PERMISSION_REQUIRED: 'رتبتك الحالية لا تسمح بإرسال دعوات المنظمة.',
+      TARGET_ALREADY_IN_ORG: 'هذا اللاعب عضو في منظمة بالفعل.',
+      INVITE_ALREADY_PENDING: 'أرسلت لهذا اللاعب دعوة وما زالت بانتظار الرد.',
+      INVITE_NOT_AVAILABLE: 'هذه الدعوة لم تعد متاحة.',
+      REPORT_RATE_LIMIT: 'أرسلت بلاغاً قبل قليل. انتظر قليلاً ثم حاول مجدداً.',
+      UNAUTHENTICATED: 'انتهت جلسة الدخول. سجّل الدخول مجدداً.',
+    } : {
+      CHAT_RATE_LIMIT: 'You sent a message recently. Wait a few seconds and try again.',
+      INVALID_MESSAGE: 'The message is longer than allowed. Shorten it and retry.',
+      EMPTY_MESSAGE: 'Write a message before sending.',
+      PLAYER_BLOCKED: 'A conversation cannot be started because one of you blocked the other.',
+      PLAYER_NOT_FOUND: 'This player is no longer available.',
+      CONVERSATION_ACCESS_DENIED: 'You cannot access this conversation.',
+      INVITE_PERMISSION_REQUIRED: 'Your role cannot send organization invites.',
+      TARGET_ALREADY_IN_ORG: 'This player already belongs to an organization.',
+      INVITE_ALREADY_PENDING: 'An invitation to this player is already pending.',
+      INVITE_NOT_AVAILABLE: 'This invitation is no longer available.',
+      REPORT_RATE_LIMIT: 'You submitted a report recently. Wait a little and retry.',
+      UNAUTHENTICATED: 'Your session expired. Please sign in again.',
+    };
+    return messages[code] || fallback;
+  };
+
   const avatarUrl = (avatarId: string | undefined) =>
     AVATARS.find((avatar) => avatar.id === avatarId)?.src || AVATARS[0]?.src || '';
 
@@ -86,8 +118,8 @@ export function SocialHubView({ profile, myOrgMember, organizations, language, o
       const result = await getPublicPlayerProfile(targetUid);
       setSelectedPlayer(result);
       setMode('players');
-    } catch {
-      setError(ar ? 'تعذر فتح الملف الشخصي.' : 'Could not open player profile.');
+    } catch (error) {
+      setError(socialErrorMessage(error, ar ? 'تعذر فتح الملف الشخصي الآن.' : 'Could not open player profile right now.'));
     }
   }
 
@@ -133,7 +165,7 @@ export function SocialHubView({ profile, myOrgMember, organizations, language, o
       return;
     }
     const timer = window.setTimeout(() => {
-      void searchPlayers(prefix).then(setPlayers).catch(() => setError(ar ? 'تعذر البحث عن اللاعبين.' : 'Player search failed.'));
+      void searchPlayers(prefix).then(setPlayers).catch((error) => setError(socialErrorMessage(error, ar ? 'تعذر البحث عن اللاعبين الآن.' : 'Player search failed right now.')));
     }, 300);
     return () => window.clearTimeout(timer);
   }, [search, ar]);
@@ -151,8 +183,8 @@ export function SocialHubView({ profile, myOrgMember, organizations, language, o
         ));
         setGlobalMessages(nextGlobalMessages);
         setInvites(nextInvites);
-      } catch {
-        if (active) setError(ar ? 'تعذر تحديث بيانات التواصل.' : 'Could not refresh social data.');
+      } catch (error) {
+        if (active) setError(socialErrorMessage(error, ar ? 'تعذر تحديث بيانات التواصل الآن.' : 'Could not refresh social data right now.'));
       }
     };
     void refresh();
@@ -170,8 +202,8 @@ export function SocialHubView({ profile, myOrgMember, organizations, language, o
       try {
         const messages = await listDirectMessages(selectedConversation);
         if (active) setDirectMessages(messages);
-      } catch {
-        if (active) setError(ar ? 'تعذر تحميل الرسائل.' : 'Could not load messages.');
+      } catch (error) {
+        if (active) setError(socialErrorMessage(error, ar ? 'تعذر تحميل الرسائل الآن.' : 'Could not load messages right now.'));
       }
     };
     void refresh();
@@ -194,8 +226,8 @@ export function SocialHubView({ profile, myOrgMember, organizations, language, o
       setSelectedConversation(result.conversationId);
       setDismissedUnread((previous) => ({ ...previous, [result.conversationId]: timestampToMs(conversations.find((item) => item.id === result.conversationId)?.lastMessageAt, Date.now()) }));
       setMode('messages');
-    } catch {
-      setError(ar ? 'تعذر فتح المحادثة.' : 'Could not open conversation.');
+    } catch (error) {
+      setError(socialErrorMessage(error, ar ? 'تعذر فتح المحادثة الآن.' : 'Could not open conversation right now.'));
     } finally {
       setBusy(null);
     }
@@ -213,8 +245,8 @@ export function SocialHubView({ profile, myOrgMember, organizations, language, o
       ]);
       setDirectMessages(messages);
       setConversations(nextConversations);
-    } catch {
-      setError(ar ? 'تعذر إرسال الرسالة. انتظر قليلاً ثم حاول.' : 'Message could not be sent. Wait a moment and retry.');
+    } catch (error) {
+      setError(socialErrorMessage(error, ar ? 'تعذر إرسال الرسالة الآن. تحقق من الاتصال وحاول مجدداً.' : 'Could not send the message. Check your connection and retry.'));
     } finally {
       setBusy(null);
     }
@@ -228,8 +260,8 @@ export function SocialHubView({ profile, myOrgMember, organizations, language, o
       await sendGlobalChatMessage(text);
       setDraft('');
       setGlobalMessages(await listGlobalChatMessages());
-    } catch {
-      setError(ar ? 'تعذر إرسال الرسالة. الدردشة تحدّ الإرسال المتكرر.' : 'Message could not be sent. Chat has a short rate limit.');
+    } catch (error) {
+      setError(socialErrorMessage(error, ar ? 'تعذر إرسال الرسالة الآن. تحقق من الاتصال وحاول مجدداً.' : 'Could not send the message. Check your connection and retry.'));
     } finally {
       setBusy(null);
     }
@@ -248,8 +280,8 @@ export function SocialHubView({ profile, myOrgMember, organizations, language, o
       setError(isBlocked
         ? (ar ? 'تم إلغاء حظر اللاعب.' : 'Player unblocked.')
         : (ar ? 'تم حظر اللاعب ولن يتمكن الطرفان من تبادل الرسائل الخاصة.' : 'Player blocked. Neither player can send the other direct messages.'));
-    } catch {
-      setError(ar ? 'تعذر تحديث الحظر.' : 'Could not update block settings.');
+    } catch (error) {
+      setError(socialErrorMessage(error, ar ? 'تعذر تحديث الحظر الآن.' : 'Could not update block settings right now.'));
     } finally {
       setBusy(null);
     }
@@ -261,8 +293,8 @@ export function SocialHubView({ profile, myOrgMember, organizations, language, o
     try {
       await submitPlayerReport(player.uid, reportReason);
       setError(ar ? 'تم إرسال البلاغ للمراجعة.' : 'Report submitted for review.');
-    } catch {
-      setError(ar ? 'تعذر إرسال البلاغ. حاول لاحقاً.' : 'Could not submit report. Try again later.');
+    } catch (error) {
+      setError(socialErrorMessage(error, ar ? 'تعذر إرسال البلاغ الآن. حاول لاحقاً.' : 'Could not submit report right now. Try again later.'));
     } finally {
       setBusy(null);
     }
@@ -273,8 +305,8 @@ export function SocialHubView({ profile, myOrgMember, organizations, language, o
     try {
       await invitePlayerToOrganization(player.uid);
       setError(ar ? 'تم إرسال دعوة المنظمة.' : 'Organization invite sent.');
-    } catch {
-      setError(ar ? 'تعذر إرسال الدعوة. تحقق من صلاحيتك وحالة اللاعب.' : 'Invite failed. Check your permission and player eligibility.');
+    } catch (error) {
+      setError(socialErrorMessage(error, ar ? 'تعذر إرسال الدعوة الآن.' : 'Could not send the invitation right now.'));
     } finally {
       setBusy(null);
     }
@@ -285,8 +317,8 @@ export function SocialHubView({ profile, myOrgMember, organizations, language, o
     try {
       await respondOrganizationInvite(inviteId, response);
       setInvites((previous) => previous.filter((invite) => invite.id !== inviteId));
-    } catch {
-      setError(ar ? 'تعذر معالجة الدعوة.' : 'Could not process invite.');
+    } catch (error) {
+      setError(socialErrorMessage(error, ar ? 'تعذر معالجة الدعوة الآن.' : 'Could not process the invitation right now.'));
     } finally {
       setBusy(null);
     }
