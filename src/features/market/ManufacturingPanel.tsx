@@ -1,6 +1,6 @@
 import { Factory } from 'lucide-react';
 import { useState } from 'react';
-import { useToast } from './ToastProvider';
+import { useToast } from '../../components/ui/ToastProvider';
 import { ITEM_MAP, MANUFACTURING_RECIPES } from '../../data/catalog';
 import { useTranslations } from '../../i18n/translations';
 import { calculateManufacturingCost } from '../../lib/economy';
