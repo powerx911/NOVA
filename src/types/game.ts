@@ -1,6 +1,6 @@
 export type Language = 'ar' | 'en';
 
-export type MainTab = 'home' | 'business' | 'market' | 'organization' | 'profile';
+export type MainTab = 'home' | 'business' | 'market' | 'organization' | 'social' | 'profile';
 
 export type BusinessSubTab = 'companies' | 'manufacturing' | 'inventory' | 'financials';
 export type MarketSubTab = 'exchange' | 'contracts' | 'bank' | 'ledger';
