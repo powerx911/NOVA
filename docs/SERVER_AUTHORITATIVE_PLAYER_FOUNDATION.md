@@ -35,7 +35,7 @@ The starter cost curve is intentionally simple and will be balanced later. It is
 
 ## Security notes
 
-- The two RPC functions are `SECURITY DEFINER` because they perform coordinated writes while direct client writes are denied by RLS. They use a fixed `search_path`, derive identity only from `auth.uid()`, validate ownership, and have execute revoked from `PUBLIC` and `anon`, then granted to `authenticated`.
+- Privileged implementation functions are `SECURITY DEFINER` and are moved into a non-exposed `private` schema. The public RPC entry points are `SECURITY INVOKER` wrappers. The private functions use a fixed `search_path`, derive identity only from `auth.uid()`, validate ownership, and have execute revoked from `PUBLIC` and `anon`, then granted to `authenticated`. The private schema is not intended to be exposed through the Data API.
 - Do not use user-editable metadata for authorization.
 - Never expose service-role keys in the client.
 - No client-provided cost, balance, ownership, level, or reward value is trusted.
