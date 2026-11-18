@@ -347,3 +347,15 @@ The user explicitly requires NOVA to be online and socially connected from its f
 - No analytics collecting personal data, support portal, moderator console, or game code was implemented by this documentation change.
 - Branch: `docs/player-journey-and-live-operations`.
 - Validation pending: re-fetch and cross-check documents, compare with main, and review PR before merging. No deployment is claimed.
+
+
+## 15. Kingdom map, personal castles, and initial game rules (owner-confirmed)
+
+- Clarified the world model: the kingdom is the shared strategic map containing established core cities, villages, regions, neutral territories, and resource/strategic sites. It is not a shared city where players build their own homes.
+- Every player owns and develops a separate personal castle/city placed at an eligible site on the kingdom map. The castle contains the player's palace, farms, barracks, production, storage, and upgrades.
+- Initial entry flow: sign in/create account → select a kingdom (first: Kingdom 1) → story-led tutorial with a skip option → develop the player's own castle.
+- Tutorial premise: invading enemies devastated the player's once-powerful homeland; the player returns with advisors after the invaders leave and rebuilds through guided gameplay objectives.
+- Initial army classes: infantry, cavalry, archers, and chariots (مشاة، فرسان، رماة، عجلات).
+- Initial alliance-to-alliance diplomatic states are only neutral, war, and peace. More complex treaties are excluded from the initial scope.
+- Detailed design recorded in docs/PRODUCT_VISION.md and docs/ONLINE_GAME_FOUNDATION.md.
+- This is a documentation-only clarification. No game client, production database schema, or live gameplay behavior was changed. No deployment is claimed.
