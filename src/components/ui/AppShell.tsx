@@ -40,7 +40,9 @@ export function AppShell({
 }: AppShellProps) {
   const t = useTranslations(language);
   const [notifOpen, setNotifOpen] = useState(false);
-  const unreadCount = notifications.filter((n) => !n.read).length;
+  const [locallyReadIds, setLocallyReadIds] = useState<Set<string>>(new Set());
+  const isRead = (notification: GameNotification) => notification.read || locallyReadIds.has(notification.id);
+  const unreadCount = notifications.filter((n) => !isRead(n)).length;
 
   const navItems: { id: MainTab; label: string; icon: typeof Home }[] = [
     { id: 'home', label: t.navHome, icon: Home },
@@ -167,11 +169,13 @@ export function AppShell({
                 {unreadCount > 0 && (
                   <button
                     type="button"
-                    onClick={() =>
-                      markAllNotificationsRead(
-                        notifications.filter((n) => !n.read).map((n) => n.id)
-                      )
-                    }
+                    onClick={() => {
+                      const ids = notifications.filter((n) => !isRead(n)).map((n) => n.id);
+                      setLocallyReadIds((current) => new Set([...current, ...ids]));
+                      void markAllNotificationsRead(ids).catch(() => {
+                        setLocallyReadIds((current) => new Set([...current].filter((id) => !ids.includes(id))));
+                      });
+                    }}
                     className="text-xs text-[#E04455] hover:underline px-2 py-1 whitespace-nowrap"
                   >
                     {t.markAllRead}
@@ -194,7 +198,7 @@ export function AppShell({
                   <div
                     key={n.id}
                     className={`p-3.5 rounded-xl border transition-colors ${
-                      n.read
+                      isRead(n)
                         ? 'bg-[#0B0D12]/60 border-white/6'
                         : 'bg-[#1B2230] border-[#B91C32]/40'
                     }`}
@@ -204,10 +208,15 @@ export function AppShell({
                         <p className="text-sm font-medium text-[#F4F5F7]">{n.title}</p>
                         <p className="text-xs text-[#9299A6] mt-1">{n.body}</p>
                       </div>
-                      {!n.read && (
+                      {!isRead(n) && (
                         <button
                           type="button"
-                          onClick={() => markNotificationRead(n.id)}
+                          onClick={() => {
+                            setLocallyReadIds((current) => new Set([...current, n.id]));
+                            void markNotificationRead(n.id).catch(() => {
+                              setLocallyReadIds((current) => { const next = new Set(current); next.delete(n.id); return next; });
+                            });
+                          }}
                           aria-label="Mark read"
                           className="min-h-[36px] min-w-[36px] flex items-center justify-center rounded-lg text-[#9299A6] hover:text-[#F4F5F7] hover:bg-white/5"
                         >
