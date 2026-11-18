@@ -6,7 +6,6 @@ import type {
   MissionDefinition,
   OrgPermission,
   OrgRole,
-  PropertyType,
   ReputationTier,
   SkillKey,
   TradeContract,
@@ -90,8 +89,8 @@ export const SKILL_DEFINITIONS: SkillDefinition[] = [
     key: 'negotiation',
     nameAr: 'التفاوض',
     nameEn: 'Negotiation',
-    effectAr: 'ترفع عوائد إيجار العقارات والعقود التجارية بنسبة 7% لكل مستوى.',
-    effectEn: 'Boosts property rent yield and contract payouts by 7% per level.',
+    effectAr: 'ترفع مكافآت العقود التجارية بنسبة 7% لكل مستوى.',
+    effectEn: 'Boosts trade contract payouts by 7% per level.',
     maxLevel: 10,
   },
   {
@@ -366,42 +365,6 @@ export const COMPANY_SECTORS: CompanySectorSpec[] = [
   },
 ];
 
-export interface PropertySpec {
-  type: PropertyType;
-  nameAr: string;
-  nameEn: string;
-  purchasePrice: number;
-  rentPerHour: number;
-  maintenancePerHour: number;
-}
-
-export const PROPERTY_SPECS: PropertySpec[] = [
-  {
-    type: 'shop',
-    nameAr: 'متجر تجاري مركزي',
-    nameEn: 'Central Retail Shop',
-    purchasePrice: 950,
-    rentPerHour: 115,
-    maintenancePerHour: 25,
-  },
-  {
-    type: 'office',
-    nameAr: 'مقر مكاتب تنفيذية',
-    nameEn: 'Executive Office Suite',
-    purchasePrice: 1650,
-    rentPerHour: 205,
-    maintenancePerHour: 45,
-  },
-  {
-    type: 'facility',
-    nameAr: 'منشأة لوجستية وصناعية',
-    nameEn: 'Industrial Logistics Facility',
-    purchasePrice: 2800,
-    rentPerHour: 350,
-    maintenancePerHour: 80,
-  },
-];
-
 export const TRADE_CONTRACTS: TradeContract[] = [
   {
     id: 'ctr_chip_batch',
@@ -495,19 +458,6 @@ export const MISSIONS: MissionDefinition[] = [
     metric: 'trades',
   },
   {
-    id: 'weekly_real_estate',
-    category: 'weekly',
-    titleAr: 'توسيع المحفظة العقارية',
-    titleEn: 'Real Estate Expansion',
-    descriptionAr: 'امتلك عقاراً واحداً على الأقل لتحصيل الإيجارات.',
-    descriptionEn: 'Own at least 1 real estate property to collect rent.',
-    rewardCredits: 950,
-    rewardXp: 210,
-    rewardReputation: 28,
-    targetCount: 1,
-    metric: 'properties',
-  },
-  {
     id: 'seasonal_syndicate',
     category: 'seasonal',
     titleAr: 'تحالف النخبة الاقتصادي',
@@ -548,15 +498,6 @@ export const ACHIEVEMENTS: AchievementDefinition[] = [
     descriptionAr: 'امتلاك شركتين أو أكثر.',
     descriptionEn: 'Own 2 or more companies.',
     metric: 'companies',
-    threshold: 2,
-  },
-  {
-    id: 'ach_landlord',
-    titleAr: 'قطب العقارات',
-    titleEn: 'Property Magnate',
-    descriptionAr: 'امتلاك عقارين أو أكثر.',
-    descriptionEn: 'Own 2 or more real estate properties.',
-    metric: 'properties',
     threshold: 2,
   },
   {
