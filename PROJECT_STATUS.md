@@ -383,5 +383,5 @@ The user explicitly requires NOVA to be online and socially connected from its f
 - The client uses dependency-free HTML/CSS/JavaScript for a fast interaction spike; this does **not** lock the final production client/game-engine choice. A technical decision record and online vertical-slice architecture remain necessary before production backend integration.
 - Added a pull-request validation workflow for JavaScript syntax, required page assets/anchors, and whitespace checks.
 - Updated README to describe the prototype and its limitations accurately.
-- Validation planned in this PR: `node --check app.js`, required asset/DOM anchor checks, and `git diff --check`. Real browser/device interaction and Android device testing are not yet verified.
-- PR: pending creation. Merge: pending. Deployment: not performed or verified. GitHub Pages activation remains unverified.
+- Validation: **passed** in GitHub Actions run `44329641543` (job `validate`): JavaScript syntax, required page assets/DOM anchors, and `git diff --check` all completed successfully. Real browser/device interaction and Android device testing are not yet verified.
+- PR: https://github.com/powerx911/NOVA/pull/12 — open, awaiting merge at this status update. Merge: pending. Deployment: not performed or verified. GitHub Pages activation remains unverified.
