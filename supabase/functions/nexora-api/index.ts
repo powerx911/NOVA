@@ -77,7 +77,7 @@ async function authenticate(req: Request) {
   };
 }
 
-async function queryData<T>(promise: Promise<{ data: T; error: { message: string } | null }>): Promise<T> {
+async function queryData<T>(promise: PromiseLike<{ data: T; error: { message: string } | null }>): Promise<T> {
   const { data, error } = await promise;
   if (error) throw new Error(error.message);
   return data;
