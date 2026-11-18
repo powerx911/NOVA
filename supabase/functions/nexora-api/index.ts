@@ -218,6 +218,47 @@ Deno.serve(async (req: Request) => {
       return json({ ok: true, data }, 201, origin);
     }
 
+    if (body.action === "claim_daily_stipend") {
+      const { data, error } = await db.rpc("claim_daily_stipend", { p_uid: identity.uid });
+      if (error) {
+        const message = error.message.includes("ALREADY_CLAIMED_TODAY") ? "ALREADY_CLAIMED_TODAY"
+          : error.message.includes("ACCOUNT_NOT_FOUND") ? "ACCOUNT_NOT_FOUND"
+          : "DAILY_CLAIM_FAILED";
+        return json({ error: message }, 409, origin);
+      }
+      return json({ ok: true, data }, 200, origin);
+    }
+
+    if (body.action === "upgrade_skill") {
+      const skillKey = typeof body.skillKey === "string" ? body.skillKey : "";
+      const { data, error } = await db.rpc("upgrade_player_skill", {
+        p_uid: identity.uid,
+        p_skill: skillKey,
+      });
+      if (error) {
+        const message = ["INVALID_SKILL","NO_SKILL_POINTS","SKILL_MAXED","ACCOUNT_NOT_FOUND"].find((code) => error.message.includes(code));
+        return json({ error: message ?? "SKILL_UPGRADE_FAILED" }, 409, origin);
+      }
+      return json({ ok: true, data }, 200, origin);
+    }
+
+    if (body.action === "transfer_credits") {
+      const recipientUsername = typeof body.recipientUsername === "string" ? body.recipientUsername.trim() : "";
+      const amount = typeof body.amount === "number" && Number.isFinite(body.amount) ? Math.floor(body.amount) : 0;
+      const note = typeof body.note === "string" ? body.note.slice(0, 180) : "";
+      const { data, error } = await db.rpc("transfer_credits", {
+        p_uid: identity.uid,
+        p_recipient_username: recipientUsername,
+        p_amount: amount,
+        p_note: note,
+      });
+      if (error) {
+        const known = ["RECIPIENT_NOT_FOUND","SELF_OR_MISSING_RECIPIENT","INVALID_AMOUNT","INSUFFICIENT_FUNDS"].find((code) => error.message.includes(code));
+        return json({ error: known ?? "TRANSFER_FAILED" }, 409, origin);
+      }
+      return json({ ok: true, data }, 200, origin);
+    }
+
     return json({ error: "UNKNOWN_ACTION" }, 400, origin);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
