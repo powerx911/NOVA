@@ -1,0 +1,22 @@
+{
+  "name": "nexora-functions",
+  "private": true,
+  "description": "NEXORA Firebase Cloud Functions for secure economy operations, diagnostics, and world events",
+  "scripts": {
+    "build": "tsc",
+    "serve": "npm run build && firebase emulators:start --only functions",
+    "shell": "npm run build && firebase functions:shell",
+    "logs": "firebase functions:log"
+  },
+  "engines": {
+    "node": "22"
+  },
+  "main": "lib/index.js",
+  "dependencies": {
+    "firebase-admin": "^13.4.0",
+    "firebase-functions": "^6.3.2"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.2"
+  }
+}

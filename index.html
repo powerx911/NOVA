@@ -1,116 +1,23 @@
 <!doctype html>
-<html lang="ar" dir="rtl">
-<head>
-<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#0a1018"><meta name="description" content="NOVA — لعبة منافسة استراتيجية أونلاين قيد التطوير.">
-<title>NOVA — Competitive Simulation</title>
-<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Alexandria:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="./styles.css"><script src="./app.js" defer></script>
-</head>
-<body>
-<div class="app-shell">
-<header class="topbar">
- <a class="brand" href="#" aria-label="NOVA"><span class="brand-mark">N</span><span>NOVA</span><small>COMPETITIVE SIMULATION</small></a>
- <div class="top-actions"><span class="server-state" id="server-state"><i></i><b id="server-label">جاري الاتصال</b></span><button class="account-btn" id="auth-open">دخول</button><button class="icon-btn" id="notifications" aria-label="الإشعارات">♧</button><button class="avatar" id="open-profile" aria-label="الملف الشخصي">N</button></div>
-</header>
-<main id="main-content">
-<section class="screen active" id="screen-command">
- <div class="welcome-row"><div><span class="eyebrow">مركز القيادة</span><h1>مساء القوة، <em>المؤسس</em></h1><p>كل قرار اليوم يغيّر ترتيبك غداً.</p></div><div class="level-chip"><span>LVL</span><b id="level">08</b></div></div>
- <div class="wallet-strip">
-  <div><small>الرصيد</small><b><span id="credits">24,850</span><i>◈</i></b></div><div><small>الطاقة</small><b><span id="energy">76</span><i class="muted">/100</i></b></div><div><small>النفوذ</small><b id="influence">1,240</b></div>
- </div>
- <article class="season-card">
-  <div class="season-top"><span class="live-pill"><i></i> الحدث العالمي</span><span class="season-no">SEASON 04</span></div>
-  <div class="season-copy"><span class="eyebrow">تحدي هذا الأسبوع</span><h2>سباق الهيمنة</h2><p>ارفع قيمة أصولك واجمع نقاط النفوذ قبل إغلاق الجولة.</p></div>
-  <div class="season-bottom"><div><small>ينتهي خلال</small><b>02 : 14 : 38</b></div><div class="event-progress"><span style="width:64%"></span></div><strong>64%</strong></div>
-  <button class="season-link" data-go="operations">عرض التحدي <span>←</span></button>
- </article>
- <div class="section-heading"><div><span class="eyebrow">مؤشراتك</span><h2>أداء الكيان</h2></div><span class="subtle">آخر تحديث: الآن</span></div>
- <div class="metric-grid">
-  <article class="metric-card"><span class="metric-icon mint">↗</span><small>القيمة الإجمالية</small><b id="net-worth">186,420</b><span class="positive">+8.4% هذا الأسبوع</span></article>
-  <article class="metric-card"><span class="metric-icon violet">⬡</span><small>القوة التشغيلية</small><b id="power">2,860</b><span class="positive">+120 هذا الأسبوع</span></article>
-  <article class="metric-card"><span class="metric-icon amber">⌁</span><small>الدخل الدوري</small><b id="income">+1,240</b><span class="subtle">كل ساعة</span></article>
-  <article class="metric-card"><span class="metric-icon blue">♜</span><small>ترتيبك العام</small><b># <span id="rank">184</span></b><span class="positive">صعود 12 مركزاً</span></article>
- </div>
- <div class="section-heading"><div><span class="eyebrow">تحركات العالم</span><h2>نبض المنافسة</h2></div><button class="text-link" data-go="community">كل الأخبار ←</button></div>
- <div class="activity-list" id="activity-list">
-  <article><span class="activity-symbol red">⚔</span><div><b>بدأت مواجهة بين منظمتين</b><small>قطاع العمليات · قبل 4 دقائق</small></div><span class="activity-time">LIVE</span></article>
-  <article><span class="activity-symbol gold">◈</span><div><b>صفقة نادرة بقيمة 42,000</b><small>السوق المفتوح · قبل 11 دقيقة</small></div><span class="activity-time">11د</span></article>
- </div>
-</section>
-
-<section class="screen" id="screen-operations">
- <div class="page-intro"><span class="eyebrow">خطط. خاطر. تفوّق.</span><h1>ميدان العمليات</h1><p>اختر طريقة المنافسة وحدد أين تستثمر قوتك.</p></div>
- <div class="operation-feature"><div class="feature-icon">⚡</div><div><span class="eyebrow">عملية متاحة</span><h2>اختبار الجاهزية</h2><p>محاكاة تدريبية قصيرة لقياس كفاءة تشكيلتك.</p></div><span class="difficulty">سهل</span><button class="primary-btn" id="run-simulation">ابدأ المحاكاة <span>←</span></button></div>
- <div class="section-heading"><div><span class="eyebrow">منافسات اللاعبين</span><h2>التحديات النشطة</h2></div><span class="count-tag">03 متاحة</span></div>
- <div class="challenge-list">
-  <article class="challenge-card"><div class="challenge-head"><span class="challenge-type">منافسة فردية</span><span class="challenge-state">مفتوحة</span></div><h3>تحدي الإنتاج</h3><p>نافس اللاعبين على أعلى إنتاج خلال 24 ساعة.</p><div class="challenge-meta"><span>◉ 128 مشاركاً</span><b>جائزة 5,000 ◈</b></div><button class="secondary-btn join-challenge" data-name="تحدي الإنتاج">التفاصيل والانضمام</button></article>
-  <article class="challenge-card"><div class="challenge-head"><span class="challenge-type">مواجهة تكتيكية</span><span class="challenge-state">مفتوحة</span></div><h3>اختبار القوة</h3><p>قارن تشكيلتك مع منافسين في جولة محسوبة.</p><div class="challenge-meta"><span>◉ 46 مشاركاً</span><b>جائزة 2,400 ◈</b></div><button class="secondary-btn join-challenge" data-name="اختبار القوة">التفاصيل والانضمام</button></article>
-  <article class="challenge-card"><div class="challenge-head"><span class="challenge-type">تحدي جماعي</span><span class="challenge-state">يبدأ قريباً</span></div><h3>تعاون المنظمات</h3><p>اجمع نقاطاً مع أعضاء منظمتك لتحقيق هدف مشترك.</p><div class="challenge-meta"><span>◉ 12 منظمة</span><b>جائزة جماعية</b></div><button class="secondary-btn join-challenge" data-name="تعاون المنظمات">التفاصيل</button></article>
- </div>
-</section>
-
-<section class="screen" id="screen-assets">
- <div class="page-intro"><span class="eyebrow">إدارة وتطوير</span><h1>ممتلكاتك</h1><p>أصولك ومعداتك هي أساس نموك.</p></div>
- <div class="asset-summary"><div><small>قيمة الأصول</small><b id="asset-value">186,420 ◈</b></div><div><small>مستوى التطوير</small><b>08 / 30</b></div></div>
- <div class="section-heading"><div><span class="eyebrow">مصادر الدخل</span><h2>المنشآت</h2></div><button class="text-link" id="upgrade-assets">تطوير الكل ↗</button></div>
- <div class="asset-list" id="asset-list">
-  <article class="asset-row"><span class="asset-icon mint">▤</span><div><b>مركز الإمداد</b><small>لوجستيات · مستوى 04</small></div><div><b>+420</b><small>دخل / ساعة</small></div><button class="row-action" data-asset="مركز الإمداد">↗</button></article>
-  <article class="asset-row"><span class="asset-icon violet">⌘</span><div><b>مختبر أوريون</b><small>أبحاث · مستوى 03</small></div><div><b>+280</b><small>دخل / ساعة</small></div><button class="row-action" data-asset="مختبر أوريون">↗</button></article>
-  <article class="asset-row"><span class="asset-icon amber">◇</span><div><b>مجمّع التصنيع</b><small>صناعة · مستوى 02</small></div><div><b>+540</b><small>دخل / ساعة</small></div><button class="row-action" data-asset="مجمّع التصنيع">↗</button></article>
- </div>
- <div class="section-heading"><div><span class="eyebrow">المواد والمعدات</span><h2>المخزون</h2></div><span class="subtle">4 عناصر</span></div>
- <div class="inventory-grid"><button class="inventory-item" data-item="سبائك"><span>⬡</span><b>سبائك</b><small id="alloy-count">340</small></button><button class="inventory-item" data-item="دوائر إلكترونية"><span>▦</span><b>دوائر إلكترونية</b><small id="circuits-count">86</small></button><button class="inventory-item" data-item="وقود"><span>ϟ</span><b>وقود</b><small id="fuel-count">125</small></button><button class="inventory-item" data-item="شريحة نادرة"><span>✧</span><b>شريحة نادرة</b><small id="rare-chip-count">4</small></button></div>
-</section>
-
-<section class="screen" id="screen-exchange">
- <div class="page-intro"><span class="eyebrow">اقتصاد اللاعبين</span><h1>مركز التداول</h1><p>تابع الأسعار وابنِ ثروتك من قرارات السوق.</p></div>
- <div class="market-total"><div><small>العروض المفتوحة</small><b id="market-listing-count">0 <i>عرض</i></b><span class="positive" id="market-status">السوق المشترك · مباشر</span></div><div class="market-orbit">⌁</div></div>
- <div class="section-heading"><div><span class="eyebrow">السوق المشترك بين اللاعبين</span><h2>العروض الحالية</h2></div><span class="live-label"><i></i> مباشر</span></div>
- <div class="market-listings" id="market-listings"><article class="market-empty">جارٍ تحميل عروض اللاعبين...</article></div>
- <div class="trade-panel"><div><div><b>انشر عرض بيع</b><small>اختر مادة من مخزونك وحدد الكمية والسعر.</small></div><span class="trade-cost">P2P</span></div>
-  <form id="market-listing-form" class="market-form">
-   <label>المادة<select id="market-item-code" required><option value="alloy">سبائك معدنية</option><option value="circuits">دوائر إلكترونية</option><option value="fuel">وقود صناعي</option><option value="rare_chip">شريحة نادرة</option></select></label>
-   <div class="market-form-row"><label>الكمية<input id="market-quantity" type="number" min="1" max="10000" value="10" required></label><label>سعر الوحدة<input id="market-unit-price" type="number" min="1" max="1000000" value="42" required></label></div>
-   <button class="primary-btn" id="create-listing" type="submit">نشر العرض في السوق</button>
-  </form>
- </div>
-</section>
-
-<section class="screen" id="screen-community">
- <div class="page-intro"><span class="eyebrow">اللاعبون يصنعون العالم</span><h1>المجتمع</h1><p>راقب المنافسة، كوّن العلاقات، واصنع اسمك.</p></div>
- <div class="ranking-card"><div class="ranking-top"><div><span class="eyebrow">تصنيف عالمي</span><h2>قادة هذا الأسبوع</h2></div><span class="live-label"><i></i> مباشر</span></div>
-  <div id="leaderboard-list"><div class="rank-row"><span class="medal gold">01</span><span class="rank-avatar">VX</span><div><b>Vortex</b><small>قيمة الكيان · 2.8M</small></div><strong>9,840</strong></div>
-  <div class="rank-row"><span class="medal silver">02</span><span class="rank-avatar violet">AR</span><div><b>Artemis</b><small>قيمة الكيان · 2.4M</small></div><strong>9,120</strong></div>
-  <div class="rank-row"><span class="medal bronze">03</span><span class="rank-avatar amber">NX</span><div><b>Nex</b><small>قيمة الكيان · 2.1M</small></div><strong>8,760</strong></div>
-  <div class="rank-row own-rank"><span class="medal">184</span><span class="rank-avatar mint">N</span><div><b>المؤسس <small class="you-tag">أنت</small></b><small>قيمة الكيان · 186K</small></div><strong>2,860</strong></div></div>
- </div>
- <div class="section-heading"><div><span class="eyebrow">مواجهات اللاعبين</span><h2>ساحة التحديات</h2></div><span class="live-label"><i></i> أونلاين</span></div>
- <div class="battle-list" id="battle-list"><article class="market-empty">سجّل الدخول لعرض تحدياتك ومواجهاتك.</article></div>
- <div class="section-heading"><div><span class="eyebrow">العمل الجماعي</span><h2>المنظمات</h2></div><button class="text-link" id="alliance-info">اكتشف المزيد ←</button></div>
- <article class="alliance-card"><div class="alliance-emblem">✦</div><div><b>أطياف الشمال</b><small>38 عضواً · مستوى 12</small><span class="positive">تبحث عن أعضاء جدد</span></div><button class="secondary-btn" id="request-alliance">طلب انضمام</button></article>
- <div class="section-heading"><div><span class="eyebrow">آخر المستجدات</span><h2>سجل العالم</h2></div></div>
- <div class="activity-list"><article><span class="activity-symbol gold">♛</span><div><b>Vortex صعد إلى المركز الأول</b><small>التصنيف العالمي · قبل 6 دقائق</small></div></article><article><span class="activity-symbol blue">✦</span><div><b>أطياف الشمال أكملت مشروعاً جماعياً</b><small>المنظمات · قبل 18 دقيقة</small></div></article></div>
-</section>
-
-<section class="screen" id="screen-profile">
- <div class="page-intro"><span class="eyebrow">هويتك التنافسية</span><h1>ملف اللاعب</h1></div>
- <div class="profile-card"><div class="profile-avatar">N</div><div><h2 id="profile-name">زائر</h2><p id="profile-subtitle">أنشئ حسابك لحفظ تقدمك والمنافسة</p><span class="online-chip" id="profile-state"><i></i> وضع العرض</span></div><button class="icon-btn" id="edit-profile">✎</button></div>
- <div class="metric-grid profile-metrics"><article class="metric-card"><small>الإنجازات</small><b>24</b></article><article class="metric-card"><small>المواجهات</small><b id="battle-count">12</b></article><article class="metric-card"><small>السمعة</small><b>780</b></article><article class="metric-card"><small>الأصدقاء</small><b>36</b></article></div>
- <div class="settings-list"><button id="settings"><span>⚙</span> الإعدادات <b>←</b></button><button id="help"><span>◉</span> المساعدة والدعم <b>←</b></button><button id="sign-out"><span>⇥</span> تسجيل الخروج <b>←</b></button></div>
- <p class="prototype-note" id="prototype-note">يمكنك استكشاف الواجهة كزائر. سجّل الدخول لحفظ حسابك وربط تقدمك بالخادم.</p>
-</section>
-</main>
-<nav class="bottom-nav" aria-label="التنقل الرئيسي">
- <button class="nav-item active" data-screen="command"><span>⌂</span><small>المركز</small></button>
- <button class="nav-item" data-screen="operations"><span>⚡</span><small>العمليات</small></button>
- <button class="nav-item" data-screen="assets"><span>▤</span><small>الأصول</small></button>
- <button class="nav-item" data-screen="exchange"><span>◈</span><small>السوق</small></button>
- <button class="nav-item" data-screen="community"><span>♧</span><small>المجتمع</small></button>
-</nav>
-</div>
-<div class="toast" id="toast" role="status" aria-live="polite"></div>
-<dialog id="auth-dialog" aria-labelledby="auth-title"><form id="auth-form" class="auth-form"><div class="auth-head"><span class="dialog-mark">N</span><span class="eyebrow">NOVA ACCOUNT</span><h2 id="auth-title">مرحباً بك في NOVA</h2><p id="auth-description">سجّل الدخول للعودة إلى منافساتك.</p></div><div class="auth-switch" id="auth-mode-switch"><button type="button" class="active" id="auth-mode-login">تسجيل الدخول</button><button type="button" id="auth-mode-signup">حساب جديد</button></div><label id="display-name-field" hidden>اسم اللاعب<input id="auth-display-name" type="text" minlength="3" maxlength="24" autocomplete="nickname" placeholder="اسم يظهر للمنافسين"></label><label id="email-field">البريد الإلكتروني<input id="auth-email" type="email" autocomplete="email" placeholder="name@example.com" required></label><label id="password-field">كلمة المرور<input id="auth-password" type="password" minlength="8" autocomplete="current-password" placeholder="8 أحرف على الأقل" required></label><p id="auth-message" class="auth-message" role="status" aria-live="polite"></p><button class="primary-btn" id="auth-submit" type="submit">تسجيل الدخول</button><button class="auth-cancel" id="auth-close" type="button">إغلاق</button></form></dialog>
-<dialog id="action-dialog"><div class="dialog-content"><span class="dialog-mark" id="dialog-mark">✦</span><span class="eyebrow" id="dialog-kicker">NOVA SYSTEM</span><h2 id="dialog-title">تفاصيل العملية</h2><p id="dialog-message"></p><button class="primary-btn" id="dialog-close">حسناً</button></div></dialog>
-</body></html>
+<html lang="ar" dir="rtl" class="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>NEXORA — محاكاة الاقتصاد والأعمال والاستراتيجية</title>
+    <meta name="description" content="NEXORA — لعبة محاكاة اقتصادية وإدارية واستراتيجية اجتماعية مصممة للهواتف بالوضع العمودي." />
+    <meta property="og:title" content="NEXORA — محاكاة الاقتصاد والأعمال والاستراتيجية" />
+    <meta property="og:description" content="ابنِ ثروتك وشركاتك ومنظمتك في اقتصاد تنافسي متكامل." />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body class="bg-[#0B0D12] text-[#F4F5F7] antialiased selection:bg-[#B91C32]/40 selection:text-[#F4F5F7]">
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

@@ -1,0 +1,6 @@
+{
+  "name": "NEXORA",
+  "description": "NEXORA — Portrait-first economic strategy, corporate management, and social simulation browser game.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
