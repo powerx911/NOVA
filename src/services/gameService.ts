@@ -366,130 +366,25 @@ export async function createOrganization(
 }
 
 export async function requestJoinOrganization(
-  uid: string,
-  username: string,
+  _uid: string,
+  _username: string,
   orgId: string
 ): Promise<void> {
-  const reqId = `${orgId}_${uid}_${Date.now()}`;
-  try {
-    const [profileSnap, existingReqsSnap] = await Promise.all([
-      getDoc(doc(db, 'profiles', uid)),
-      getDocs(query(collection(db, 'organization_requests'), where('uid', '==', uid))),
-    ]);
-    if (profileSnap.exists()) {
-      const p = profileSnap.data() as PlayerProfile;
-      if (p.orgId) throw new Error('ALREADY_IN_ORG');
-    }
-    const alreadyPending = existingReqsSnap.docs.some((d) => {
-      const data = d.data() as { orgId?: string; status?: string };
-      return data.orgId === orgId && data.status === 'pending';
-    });
-    if (alreadyPending) {
-      throw new Error('REQUEST_ALREADY_PENDING');
-    }
-
-    await setDoc(doc(db, 'organization_requests', reqId), {
-      id: reqId,
-      orgId,
-      uid,
-      username,
-      status: 'pending',
-      createdAt: serverTimestamp(),
-    });
-  } catch (error) {
-    if (error instanceof Error && ['ALREADY_IN_ORG', 'REQUEST_ALREADY_PENDING'].includes(error.message)) {
-      throw error;
-    }
-    handleFirestoreError(error, OperationType.CREATE, `organization_requests/${reqId}`);
-  }
+  await nexoraApi('request_join_organization', { orgId });
 }
 
 export async function handleOrgJoinRequest(
   orgId: string,
   reqId: string,
-  applicantUid: string,
-  applicantUsername: string,
+  _applicantUid: string,
+  _applicantUsername: string,
   decision: 'approved' | 'rejected'
 ): Promise<void> {
-  try {
-    await runTransaction(db, async (tx) => {
-      const reqRef = doc(db, 'organization_requests', reqId);
-      const orgRef = doc(db, 'organizations', orgId);
-      const memberRef = doc(db, 'organization_members', `${orgId}_${applicantUid}`);
-      const applicantProfileRef = doc(db, 'profiles', applicantUid);
-
-      const [reqSnap, orgSnap, memberSnap, applicantProfileSnap] = await Promise.all([
-        tx.get(reqRef),
-        tx.get(orgRef),
-        tx.get(memberRef),
-        tx.get(applicantProfileRef),
-      ]);
-      if (!reqSnap.exists() || !orgSnap.exists()) throw new Error('NOT_FOUND');
-
-      const reqData = reqSnap.data() as { status: string };
-      if (reqData.status !== 'pending') {
-        throw new Error('REQUEST_ALREADY_HANDLED');
-      }
-
-      if (decision === 'approved') {
-        const org = orgSnap.data() as Organization;
-        if (memberSnap.exists()) {
-          throw new Error('ALREADY_ORG_MEMBER');
-        }
-        if (applicantProfileSnap.exists()) {
-          const applicantProfile = applicantProfileSnap.data() as PlayerProfile;
-          if (applicantProfile.orgId && applicantProfile.orgId !== orgId) {
-            throw new Error('APPLICANT_IN_OTHER_ORG');
-          }
-        }
-        const memberCapacity = typeof org.memberCapacity === 'number' ? org.memberCapacity : Math.min(70, 20 + (Math.max(1, org.level) - 1) * 5);
-        if (org.memberCount >= memberCapacity) {
-          throw new Error('ORG_FULL');
-        }
-
-        tx.update(reqRef, { status: decision });
-        tx.set(memberRef, {
-          orgId,
-          uid: applicantUid,
-          username: applicantUsername,
-          role: 'member',
-          permissions: ROLE_DEFAULT_PERMISSIONS.member,
-          joinedAt: serverTimestamp(),
-        });
-        tx.update(orgRef, {
-          memberCount: org.memberCount + 1,
-          updatedAt: serverTimestamp(),
-        });
-      } else {
-        tx.update(reqRef, { status: decision });
-      }
-    });
-  } catch (error) {
-    if (
-      error instanceof Error &&
-      [
-        'NOT_FOUND',
-        'REQUEST_ALREADY_HANDLED',
-        'ALREADY_ORG_MEMBER',
-        'APPLICANT_IN_OTHER_ORG',
-        'ORG_FULL',
-      ].includes(error.message)
-    ) {
-      throw error;
-    }
-    handleFirestoreError(error, OperationType.UPDATE, `organization_requests/${reqId}`);
-  }
+  await nexoraApi('handle_org_join_request', { orgId, requestId: reqId, decision });
 }
 
-export async function syncSelfOrgMembership(uid: string, orgId: string | null): Promise<void> {
-  try {
-    await updateDoc(doc(db, 'profiles', uid), {
-      orgId,
-      updatedAt: serverTimestamp(),
-    });
-  } catch (error) {
-    handleFirestoreError(error, OperationType.UPDATE, `profiles/${uid}`);
-  }
+export async function syncSelfOrgMembership(_uid: string, orgId: string | null): Promise<void> {
+  await nexoraApi('sync_self_org_membership', { orgId });
 }
 
 export async function updateOrgMemberRole(
@@ -497,87 +392,19 @@ export async function updateOrgMemberRole(
   targetUid: string,
   newRole: Exclude<OrgRole, 'leader'>
 ): Promise<void> {
-  try {
-    await updateDoc(doc(db, 'organization_members', `${orgId}_${targetUid}`), {
-      role: newRole,
-      permissions: ROLE_DEFAULT_PERMISSIONS[newRole],
-    });
-  } catch (error) {
-    handleFirestoreError(error, OperationType.UPDATE, `organization_members/${orgId}_${targetUid}`);
-  }
+  await nexoraApi('update_org_member_role', { orgId, targetUid, role: newRole });
 }
 
-export async function leaveOrganization(uid: string, orgId: string): Promise<void> {
-  try {
-    await runTransaction(db, async (tx) => {
-      const orgRef = doc(db, 'organizations', orgId);
-      const memberRef = doc(db, 'organization_members', `${orgId}_${uid}`);
-      const profileRef = doc(db, 'profiles', uid);
-      const [orgSnap, memberSnap] = await Promise.all([tx.get(orgRef), tx.get(memberRef)]);
-      if (!orgSnap.exists() || !memberSnap.exists()) throw new Error('NOT_FOUND');
-      const member = memberSnap.data() as OrganizationMember;
-      if (member.role === 'leader') throw new Error('LEADER_CANNOT_LEAVE');
-
-      const org = orgSnap.data() as Organization;
-      tx.delete(memberRef);
-      tx.update(orgRef, {
-        memberCount: Math.max(1, org.memberCount - 1),
-        updatedAt: serverTimestamp(),
-      });
-      tx.update(profileRef, {
-        orgId: null,
-        updatedAt: serverTimestamp(),
-      });
-    });
-  } catch (error) {
-    if (error instanceof Error && error.message === 'LEADER_CANNOT_LEAVE') throw error;
-    handleFirestoreError(error, OperationType.DELETE, `organization_members/${orgId}_${uid}`);
-  }
+export async function leaveOrganization(_uid: string, orgId: string): Promise<void> {
+  await nexoraApi('leave_organization', { orgId });
 }
 
 export async function kickOrgMember(
-  actorUid: string,
+  _actorUid: string,
   orgId: string,
   targetUid: string
 ): Promise<void> {
-  if (!actorUid || actorUid === targetUid) throw new Error('CANNOT_KICK_SELF');
-
-  try {
-    await runTransaction(db, async (tx) => {
-      const orgRef = doc(db, 'organizations', orgId);
-      const actorRef = doc(db, 'organization_members', `${orgId}_${actorUid}`);
-      const targetRef = doc(db, 'organization_members', `${orgId}_${targetUid}`);
-      const [orgSnap, actorSnap, targetSnap] = await Promise.all([
-        tx.get(orgRef),
-        tx.get(actorRef),
-        tx.get(targetRef),
-      ]);
-
-      if (!orgSnap.exists() || !actorSnap.exists() || !targetSnap.exists()) {
-        throw new Error('NOT_FOUND');
-      }
-
-      const actor = actorSnap.data() as OrganizationMember;
-      const target = targetSnap.data() as OrganizationMember;
-      if (!hasOrgPermission(actor, 'manage_members')) throw new Error('UNAUTHORIZED');
-      if (!canManageOrgMember(actor.role, target.role)) throw new Error('RANK_TOO_HIGH');
-
-      const org = orgSnap.data() as Organization;
-      tx.delete(targetRef);
-      tx.update(orgRef, {
-        memberCount: Math.max(1, org.memberCount - 1),
-        updatedAt: serverTimestamp(),
-      });
-    });
-  } catch (error) {
-    if (
-      error instanceof Error &&
-      ['CANNOT_KICK_SELF', 'NOT_FOUND', 'UNAUTHORIZED', 'RANK_TOO_HIGH'].includes(error.message)
-    ) {
-      throw error;
-    }
-    handleFirestoreError(error, OperationType.DELETE, `organization_members/${orgId}_${targetUid}`);
-  }
+  await nexoraApi('kick_org_member', { orgId, targetUid });
 }
 
 export async function upgradeOrganization(
@@ -606,144 +433,21 @@ export async function researchOrganization(
 }
 
 export async function depositToOrgTreasury(
-  uid: string,
-  username: string,
+  _uid: string,
+  _username: string,
   orgId: string,
   amountRaw: number
 ): Promise<void> {
-  const amount = Math.floor(amountRaw);
-  if (!Number.isFinite(amountRaw) || amount <= 0 || amount > 10_000_000) throw new Error('INVALID_AMOUNT');
-  const txId = genId('tx');
-  const orgTxId = genId('otx');
-
-  try {
-    await runTransaction(db, async (tx) => {
-      const walletRef = doc(db, 'wallets', uid);
-      const orgRef = doc(db, 'organizations', orgId);
-      const memberRef = doc(db, 'organization_members', `${orgId}_${uid}`);
-      const [walletSnap, orgSnap, memberSnap] = await Promise.all([tx.get(walletRef), tx.get(orgRef), tx.get(memberRef)]);
-      if (!walletSnap.exists() || !orgSnap.exists()) throw new Error('NOT_FOUND');
-      if (!memberSnap.exists()) throw new Error('UNAUTHORIZED');
-
-      const wallet = walletSnap.data() as Wallet;
-      const org = orgSnap.data() as Organization;
-      if (wallet.balance < amount) throw new Error('INSUFFICIENT_FUNDS');
-
-      tx.set(doc(db, 'transactions', txId), {
-        id: txId,
-        fromUid: uid,
-        toUid: 'ORG',
-        amount,
-        fee: 0,
-        netAmount: amount,
-        type: 'org_deposit',
-        referenceId: orgId,
-        description: `Org treasury deposit [${org.tag}]`,
-        status: 'completed',
-        createdAt: serverTimestamp(),
-      });
-
-      tx.update(walletRef, {
-        balance: wallet.balance - amount,
-        totalSpent: wallet.totalSpent + amount,
-        lastTxId: txId,
-        updatedAt: serverTimestamp(),
-      });
-
-      tx.update(orgRef, {
-        treasuryBalance: org.treasuryBalance + amount,
-        reputation: org.reputation + Math.max(1, Math.floor((amount / 100) * (1 + Math.min(10, org.research?.diplomacy ?? 0) * 0.01))),
-        updatedAt: serverTimestamp(),
-      });
-
-      tx.set(doc(db, 'organization_transactions', orgTxId), {
-        id: orgTxId,
-        orgId,
-        uid,
-        username,
-        type: 'deposit',
-        amount,
-        note: `Deposit by ${username}`,
-        createdAt: serverTimestamp(),
-      });
-    });
-  } catch (error) {
-    if (error instanceof Error && ['INVALID_AMOUNT', 'INSUFFICIENT_FUNDS', 'UNAUTHORIZED'].includes(error.message)) {
-      throw error;
-    }
-    handleFirestoreError(error, OperationType.WRITE, `organizations/${orgId}`);
-  }
+  await nexoraApi('org_treasury_deposit', { orgId, amount: Math.floor(amountRaw) });
 }
 
 export async function withdrawFromOrgTreasury(
-  uid: string,
-  username: string,
+  _uid: string,
+  _username: string,
   orgId: string,
   amountRaw: number
 ): Promise<void> {
-  const amount = Math.floor(amountRaw);
-  if (!Number.isFinite(amountRaw) || amount <= 0 || amount > 10_000_000) throw new Error('INVALID_AMOUNT');
-  const txId = genId('tx');
-  const orgTxId = genId('otx');
-
-  try {
-    await runTransaction(db, async (tx) => {
-      const walletRef = doc(db, 'wallets', uid);
-      const orgRef = doc(db, 'organizations', orgId);
-      const memberRef = doc(db, 'organization_members', `${orgId}_${uid}`);
-      const [walletSnap, orgSnap, memberSnap] = await Promise.all([tx.get(walletRef), tx.get(orgRef), tx.get(memberRef)]);
-      if (!walletSnap.exists() || !orgSnap.exists()) throw new Error('NOT_FOUND');
-      if (!memberSnap.exists() || !hasOrgPermission(memberSnap.data() as OrganizationMember, 'manage_treasury')) {
-        throw new Error('UNAUTHORIZED');
-      }
-
-      const wallet = walletSnap.data() as Wallet;
-      const org = orgSnap.data() as Organization;
-      if (org.treasuryBalance < amount) throw new Error('INSUFFICIENT_TREASURY');
-
-      tx.set(doc(db, 'transactions', txId), {
-        id: txId,
-        fromUid: 'ORG',
-        toUid: uid,
-        amount,
-        fee: 0,
-        netAmount: amount,
-        type: 'org_withdraw',
-        referenceId: orgId,
-        description: `Org treasury withdrawal [${org.tag}]`,
-        status: 'completed',
-        createdAt: serverTimestamp(),
-      });
-
-      tx.update(walletRef, {
-        balance: wallet.balance + amount,
-        totalEarned: wallet.totalEarned + amount,
-        lastTxId: txId,
-        updatedAt: serverTimestamp(),
-      });
-
-      tx.update(orgRef, {
-        treasuryBalance: org.treasuryBalance - amount,
-        updatedAt: serverTimestamp(),
-      });
-
-      tx.set(doc(db, 'organization_transactions', orgTxId), {
-        id: orgTxId,
-        orgId,
-        uid,
-        username,
-        type: 'withdraw',
-        amount,
-        note: `Withdrawal by ${username}`,
-        createdAt: serverTimestamp(),
-      });
-    });
-  } catch (error) {
-    if (error instanceof Error && ['INVALID_AMOUNT', 'INSUFFICIENT_TREASURY', 'UNAUTHORIZED'].includes(error.message)) {
-      throw error;
-    }
-    handleFirestoreError(error, OperationType.WRITE, `organizations/${orgId}`);
-  }
+  await nexoraApi('org_treasury_withdraw', { orgId, amount: Math.floor(amountRaw) });
 }
 
 export async function updatePlayerSettings(
@@ -817,11 +521,5 @@ export async function checkAndUnlockAchievements(
 }
 
 export async function fetchOrgPendingRequests(orgId: string) {
-  const q = query(
-    collection(db, 'organization_requests'),
-    where('orgId', '==', orgId),
-    where('status', '==', 'pending')
-  );
-  const snap = await getDocs(q);
-  return snap.docs.map((d) => d.data());
+  return nexoraApi<Array<{ id: string; orgId: string; uid: string; username: string; status: string; createdAt: string }>>('fetch_org_pending_requests', { orgId });
 }
