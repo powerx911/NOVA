@@ -561,6 +561,18 @@ The user explicitly requires NOVA to be online and socially connected from its f
 - Applied `20261118172000_nova_shared_market.sql` to existing Supabase project `hmrprnjhyzyefocdmnxf`; recorded migration version `20261118161142` (`nova_shared_market`). The market inventory/listing/order/ledger tables exist with RLS enabled; current row counts remain zero because no player accounts have been created.
 - Verified anonymous users can read active listings but cannot read player inventory. Authenticated users have SELECT grants constrained by their own-row RLS policies for inventory and orders. Activity Realtime remains enabled.
 - Supabase security advisors remain at zero findings. Performance advisors report three INFO-level unindexed foreign keys (listing seller, order listing, inventory-ledger listing), plus unused-index notices while tables are empty.
-- Created follow-up branch `perf/nova-market-fk-indexes` with additive indexes for those three foreign keys and CI assertions. This performance-only migration is pending PR review/merge/application.
+- PR #23 merged as `1da8fafa5a554a54fa02ca1b0f19c3a7e8786c4e`; migration `20261118173000_nova_market_fk_indexes.sql` was applied as version `20261118161319`. All three foreign-key indexes now exist and the performance advisor no longer reports unindexed foreign keys; unused-index INFO notices remain expected while tables are empty.
 - GitHub Pages deployment for PR #22 merge commit `ad7d5b96cc758d410de0c7aa99e01c0cf09dc1ba` succeeded in run 44344339762; all five deployment steps passed and the `github-pages` artifact was 80,990 bytes. The published URL is https://powerx911.github.io/NOVA/. External live-browser and Android-device verification remain outstanding.
 - No player accounts or test records have been created. Two-account market settlement, partial fills, cancellations, auth email redirect, realtime delivery, and Android testing remain outstanding.
+
+
+## 28. Asynchronous competitive duels — implementation in progress (2026-11-18)
+
+- New branch: `feature/nova-competitive-duels` from latest main. This adds the first direct player-versus-player loop without a map or real-time character combat.
+- Added migration proposal `20261118174000_nova_competitive_duels.sql` with participant-only battle records, pending-pair uniqueness, RLS, and Realtime publication.
+- Server RPCs let a player challenge another by public display name, accept, or decline. Challenges cost energy; a challenge expires after 24 hours; each player may have at most three outgoing pending challenges.
+- Battle scores are generated on the server from current player power plus bounded server-side randomness. Clients cannot submit scores or winners. Rewards and influence changes are applied atomically, recorded in the resource ledger, and the result is stored on the battle row.
+- Added energy regeneration at one point per five minutes, capped at 100. The server tracks the energy clock, regenerates on profile refresh/operations/challenge actions, and the client refreshes the displayed energy every minute while open.
+- Updated the leaderboard with challenge buttons, added an incoming/outgoing/resolved battle arena, and subscribed to battle Realtime changes.
+- Added migration security-contract tests and a UI check for the battle arena. CI must pass before merging.
+- The duel migration is not applied yet. No test players exist; authenticated two-player invite/accept/decline, scoring, rewards, energy regeneration, and Realtime delivery require post-migration integration tests.
