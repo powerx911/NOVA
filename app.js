@@ -1,30 +1,33 @@
-(() => {
-"use strict";
-const $ = (s, r=document) => r.querySelector(s);
-const $$ = (s, r=document) => [...r.querySelectorAll(s)];
-const fmt = n => new Intl.NumberFormat("en-US").format(n);
-const KEY = "nova-dominion-preview-v1";
-const initial = {cash:12450,energy:86,materials:340,influence:125,battles:0,businesses:[{name:"مركز التوزيع",type:"لوجستيات",icon:"▤",income:180},{name:"ورشة أطلس",type:"تصنيع",icon:"⚒",income:140},{name:"متجر النخبة",type:"تجارة",icon:"◇",income:100},{name:"مزرعة الطاقة",type:"طاقة",icon:"ϟ",income:0}]};
-let state = load();
-let toastTimer;
-function load(){try{const v=JSON.parse(localStorage.getItem(KEY));if(v&&Array.isArray(v.businesses))return {...initial,...v}}catch(e){}return structuredClone(initial)}
-function save(){try{localStorage.setItem(KEY,JSON.stringify(state))}catch(e){toast("تعذر حفظ تقدمك على هذا الجهاز.")}}
-function toast(message){const el=$("#toast");el.textContent=message;el.classList.add("show");clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove("show"),2300)}
-function updateWallet(){ $("#cash").textContent=fmt(state.cash);$("#energy").textContent=state.energy+"/100";$("#materials").textContent=fmt(state.materials);$("#influence").textContent=fmt(state.influence);$("#asset-count").textContent=state.businesses.length;$("#hourly-income").textContent="+"+fmt(state.businesses.reduce((a,b)=>a+b.income,0));$("#team-power").textContent=fmt(1280+state.battles*25);$("#army-power").textContent=fmt(1280+state.battles*25);$("#mission-progress").style.width=state.businesses.length>4?"100%":"50%";$("#battle-progress").style.width=Math.min(100,state.battles*50)+"%"}
-function renderBusinesses(){const el=$("#business-list");el.innerHTML="";state.businesses.forEach((b,i)=>{const card=document.createElement("article");card.className="business-card";card.innerHTML='<span class="business-art"></span><div class="business-copy"><b></b><small></small></div><div class="business-income"><b></b><small>دخل / ساعة</small></div>';$(".business-art",card).textContent=b.icon;$(".business-copy b",card).textContent=b.name;$(".business-copy small",card).textContent=b.type+" · المستوى "+(i===0?3:1);$(".business-income b",card).textContent="+"+fmt(b.income)+" ◈";el.append(card)})}
-const goods=[{name:"سبائك معدنية",icon:"⬡",price:42,change:"+4.8%"},{name:"مكوّنات إلكترونية",icon:"▦",price:68,change:"+2.1%"},{name:"وقود صناعي",icon:"ϟ",price:31,change:"−1.4%"},{name:"مواد غذائية",icon:"✿",price:18,change:"+0.7%"}];
-function renderMarket(){const el=$("#market-list");el.innerHTML="";goods.forEach(g=>{const row=document.createElement("article");row.className="market-item";row.innerHTML='<span class="good-icon"></span><div class="good-copy"><b></b><small>السعر لكل وحدة</small></div><div class="good-price"><b></b><small></small></div>';$(".good-icon",row).textContent=g.icon;$(".good-copy b",row).textContent=g.name;$(".good-price b",row).textContent=g.price+" ◈";$(".good-price small",row).textContent=g.change;$(".good-price small",row).style.color=g.change.startsWith("−")?"#e58b82":"#7ee0c0";el.append(row)})}
-function showDialog(kicker,title,message,icon="✦"){ $("#dialog-kicker").textContent=kicker;$("#dialog-title").textContent=title;$("#dialog-text").textContent=message;$("#dialog-icon").textContent=icon;$("#result-dialog").showModal()}
-function go(view){const target=$("#view-"+view);if(!target)return;$$(".view").forEach(v=>v.classList.toggle("active",v===target));$$(".nav-item").forEach(b=>b.classList.toggle("active",b.dataset.view===view));window.scrollTo({top:0,behavior:"smooth"});if(view==="empire")renderBusinesses()}
-$$(".nav-item").forEach(b=>b.addEventListener("click",()=>go(b.dataset.view)));
-$$("[data-go]").forEach(b=>b.addEventListener("click",()=>go(b.dataset.go)));
-$("#profile-open").addEventListener("click",()=>go("profile"));
-$("#buy-business").addEventListener("click",()=>{if(state.cash<5000)return toast("تحتاج إلى 5,000 رصيد لشراء منشأة.");state.cash-=5000;state.businesses.push({name:"استوديو نوفا",type:"خدمات رقمية",icon:"✧",income:160});save();updateWallet();renderBusinesses();toast("تمت إضافة منشأة جديدة إلى إمبراطوريتك.")});
-$("#quick-buy").addEventListener("click",()=>{if(state.cash<500)return toast("رصيدك غير كافٍ.");state.cash-=500;state.materials+=50;save();updateWallet();toast("وصلت 50 مادة إلى مخزونك.")});
-$("#simulate-battle").addEventListener("click",()=>{if(state.energy<15)return toast("تحتاج إلى 15 طاقة لبدء المحاكاة.");state.energy-=15;state.battles++;const power=1280+state.battles*25;const win=power>=1220;const reward=win?650:180;state.cash+=reward;state.influence+=win?18:5;save();updateWallet();showDialog("تقرير المواجهة",win?"انتصار تكتيكي!":"انسحاب منظم", "انتهت المحاكاة التدريبية. قوة فريقك "+fmt(power)+" مقابل 1,220. المكافأة: "+fmt(reward)+" رصيد و"+(win?18:5)+" نفوذ.","⚔")});
-$("#guild-chat").addEventListener("click",()=>showDialog("مجتمع روّاد الفجر","الدردشة قيد التجهيز","واجهة المجتمع معروضة كنموذج بصري. المحادثات الحقيقية ستُربط بقنوات خاصة ومحمية عند تفعيل اللعب الجماعي.","✧"));
-$$("[data-sector]").forEach(b=>b.addEventListener("click",()=>{const n=b.dataset.sector;$("#district-card").innerHTML='<div><span class="eyebrow">قطاع قابل للاستكشاف</span><h3>القطاع '+n+(n==="12"?" — ميناء الشمال":" — الحزام الصناعي")+'</h3><p>يمكنك إرسال استطلاع عند فتح نظام التنقل.</p></div><span class="owned-pill">متاح</span>';toast("تم تحديد القطاع "+n)}));
-$("#dialog-close").addEventListener("click",()=>$("#result-dialog").close());
-$$(".settings-list button").forEach(b=>b.addEventListener("click",()=>toast("هذه الميزة ضمن مراحل التطوير التالية.")));
-updateWallet();renderBusinesses();renderMarket();
+(()=>{"use strict";
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+const fmt=n=>new Intl.NumberFormat("en-US").format(n);
+const KEY="nova-competitive-preview-v1";
+const base={credits:24850,energy:76,influence:1240,materials:340,battles:12,upgrades:0};
+let state={...base,...read()};let toastTimer;
+function read(){try{return JSON.parse(localStorage.getItem(KEY))||{}}catch{return{}}}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(state))}catch{notify("تعذر حفظ بيانات العرض على هذا الجهاز.")}}
+function notify(msg){const el=$("#toast");el.textContent=msg;el.classList.add("show");clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove("show"),2400)}
+function feedback(){if(navigator.vibrate)navigator.vibrate(8)}
+function dialog(title,message,mark="✦",kicker="NOVA SYSTEM"){$("#dialog-title").textContent=title;$("#dialog-message").textContent=message;$("#dialog-mark").textContent=mark;$("#dialog-kicker").textContent=kicker;$("#action-dialog").showModal()}
+function update(){ $("#credits").textContent=fmt(state.credits);$("#energy").textContent=state.energy;$("#influence").textContent=fmt(state.influence);$("#battle-count").textContent=state.battles;$("#alloy-count").textContent=fmt(state.materials);$("#power").textContent=fmt(2860+state.upgrades*85);$("#income").textContent="+"+fmt(1240+state.upgrades*90);$("#asset-value").textContent=fmt(186420+state.upgrades*4200)+" ◈";$("#net-worth").textContent=fmt(186420+state.upgrades*4200)}
+function navigate(name){const target=$("#screen-"+name);if(!target)return;$$(".screen").forEach(x=>x.classList.toggle("active",x===target));$$(".nav-item").forEach(x=>x.classList.toggle("active",x.dataset.screen===name));window.scrollTo({top:0,behavior:"smooth"});feedback()}
+$$(".nav-item").forEach(b=>b.addEventListener("click",()=>navigate(b.dataset.screen)));
+$$("[data-go]").forEach(b=>b.addEventListener("click",()=>navigate(b.dataset.go)));
+$("#open-profile").addEventListener("click",()=>navigate("profile"));
+$("#notifications").addEventListener("click",()=>dialog("لا توجد إشعارات جديدة","ستظهر هنا تنبيهات المنافسات والصفقات والأنشطة المهمة عند ربط خدمات اللعب الجماعي.","♧","الإشعارات"));
+$("#run-simulation").addEventListener("click",()=>{if(state.energy<10)return notify("تحتاج إلى 10 طاقة.");state.energy-=10;state.battles++;state.credits+=320;state.influence+=12;save();update();feedback();dialog("اكتملت المحاكاة التدريبية","نتيجة محلية للعرض فقط: كفاءة التشكيلة 87%. حصلت على 320 رصيداً و12 نفوذاً. لم يتم الاتصال بلاعب حقيقي.","⚡","تقرير التدريب")});
+$("#buy-materials").addEventListener("click",()=>{if(state.credits<500)return notify("رصيدك لا يكفي.");state.credits-=500;state.materials+=50;save();update();feedback();notify("أضيفت 50 سبيكة إلى مخزون العرض.")});
+$("#upgrade-assets").addEventListener("click",()=>{if(state.credits<1800)return notify("تحتاج إلى 1,800 رصيد للتطوير.");state.credits-=1800;state.upgrades++;save();update();feedback();notify("تم تطوير الأصول في بيانات العرض.")});
+$$(".row-action").forEach(b=>b.addEventListener("click",()=>dialog(b.dataset.asset,"يمكن تطوير هذا الأصل أو متابعة إنتاجه. خيارات التطوير الكاملة ستُفعّل ضمن نظام الأصول.","↗","تفاصيل الأصل")));
+$$(".inventory-item").forEach(b=>b.addEventListener("click",()=>dialog(b.dataset.item,"عنصر ضمن مخزون العرض. ستظهر هنا خصائص العنصر واستخداماته وخيارات البيع أو التطوير.","⬡","تفاصيل المخزون")));
+$$(".join-challenge").forEach(b=>b.addEventListener("click",()=>dialog(b.dataset.name,"هذه بطاقة تحدٍ تجريبية. التسجيل والمنافسة الفعلية سيُفعّلان بعد ربط نظام الجلسات والنتائج بالخادم.","⚡","تفاصيل التحدي")));
+$("#request-alliance").addEventListener("click",()=>dialog("طلب الانضمام","واجهة طلب الانضمام تجريبية حالياً؛ لم يُرسل أي طلب إلى خادم أو منظمة حقيقية.","✦","المنظمات"));
+$("#alliance-info").addEventListener("click",()=>dialog("المنظمات","ستدعم المنظمات العضويات والرتب والصلاحيات والمشاريع الجماعية والمحادثات الخاصة.","♧","المجتمع"));
+$("#edit-profile").addEventListener("click",()=>dialog("تعديل الملف","إعدادات الهوية والصورة والخصوصية قيد التخطيط.","✎","الملف الشخصي"));
+$("#settings").addEventListener("click",()=>dialog("الإعدادات","ستتضمن إعدادات الحساب واللغة والصوت والاهتزاز والإشعارات والخصوصية.","⚙","الإعدادات"));
+$("#help").addEventListener("click",()=>dialog("المساعدة والدعم","مركز المساعدة والإبلاغ عن المشكلات سيُضاف قبل الإطلاق العام.","◉","الدعم"));
+$("#reset-demo").addEventListener("click",()=>{state={...base};save();update();notify("أُعيد ضبط بيانات العرض.")});
+$("#dialog-close").addEventListener("click",()=>$("#action-dialog").close());
+document.addEventListener("click",e=>{const b=e.target.closest("button");if(b&&!b.disabled&&b.id!=="dialog-close")feedback()});
+update();
 })();
