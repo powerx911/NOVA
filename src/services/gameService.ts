@@ -12,7 +12,6 @@ import {
   Timestamp,
   updateDoc,
   where,
-  writeBatch,
 } from 'firebase/firestore';
 import {
   COMPANY_SECTORS,
