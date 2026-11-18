@@ -1,25 +1,111 @@
 <!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#101827" />
-    <meta name="description" content="NOVA — project infrastructure is being prepared." />
-    <title>NOVA</title>
-    <style>
-      :root { color-scheme: dark; font-family: system-ui, sans-serif; background: #101827; color: #f8fafc; }
-      body { min-height: 100vh; margin: 0; display: grid; place-items: center; }
-      main { max-width: 36rem; padding: 2rem; text-align: center; }
-      h1 { font-size: clamp(3rem, 12vw, 5rem); letter-spacing: .12em; margin: 0; }
-      p { color: #aab7ca; line-height: 1.7; }
-      .status { display: inline-block; margin-top: 1rem; padding: .45rem .8rem; border: 1px solid #334155; border-radius: 999px; color: #93c5fd; font-size: .9rem; }
-    </style>
-  </head>
-  <body>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#101a27">
+  <meta name="description" content="NOVA — أعد بناء قلعتك، واستكشف المملكة، واصنع إرثك.">
+  <title>NOVA — مملكتك تبدأ من هنا</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./styles.css">
+  <script src="./app.js" defer></script>
+</head>
+<body>
+  <div class="game-shell">
+    <header class="topbar">
+      <a class="brand" href="#" aria-label="NOVA الرئيسية"><span class="brand-mark">✦</span><span>NOVA</span></a>
+      <div class="realm-label"><span class="live-dot"></span><span>مملكة 1</span></div>
+      <button class="icon-button" id="profile-button" aria-label="الملف الشخصي" title="الملف الشخصي">♙</button>
+    </header>
+
+    <section class="resource-strip" aria-label="موارد المملكة">
+      <div class="resource"><span class="resource-icon food">✿</span><span><small>الطعام</small><b id="food-value">1,250</b></span></div>
+      <div class="resource"><span class="resource-icon wood">♜</span><span><small>الخشب</small><b id="wood-value">980</b></span></div>
+      <div class="resource"><span class="resource-icon stone">◆</span><span><small>الحجر</small><b id="stone-value">720</b></span></div>
+      <div class="resource"><span class="resource-icon iron">⚒</span><span><small>الحديد</small><b id="iron-value">360</b></span></div>
+      <div class="resource"><span class="resource-icon gold">◈</span><span><small>الذهب</small><b id="gold-value">150</b></span></div>
+    </section>
+
     <main>
-      <h1>NOVA</h1>
-      <p>The project infrastructure is being prepared. The game has not started development yet.</p>
-      <span class="status">Coming soon</span>
+      <section class="screen active" id="screen-castle" aria-labelledby="castle-heading">
+        <div class="welcome-row">
+          <div><p class="eyebrow">انهض من بين الرماد</p><h1 id="castle-heading">قلعتك، قصتك</h1><p class="muted">كل إمبراطورية عظيمة بدأت بخطوة.</p></div>
+          <div class="level-medallion"><span>المستوى</span><strong id="keep-level">1</strong></div>
+        </div>
+
+        <div class="castle-scene">
+          <div class="scene-sky"></div><div class="scene-moon"></div>
+          <div class="mountain mountain-back"></div><div class="mountain mountain-front"></div>
+          <div class="castle-art" aria-label="رسم توضيحي لقلعة NOVA">
+            <div class="tower tower-left"><i></i><b></b></div><div class="wall"><i></i><i></i><i></i><div class="gate"></div></div><div class="tower tower-right"><i></i><b></b></div><div class="keep"><i></i><b></b><span></span></div>
+            <div class="flag flag-left">✦</div><div class="flag flag-right">✦</div>
+          </div>
+          <div class="scene-ground"></div>
+          <div class="scene-caption"><span class="status-pill"><i></i> آمنة</span><span id="castle-location">الإحداثيات: 12 : 18</span></div>
+        </div>
+
+        <div class="section-heading"><div><p class="eyebrow">إدارة المدينة</p><h2>مباني القلعة</h2></div><span class="count-label" id="building-count">4 مبانٍ</span></div>
+        <div class="building-grid" id="building-grid">
+          <article class="building-card" data-building="keep"><div class="building-icon keep-icon">♜</div><div class="building-info"><h3>القصر</h3><p>مركز تطور قلعتك</p><span class="building-level">المستوى <b>1</b></span></div><button class="upgrade-button" data-upgrade="keep">تطوير</button></article>
+          <article class="building-card" data-building="farm"><div class="building-icon farm-icon">✿</div><div class="building-info"><h3>المزرعة</h3><p>إنتاج الطعام</p><span class="building-level">المستوى <b>1</b></span></div><button class="upgrade-button" data-upgrade="farm">تطوير</button></article>
+          <article class="building-card" data-building="lumber"><div class="building-icon lumber-icon">♣</div><div class="building-info"><h3>منشرة الخشب</h3><p>إنتاج الأخشاب</p><span class="building-level">المستوى <b>1</b></span></div><button class="upgrade-button" data-upgrade="lumber">تطوير</button></article>
+          <article class="building-card" data-building="barracks"><div class="building-icon barracks-icon">⚔</div><div class="building-info"><h3>الثكنة</h3><p>تدريب قواتك</p><span class="building-level">المستوى <b>1</b></span></div><button class="upgrade-button" data-upgrade="barracks">تطوير</button></article>
+        </div>
+
+        <div class="production-panel">
+          <div><span class="production-icon">✧</span><div><h3>حصاد الموارد</h3><p>اجمع إنتاجاً أولياً لمواصلة البناء.</p></div></div>
+          <button class="primary-button" id="collect-button">جمع الموارد</button>
+        </div>
+      </section>
+
+      <section class="screen" id="screen-map" aria-labelledby="map-heading">
+        <div class="screen-title"><div><p class="eyebrow">العالم المفتوح</p><h1 id="map-heading">خريطة المملكة</h1><p class="muted">استكشف الأراضي واختر موقعك التالي.</p></div><span class="map-coordinates" id="map-coordinates">12 : 18</span></div>
+        <div class="map-legend"><span><i class="legend-castle"></i> قلعتك</span><span><i class="legend-village"></i> قرية</span><span><i class="legend-resource"></i> موارد</span><span><i class="legend-ruin"></i> أطلال</span></div>
+        <div class="map-frame"><div class="map-grid" id="map-grid" role="grid" aria-label="مواقع المملكة"></div></div>
+        <div class="map-hint" id="map-hint"><span>⌖</span> اختر موقعاً لمعرفة تفاصيله. استخدم غرض النقل المتقدم من الحقيبة لنقل قلعتك.</div>
+        <div class="location-card" id="location-card"><div><p class="eyebrow">الموقع المحدد</p><h3 id="location-name">غابة الصنوبر</h3><p id="location-description">أرض غنية بالأخشاب وهادئة.</p></div><span class="location-type" id="location-type">موارد</span></div>
+      </section>
+
+      <section class="screen" id="screen-bag" aria-labelledby="bag-heading">
+        <div class="screen-title"><div><p class="eyebrow">مخزونك الشخصي</p><h1 id="bag-heading">الحقيبة</h1><p class="muted">أغراضك وأدواتك في مكان واحد.</p></div><span class="bag-capacity" id="bag-capacity">4 / 20</span></div>
+        <div class="inventory-tabs"><button class="inventory-tab active" data-filter="all">الكل</button><button class="inventory-tab" data-filter="relocation">النقل</button><button class="inventory-tab" data-filter="boost">التعزيزات</button></div>
+        <div class="inventory-grid" id="inventory-grid">
+          <article class="item-card"><div class="item-art relocation-art">⌖</div><div class="item-copy"><span class="item-rarity">نادر</span><h3>نقل متقدم</h3><p>اختر موقعاً صالحاً على خريطة المملكة.</p><b>الكمية: 1</b></div><button class="item-action">استخدام</button></article>
+          <article class="item-card"><div class="item-art random-art">✧</div><div class="item-copy"><span class="item-rarity common">شائع</span><h3>نقل عشوائي</h3><p>انتقل إلى موقع صالح يختاره النظام.</p><b>الكمية: 1</b></div><button class="item-action">استخدام</button></article>
+          <article class="item-card"><div class="item-art boost-art">✿</div><div class="item-copy"><span class="item-rarity common">شائع</span><h3>حزمة مؤن</h3><p>أضف موارد إلى مخزون قلعتك.</p><b>الكمية: 2</b></div><button class="item-action">استخدام</button></article>
+        </div>
+        <p class="prototype-note">هذه نسخة تجريبية محلية؛ استخدام الأغراض هنا لا يؤثر في عالم أونلاين أو حساب حقيقي.</p>
+      </section>
+
+      <section class="screen" id="screen-quests" aria-labelledby="quests-heading">
+        <div class="screen-title"><div><p class="eyebrow">طريق إعادة البناء</p><h1 id="quests-heading">المهام</h1><p class="muted">خطواتك الأولى نحو مملكة قوية.</p></div><span class="quest-progress" id="quest-progress">0 / 3</span></div>
+        <div class="quest-list" id="quest-list">
+          <article class="quest-card"><span class="quest-symbol">⌂</span><div><h3>أعد بناء القصر</h3><p>طوّر مركز قلعتك إلى المستوى الثاني.</p><span class="quest-reward">المكافأة: 100 ذهب</span></div><span class="quest-state">قيد التنفيذ</span></article>
+          <article class="quest-card"><span class="quest-symbol">✿</span><div><h3>أمّن المؤونة</h3><p>اجمع الموارد من مخزون الإنتاج.</p><span class="quest-reward">المكافأة: 150 طعام</span></div><span class="quest-state">قيد التنفيذ</span></article>
+          <article class="quest-card"><span class="quest-symbol">⌖</span><div><h3>اكتشف المملكة</h3><p>افتح الخريطة وتفقد أحد المواقع.</p><span class="quest-reward">المكافأة: 80 خشب</span></div><span class="quest-state">قيد التنفيذ</span></article>
+        </div>
+      </section>
+
+      <section class="screen" id="screen-profile" aria-labelledby="profile-heading">
+        <div class="screen-title"><div><p class="eyebrow">هويتك في المملكة</p><h1 id="profile-heading">ملف اللاعب</h1></div></div>
+        <div class="profile-card"><div class="avatar">♙</div><div><h2>مؤسس القلعة</h2><p>مستكشف جديد في مملكة 1</p><span class="status-pill"><i></i> متصل محلياً</span></div></div>
+        <div class="profile-stats"><div><b id="profile-keep-level">1</b><span>مستوى القصر</span></div><div><b id="profile-buildings">4</b><span>المباني</span></div><div><b id="profile-quests">0</b><span>المهام المكتملة</span></div></div>
+        <div class="settings-card"><h3>إعدادات النموذج</h3><p>تُحفظ تجربة النموذج على هذا الجهاز فقط.</p><button class="secondary-button" id="reset-button">إعادة ضبط النموذج</button></div>
+      </section>
     </main>
-  </body>
+
+    <nav class="bottom-nav" aria-label="التنقل الرئيسي">
+      <button class="nav-item active" data-screen="castle"><span>♜</span><small>القلعة</small></button>
+      <button class="nav-item" data-screen="map"><span>⌖</span><small>الخريطة</small></button>
+      <button class="nav-item" data-screen="bag"><span>▣</span><small>الحقيبة</small><i class="nav-dot"></i></button>
+      <button class="nav-item" data-screen="quests"><span>⚑</span><small>المهام</small></button>
+      <button class="nav-item" data-screen="profile"><span>♙</span><small>حسابي</small></button>
+    </nav>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <dialog class="confirm-dialog" id="confirm-dialog"><div class="dialog-content"><span class="dialog-symbol" id="dialog-symbol">✦</span><p class="eyebrow" id="dialog-eyebrow">تأكيد العملية</p><h2 id="dialog-title">هل تريد المتابعة؟</h2><p id="dialog-description"></p><div class="dialog-actions"><button class="secondary-button" id="dialog-cancel">إلغاء</button><button class="primary-button" id="dialog-confirm">تأكيد</button></div></div></dialog>
+</body>
 </html>
