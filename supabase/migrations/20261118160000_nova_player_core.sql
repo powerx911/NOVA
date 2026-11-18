@@ -275,6 +275,10 @@ revoke all on function public.nova_upgrade_building(uuid, uuid) from public, ano
 grant execute on function public.nova_initialize_player(text) to authenticated;
 grant execute on function public.nova_upgrade_building(uuid, uuid) to authenticated;
 
+revoke all on public.nova_player_profiles, public.nova_player_economy, public.nova_castles,
+  public.nova_buildings, public.nova_command_receipts, public.nova_resource_ledger
+  from public, anon, authenticated;
+
 grant select, insert, update on public.nova_player_profiles to authenticated;
 grant select on public.nova_player_economy, public.nova_castles, public.nova_buildings,
   public.nova_command_receipts, public.nova_resource_ledger to authenticated;
