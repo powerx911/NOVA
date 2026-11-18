@@ -66,11 +66,12 @@ export function SocialHubView({ profile, myOrgMember, organizations, language, o
     if (!ms) return ar ? 'غير معروف' : 'unknown';
     const elapsed = Math.max(0, Date.now() - ms);
     const minutes = Math.floor(elapsed / 60_000);
-    if (minutes < 60) return ar ? `منذ ${Math.max(1, minutes)} دقيقة` : `${Math.max(1, minutes)}m`;
+    if (minutes < 1) return ar ? 'متصل الآن' : 'Online now';
+    if (minutes < 60) return ar ? `منذ ${minutes} دقيقة` : `${minutes}m`;
     const hours = Math.floor(minutes / 60);
     if (hours < 24) return ar ? `منذ ${hours} ${hours === 1 ? 'ساعة' : 'ساعات'}` : `${hours}h`;
-    const days = Math.floor(hours / 24);
-    return ar ? (days > 7 ? 'منذ أكثر من 7 أيام' : `منذ ${days} ${days === 1 ? 'يوم' : 'أيام'}`) : (days > 7 ? 'over 7 days ago' : `${days}d`);
+    const days = Math.min(7, Math.floor(hours / 24));
+    return ar ? `منذ ${days} ${days === 1 ? 'يوم' : 'أيام'}` : `${days}d`;
   };
   const presenceLabel = (uid: string) => {
     const presence = presenceByUid[uid];
@@ -451,7 +452,7 @@ export function SocialHubView({ profile, myOrgMember, organizations, language, o
       {mode === 'messages' && (
         <section className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-3 min-h-[420px]">
           <div className={(selectedConversation ? 'hidden lg:block ' : '') + 'rounded-2xl border border-white/8 bg-[#141821] p-3 space-y-2'}>
-            <h2 className="px-2 py-1 text-xs font-semibold text-[#9299A6]">{ar ? 'المحادثات' : 'Conversations'}</h2>
+            <div className="flex items-center justify-between gap-2 px-2 py-1"><h2 className="text-xs font-semibold text-[#9299A6]">{ar ? 'المحادثات' : 'Conversations'}</h2>{unreadConversations.length > 0 && <button type="button" onClick={() => setDismissedUnread((previous) => ({ ...previous, ...Object.fromEntries(unreadConversations.map((item) => [item.id, timestampToMs(item.lastMessageAt, Date.now())])) }))} className="text-[10px] font-semibold text-red-300 hover:text-red-200">{ar ? 'إغلاق إشعارات الرسائل' : 'Dismiss message alerts'}</button>}</div>
             {conversations.map((conversation) => {
               const otherUid = conversation.participants.find((uid) => uid !== profile.uid) || '';
               const name = conversation.participantNames?.[otherUid] || (ar ? 'لاعب' : 'Player');
