@@ -514,7 +514,6 @@ export function getAchievementProgress(
     stats: {
       tradesCount: number;
       companiesOwned: number;
-      propertiesOwned: number;
       totalProduced: number;
     };
   }
@@ -524,8 +523,6 @@ export function getAchievementProgress(
       return profile.stats.tradesCount;
     case 'companies':
       return profile.stats.companiesOwned;
-    case 'properties':
-      return profile.stats.propertiesOwned;
     case 'produced':
       return profile.stats.totalProduced;
     case 'reputation':
