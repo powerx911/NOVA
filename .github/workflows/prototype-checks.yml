@@ -1,6 +1,8 @@
 name: NOVA Prototype Checks
 
 on:
+  push:
+    branches: [feat/new-world-game-foundation]
   pull_request:
     branches: [main]
   workflow_dispatch:
@@ -25,7 +27,7 @@ jobs:
       - name: Validate JavaScript syntax
         run: node --check app.js
 
-      - name: Verify prototype assets and entry points
+      - name: Verify new game experience entry points
         shell: bash
         run: |
           test -s index.html
@@ -33,9 +35,15 @@ jobs:
           test -s app.js
           grep -Fq 'href="./styles.css"' index.html
           grep -Fq 'src="./app.js"' index.html
-          grep -Fq 'id="map-grid"' index.html
-          grep -Fq 'id="inventory-grid"' index.html
-          grep -Fq 'id="quest-list"' index.html
+          grep -Fq 'id="view-home"' index.html
+          grep -Fq 'id="view-empire"' index.html
+          grep -Fq 'id="view-world"' index.html
+          grep -Fq 'id="view-market"' index.html
+          grep -Fq 'id="view-conflict"' index.html
+          grep -Fq 'id="view-social"' index.html
+          grep -Fq 'id="simulate-battle"' index.html
+          grep -Fq 'id="business-list"' index.html
+          grep -Fq 'data-view="world"' index.html
 
       - name: Validate server-authoritative player migration contract
         run: node scripts/check-player-migration.mjs

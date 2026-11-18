@@ -1,35 +1,24 @@
 # NOVA
 
-NOVA is an original, Android-first persistent online strategy game in development. Its world is built around personal castles, a shared kingdom map, alliances, diplomacy, an interconnected economy, armies, and wars.
+NOVA is an original, Android-first 2D persistent multiplayer world simulation game in development. Its new direction combines player-owned businesses, a living economy, territory competition, organizations, and simulated conflicts — without nation-state management or direct-action combat.
 
-## Current playable work
+## Current experience
 
-The repository now contains the first **local interactive prototype**:
-- Castle management with four upgradeable buildings and resource costs.
-- A shared-world map mock-up with selectable locations.
-- A player bag with advanced relocation, random relocation, and supply items.
-- Starter objectives, rewards, and local progress saving.
-- Arabic-first, right-to-left, mobile-first interface.
+The first visual foundation is a mobile-first Arabic prototype featuring:
+- A modern world dashboard and illustrated city hero scene.
+- Player wallet, businesses, hourly income, and local business expansion.
+- A stylized interactive sector map.
+- A simulated player market and quick purchase action.
+- Organization membership, social activity, and conflict simulation.
+- Local preview persistence only.
 
-This is a front-end gameplay prototype only. Progress is stored in the current browser/device. There is no account system, multiplayer world, authoritative backend gameplay, real relocation, battle simulation, or production database schema yet. Prototype actions must not be mistaken for live online game behavior.
+**Important:** This is a front-end preview, not yet an online multiplayer game. Accounts, shared economy, live market orders, organization chat, real-time presence, territory ownership, and authoritative conflict resolution still require backend implementation and integration testing.
 
-## Project infrastructure
+## Infrastructure
 
-- GitHub repository `powerx911/NOVA` is the source of truth for source control, pull requests, CI, releases, and deployment.
-- GitHub Actions validates prototype source changes.
-- GitHub Pages is enabled and the latest deployment succeeded: https://powerx911.github.io/NOVA/. The deployed build is still a local-only prototype, not an online multiplayer release.
-- Existing Supabase project `NOVA` is the planned backend foundation for authentication, persistent data, trusted game rules, and authorized realtime features.
+- GitHub repository `powerx911/NOVA` is the source of truth for source control, pull requests, CI, and deployment.
+- GitHub Pages: https://powerx911.github.io/NOVA/
+- Existing Supabase project remains the planned backend for authentication, persistent game state, trusted commands, and authorized realtime features.
 - Vercel is not used.
 
-## Product and engineering foundation
-
-- `docs/PRODUCT_VISION.md` — product vision, autonomy, quality gates, and roadmap.
-- `docs/ONLINE_GAME_FOUNDATION.md` — online systems, alliances, economy, armies, security, and backend boundaries.
-- `docs/PLAYER_EXPERIENCE_AND_OPERATIONS.md` — progression, player experience, support, moderation, and live operations.
-- `PROJECT_STATUS.md` — current project state and engineering handover.
-
-## Security and delivery
-
-Never commit secrets, service-role keys, or private credentials. Browser/mobile clients must never decide authoritative balances, inventory consumption, relocation validity, battle results, or rewards. Those operations must be validated and committed by trusted server-side logic with authorization, idempotency, and audit records.
-
-GitHub is the source of truth for code, review, merge, CI, and deployment. No paid service, domain purchase, asset purchase, or destructive production data change may occur without the required owner approval.
+Never commit credentials or service-role keys. Client code must not authoritatively decide balances, inventory, market trades, territory ownership, or battle outcomes. Those operations must be validated server-side with authorization, transactions, idempotency, and audit records.
