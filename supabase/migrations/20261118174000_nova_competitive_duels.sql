@@ -11,7 +11,69 @@ alter table public.nova_competitive_activities
   add constraint nova_competitive_activities_activity_type_check
   check (activity_type in ('joined','operation','asset_upgrade','market_listing','market_sale','challenge_invite','challenge_result','challenge_decline'));
 
-create table if not exists public.nova_competitive_battles (
+
+alter table public.nova_competitive_wallets
+  add column if not exists energy_updated_at timestamptz not null default now();
+
+create or replace function private.nova_track_energy_spend()
+returns trigger language plpgsql set search_path = pg_catalog, public
+as $
+begin
+  if new.energy < old.energy then new.energy_updated_at := clock_timestamp(); end if;
+  return new;
+end;
+$;
+revoke all on function private.nova_track_energy_spend() from public, anon, authenticated;
+drop trigger if exists nova_track_energy_spend on public.nova_competitive_wallets;
+create trigger nova_track_energy_spend before update of energy on public.nova_competitive_wallets
+for each row execute function private.nova_track_energy_spend();
+
+create or replace function private.nova_regenerate_energy(p_user_id uuid)
+returns public.nova_competitive_wallets
+language plpgsql security definer
+set search_path = pg_catalog, public
+as $
+declare
+  v_wallet public.nova_competitive_wallets%rowtype;
+  v_ticks integer;
+  v_added integer;
+begin
+  select * into v_wallet from public.nova_competitive_wallets where user_id=p_user_id for update;
+  if not found or v_wallet.energy >= 100 then return v_wallet; end if;
+  v_ticks:=floor(extract(epoch from (clock_timestamp()-v_wallet.energy_updated_at))/300)::integer;
+  if v_ticks <= 0 then return v_wallet; end if;
+  v_added:=least(100-v_wallet.energy,v_ticks);
+  update public.nova_competitive_wallets
+    set energy=energy+v_added,
+        energy_updated_at=case when energy+v_added >= 100 then clock_timestamp() else energy_updated_at+(v_added*interval '5 minutes') end,
+        updated_at=now()
+    where user_id=p_user_id returning * into v_wallet;
+  return v_wallet;
+end;
+$;
+revoke all on function private.nova_regenerate_energy(uuid) from public, anon, authenticated;
+
+create or replace function private.nova_competitive_refresh_energy()
+returns jsonb language plpgsql security definer
+set search_path = pg_catalog, public
+as $
+declare v_user_id uuid:=auth.uid(); v_wallet public.nova_competitive_wallets%rowtype;
+begin
+  if v_user_id is null then raise exception 'Authentication required' using errcode='28000'; end if;
+  v_wallet:=private.nova_regenerate_energy(v_user_id);
+  return jsonb_build_object('wallet',to_jsonb(v_wallet));
+end;
+$;
+revoke all on function private.nova_competitive_refresh_energy() from public, anon, authenticated;
+grant execute on function private.nova_competitive_refresh_energy() to authenticated;
+
+create or replace function public.nova_competitive_refresh_energy()
+returns jsonb language sql security invoker
+set search_path = pg_catalog, public, private
+as $ select private.nova_competitive_refresh_energy(); $;
+revoke all on function public.nova_competitive_refresh_energy() from public, anon;
+grant execute on function public.nova_competitive_refresh_energy() to authenticated;
+\ncreate table if not exists public.nova_competitive_battles (
   id uuid primary key default gen_random_uuid(),
   challenger_id uuid not null references auth.users(id) on delete cascade,
   defender_id uuid not null references auth.users(id) on delete cascade,
@@ -22,7 +84,7 @@ create table if not exists public.nova_competitive_battles (
   status text not null default 'pending' check (status in ('pending','resolved','declined','expired')),
   challenger_score bigint,
   defender_score bigint,
-  winner_id uuid references auth.users(id),
+  winner_id uuid references auth.users(id) on delete set null,
   winner_name text,
   result_text text,
   created_at timestamptz not null default now(),
@@ -46,7 +108,46 @@ create policy "Players read battles they participate in"
 revoke all on public.nova_competitive_battles from public, anon, authenticated;
 grant select on public.nova_competitive_battles to authenticated;
 
-create or replace function private.nova_challenge_player(p_command_id uuid, p_target_name text)
+create or replace function private.nova_competitive_simulate(p_command_id uuid)
+returns jsonb
+language plpgsql
+security definer
+set search_path = pg_catalog, public
+as $
+declare
+  v_user_id uuid := auth.uid();
+  v_existing jsonb;
+  v_wallet public.nova_competitive_wallets%rowtype;
+  v_reward bigint;
+  v_result jsonb;
+  v_name text;
+begin
+  if v_user_id is null then raise exception 'Authentication required' using errcode = '28000'; end if;
+  if p_command_id is null then raise exception 'Command id is required' using errcode = '22023'; end if;
+  perform pg_advisory_xact_lock(hashtextextended(v_user_id::text || ':' || p_command_id::text, 0));
+  select result into v_existing from public.nova_competitive_commands where user_id=v_user_id and command_id=p_command_id;
+  if found then return v_existing || jsonb_build_object('replayed',true); end if;
+  perform private.nova_regenerate_energy(v_user_id);
+  select * into v_wallet from public.nova_competitive_wallets where user_id=v_user_id for update;
+  if not found then raise exception 'Player is not initialized' using errcode = 'P0002'; end if;
+  if v_wallet.energy < 10 then raise exception 'Insufficient energy' using errcode = '22023'; end if;
+  v_reward:=250+floor(v_wallet.power::numeric/25)::bigint;
+  update public.nova_competitive_wallets set energy=energy-10,credits=credits+v_reward,influence=influence+10,net_worth=net_worth+v_reward,updated_at=now()
+    where user_id=v_user_id returning * into v_wallet;
+  insert into public.nova_competitive_ledger(user_id,command_id,resource,delta,balance_after)
+  values (v_user_id,p_command_id,'energy',-10,v_wallet.energy),(v_user_id,p_command_id,'credits',v_reward,v_wallet.credits),(v_user_id,p_command_id,'influence',10,v_wallet.influence);
+  select display_name into v_name from public.nova_competitive_profiles where user_id=v_user_id;
+  insert into public.nova_competitive_activities(actor_name,activity_type,headline)
+  values (v_name,'operation',v_name || ' أكمل عملية وحقق ' || v_reward::text || ' رصيد');
+  v_result:=jsonb_build_object('success',true,'reward',v_reward,'wallet',to_jsonb(v_wallet));
+  insert into public.nova_competitive_commands(user_id,command_id,command_type,result)
+  values (v_user_id,p_command_id,'operation',v_result);
+  return v_result;
+end;
+$;
+revoke all on function private.nova_competitive_simulate(uuid) from public, anon, authenticated;
+grant execute on function private.nova_competitive_simulate(uuid) to authenticated;
+\ncreate or replace function private.nova_challenge_player(p_command_id uuid, p_target_name text)
 returns jsonb
 language plpgsql
 security definer
@@ -81,7 +182,7 @@ begin
     raise exception 'Challenge already pending' using errcode = '23505';
   end if;
   select p.display_name into v_challenger_name from public.nova_competitive_profiles p where p.user_id=v_user_id;
-  select power, energy into v_power, v_energy from public.nova_competitive_wallets where user_id=v_user_id for update;
+  perform private.nova_regenerate_energy(v_user_id);\n  select power, energy into v_power, v_energy from public.nova_competitive_wallets where user_id=v_user_id for update;
   if not found then raise exception 'Player wallet is missing' using errcode = 'P0002'; end if;
   select count(*) into v_pending from public.nova_competitive_battles
     where challenger_id=v_user_id and status='pending';
