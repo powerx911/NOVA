@@ -36,9 +36,10 @@ interface SocialHubViewProps {
   myOrgMember: OrganizationMember | null;
   organizations: Organization[];
   language: Language;
+  onUnreadCountChange: (count: number) => void;
 }
 
-export function SocialHubView({ profile, myOrgMember, organizations, language }: SocialHubViewProps) {
+export function SocialHubView({ profile, myOrgMember, organizations, language, onUnreadCountChange }: SocialHubViewProps) {
   const ar = language === 'ar';
   const [mode, setMode] = useState<'players' | 'messages' | 'global'>('players');
   const [search, setSearch] = useState('');
@@ -96,6 +97,7 @@ export function SocialHubView({ profile, myOrgMember, organizations, language }:
 
   const selectedConversationData = conversations.find((item) => item.id === selectedConversation) || null;
   const unreadConversations = conversations.filter((item) => item.lastSenderUid !== profile.uid && (!dismissedUnread[item.id] || timestampToMs(item.lastMessageAt, 0) > dismissedUnread[item.id]));
+  useEffect(() => { onUnreadCountChange(unreadConversations.length); }, [unreadConversations.length, onUnreadCountChange]);
   const targetUid = selectedConversationData?.participants.find((uid) => uid !== profile.uid) || '';
 
   useEffect(() => {
