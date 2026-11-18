@@ -35,9 +35,12 @@ export function FactoriesPanel({ factories, inventory, profile, wallet, language
   const operatingCost = selected && selectedResource
     ? selectedResource.operatingCostPerHour * (1 + (selected.level - 1) * 0.025) * (1 - selected.skillLevel * 0.015)
     : 0;
-  const warehouseLevel = selected?.warehouseLevel ?? 0;
-  const warehouseCapacity = selected ? 150 + selected.level * 100 + warehouseLevel * 500 : 0;
-  const warehouseUpgradeCost = selected && selectedResource ? Math.ceil(selectedResource.foundingCost * 0.65 * Math.pow(warehouseLevel + 1, 1.45)) : 0;
+  const warehouseLevel = Math.max(1, selected?.warehouseLevel ?? 1);
+  const warehouseValueCaps = [3500, 7000, 14000, 25000, 40000];
+  const warehouseUpgradeCosts = [1500, 4000, 10000, 25000];
+  const warehouseUnitPrice = resourceItem?.basePrice ?? 30;
+  const warehouseCapacity = selected ? Math.floor(warehouseValueCaps[warehouseLevel - 1] / warehouseUnitPrice) : 0;
+  const warehouseUpgradeCost = warehouseUpgradeCosts[warehouseLevel - 1] ?? 0;
   const selectedResourceOwned = selected ? inventoryMap.get(selected.resourceId) ?? 0 : 0;
   const upgradeCost = selected && selectedResource ? Math.ceil(selectedResource.foundingCost * 0.18 * Math.pow(selected.level, 1.25)) : 0;
   const upgradeMaterials = selected && selectedResource ? Math.ceil(selected.level * selectedResource.rarityFactor * 2) : 0;
@@ -182,11 +185,11 @@ export function FactoriesPanel({ factories, inventory, profile, wallet, language
             </div>
             <div className="rounded-xl border border-white/8 bg-[#141821] p-3 space-y-2">
               <div className="flex items-center justify-between gap-2">
-                <div><p className="text-xs font-semibold text-[#F4F5F7]">{isAr ? 'توسعة المستودع' : 'Warehouse expansion'} · Lv.{warehouseLevel}/20</p><p className="mt-1 text-[11px] text-[#9299A6]">{isAr ? 'كل مستوى يضيف 500 وحدة إلى سعة التخزين.' : 'Each level adds 500 storage capacity.'}</p></div>
-                <span className="text-xs font-mono-num text-emerald-300">+500</span>
+                <div><p className="text-xs font-semibold text-[#F4F5F7]">{isAr ? 'توسعة المستودع' : 'Warehouse expansion'} · Lv.{warehouseLevel}/5</p><p className="mt-1 text-[11px] text-[#9299A6]">{isAr ? 'سعة المستودع ترتفع تدريجياً مثل خزينة أرباح الشركات، وتُحسب حسب قيمة المورد.' : 'Storage capacity scales like company profit vaults and is adjusted to the resource value.'}</p></div>
+                <span className="text-xs font-mono-num text-emerald-300">{warehouseLevel < 5 ? `+${Math.max(0, Math.floor(warehouseValueCaps[warehouseLevel] / warehouseUnitPrice) - warehouseCapacity)}` : 'MAX'}</span>
               </div>
               {selectedWarehouseUpgradeEnd > 0 && <p className="text-xs text-amber-300">{selectedWarehouseUpgradeEnd > now ? (isAr ? 'توسعة المستودع قيد التنفيذ…' : 'Warehouse expansion in progress…') : (isAr ? 'اكتمل الوقت، جارٍ إنهاء التوسعة.' : 'Timer complete; finalizing expansion.')}</p>}
-              <button type="button" disabled={warehouseLevel >= 20 || selectedWarehouseUpgradeEnd > now || selectedUpgradeEnd > now || (wallet?.balance ?? 0) < warehouseUpgradeCost || busyKey === `warehouse_${selected.id}`} onClick={() => void runAction(`warehouse_${selected.id}`, () => upgradeFactoryWarehouse(selected.id), isAr ? 'بدأت توسعة المستودع.' : 'Warehouse expansion started.')} className="w-full min-h-[40px] rounded-lg border border-white/10 bg-[#0B0D12] px-3 text-xs font-semibold text-[#F4F5F7] disabled:opacity-40">{warehouseLevel >= 20 ? (isAr ? 'وصل المستودع إلى الحد الأقصى' : 'Warehouse max level reached') : (isAr ? `توسعة المستودع · ${warehouseUpgradeCost.toLocaleString()} import { ArrowUpCircle, Factory, Package, Pause, Play, Wrench } from 'lucide-react';
+              <button type="button" disabled={warehouseLevel >= 5 || selectedWarehouseUpgradeEnd > now || selectedUpgradeEnd > now || (wallet?.balance ?? 0) < warehouseUpgradeCost || busyKey === `warehouse_${selected.id}`} onClick={() => void runAction(`warehouse_${selected.id}`, () => upgradeFactoryWarehouse(selected.id), isAr ? 'بدأت توسعة المستودع.' : 'Warehouse expansion started.')} className="w-full min-h-[40px] rounded-lg border border-white/10 bg-[#0B0D12] px-3 text-xs font-semibold text-[#F4F5F7] disabled:opacity-40">{warehouseLevel >= 20 ? (isAr ? 'وصل المستودع إلى المستوى الأقصى' : 'Warehouse max level reached') : (isAr ? `توسعة المستودع · ${warehouseUpgradeCost.toLocaleString()} import { ArrowUpCircle, Factory, Package, Pause, Play, Wrench } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { useToast } from '../../components/ui/ToastProvider';
 import { FACTORY_RESOURCES, ITEM_MAP } from '../../data/catalog';
