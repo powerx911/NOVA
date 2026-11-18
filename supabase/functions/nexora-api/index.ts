@@ -323,6 +323,39 @@ Deno.serve(async (req: Request) => {
       return json({ ok: true, data }, 200, origin);
     }
 
+    if (body.action === "update_settings") {
+      const language = body.language === "en" ? "en" : body.language === "ar" ? "ar" : "";
+      if (!language || typeof body.notificationsEnabled !== "boolean") return json({ error: "INVALID_SETTINGS" }, 400, origin);
+      const { data, error } = await db.rpc("update_player_settings", {
+        p_uid: identity.uid, p_language: language, p_notifications_enabled: body.notificationsEnabled,
+      });
+      if (error) return json({ error: error.message.includes("ACCOUNT_NOT_FOUND") ? "ACCOUNT_NOT_FOUND" : "SETTINGS_UPDATE_FAILED" }, 409, origin);
+      return json({ ok: true, data }, 200, origin);
+    }
+
+    if (body.action === "update_avatar") {
+      const avatarId = typeof body.avatarId === "string" ? body.avatarId.trim() : "";
+      const { data, error } = await db.rpc("update_player_avatar", { p_uid: identity.uid, p_avatar_id: avatarId });
+      if (error) {
+        const known = ["INVALID_AVATAR","ACCOUNT_NOT_FOUND"].find((code) => error.message.includes(code));
+        return json({ error: known ?? "AVATAR_UPDATE_FAILED" }, 409, origin);
+      }
+      return json({ ok: true, data }, 200, origin);
+    }
+
+    if (body.action === "mark_notification_read") {
+      const notificationId = typeof body.notificationId === "string" ? body.notificationId : "";
+      const { data, error } = await db.rpc("mark_notification_read", { p_uid: identity.uid, p_notification_id: notificationId });
+      if (error) return json({ error: error.message.includes("NOTIFICATION_NOT_FOUND") ? "NOTIFICATION_NOT_FOUND" : "NOTIFICATION_UPDATE_FAILED" }, 409, origin);
+      return json({ ok: true, data }, 200, origin);
+    }
+
+    if (body.action === "mark_all_notifications_read") {
+      const { data, error } = await db.rpc("mark_all_notifications_read", { p_uid: identity.uid });
+      if (error) return json({ error: "NOTIFICATION_UPDATE_FAILED" }, 409, origin);
+      return json({ ok: true, data }, 200, origin);
+    }
+
     return json({ error: "UNKNOWN_ACTION" }, 400, origin);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
