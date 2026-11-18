@@ -20,7 +20,7 @@ export function ManufacturingPanel({ profile, wallet, inventory, language, onNav
   const { showToast } = useToast();
   const [quantity, setQuantity] = useState(1);
   const [busyKey, setBusyKey] = useState<string | null>(null);
-  const inventoryMap = new Map(inventory.map((item) => [item.itemId, item.quantity]));
+  const inventoryMap = new Map<string, number>(inventory.map((item) => [item.itemId, item.quantity] as [string, number]));
 
   async function handleManufacture(recipeId: string) {
     const batches = Math.max(1, Math.min(999, Math.floor(quantity || 1)));
