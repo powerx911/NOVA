@@ -189,8 +189,9 @@ Statuses below distinguish completed source changes from verified live behavior.
 - This is a research/documentation change only: no game code, assets, dependencies, backend schema, secrets, or deployment settings were changed.
 - Findings explicitly separate reusable design ideas from incomplete/unsafe legacy implementation paths and third-party assets requiring license review.
 - Branch: `research/old-games-and-open-source-systems`.
-- PR: pending.
-- Checks: source links and repository contents reviewed; documentation consistency review only. Runtime tests are not applicable because no executable code changed.
+- PR: https://github.com/powerx911/NOVA/pull/4 — merged (squash).
+- Merge commit: `3dc6491bd326c34dc50e0f85077bfc77d84857b7`.
+- Checks: source links and repository contents reviewed; documentation consistency review only. Runtime tests are not applicable because no executable code changed. GitHub commit status had no configured status checks for this documentation-only commit.
 - Deployment: not applicable; no deployment configuration or runtime code changed.
 
 
