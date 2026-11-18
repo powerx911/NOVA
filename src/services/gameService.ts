@@ -1140,51 +1140,23 @@ export async function withdrawFromOrgTreasury(
 }
 
 export async function updatePlayerSettings(
-  uid: string,
+  _uid: string,
   language: Language,
   notificationsEnabled: boolean
 ): Promise<void> {
-  try {
-    await updateDoc(doc(db, 'users_private', uid), {
-      language,
-      notificationsEnabled,
-      updatedAt: serverTimestamp(),
-    });
-  } catch (error) {
-    handleFirestoreError(error, OperationType.UPDATE, `users_private/${uid}`);
-  }
+  await nexoraApi('update_settings', { language, notificationsEnabled });
 }
 
-export async function updatePlayerAvatar(uid: string, avatarId: string): Promise<void> {
-  try {
-    await updateDoc(doc(db, 'profiles', uid), {
-      avatarId,
-      updatedAt: serverTimestamp(),
-    });
-  } catch (error) {
-    handleFirestoreError(error, OperationType.UPDATE, `profiles/${uid}`);
-  }
+export async function updatePlayerAvatar(_uid: string, avatarId: string): Promise<void> {
+  await nexoraApi('update_avatar', { avatarId });
 }
 
 export async function markNotificationRead(notifId: string): Promise<void> {
-  try {
-    await updateDoc(doc(db, 'notifications', notifId), { read: true });
-  } catch (error) {
-    handleFirestoreError(error, OperationType.UPDATE, `notifications/${notifId}`);
-  }
+  await nexoraApi('mark_notification_read', { notificationId: notifId });
 }
 
-export async function markAllNotificationsRead(notifIds: string[]): Promise<void> {
-  if (!notifIds.length) return;
-  try {
-    const batch = writeBatch(db);
-    for (const id of notifIds) {
-      batch.update(doc(db, 'notifications', id), { read: true });
-    }
-    await batch.commit();
-  } catch (error) {
-    handleFirestoreError(error, OperationType.UPDATE, 'notifications');
-  }
+export async function markAllNotificationsRead(_notifIds: string[]): Promise<void> {
+  await nexoraApi('mark_all_notifications_read');
 }
 
 export async function fetchLeaderboards(): Promise<{
