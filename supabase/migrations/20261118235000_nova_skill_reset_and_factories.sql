@@ -163,7 +163,7 @@ begin
     return jsonb_build_object('produced',0,'operating_cost',0,'warehouse_qty',v_factory.warehouse_qty,'capacity',v_capacity);
   end if;
 
-  v_rate:=v_cfg.production_rate*(1+greatest(0,v_factory.level-1)*0.12)*(1+v_factory.skill_level*0.03);
+  v_rate:=v_cfg.production_rate*(1+greatest(0,v_factory.level-1)*0.08)*(1+v_factory.skill_level*0.02);
   v_expense:=v_cfg.operating_cost*(1+greatest(0,v_factory.level-1)*0.10)*(1-v_factory.skill_level*0.015);
   v_hours:=least(v_elapsed,greatest(0,(v_space-v_factory.production_remainder)/v_rate));
   v_raw_cost:=v_factory.operating_cost_remainder+v_expense*v_hours;
