@@ -44,6 +44,7 @@ function NexoraAppContent() {
         onLoginWithEmail={game.loginWithEmail}
         onRegisterWithEmail={game.registerWithEmail}
         onGuestLogin={game.loginAsGuest}
+        onBack={game.logout}
       />
     );
   }
@@ -60,6 +61,7 @@ function NexoraAppContent() {
         onLoginWithEmail={game.loginWithEmail}
         onRegisterWithEmail={game.registerWithEmail}
         onGuestLogin={game.loginAsGuest}
+        onBack={game.logout}
         isGuest={game.authUser.isAnonymous}
       />
     );
