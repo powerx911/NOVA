@@ -29,7 +29,7 @@ export function FactoriesPanel({ factories, inventory, profile, wallet, language
   const selectedUpgradeEnd = selected?.upgradeEndsAt ? timestampToMs(selected.upgradeEndsAt) : 0;
   const resourceItem = selected ? ITEM_MAP[selected.resourceId] : null;
   const productionRate = selected && selectedResource
-    ? selectedResource.productionPerHour * (1 + (selected.level - 1) * 0.12) * (1 + selected.skillLevel * 0.03)
+    ? selectedResource.productionPerHour * (1 + (selected.level - 1) * 0.08) * (1 + selected.skillLevel * 0.02)
     : 0;
   const operatingCost = selected && selectedResource
     ? selectedResource.operatingCostPerHour * (1 + (selected.level - 1) * 0.10) * (1 - selected.skillLevel * 0.015)
@@ -169,7 +169,7 @@ export function FactoriesPanel({ factories, inventory, profile, wallet, language
               <button type="button" disabled={selected.skillLevel >= 10 || selectedResourceOwned < skillMaterials || (wallet?.balance ?? 0) < skillCost || busyKey === `skill_${selected.id}`} onClick={() => void runAction(`skill_${selected.id}`, () => upgradeFactorySkill(selected.id), isAr ? 'تم تطوير مهارة تشغيل المصنع.' : 'Factory operator skill upgraded.')} className="min-h-[42px] rounded-xl border border-white/10 bg-[#141821] px-3 text-xs font-semibold text-[#F4F5F7] disabled:opacity-40"><Wrench className="me-1 inline h-4 w-4" />{isAr ? `تطوير المهارة · ${skillCost.toLocaleString()}` : `Train skill · ${skillCost.toLocaleString()}`}</button>
             </div>
             <p className="text-[11px] text-[#77808F]">{isAr ? `ترقية المصنع تستهلك ${upgradeMaterials} من ${selectedResource.nameAr}. وتطوير المهارة يستهلك ${skillMaterials} من المورد نفسه.` : `Factory upgrade consumes ${upgradeMaterials} units of ${selectedResource.nameEn}; skill training consumes ${skillMaterials}.`}</p>
-            <p className="text-[11px] text-[#77808F]">{isAr ? `كل مستوى في مهارة التشغيل يزيد الإنتاج 3% ويخفض مصاريف التشغيل 1.5%. المتوفر لديك: ${selectedResourceOwned} وحدة.` : `Each operator skill level increases output by 3% and reduces operating costs by 1.5%. You own ${selectedResourceOwned} units.`}</p>
+            <p className="text-[11px] text-[#77808F]">{isAr ? `كل مستوى في مهارة التشغيل يزيد الإنتاج 2% ويخفض مصاريف التشغيل 1.5%. المتوفر لديك: ${selectedResourceOwned} وحدة.` : `Each operator skill level increases output by 2% and reduces operating costs by 1.5%. You own ${selectedResourceOwned} units.`}</p>
             <div className="flex flex-wrap items-end gap-2 border-t border-white/8 pt-3">
               <label className="min-w-0 flex-1 space-y-1"><span className="text-[11px] text-[#9299A6]">{isAr ? 'سحب من المستودع إلى حقيبتك' : 'Withdraw to inventory'}</span><input type="number" min="1" max={selected.warehouseQty} value={withdrawAmount} onChange={(event) => setWithdrawAmount(Math.max(1, Math.min(1_000_000, Number(event.target.value) || 1)))} className="w-full min-h-[40px] rounded-lg border border-white/10 bg-[#141821] px-3 text-sm text-[#F4F5F7]" /></label>
               <button type="button" disabled={selected.warehouseQty < 1 || withdrawAmount > selected.warehouseQty || busyKey === `withdraw_${selected.id}`} onClick={() => void runAction(`withdraw_${selected.id}`, () => withdrawFactoryWarehouse(selected.id, withdrawAmount), isAr ? 'تم نقل الموارد إلى حقيبتك.' : 'Resources moved to your inventory.')} className="min-h-[40px] rounded-lg bg-[#1B2230] px-4 text-xs font-semibold text-[#F4F5F7] disabled:opacity-40"><Package className="me-1 inline h-4 w-4" />{isAr ? 'سحب الموارد' : 'Withdraw'}</button>
