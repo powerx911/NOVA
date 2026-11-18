@@ -660,7 +660,7 @@ export function BusinessHubView({
                   ))}
                 </div>
               </div>
-            )
+            )}
             </div>
           )}
         </div>
