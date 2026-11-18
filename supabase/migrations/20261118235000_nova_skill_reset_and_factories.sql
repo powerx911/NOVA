@@ -84,7 +84,7 @@ revoke all on nexora.factories from public,anon,authenticated;
 create or replace function nexora.factory_resource_config(p_resource_id text)
 returns table(founding_cost bigint, production_rate numeric, operating_cost numeric, rarity_factor numeric)
 language sql immutable set search_path = '' as $$
-  select * from (values
+  select founding_cost,production_rate,operating_cost,rarity_factor from (values
     ('copper_wire'::text, 5000::bigint, 3.00::numeric, 160.00::numeric, 1.00::numeric),
     ('silicon_ore', 6500, 2.40, 190.00, 1.20),
     ('energy_cells', 8000, 2.00, 230.00, 1.40),
