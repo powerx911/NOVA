@@ -34,7 +34,7 @@ export function FactoriesPanel({ factories, inventory, profile, wallet, language
   const operatingCost = selected && selectedResource
     ? selectedResource.operatingCostPerHour * (1 + (selected.level - 1) * 0.025) * (1 - selected.skillLevel * 0.015)
     : 0;
-  const warehouseCapacity = selected ? 150 + selected.level * 100 : 0;
+  const warehouseCapacity = selected ? 150 + selected.level * 100 + (selected.warehouseLevel ?? 0) * 500 : 0;
   const selectedResourceOwned = selected ? inventoryMap.get(selected.resourceId) ?? 0 : 0;
   const upgradeCost = selected && selectedResource ? Math.ceil(selectedResource.foundingCost * 0.18 * Math.pow(selected.level, 1.25)) : 0;
   const upgradeMaterials = selected && selectedResource ? Math.ceil(selected.level * selectedResource.rarityFactor * 2) : 0;
