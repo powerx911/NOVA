@@ -15,11 +15,10 @@ The ambition is to create a memorable game with a coherent world, satisfying mom
 Current user-defined direction: **online-first, persistent multiplayer competition**, with alliances, diplomacy, economy, armies, and wars at its core. Professional player profiles, friends, private messaging, and global chat are foundational—not optional add-ons.
 
 Why this direction:
-- VORZANE provides a relevant prior RPG design foundation: character classes, progression, equipment, dungeons, expeditions, roaming events, and long quests.
-- NEXORA provides optional supporting patterns for crafting, resource economies, trading, organizations, and world events.
-- The two projects should not be indiscriminately merged. NOVA must have one understandable core fantasy and gameplay loop; secondary systems are added only when they strengthen it.
-
-The exact setting, art direction, camera, combat model, multiplayer scope, and engine remain product decisions to be resolved through prototypes and technical evaluation. The agent is authorized to make and document these decisions without asking the user to design the game.
+- The owner requires a persistent online world where players form alliances, communicate, build economic strength, negotiate, command armies, and compete over time.
+- The social and strategic loops must reinforce one another: diplomacy affects trade and war; the economy enables military readiness; wars change territory, resources, and alliance standing; profiles and communication make relationships visible.
+- NEXORA may inform carefully scoped economy, market, organization, and production patterns. VORZANE may inform selected progression or event systems only if later evidence shows they fit. Neither project's code or assets should be copied without technical and license review.
+- The final genre label, setting, art direction, camera, battle presentation, session cadence, map/world structure, and client engine remain intentionally undecided. Compare options and validate a focused prototype against the online-first requirements before locking them.
 
 ## 3. Delegated autonomy
 
@@ -53,7 +52,7 @@ Never ask the user to paste secrets into chat. Use authorized integrations and s
 2. **Gameplay before feature count:** every system must support the core fantasy, create meaningful choices, or improve the player experience.
 3. **Mobile-first, Android-first:** touch-first controls, portrait-first layouts unless gameplay demands landscape, safe areas, responsive scaling, readable type, haptics where useful, and efficient performance on mid-range devices.
 4. **Immediate clarity:** the player should understand what they can do, what happened, what they earned, and what to do next.
-5. **Meaningful progression:** rewards, equipment, quests, difficulty, and unlocks should form a coherent progression curve.
+5. **Meaningful strategic progression:** personal reputation, alliance contribution, economic development, military capabilities, diplomatic influence, and seasonal achievements should create long-term goals without runaway power gaps.
 6. **Fairness and trust:** no fake rewards, deceptive timers, pay-to-win pressure, hidden costs, or arbitrary loss of progress.
 7. **Reliable persistence:** versioned saves, recovery paths, clear offline behavior, and server authority for valuable shared state.
 8. **Distinctive art and sound:** a consistent visual language and intentional audio identity; no random asset collage or unlicensed content.
