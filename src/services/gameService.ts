@@ -286,6 +286,17 @@ export async function listCompanyForAuction(companyId: string, startingPriceRaw:
   }
 }
 
+export async function listFactoryForAuction(factoryId: string, startingPriceRaw: number): Promise<void> {
+  const startingPrice = Number.isFinite(startingPriceRaw) ? Math.floor(startingPriceRaw) : 0;
+  if (!factoryId || startingPrice < 1) throw new Error('INVALID_STARTING_PRICE');
+  try {
+    await nexoraApi('list_factory_for_auction', { factoryId, startingPrice });
+  } catch (error) {
+    if (error instanceof Error && 'code' in error) throw new Error(String((error as { code?: unknown }).code ?? 'FACTORY_AUCTION_LIST_FAILED'));
+    throw error;
+  }
+}
+
 export async function placeCompanyAuctionBid(auctionId: string, amountRaw: number): Promise<void> {
   const amount = Number.isFinite(amountRaw) ? Math.floor(amountRaw) : 0;
   if (!auctionId || amount < 1) throw new Error('INVALID_BID');
@@ -294,6 +305,18 @@ export async function placeCompanyAuctionBid(auctionId: string, amountRaw: numbe
     if (result.ended) throw new Error('AUCTION_ENDED');
   } catch (error) {
     if (error instanceof Error && 'code' in error) throw new Error(String((error as { code?: unknown }).code ?? 'COMPANY_AUCTION_BID_FAILED'));
+    throw error;
+  }
+}
+
+export async function placeFactoryAuctionBid(auctionId: string, amountRaw: number): Promise<void> {
+  const amount = Number.isFinite(amountRaw) ? Math.floor(amountRaw) : 0;
+  if (!auctionId || amount < 1) throw new Error('INVALID_BID');
+  try {
+    const result = await nexoraApi<{ ended?: boolean }>('place_factory_auction_bid', { auctionId, amount });
+    if (result.ended) throw new Error('AUCTION_ENDED');
+  } catch (error) {
+    if (error instanceof Error && 'code' in error) throw new Error(String((error as { code?: unknown }).code ?? 'FACTORY_AUCTION_BID_FAILED'));
     throw error;
   }
 }
@@ -336,6 +359,12 @@ export async function upgradeFactory(factoryId: string): Promise<void> {
 }
 export async function completeFactoryUpgrade(factoryId: string): Promise<void> {
   await callFactoryAction('complete_factory_upgrade', factoryId);
+}
+export async function upgradeFactoryWarehouse(factoryId: string): Promise<void> {
+  await callFactoryAction('upgrade_factory_warehouse', factoryId);
+}
+export async function completeFactoryWarehouseUpgrade(factoryId: string): Promise<void> {
+  await callFactoryAction('complete_factory_warehouse_upgrade', factoryId);
 }
 export async function upgradeFactorySkill(factoryId: string): Promise<void> {
   await callFactoryAction('upgrade_factory_skill', factoryId);

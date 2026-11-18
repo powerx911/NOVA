@@ -423,7 +423,8 @@ Deno.serve(async (req: Request) => {
 
     if (body.action === "sync_factory" || body.action === "upgrade_factory" ||
         body.action === "complete_factory_upgrade" || body.action === "upgrade_factory_skill" ||
-        body.action === "withdraw_factory_warehouse" || body.action === "set_factory_active") {
+        body.action === "withdraw_factory_warehouse" || body.action === "set_factory_active" ||
+        body.action === "upgrade_factory_warehouse" || body.action === "complete_factory_warehouse_upgrade") {
       const factoryId = typeof body.factoryId === "string" ? body.factoryId : "";
       if (!factoryId || factoryId.length > 128) return json({ error: "INVALID_ARGUMENT" }, 400, origin);
       let rpcName = "sync_factory_production";
@@ -431,6 +432,8 @@ Deno.serve(async (req: Request) => {
       if (body.action === "upgrade_factory") rpcName = "upgrade_factory";
       else if (body.action === "complete_factory_upgrade") rpcName = "complete_factory_upgrade";
       else if (body.action === "upgrade_factory_skill") rpcName = "upgrade_factory_skill";
+      else if (body.action === "upgrade_factory_warehouse") rpcName = "upgrade_factory_warehouse";
+      else if (body.action === "complete_factory_warehouse_upgrade") rpcName = "complete_factory_warehouse_upgrade";
       else if (body.action === "set_factory_active") {
         rpcName = "set_factory_active";
         args = { ...args, p_active: body.active === true };
@@ -470,6 +473,17 @@ Deno.serve(async (req: Request) => {
       return json({ ok: true, data }, 200, origin);
     }
 
+    if (body.action === "list_factory_for_auction") {
+      const factoryId = typeof body.factoryId === "string" ? body.factoryId : "";
+      const startingPrice = typeof body.startingPrice === "number" && Number.isFinite(body.startingPrice) ? Math.floor(body.startingPrice) : 0;
+      const { data, error } = await db.rpc("list_factory_for_auction", { p_uid: identity.uid, p_factory_id: factoryId, p_starting_price: startingPrice });
+      if (error) {
+        const known = ["FACTORY_NOT_FOUND","UNAUTHORIZED","FACTORY_LEVEL_TOO_LOW","FACTORY_ALREADY_LISTED","FACTORY_UPGRADE_IN_PROGRESS","INVALID_STARTING_PRICE"].find((code) => error.message.includes(code));
+        return json({ error: known ?? "FACTORY_AUCTION_LIST_FAILED" }, 409, origin);
+      }
+      return json({ ok: true, data }, 201, origin);
+    }
+
     if (body.action === "list_company_for_auction") {
       const companyId = typeof body.companyId === "string" ? body.companyId : "";
       const startingPrice = typeof body.startingPrice === "number" && Number.isFinite(body.startingPrice)
@@ -483,6 +497,17 @@ Deno.serve(async (req: Request) => {
         return json({ error: known ?? "COMPANY_AUCTION_LIST_FAILED" }, 409, origin);
       }
       return json({ ok: true, data }, 201, origin);
+    }
+
+    if (body.action === "place_factory_auction_bid") {
+      const auctionId = typeof body.auctionId === "string" ? body.auctionId : "";
+      const amount = typeof body.amount === "number" && Number.isFinite(body.amount) ? Math.floor(body.amount) : 0;
+      const { data, error } = await db.rpc("place_factory_auction_bid", { p_uid: identity.uid, p_auction_id: auctionId, p_amount: amount });
+      if (error) {
+        const known = ["AUCTION_NOT_FOUND","AUCTION_NOT_ACTIVE","CANNOT_BID_OWN_FACTORY","BID_TOO_LOW","ACCOUNT_NOT_FOUND","FACTORY_CAPACITY_REACHED","INSUFFICIENT_FUNDS"].find((code) => error.message.includes(code));
+        return json({ error: known ?? "FACTORY_AUCTION_BID_FAILED" }, 409, origin);
+      }
+      return json({ ok: true, data }, 200, origin);
     }
 
     if (body.action === "place_company_auction_bid") {

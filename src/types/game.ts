@@ -187,9 +187,11 @@ export interface Company {
 
 export interface CompanyAuction {
   id: string;
-  companyId: string;
+  assetType?: 'company' | 'factory';
+  factoryId?: string | null;
+  companyId: string | null;
   companyName: string;
-  companySector: CompanySector;
+  companySector: CompanySector | 'factory';
   companyLevel: number;
   sellerUid: string;
   sellerName: string;
@@ -214,7 +216,7 @@ export interface CompanyLog {
   createdAt: unknown;
 }
 
-export type FactoryResourceId = 'copper_wire' | 'silicon_ore' | 'energy_cells' | 'crude_alloy' | 'carbon_fiber' | 'rare_minerals';
+export type FactoryResourceId = 'copper_wire' | 'silicon_ore' | 'energy_cells' | 'crude_alloy' | 'carbon_fiber' | 'rare_minerals' | 'titanium_ore' | 'polymer_resin' | 'biotech_gel' | 'quantum_dust';
 export interface Factory {
   id: string;
   ownerUid: string;
@@ -225,6 +227,12 @@ export interface Factory {
   skillLevel: number;
   isActive: boolean;
   warehouseQty: number;
+  warehouseLevel?: number;
+  warehouseUpgradeEndsAt?: number | null;
+  warehouseUpgradeTargetLevel?: number | null;
+  auctionId?: string | null;
+  auctionEndsAt?: number | null;
+  auctionStatus?: string | null;
   productionRemainder: number;
   operatingCostRemainder: number;
   lastProducedAt: number;

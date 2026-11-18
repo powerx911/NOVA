@@ -72,22 +72,26 @@ export function VersionUpdateNotice() {
   }
 
   return (
-    <section
-      role="status"
-      aria-live="polite"
-      className="mb-4 flex flex-col gap-3 rounded-2xl border border-emerald-400/30 bg-emerald-500/10 p-4 sm:flex-row sm:items-center sm:justify-between"
-    >
-      <div>
-        <p className="text-sm font-bold text-emerald-200">تم إطلاق تحديث جديد</p>
-        <p className="mt-1 text-xs text-emerald-100/80">يرجى التحديث للحصول على أحدث نسخة من NOVA.</p>
-      </div>
-      <button
-        type="button"
-        onClick={applyUpdate}
-        className="min-h-[42px] shrink-0 rounded-xl bg-emerald-400 px-5 text-sm font-bold text-[#07120D] transition-colors hover:bg-emerald-300"
+    <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/85 p-4 backdrop-blur-md" role="presentation">
+      <section
+        role="alertdialog"
+        aria-modal="true"
+        aria-labelledby="nova-update-title"
+        aria-describedby="nova-update-description"
+        className="w-full max-w-md rounded-3xl border border-emerald-400/30 bg-[#141821] p-6 shadow-2xl"
       >
-        تحديث اللعبة
-      </button>
-    </section>
+        <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-400/10 text-3xl">↻</div>
+        <h2 id="nova-update-title" className="text-center text-xl font-black text-[#F4F5F7]">يتوفر تحديث جديد للعبة NOVA</h2>
+        <p id="nova-update-description" className="mt-3 text-center text-sm leading-7 text-[#B9C0CC]">يجب تحديث اللعبة للمتابعة. لن تتمكن من اللعب قبل تثبيت آخر إصدار.</p>
+        <button
+          type="button"
+          autoFocus
+          onClick={applyUpdate}
+          className="mt-6 min-h-[50px] w-full rounded-xl bg-emerald-400 px-5 text-sm font-black text-[#07120D] transition-colors hover:bg-emerald-300"
+        >
+          تحديث اللعبة الآن
+        </button>
+      </section>
+    </div>
   );
 }

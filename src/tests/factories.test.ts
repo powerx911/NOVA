@@ -8,7 +8,7 @@ describe('Raw resource factories', () => {
     }
   });
 
-  it('scales founding cost and rarity upward as production gets harder', () => {
+  it('scales founding cost and rarity upward while production becomes more specialized', () => {
     for (let index = 1; index < FACTORY_RESOURCES.length; index += 1) {
       expect(FACTORY_RESOURCES[index].foundingCost).toBeGreaterThan(FACTORY_RESOURCES[index - 1].foundingCost);
       expect(FACTORY_RESOURCES[index].rarityFactor).toBeGreaterThan(FACTORY_RESOURCES[index - 1].rarityFactor);
@@ -16,18 +16,27 @@ describe('Raw resource factories', () => {
     }
   });
 
-  it('charges more per hour than any company base operating expense', () => {
-    const highestCompanyExpense = Math.max(...COMPANY_SECTORS.map((sector) => sector.baseExpensePerHour));
+  it('keeps even advanced factory operating costs within a controlled ceiling', () => {
     for (const factory of FACTORY_RESOURCES) {
-      expect(factory.operatingCostPerHour).toBeGreaterThan(highestCompanyExpense);
+      expect(factory.operatingCostPerHour).toBeLessThanOrEqual(110);
     }
   });
 
-  it('keeps raw-resource production margins deliberately modest', () => {
+  it('keeps starter factory net income below starter company net income', () => {
+    const lowestCompanyNetIncome = Math.min(...COMPANY_SECTORS.map((sector) => sector.baseRevenuePerHour - sector.baseExpensePerHour));
     for (const factory of FACTORY_RESOURCES) {
       const grossValue = factory.productionPerHour * ITEM_MAP[factory.resourceId].basePrice;
-      expect(grossValue / factory.operatingCostPerHour).toBeLessThanOrEqual(1.3);
       expect(grossValue).toBeGreaterThan(factory.operatingCostPerHour);
+      expect(grossValue - factory.operatingCostPerHour).toBeLessThan(lowestCompanyNetIncome);
+    }
+  });
+
+  it('keeps raw-resource production margins controlled', () => {
+    for (const factory of FACTORY_RESOURCES) {
+      const grossValue = factory.productionPerHour * ITEM_MAP[factory.resourceId].basePrice;
+      const marginRatio = grossValue / factory.operatingCostPerHour;
+      expect(marginRatio).toBeGreaterThan(1);
+      expect(marginRatio).toBeLessThanOrEqual(1.3);
     }
   });
 });
