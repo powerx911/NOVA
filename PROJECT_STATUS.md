@@ -482,3 +482,14 @@ The user explicitly requires NOVA to be online and socially connected from its f
 - Corrected the syntax in `app.js`; rerun validation is required before merge.
 - The initial CI run stopped at the syntax check, so DOM-entry, migration-contract, and whitespace checks did not run in that attempt.
 - PR #18 remains open and unmerged. No deployment has been triggered.
+
+
+### 2026-11-18 — New world-simulation foundation merged
+
+- PR #18: https://github.com/powerx911/NOVA/pull/18 — **merged** (squash).
+- Merge commit: `994880276e5a734dcb8f8a9ce752f754b5e33324`.
+- The initial CI attempt `44337798673` correctly caught an extra closing parenthesis in `app.js`. The error was fixed and recorded in the feature branch before merge.
+- Final validation run `44337925860` — **success**. JavaScript syntax, new UI entry points, existing server-authoritative player migration contract, and patch whitespace all passed.
+- GitHub Pages deployment run `44338016649` was observed after merge. Setup Pages and artifact upload passed; the Deploy to GitHub Pages step was still in progress at the time of this status update. Live URL remains https://powerx911.github.io/NOVA/; deployment completion and direct browser/Android verification are not yet confirmed.
+- The new UI interactions remain a local browser preview. No live multiplayer, player accounts, shared economy, realtime chat, or authoritative conflict simulation is connected yet.
+- Existing Supabase project, RLS-protected player foundation, and GitHub Pages infrastructure were preserved. No production data or secrets were changed.
