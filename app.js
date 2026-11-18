@@ -1,33 +1,69 @@
 (()=>{"use strict";
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
-const fmt=n=>new Intl.NumberFormat("en-US").format(n);
-const KEY="nova-competitive-preview-v1";
-const base={credits:24850,energy:76,influence:1240,materials:340,battles:12,upgrades:0};
-let state={...base,...read()};let toastTimer;
-function read(){try{return JSON.parse(localStorage.getItem(KEY))||{}}catch{return{}}}
-function save(){try{localStorage.setItem(KEY,JSON.stringify(state))}catch{notify("تعذر حفظ بيانات العرض على هذا الجهاز.")}}
-function notify(msg){const el=$("#toast");el.textContent=msg;el.classList.add("show");clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove("show"),2400)}
+const fmt=n=>new Intl.NumberFormat("en-US").format(Number(n||0));
+const SUPABASE_URL="https://hmrprnjhyzyefocdmnxf.supabase.co";
+const SUPABASE_KEY="sb_publishable_T0zWZ-2mi1K5CW7nVlWy5w_TL9AMWAj";
+let db=null,user=null,profile=null,wallet=null,assets=[],channel=null,toastTimer,authMode="login",loadingUser=null;
+function notify(msg){const el=$("#toast");el.textContent=msg;el.classList.add("show");clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove("show"),2600)}
 function feedback(){if(navigator.vibrate)navigator.vibrate(8)}
 function dialog(title,message,mark="✦",kicker="NOVA SYSTEM"){$("#dialog-title").textContent=title;$("#dialog-message").textContent=message;$("#dialog-mark").textContent=mark;$("#dialog-kicker").textContent=kicker;$("#action-dialog").showModal()}
-function update(){ $("#credits").textContent=fmt(state.credits);$("#energy").textContent=state.energy;$("#influence").textContent=fmt(state.influence);$("#battle-count").textContent=state.battles;$("#alloy-count").textContent=fmt(state.materials);$("#power").textContent=fmt(2860+state.upgrades*85);$("#income").textContent="+"+fmt(1240+state.upgrades*90);$("#asset-value").textContent=fmt(186420+state.upgrades*4200)+" ◈";$("#net-worth").textContent=fmt(186420+state.upgrades*4200)}
-function navigate(name){const target=$("#screen-"+name);if(!target)return;$$(".screen").forEach(x=>x.classList.toggle("active",x===target));$$(".nav-item").forEach(x=>x.classList.toggle("active",x.dataset.screen===name));window.scrollTo({top:0,behavior:"smooth"});feedback()}
-$$(".nav-item").forEach(b=>b.addEventListener("click",()=>navigate(b.dataset.screen)));
-$$("[data-go]").forEach(b=>b.addEventListener("click",()=>navigate(b.dataset.go)));
-$("#open-profile").addEventListener("click",()=>navigate("profile"));
-$("#notifications").addEventListener("click",()=>dialog("لا توجد إشعارات جديدة","ستظهر هنا تنبيهات المنافسات والصفقات والأنشطة المهمة عند ربط خدمات اللعب الجماعي.","♧","الإشعارات"));
-$("#run-simulation").addEventListener("click",()=>{if(state.energy<10)return notify("تحتاج إلى 10 طاقة.");state.energy-=10;state.battles++;state.credits+=320;state.influence+=12;save();update();feedback();dialog("اكتملت المحاكاة التدريبية","نتيجة محلية للعرض فقط: كفاءة التشكيلة 87%. حصلت على 320 رصيداً و12 نفوذاً. لم يتم الاتصال بلاعب حقيقي.","⚡","تقرير التدريب")});
-$("#buy-materials").addEventListener("click",()=>{if(state.credits<500)return notify("رصيدك لا يكفي.");state.credits-=500;state.materials+=50;save();update();feedback();notify("أضيفت 50 سبيكة إلى مخزون العرض.")});
-$("#upgrade-assets").addEventListener("click",()=>{if(state.credits<1800)return notify("تحتاج إلى 1,800 رصيد للتطوير.");state.credits-=1800;state.upgrades++;save();update();feedback();notify("تم تطوير الأصول في بيانات العرض.")});
-$$(".row-action").forEach(b=>b.addEventListener("click",()=>dialog(b.dataset.asset,"يمكن تطوير هذا الأصل أو متابعة إنتاجه. خيارات التطوير الكاملة ستُفعّل ضمن نظام الأصول.","↗","تفاصيل الأصل")));
-$$(".inventory-item").forEach(b=>b.addEventListener("click",()=>dialog(b.dataset.item,"عنصر ضمن مخزون العرض. ستظهر هنا خصائص العنصر واستخداماته وخيارات البيع أو التطوير.","⬡","تفاصيل المخزون")));
-$$(".join-challenge").forEach(b=>b.addEventListener("click",()=>dialog(b.dataset.name,"هذه بطاقة تحدٍ تجريبية. التسجيل والمنافسة الفعلية سيُفعّلان بعد ربط نظام الجلسات والنتائج بالخادم.","⚡","تفاصيل التحدي")));
-$("#request-alliance").addEventListener("click",()=>dialog("طلب الانضمام","واجهة طلب الانضمام تجريبية حالياً؛ لم يُرسل أي طلب إلى خادم أو منظمة حقيقية.","✦","المنظمات"));
-$("#alliance-info").addEventListener("click",()=>dialog("المنظمات","ستدعم المنظمات العضويات والرتب والصلاحيات والمشاريع الجماعية والمحادثات الخاصة.","♧","المجتمع"));
-$("#edit-profile").addEventListener("click",()=>dialog("تعديل الملف","إعدادات الهوية والصورة والخصوصية قيد التخطيط.","✎","الملف الشخصي"));
-$("#settings").addEventListener("click",()=>dialog("الإعدادات","ستتضمن إعدادات الحساب واللغة والصوت والاهتزاز والإشعارات والخصوصية.","⚙","الإعدادات"));
-$("#help").addEventListener("click",()=>dialog("المساعدة والدعم","مركز المساعدة والإبلاغ عن المشكلات سيُضاف قبل الإطلاق العام.","◉","الدعم"));
-$("#reset-demo").addEventListener("click",()=>{state={...base};save();update();notify("أُعيد ضبط بيانات العرض.")});
+function escapeHtml(value){return String(value??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+function setServer(label,online=false){$("#server-label").textContent=label;$("#server-state").classList.toggle("connected",online)}
+function renderAuth(){const signed=!!user;$("#auth-open").textContent=signed?"حسابي":"دخول";$("#profile-state").innerHTML=signed?"<i></i> متصل بالخادم":"<i></i> وضع العرض";$("#profile-subtitle").textContent=signed?"حساب محفوظ ومزامن":"أنشئ حسابك لحفظ تقدمك والمنافسة";$("#profile-name").textContent=profile?.display_name||"زائر";$("#prototype-note").textContent=signed?"بيانات الحساب والأصول والعمليات تُحفظ على الخادم. السوق والتحديات والمنظمات ستُفعّل في مراحلها التالية.":"يمكنك استكشاف الواجهة كزائر. سجّل الدخول لحفظ حسابك وربط تقدمك بالخادم."}
+function openAuth(mode="login"){setAuthMode(mode);$("#auth-message").textContent="";if(!$("#auth-dialog").open)$("#auth-dialog").showModal()}
+function setAuthMode(mode){authMode=mode;const setup=mode==="setup",signup=mode==="signup";$("#auth-title").textContent=setup?"اختر اسم لاعبك":signup?"إنشاء حساب NOVA":"مرحباً بعودتك";$("#auth-description").textContent=setup?"باقي خطوة واحدة لبدء المنافسة.":"احفظ تقدمك ونافس اللاعبين على خادم NOVA.";$("#display-name-field").hidden=mode==="login";$("#email-field").hidden=setup;$("#password-field").hidden=setup;$("#auth-mode-switch").hidden=setup;$("#auth-email").required=!setup;$("#auth-password").required=!setup;$("#auth-display-name").required=mode!=="login";$("#auth-password").autocomplete=signup?"new-password":"current-password";$("#auth-submit").textContent=setup?"تأكيد اسم اللاعب":signup?"إنشاء الحساب":"تسجيل الدخول";$("#auth-mode-login").classList.toggle("active",mode==="login");$("#auth-mode-signup").classList.toggle("active",signup)}
+function authMessage(message,error=false){const el=$("#auth-message");el.textContent=message;el.style.color=error?"var(--red)":"var(--amber)"}
+function humanError(error){const m=String(error?.message||"");if(/Invalid login credentials/i.test(m))return"البريد الإلكتروني أو كلمة المرور غير صحيحة.";if(/already registered/i.test(m))return"هذا البريد مسجل بالفعل. جرّب تسجيل الدخول.";if(/Password should be at least/i.test(m))return"كلمة المرور يجب أن تكون 8 أحرف على الأقل.";if(/display name|duplicate key|unique constraint/i.test(m))return"اسم اللاعب مستخدم أو غير صالح. اختر اسماً آخر.";if(/Insufficient energy/i.test(m))return"طاقتك لا تكفي. انتظر حتى تتجدد.";if(/Insufficient credits/i.test(m))return"رصيدك لا يكفي لتطوير هذا الأصل.";if(/redirect.*not allowed|invalid.*redirect/i.test(m))return"إعداد رابط تأكيد البريد يحتاج تحديثاً في إعدادات Supabase.";return m||"حدث خطأ غير متوقع. حاول مرة أخرى."}
+function updateWallet(){if(!wallet)return;$("#credits").textContent=fmt(wallet.credits);$("#energy").textContent=wallet.energy;$("#influence").textContent=fmt(wallet.influence);$("#net-worth").textContent=fmt(wallet.net_worth);$("#asset-value").textContent=fmt(wallet.net_worth)+" ◈";$("#power").textContent=fmt(wallet.power);$("#income").textContent="+"+fmt(assets.reduce((n,a)=>n+Number(a.income_per_hour),0));$("#level").textContent="01"}
+const assetNames={supply_hub:["مركز الإمداد","▤","mint"],orion_lab:["مختبر أوريون","⌘","violet"],manufacturing:["مجمّع التصنيع","◇","amber"]};
+function renderAssets(){if(!assets.length)return;$("#asset-list").innerHTML=assets.map(a=>{const [name,icon,color]=assetNames[a.asset_code]||[a.asset_code,"◇","mint"];return '<article class="asset-row"><span class="asset-icon '+color+'">'+icon+'</span><div><b>'+escapeHtml(name)+'</b><small>إنتاج · مستوى '+fmt(a.level)+'</small></div><div><b>+'+fmt(a.income_per_hour)+'</b><small>دخل / ساعة</small></div><button class="row-action" data-asset-id="'+escapeHtml(a.id)+'" aria-label="ترقية '+escapeHtml(name)+'">↗</button></article>'}).join("")}
+async function loadPlayer(current){if(!db||!current)return;if(loadingUser===current.id)return;loadingUser=current.id;try{
+ const {data:p,error:pe}=await db.from("nova_competitive_profiles").select("display_name").eq("user_id",current.id).maybeSingle();
+ if(pe)throw pe;
+ if(!p){const suggested=String(current.user_metadata?.display_name||"").trim();if(suggested){const {error}=await db.rpc("nova_competitive_initialize",{p_display_name:suggested});if(error)throw error;return await loadPlayer(current)}openAuth("setup");authMessage("اختر اسم اللاعب الذي سيظهر في التصنيف.");return}
+ profile=p;
+ const [wr,ar]=await Promise.all([
+  db.from("nova_competitive_wallets").select("credits,energy,influence,net_worth,power").eq("user_id",current.id).single(),
+  db.from("nova_competitive_assets").select("id,asset_code,level,income_per_hour,asset_value").eq("user_id",current.id).order("asset_code")
+ ]);
+ if(wr.error)throw wr.error;if(ar.error)throw ar.error;
+ wallet=wr.data;assets=ar.data||[];renderAuth();updateWallet();renderAssets();await refreshLeaderboard();
+ }catch(e){notify(humanError(e));setServer("تعذر تحميل البيانات",false)}finally{loadingUser=null}}
+async function refreshLeaderboard(){if(!db)return;const {data,error}=await db.rpc("nova_competitive_leaderboard");if(error){console.warn(error);return}const rows=data||[];if(!rows.length){$("#leaderboard-list").innerHTML='<p class="subtle">لا يوجد لاعبون في التصنيف بعد. كن من أوائل المنافسين!</p>';$("#rank").textContent="—";return}
+ $("#leaderboard-list").innerHTML=rows.slice(0,10).map((r,i)=>'<div class="rank-row '+(profile&&r.display_name===profile.display_name?"own-rank":"")+'"><span class="medal '+(i===0?"gold":i===1?"silver":i===2?"bronze":"")+'">'+fmt(r.rank_position).padStart(2,"0")+'</span><span class="rank-avatar '+(i===0?"":i===1?"violet":i===2?"amber":"mint")+'">'+escapeHtml(String(r.display_name).slice(0,2).toUpperCase())+'</span><div><b>'+escapeHtml(r.display_name)+(profile&&r.display_name===profile.display_name?' <small class="you-tag">أنت</small>':'')+'</b><small>قيمة الكيان · '+fmt(r.net_worth)+'</small></div><strong>'+fmt(r.power)+'</strong></div>').join("");
+ const mine=profile?rows.find(r=>r.display_name===profile.display_name):null;$("#rank").textContent=mine?fmt(mine.rank_position):"—"}
+async function refreshActivity(){if(!db)return;const {data,error}=await db.from("nova_competitive_activities").select("actor_name,activity_type,headline,created_at").order("created_at",{ascending:false}).limit(8);if(error){console.warn(error);return}if(!data?.length)return;$("#activity-list").innerHTML=data.map((a,i)=>'<article><span class="activity-symbol '+(a.activity_type==="operation"?"red":a.activity_type==="asset_upgrade"?"gold":"blue")+'">'+(a.activity_type==="operation"?"⚡":a.activity_type==="asset_upgrade"?"↗":"✦")+'</span><div><b>'+escapeHtml(a.headline)+'</b><small>'+new Date(a.created_at).toLocaleString("ar",{dateStyle:"short",timeStyle:"short"})+'</small></div><span class="activity-time">LIVE</span></article>').join("")}
+function connectRealtime(){if(!db||channel)return;channel=db.channel("nova-public-activity").on("postgres_changes",{event:"INSERT",schema:"public",table:"nova_competitive_activities"},()=>{void refreshActivity();void refreshLeaderboard()}).subscribe()}
+async function refreshPlayer(){if(!user)return;await loadPlayer(user);await refreshActivity()}
+async function handleOperation(){if(!user||!wallet)return openAuth();if(wallet.energy<10)return notify("تحتاج إلى 10 طاقة.");const b=$("#run-simulation");b.disabled=true;b.textContent="جارٍ تنفيذ المحاكاة...";try{const {data,error}=await db.rpc("nova_competitive_simulate",{p_command_id:crypto.randomUUID()});if(error)throw error;wallet=data.wallet;updateWallet();await refreshLeaderboard();await refreshActivity();feedback();dialog("اكتملت العملية","نتيجة الخادم: حصلت على "+fmt(data.reward)+" رصيداً و10 نقاط نفوذ. تم حفظ النتيجة في حسابك.", "⚡","تقرير العملية")}catch(e){notify(humanError(e))}finally{b.disabled=false;b.innerHTML='ابدأ المحاكاة <span>←</span>'}}
+async function upgradeAsset(id,button){if(!user||!wallet)return openAuth();button.disabled=true;try{const {data,error}=await db.rpc("nova_competitive_upgrade_asset",{p_command_id:crypto.randomUUID(),p_asset_id:id});if(error)throw error;wallet=data.wallet;await refreshPlayer();feedback();notify("تم تطوير الأصل إلى المستوى "+data.asset.level)}catch(e){notify(humanError(e))}finally{button.disabled=false}}
+async function handleAuthSubmit(event){event.preventDefault();const submit=$("#auth-submit");submit.disabled=true;authMessage("جارٍ الاتصال بالخادم...");try{if(!db)throw new Error("خدمة الحسابات غير متاحة حالياً. أعد تحميل الصفحة.");if(authMode==="setup"){const name=$("#auth-display-name").value.trim();const {error}=await db.rpc("nova_competitive_initialize",{p_display_name:name});if(error)throw error;$("#auth-dialog").close();authMessage("");await loadPlayer(user);notify("أهلاً بك في NOVA.");return}
+ const email=$("#auth-email").value.trim(),password=$("#auth-password").value;
+ if(authMode==="signup"){const displayName=$("#auth-display-name").value.trim();const redirectTo=window.location.origin+window.location.pathname;const {data,error}=await db.auth.signUp({email,password,options:{data:{display_name:displayName},emailRedirectTo:redirectTo}});if(error)throw error;if(data.session){user=data.user;$("#auth-dialog").close();await loadPlayer(user);notify("تم إنشاء حسابك بنجاح.")}else{authMessage("أرسلنا رابط تأكيد إلى بريدك. افتحه ثم ارجع إلى اللعبة لتفعيل حسابك.");submit.disabled=false;return}}
+ else{const {data,error}=await db.auth.signInWithPassword({email,password});if(error)throw error;user=data.user;$("#auth-dialog").close();await loadPlayer(user);notify("تم تسجيل الدخول.")}
+ }catch(e){authMessage(humanError(e),true)}finally{submit.disabled=false}}
+async function start(){setServer("جاري الاتصال",false);try{const {createClient}=await import("https://esm.sh/@supabase/supabase-js@2.119.0");db=createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});db.auth.onAuthStateChange((_event,session)=>{user=session?.user||null;renderAuth();queueMicrotask(()=>{if(user)void loadPlayer(user);else{profile=null;wallet=null;assets=[];renderAuth();setServer("وضع العرض",false)}})});const {data,error}=await db.auth.getSession();if(error)throw error;user=data.session?.user||null;renderAuth();if(user){setServer("متصل",true);await loadPlayer(user)}else setServer("جاهز للدخول",true);connectRealtime();await refreshActivity();await refreshLeaderboard()}catch(e){console.error(e);setServer("غير متاح",false);notify("تعذر الاتصال بخدمة الحسابات. يمكنك تصفح الواجهة كزائر.")}}
+$$(".nav-item").forEach(b=>b.addEventListener("click",()=>{const target=$("#screen-"+b.dataset.screen);if(!target)return;$$(".screen").forEach(x=>x.classList.toggle("active",x===target));$$(".nav-item").forEach(x=>x.classList.toggle("active",x===b));window.scrollTo({top:0,behavior:"smooth"});feedback()}));
+$$("[data-go]").forEach(b=>b.addEventListener("click",()=>{$('[data-screen="'+b.dataset.go+'"]')?.click()}));
+$("#open-profile").addEventListener("click",()=>{$('[data-screen="profile"]')?.click()});
+$("#auth-open").addEventListener("click",()=>user? $('[data-screen="profile"]')?.click():openAuth());
+$("#auth-close").addEventListener("click",()=>$("#auth-dialog").close());
+$("#auth-mode-login").addEventListener("click",()=>setAuthMode("login"));
+$("#auth-mode-signup").addEventListener("click",()=>setAuthMode("signup"));
+$("#auth-form").addEventListener("submit",handleAuthSubmit);
+$("#sign-out").addEventListener("click",async()=>{if(!db||!user)return openAuth();const {error}=await db.auth.signOut();if(error)return notify(humanError(error));user=null;profile=null;wallet=null;assets=[];renderAuth();setServer("وضع العرض",false);notify("تم تسجيل الخروج.")});
+$("#notifications").addEventListener("click",()=>dialog("الإشعارات","ستظهر هنا تنبيهات العمليات والتطويرات وأحداث المنافسة المباشرة.","♧","الإشعارات"));
+$("#run-simulation").addEventListener("click",handleOperation);
+$("#asset-list").addEventListener("click",e=>{const button=e.target.closest("[data-asset-id]");if(button)void upgradeAsset(button.dataset.assetId,button)});
+$("#upgrade-assets").addEventListener("click",()=>notify("اختر الأصل الذي تريد تطويره من القائمة."));
+$("#buy-materials").addEventListener("click",()=>dialog("السوق قيد التطوير","واجهة الأسعار ظاهرة للمعاينة فقط. لن نخصم أي رصيد قبل اكتمال سوق اللاعبين المشترك.","◈","السوق"));
+$$(".join-challenge").forEach(b=>b.addEventListener("click",()=>dialog(b.dataset.name,"سيتم تفعيل التسجيل والنتائج التنافسية بعد اكتمال نظام التحديات.","⚡","المنافسات")));
+$("#request-alliance").addEventListener("click",()=>dialog("المنظمات","نظام المنظمات والعضويات الجماعية ضمن المرحلة التالية.","✦","المجتمع"));
+$("#alliance-info").addEventListener("click",()=>dialog("المنظمات","ستدعم المنظمات العضويات والرتب والمشاريع الجماعية والمحادثات.","♧","المجتمع"));
+$("#edit-profile").addEventListener("click",()=>dialog("ملف اللاعب","تعديل الاسم والصورة وإعدادات الخصوصية قيد التطوير.","✎","الملف الشخصي"));
+$("#settings").addEventListener("click",()=>dialog("الإعدادات","إعدادات الحساب واللغة والصوت والإشعارات ستضاف تدريجياً.","⚙","الإعدادات"));
+$("#help").addEventListener("click",()=>dialog("المساعدة والدعم","مركز المساعدة والإبلاغ عن المشكلات سيضاف قبل الإطلاق العام.","◉","الدعم"));
 $("#dialog-close").addEventListener("click",()=>$("#action-dialog").close());
-document.addEventListener("click",e=>{const b=e.target.closest("button");if(b&&!b.disabled&&b.id!=="dialog-close")feedback()});
-update();
+document.addEventListener("click",e=>{const b=e.target.closest("button");if(b&&!b.disabled)feedback()});
+updateWallet();renderAuth();void start();
 })();
