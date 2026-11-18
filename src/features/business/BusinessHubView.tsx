@@ -176,7 +176,7 @@ export function BusinessHubView({
     setBusyKey(`upg_${companyId}`);
     try {
       await upgradeCompany(profile.uid, companyId);
-      showToast(language === 'ar' ? 'تمت ترقية الشركة.' : 'Company upgraded.', 'success');
+      showToast(language === 'ar' ? 'بدأ تطوير الشركة، وسيكتمل تلقائياً عند انتهاء المؤقت.' : 'Company upgrade started; it will complete when the timer ends.', 'success');
     } catch (err) {
       const code = err instanceof Error ? err.message : '';
       const firebaseErrorCode = ['permission-denied', 'failed-precondition', 'not-found', 'unauthenticated', 'unavailable', 'deadline-exceeded', 'aborted', 'internal', 'invalid-argument', 'resource-exhausted'].find((errorCode) => code.toLowerCase().includes(errorCode));
@@ -204,7 +204,7 @@ export function BusinessHubView({
     setBusyKey(`vault_${companyId}`);
     try {
       await upgradeCompanyVault(profile.uid, companyId);
-      showToast(language === 'ar' ? 'تم تطوير خزينة الشركة مع الاحتفاظ بالأرباح.' : 'Company vault upgraded; accrued profits preserved.', 'success');
+      showToast(language === 'ar' ? 'بدأ تطوير الخزينة مع الاحتفاظ بالأرباح المتراكمة.' : 'Vault upgrade started; accrued profits are preserved.', 'success');
     } catch (err) {
       const code = err instanceof Error ? err.message : '';
       const message = code === 'MISSING_VAULT_MATERIALS'
