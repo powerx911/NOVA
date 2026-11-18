@@ -17,7 +17,7 @@ This is a front-end gameplay prototype only. Progress is stored in the current b
 
 - GitHub repository `powerx911/NOVA` is the source of truth for source control, pull requests, CI, releases, and deployment.
 - GitHub Actions validates prototype source changes.
-- GitHub Pages is the intended initial static hosting target; activation and a successful live deployment must still be verified.
+- GitHub Pages is enabled and the latest deployment succeeded: https://powerx911.github.io/NOVA/. The deployed build is still a local-only prototype, not an online multiplayer release.
 - Existing Supabase project `NOVA` is the planned backend foundation for authentication, persistent data, trusted game rules, and authorized realtime features.
 - Vercel is not used.
 
