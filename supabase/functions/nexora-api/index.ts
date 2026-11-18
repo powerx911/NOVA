@@ -311,6 +311,18 @@ Deno.serve(async (req: Request) => {
       return json({ ok: true, data }, 200, origin);
     }
 
+    if (body.action === "fulfill_trade_contract") {
+      const contractId = typeof body.contractId === "string" ? body.contractId : "";
+      const { data, error } = await db.rpc("fulfill_trade_contract", {
+        p_uid: identity.uid, p_contract_id: contractId,
+      });
+      if (error) {
+        const known = ["INVALID_CONTRACT","ACCOUNT_NOT_FOUND","CONTRACT_ALREADY_FULFILLED","MISSING_INPUTS"].find((code) => error.message.includes(code));
+        return json({ error: known ?? "CONTRACT_FULFILLMENT_FAILED" }, 409, origin);
+      }
+      return json({ ok: true, data }, 200, origin);
+    }
+
     return json({ error: "UNKNOWN_ACTION" }, 400, origin);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
