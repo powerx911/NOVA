@@ -508,3 +508,5 @@ The user explicitly requires NOVA to be online and socially connected from its f
 - Validation planned: JavaScript syntax check, HTML structure/ID wiring review, responsive/CSS review, diff whitespace check, and configured GitHub Actions checks. Real Android device verification remains outstanding.
 - Backend: existing Supabase project and player foundation preserved; no database migration or production data mutation in this change.
 - Deployment: not deployed from this branch. Deployment verification is required after merge.
+
+- Added a lightweight GitHub Actions validation workflow for JavaScript syntax, UI selector wiring, navigation targets, mobile viewport metadata, map-free presentation, and whitespace. Its first PR run is pending.
