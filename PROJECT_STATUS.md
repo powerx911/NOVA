@@ -53,7 +53,7 @@ The user has requested an online-first competitive multiplayer game foundation b
 
 Known files on `main` as of this baseline:
 
-- `README.md` — project overview.
+- `README.md` — project overview and current online multiplayer scope.
 - `.gitignore` — ignored files.
 - `index.html` — temporary/static placeholder.
 - `.github/workflows/pages.yml` — GitHub Pages deployment workflow; Pages enablement and a successful live deployment have not yet been confirmed.
@@ -326,9 +326,10 @@ The user explicitly requires NOVA to be online and socially connected from its f
 - Replaced the provisional adventure-RPG proposal with the user's actual requirements: online-first persistent multiplayer, player profiles/social features, alliances, economy, armies, wars, and sustained competitive play.
 - Preserved the final genre, setting, gameplay presentation, and engine as open decisions pending evaluation.
 - Added `docs/ONLINE_GAME_FOUNDATION.md` with player/social/gameplay requirements, server-authoritative backend principles, chat safety, realtime architecture, domain/share metadata, licensed audio, and technical decision gates.
+- Updated `README.md` so the public project description reflects the confirmed online-first direction without prematurely claiming a final genre or client platform.
 - Created Figma workspace: https://www.figma.com/design/5bVPOQxGkZC8DXpm4yznvy.
 - Connected Figma and Context7; used Context7 and current Supabase documentation to validate Realtime role separation and private-channel authorization principles.
 - Audited current Supabase project: ACTIVE_HEALTHY; no public game tables; nova-control function ACTIVE version 1.
 - Branch: `docs/online-world-foundation`.
-- Validation: reviewed source docs and Supabase project/table/function state; documentation consistency review. Runtime game tests are not applicable because no executable game code or database schema was changed.
+- Validation: reviewed source docs and Supabase project/table/function state; re-fetched changed documents and checked alignment across README, product vision, foundation requirements, and project status. Runtime game tests are not applicable because no executable game code or database schema was changed.
 - Deployment: no runtime code or deployment workflow changed; no deployment is claimed.
