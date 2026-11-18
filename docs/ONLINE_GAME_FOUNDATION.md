@@ -183,7 +183,11 @@ Do not choose an engine based only on popularity or old projects. No technology 
 6. Establish the visual identity and navigation in Figma after the product structure is agreed.
 7. Select and document the final game category/theme/presentation after the evidence is available, then proceed with the first vertical slice under the owner's delegated product-development mandate. Seek approval only where a documented approval boundary applies.
 
-## 13. Open questions (must be answered by research, not pushed onto the owner)
+## 13. Player experience and live operations
+
+Detailed owner/player feature review, progression and retention horizons, quality-of-life features, alliance invitations/settings/roles/permissions/member removal/succession, support tickets, moderator tools, staff roles, admin controls, audit trails, and live operations are specified in `docs/PLAYER_EXPERIENCE_AND_OPERATIONS.md`.
+
+## 14. Open questions (must be answered by research, not pushed onto the owner)
 
 - What exact world fiction and visual identity will make NOVA recognizable?
 - What is the right strategic time scale: near-real-time orders, asynchronous turns, or a hybrid?
