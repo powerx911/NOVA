@@ -106,7 +106,6 @@ function NovaAppContent() {
           wallet={game.wallet}
           companies={game.companies}
           companyLogs={game.companyLogs}
-          properties={game.properties}
           inventory={game.inventory}
           worldEvents={game.worldEvents}
           organizationIncomeBonusRate={Math.min(10, game.organizations.find((org) => org.id === game.profile?.orgId)?.research?.commerce ?? 0) * 0.005}
@@ -154,7 +153,6 @@ function NovaAppContent() {
             wallet: game.wallet,
             myOrgMember: game.myOrgMember,
             companiesCount: game.companies.length,
-            propertiesCount: game.properties.length,
             inventoryCount: game.inventory.length,
             claimedMissionsCount: game.claimedMissions.length,
             unlockedAchievementsCount: game.unlockedAchievements.size,
