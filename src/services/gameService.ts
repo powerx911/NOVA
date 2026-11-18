@@ -2,6 +2,7 @@ import {
   COMPANY_SECTORS,
   ITEM_MAP,
   MANUFACTURING_RECIPES,
+  FACTORY_RESOURCES,
   MISSIONS,
   SKILL_DEFINITIONS,
   TRADE_CONTRACTS,
@@ -16,6 +17,8 @@ import {
 import { nexoraApi } from '../lib/nexoraApi';
 import type {
   Company,
+  Factory,
+  FactoryResourceId,
   CompanySector,
   CompanyAuction,
   InventoryItem,
@@ -303,6 +306,45 @@ export async function deleteCompany(companyId: string): Promise<void> {
     if (error instanceof Error && 'code' in error) throw new Error(String((error as { code?: unknown }).code ?? 'COMPANY_DELETE_FAILED'));
     throw error;
   }
+}
+
+export async function foundFactory(name: string, resourceId: FactoryResourceId): Promise<void> {
+  const cleanName = name.trim();
+  if (cleanName.length < 2 || cleanName.length > 48) throw new Error('INVALID_NAME');
+  if (!FACTORY_RESOURCES.some((resource) => resource.resourceId === resourceId)) throw new Error('INVALID_RESOURCE');
+  try {
+    await nexoraApi('found_factory', { name: cleanName, resourceId });
+  } catch (error) {
+    if (error instanceof Error && 'code' in error) throw new Error(String((error as { code?: unknown }).code ?? 'FACTORY_FOUNDING_FAILED'));
+    throw error;
+  }
+}
+
+async function callFactoryAction<T>(action: string, factoryId: string, extra: Record<string, unknown> = {}): Promise<T> {
+  try {
+    return await nexoraApi<T>(action, { factoryId, ...extra });
+  } catch (error) {
+    if (error instanceof Error && 'code' in error) throw new Error(String((error as { code?: unknown }).code ?? 'FACTORY_OPERATION_FAILED'));
+    throw error;
+  }
+}
+
+export async function syncFactory(factoryId: string): Promise<void> {
+  await callFactoryAction('sync_factory', factoryId);
+}
+export async function upgradeFactory(factoryId: string): Promise<void> {
+  await callFactoryAction('upgrade_factory', factoryId);
+}
+export async function completeFactoryUpgrade(factoryId: string): Promise<void> {
+  await callFactoryAction('complete_factory_upgrade', factoryId);
+}
+export async function upgradeFactorySkill(factoryId: string): Promise<void> {
+  await callFactoryAction('upgrade_factory_skill', factoryId);
+}
+export async function withdrawFactoryWarehouse(factoryId: string, quantityRaw: number): Promise<void> {
+  const quantity = Number.isFinite(quantityRaw) ? Math.floor(quantityRaw) : 0;
+  if (quantity < 1) throw new Error('INVALID_QUANTITY');
+  await callFactoryAction('withdraw_factory_warehouse', factoryId, { quantity });
 }
 
 export async function claimMissionReward(_uid: string, missionId: string): Promise<void> {
