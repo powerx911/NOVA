@@ -19,6 +19,8 @@ import {
   sendDirectMessage,
   sendGlobalChatMessage,
   unblockPlayer as unblockPlayerOnSupabase,
+  touchPlayerPresence,
+  getPlayersPresence,
 } from '../../services/socialService';
 import type {
   PublicPlayer,
@@ -26,6 +28,7 @@ import type {
   SocialDirectMessage as DirectMessage,
   SocialGlobalMessage as GlobalMessage,
   SocialOrgInvite as OrgInvite,
+  SocialPresence,
 } from '../../services/socialService';
 
 interface SocialHubViewProps {
@@ -53,7 +56,25 @@ export function SocialHubView({ profile, myOrgMember, organizations, language }:
   const [error, setError] = useState('');
   const [dismissedUnread, setDismissedUnread] = useState<string[]>([]);
   const [selectedOrganization, setSelectedOrganization] = useState<Organization | null>(null);
+  const [presenceByUid, setPresenceByUid] = useState<Record<string, SocialPresence>>({});
 
+  const presenceDuration = (value: unknown) => {
+    const ms = timestampToMs(value, 0);
+    if (!ms) return ar ? 'غير معروف' : 'unknown';
+    const elapsed = Math.max(0, Date.now() - ms);
+    const minutes = Math.floor(elapsed / 60_000);
+    if (minutes < 60) return ar ? `منذ ${Math.max(1, minutes)} دقيقة` : `${Math.max(1, minutes)}m`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return ar ? `منذ ${hours} ${hours === 1 ? 'ساعة' : 'ساعات'}` : `${hours}h`;
+    const days = Math.floor(hours / 24);
+    return ar ? (days > 7 ? 'منذ أكثر من 7 أيام' : `منذ ${days} ${days === 1 ? 'يوم' : 'أيام'}`) : (days > 7 ? 'over 7 days ago' : `${days}d`);
+  };
+  const presenceLabel = (uid: string) => {
+    const presence = presenceByUid[uid];
+    if (!presence) return ar ? 'حالة الاتصال غير متاحة' : 'Status unavailable';
+    if (presence.isOnline) return ar ? `متصل ${presenceDuration(presence.onlineSince)}` : `Online ${presenceDuration(presence.onlineSince)}`;
+    return presence.lastSeenAt ? (ar ? `آخر ظهور ${presenceDuration(presence.lastSeenAt)}` : `Last seen ${presenceDuration(presence.lastSeenAt)}`) : (ar ? 'غير متصل' : 'Offline');
+  };
   const avatarUrl = (avatarId: string | undefined) =>
     AVATARS.find((avatar) => avatar.id === avatarId)?.src || AVATARS[0]?.src || '';
 
@@ -76,6 +97,29 @@ export function SocialHubView({ profile, myOrgMember, organizations, language }:
   const selectedConversationData = conversations.find((item) => item.id === selectedConversation) || null;
   const unreadConversations = conversations.filter((item) => item.lastSenderUid !== profile.uid && !dismissedUnread.includes(item.id));
   const targetUid = selectedConversationData?.participants.find((uid) => uid !== profile.uid) || '';
+
+  useEffect(() => {
+    let active = true;
+    const heartbeat = () => { void touchPlayerPresence().catch(() => undefined); };
+    heartbeat();
+    const timer = window.setInterval(heartbeat, 30_000);
+    return () => { active = false; window.clearInterval(timer); };
+  }, [profile.uid]);
+
+  useEffect(() => {
+    const ids = [...new Set([...conversations.flatMap((item) => item.participants), ...globalMessages.map((item) => item.senderUid), ...(selectedPlayer ? [selectedPlayer.uid] : [])])].filter(Boolean);
+    if (ids.length === 0) return;
+    let active = true;
+    const refresh = async () => {
+      try {
+        const records = await getPlayersPresence(ids);
+        if (active) setPresenceByUid(Object.fromEntries(records.map((item) => [item.uid, item])));
+      } catch { /* Presence is supplementary; keep the last known status. */ }
+    };
+    void refresh();
+    const timer = window.setInterval(() => { void refresh(); }, 15_000);
+    return () => { active = false; window.clearInterval(timer); };
+  }, [conversations, globalMessages, selectedPlayer?.uid]);
 
   useEffect(() => {
     let active = true;
@@ -324,7 +368,7 @@ export function SocialHubView({ profile, myOrgMember, organizations, language }:
                   <img src={avatarUrl(selectedPlayer.avatarId)} alt="" className="w-14 h-14 rounded-2xl object-cover bg-[#252B36]" />
                   <div>
                     <h2 className="text-base font-bold text-[#F4F5F7]">{selectedPlayer.username}</h2>
-                    <p className="text-xs text-[#9299A6]">{selectedPlayer.title || (ar ? 'لا يوجد لقب' : 'No title')}</p>
+                    <p className="text-xs text-[#9299A6]">{selectedPlayer.title || (ar ? 'لا يوجد لقب' : 'No title')}</p><p className="mt-1 flex items-center gap-1.5 text-[11px] text-[#9299A6]"><span className={'h-2 w-2 rounded-full ' + (presenceByUid[selectedPlayer.uid]?.isOnline ? 'bg-emerald-400' : 'bg-[#667085]')} />{presenceLabel(selectedPlayer.uid)}</p>
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-2">
@@ -383,7 +427,7 @@ export function SocialHubView({ profile, myOrgMember, organizations, language }:
               const otherUid = conversation.participants.find((uid) => uid !== profile.uid) || '';
               const name = conversation.participantNames?.[otherUid] || (ar ? 'لاعب' : 'Player');
               return (
-                <button key={conversation.id} type="button" onClick={() => setSelectedConversation(conversation.id)}
+                <button key={conversation.id} type="button" onClick={() => { setSelectedConversation(conversation.id); setDismissedUnread((previous) => previous.includes(conversation.id) ? previous : [...previous, conversation.id]); }}
                   className={'w-full rounded-xl border border-white/8 p-3 text-start transition-colors ' + (selectedConversation === conversation.id ? 'bg-[#252B36] border-white/20' : 'bg-[#0B0D12] hover:bg-[#1B2230]')}>
                   <span className="flex items-center gap-2 text-sm font-semibold text-[#F4F5F7]">
                     <img src={avatarUrl(conversation.participantAvatars?.[otherUid])} alt="" className="h-8 w-8 rounded-lg object-cover bg-[#252B36]" />
@@ -400,7 +444,7 @@ export function SocialHubView({ profile, myOrgMember, organizations, language }:
               <>
                 <div className="flex items-center gap-2 border-b border-white/8 pb-3">
                   <button type="button" onClick={() => setSelectedConversation(null)} className="lg:hidden min-h-[38px] min-w-[38px] rounded-lg bg-[#252B36] flex items-center justify-center"><ArrowLeft className="w-4 h-4" /></button>
-                  <h2 className="text-sm font-semibold flex-1">{selectedConversationData?.participantNames?.[targetUid] || (ar ? 'المحادثة' : 'Conversation')}</h2>
+                  <div className="flex-1 min-w-0"><div className="flex items-center gap-2"><img src={avatarUrl(selectedConversationData?.participantAvatars?.[targetUid])} alt="" className="h-9 w-9 rounded-lg object-cover bg-[#252B36]" /><h2 className="text-sm font-semibold truncate">{selectedConversationData?.participantNames?.[targetUid] || (ar ? 'المحادثة' : 'Conversation')}</h2></div><p className="mt-1 ms-11 flex items-center gap-1.5 text-[10px] text-[#9299A6]"><span className={'h-2 w-2 rounded-full ' + (presenceByUid[targetUid]?.isOnline ? 'bg-emerald-400' : 'bg-[#667085]')} />{presenceLabel(targetUid)}</p></div>
                   <button type="button" onClick={() => void openPlayerProfile(targetUid)} className="min-h-[36px] px-3 rounded-lg bg-[#252B36] text-[11px] text-[#F4F5F7]">
                     {ar ? 'الملف الشخصي' : 'Profile'}
                   </button>
@@ -436,8 +480,8 @@ export function SocialHubView({ profile, myOrgMember, organizations, language }:
               <div key={message.id} className="rounded-xl bg-[#0B0D12] p-3">
                 <div className="flex items-center gap-2 mb-1">
                   <img src={avatarUrl(message.avatarId)} alt="" className="h-7 w-7 rounded-lg object-cover bg-[#252B36]" />
-                  <button type="button" onClick={() => void openPlayerProfile(message.senderUid)} className="text-xs font-semibold text-amber-200 flex-1 text-start hover:underline">{message.senderName}</button>
-                  <span className="text-[10px] text-[#9299A6]">{dateLabel(message.createdAt)}</span>
+                  <button type="button" onClick={() => void openPlayerProfile(message.senderUid)} className="flex items-center gap-2 min-w-0 text-start hover:underline"><img src={avatarUrl(message.avatarId)} alt="" className="h-7 w-7 rounded-lg object-cover bg-[#252B36]" /><span className="text-xs font-semibold text-amber-200 truncate">{message.senderName}</span></button>
+                  <span className="text-[10px] text-[#9299A6]">{presenceLabel(message.senderUid)} · {dateLabel(message.createdAt)}</span>
                 </div>
                 <p className="text-xs whitespace-pre-wrap break-words">{message.text}</p>
               </div>
