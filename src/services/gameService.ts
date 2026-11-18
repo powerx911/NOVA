@@ -24,13 +24,11 @@ import {
   SEED_MARKET_LISTINGS,
   SEED_WORLD_EVENTS,
   SKILL_DEFINITIONS,
-  STARTING_CREDITS,
   TRADE_CONTRACTS,
 } from '../data/catalog';
 import {
   calculateAccruedPayout,
   calculateContractPayout,
-  calculateDailyStipend,
   calculateLevelProgress,
   calculateManufacturingCost,
   calculatePropertyHourlyNet,
@@ -43,7 +41,6 @@ import {
   LISTING_MAX_QTY,
   PROPERTY_MAX_LEVEL,
   timestampToMs as parseTimestampMs,
-  validateTransfer,
 } from '../lib/economy';
 import { auth, db, handleFirestoreError, OperationType } from '../lib/firebase';
 import { nexoraApi } from '../lib/nexoraApi';
@@ -60,7 +57,6 @@ import type {
   PropertyAsset,
   PropertyType,
   SkillKey,
-  SkillsMap,
   Wallet,
 } from '../types/game';
 
