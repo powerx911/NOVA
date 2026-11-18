@@ -67,6 +67,7 @@ export type TransactionType =
   | 'daily_stipend'
   | 'company_create'
   | 'company_upgrade'
+  | 'company_upgrade_refund'
   | 'company_collect'
   | 'company_vault_upgrade'
   | 'manufacturing'
