@@ -1,9 +1,9 @@
-import { ArrowUpCircle, Factory, Package, Wrench } from 'lucide-react';
+import { ArrowUpCircle, Factory, Package, Pause, Play, Wrench } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { useToast } from '../../components/ui/ToastProvider';
 import { FACTORY_RESOURCES, ITEM_MAP } from '../../data/catalog';
 import { timestampToMs } from '../../services/gameService';
-import { completeFactoryUpgrade, foundFactory, syncFactory, upgradeFactory, upgradeFactorySkill, withdrawFactoryWarehouse } from '../../services/gameService';
+import { completeFactoryUpgrade, foundFactory, setFactoryActive, syncFactory, upgradeFactory, upgradeFactorySkill, withdrawFactoryWarehouse } from '../../services/gameService';
 import type { Factory as FactoryRecord, FactoryResourceId, InventoryItem, Language, PlayerProfile, Wallet } from '../../types/game';
 
 interface FactoriesPanelProps {
@@ -149,6 +149,7 @@ export function FactoriesPanel({ factories, inventory, profile, wallet, language
             <div className="flex flex-wrap items-start justify-between gap-2">
               <div><h3 className="text-sm font-bold text-[#F4F5F7]">{selected.name}</h3><p className="mt-1 text-xs text-[#9299A6]">{isAr ? selectedResource.nameAr : selectedResource.nameEn} · {isAr ? 'المستوى' : 'Level'} {selected.level}/50</p></div>
               <span className="rounded-lg bg-[#141821] px-2.5 py-1 text-[10px] text-[#E5A0A8]">{isAr ? 'مصنع موارد خام' : 'Raw-resource factory'}</span>
+              <span className={`rounded-lg px-2.5 py-1 text-[10px] ${selected.isActive ? 'bg-emerald-500/10 text-emerald-300' : 'bg-amber-500/10 text-amber-300'}`}>{selected.isActive ? (isAr ? 'الإنتاج يعمل' : 'Production active') : (isAr ? 'الإنتاج متوقف' : 'Production paused')}</span>
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
               <div className="rounded-lg bg-[#141821] p-3"><p className="text-[10px] text-[#9299A6]">{isAr ? 'الإنتاج / ساعة' : 'Output / hour'}</p><p className="mt-1 text-sm font-bold text-emerald-300">{productionRate.toFixed(2)}</p></div>
@@ -163,6 +164,7 @@ export function FactoriesPanel({ factories, inventory, profile, wallet, language
             {selectedUpgradeEnd > 0 && <p className="text-xs text-amber-300">{remainingMs > 0 ? (isAr ? `التطوير جارٍ · متبقٍ نحو ${remainingMinutes} دقيقة` : `Upgrade in progress · about ${remainingMinutes} min left`) : (isAr ? 'اكتمل الوقت، جارٍ إنهاء التطوير.' : 'Timer complete; finalizing upgrade.')}</p>}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <button type="button" disabled={busyKey === `sync_${selected.id}`} onClick={() => void runAction(`sync_${selected.id}`, () => syncFactory(selected.id), isAr ? 'تم تحديث الإنتاج وخصم مصاريف التشغيل.' : 'Production synchronized and operating costs charged.')} className="min-h-[42px] rounded-xl bg-[#1B2230] px-3 text-xs font-semibold text-[#F4F5F7] hover:bg-[#263247] disabled:opacity-50">{isAr ? 'تحديث الإنتاج' : 'Sync production'}</button>
+              <button type="button" disabled={busyKey === `active_${selected.id}`} onClick={() => void runAction(`active_${selected.id}`, () => setFactoryActive(selected.id, !selected.isActive), selected.isActive ? (isAr ? 'تم إيقاف المصنع ولن تُخصم مصاريف إنتاج أثناء التوقف.' : 'Factory paused; production costs stop while paused.') : (isAr ? 'تم تشغيل المصنع.' : 'Factory activated.'))} className="min-h-[42px] rounded-xl border border-white/10 bg-[#141821] px-3 text-xs font-semibold text-[#F4F5F7] disabled:opacity-50">{selected.isActive ? <><Pause className="me-1 inline h-4 w-4" />{isAr ? 'إيقاف الإنتاج' : 'Pause production'}</> : <><Play className="me-1 inline h-4 w-4" />{isAr ? 'تشغيل الإنتاج' : 'Resume production'}</>}</button>
               <button type="button" disabled={selected.level >= 50 || Boolean(selectedUpgradeEnd > now) || selectedResourceOwned < upgradeMaterials || busyKey === `upgrade_${selected.id}`} onClick={() => void runAction(`upgrade_${selected.id}`, () => upgradeFactory(selected.id), isAr ? 'بدأ تطوير المصنع، وسيكتمل تلقائياً.' : 'Factory upgrade started and will complete automatically.')} className="min-h-[42px] rounded-xl bg-[#B91C32] px-3 text-xs font-semibold text-white hover:bg-[#E04455] disabled:opacity-40"><ArrowUpCircle className="me-1 inline h-4 w-4" />{isAr ? `تطوير المصنع · ${upgradeCost.toLocaleString()}` : `Upgrade · ${upgradeCost.toLocaleString()}`}</button>
               <button type="button" disabled={selected.skillLevel >= 10 || selectedResourceOwned < skillMaterials || busyKey === `skill_${selected.id}`} onClick={() => void runAction(`skill_${selected.id}`, () => upgradeFactorySkill(selected.id), isAr ? 'تم تطوير مهارة تشغيل المصنع.' : 'Factory operator skill upgraded.')} className="min-h-[42px] rounded-xl border border-white/10 bg-[#141821] px-3 text-xs font-semibold text-[#F4F5F7] disabled:opacity-40"><Wrench className="me-1 inline h-4 w-4" />{isAr ? `تطوير المهارة · ${skillCost.toLocaleString()}` : `Train skill · ${skillCost.toLocaleString()}`}</button>
             </div>
