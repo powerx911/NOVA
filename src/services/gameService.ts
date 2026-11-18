@@ -3,7 +3,6 @@ import {
   ITEM_MAP,
   MANUFACTURING_RECIPES,
   MISSIONS,
-  PROPERTY_SPECS,
   SKILL_DEFINITIONS,
   TRADE_CONTRACTS,
 } from '../data/catalog';
@@ -25,8 +24,6 @@ import type {
   OrganizationMember,
   OrgRole,
   PlayerProfile,
-  PropertyAsset,
-  PropertyType,
   SkillKey,
   Wallet,
 } from '../types/game';
@@ -52,14 +49,14 @@ function applyXpAndLevel(
   return {
     xp: nextXp,
     level: prog.level,
-    skillPoints: profile.skillPoints + levelsGained * 2,
+    skillPoints: profile.skillPoints + levelsGained,
     reputation: profile.reputation + Math.round(reputationGain * leadershipBonus),
     influence: profile.influence + Math.round(influenceGain * leadershipBonus),
   };
 }
 
 export async function ensureBootstrapWorldData(): Promise<void> {
-  // Global market listings and world events are provisioned in the NEXORA Supabase schema.
+  // Global market listings and world events are provisioned in the NOVA Supabase schema.
 }
 
 export async function isUsernameAvailable(username: string): Promise<boolean> {
@@ -250,30 +247,6 @@ export async function collectCompanyRevenue(_uid: string, companyId: string): Pr
   return result.payout;
 }
 
-export async function buyProperty(
-  _uid: string,
-  name: string,
-  type: PropertyType
-): Promise<void> {
-  const cleanName = name.trim();
-  if (cleanName.length < 2 || cleanName.length > 48) throw new Error('INVALID_NAME');
-  if (!PROPERTY_SPECS.some((property) => property.type === type)) throw new Error('INVALID_PROPERTY_TYPE');
-  await nexoraApi('buy_property', { name: cleanName, propertyType: type });
-}
-
-export async function togglePropertyLease(_uid: string, propertyId: string, nextState: boolean): Promise<void> {
-  await nexoraApi('toggle_property_lease', { propertyId, nextState });
-}
-
-export async function upgradeProperty(_uid: string, propertyId: string): Promise<void> {
-  await nexoraApi('upgrade_property', { propertyId });
-}
-
-export async function collectPropertyRent(_uid: string, propertyId: string): Promise<number> {
-  const result = await nexoraApi<{ payout: number }>('collect_property_rent', { propertyId });
-  return result.payout;
-}
-
 export async function claimMissionReward(_uid: string, missionId: string): Promise<void> {
   if (!MISSIONS.some((mission) => mission.id === missionId)) throw new Error('INVALID_MISSION');
   try {
@@ -422,7 +395,7 @@ export async function checkAndUnlockAchievements(
   unlockedIds: Set<string>,
   _achievements: {
     id: string;
-    metric: 'trades' | 'companies' | 'properties' | 'produced' | 'level' | 'reputation';
+    metric: 'trades' | 'companies' | 'produced' | 'level' | 'reputation';
     threshold: number;
   }[]
 ): Promise<string[]> {

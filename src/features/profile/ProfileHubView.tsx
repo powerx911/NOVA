@@ -352,12 +352,11 @@ export function ProfileHubView({
             </div>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {[
               { label: language === 'ar' ? 'الصفقات' : 'Trades', val: profile.stats.tradesCount },
               { label: language === 'ar' ? 'الإنتاج' : 'Produced', val: profile.stats.totalProduced },
               { label: t.subCompanies, val: profile.stats.companiesOwned },
-              { label: t.subProperties, val: profile.stats.propertiesOwned },
               { label: t.subMissions, val: profile.stats.missionsCompleted },
             ].map((s) => (
               <div key={s.label} className="bg-[#141821] border border-white/8 rounded-2xl p-4">
@@ -848,7 +847,7 @@ export function ProfileHubView({
             <div className="fixed inset-0 z-[70] flex items-end justify-center bg-black/75 p-0 backdrop-blur-sm sm:items-center sm:p-4" role="dialog" aria-modal="true">
               <div className="w-full max-w-md space-y-4 rounded-t-3xl border border-white/10 bg-[#141821] p-6 sm:rounded-2xl">
                 <h3 className="text-lg font-bold text-[#F4F5F7]">{language === 'ar' ? 'تأكيد حذف الحساب نهائياً' : 'Confirm permanent account deletion'}</h3>
-                <p className="text-sm leading-relaxed text-[#9299A6]">{language === 'ar' ? 'سيتم حذف حساب الدخول وملف اللاعب والمحفظة والشركات والممتلكات وسجلات اللعب المرتبطة به. لا يمكن التراجع عن هذه العملية.' : 'Your sign-in account, player profile, wallet, companies, properties and associated game records will be deleted. This cannot be undone.'}</p>
+                <p className="text-sm leading-relaxed text-[#9299A6]">{language === 'ar' ? 'سيتم حذف حساب الدخول وملف اللاعب والمحفظة والشركات وسجلات اللعب المرتبطة به. لا يمكن التراجع عن هذه العملية.' : 'Your sign-in account, player profile, wallet, companies and associated game records will be deleted. This cannot be undone.'}</p>
                 {!auth.currentUser?.isAnonymous && auth.currentUser?.providerData.some((provider) => provider.providerId === 'password') && (
                   <input type="password" value={deletePassword} onChange={(event) => setDeletePassword(event.target.value)} autoComplete="current-password" placeholder={language === 'ar' ? 'كلمة المرور لتأكيد الهوية' : 'Password to confirm identity'} className="min-h-[44px] w-full rounded-xl border border-white/10 bg-[#0B0D12] px-3 text-sm text-[#F4F5F7]" />
                 )}

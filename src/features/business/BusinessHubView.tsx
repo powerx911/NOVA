@@ -2,7 +2,6 @@ import {
   Building,
   Coins,
   Factory,
-  Landmark,
   Package,
   Plus,
   TrendingUp,
@@ -13,35 +12,27 @@ import {
   COMPANY_SECTORS,
   ITEM_MAP,
   MANUFACTURING_RECIPES,
-  PROPERTY_SPECS,
 } from '../../data/catalog';
 import { useTranslations } from '../../i18n/translations';
 import {
   calculateAccruedPayout,
   calculateCompanyHourlyNet,
   calculateManufacturingCost,
-  calculatePropertyHourlyNet,
   COMPANY_MAX_LEVEL,
   COMPANY_VAULT_MAX_LEVEL,
   COMPANY_VAULT_UPGRADES,
   calculateCompanyVaultBalance,
   getCompanyVaultCapacity,
   getCompanyVaultLevel,
-  PROPERTY_MAX_LEVEL,
 } from '../../lib/economy';
 import {
-  buyProperty,
   collectCompanyRevenue,
   completeCompanyUpgrade,
   completeCompanyVaultUpgrade,
-  collectPropertyRent,
   foundCompany,
   manufactureRecipe,
-  timestampToMs,
-  togglePropertyLease,
   upgradeCompany,
   upgradeCompanyVault,
-  upgradeProperty,
 } from '../../services/gameService';
 import type {
   BusinessSubTab,
@@ -51,8 +42,6 @@ import type {
   InventoryItem,
   Language,
   PlayerProfile,
-  PropertyAsset,
-  PropertyType,
   Wallet,
   WorldEvent,
 } from '../../types/game';
@@ -62,7 +51,6 @@ interface BusinessHubViewProps {
   wallet: Wallet | null;
   companies: Company[];
   companyLogs: CompanyLog[];
-  properties: PropertyAsset[];
   inventory: InventoryItem[];
   worldEvents: WorldEvent[];
   language: Language;
@@ -75,7 +63,6 @@ export function BusinessHubView({
   wallet,
   companies,
   companyLogs,
-  properties,
   inventory,
   worldEvents,
   language,
@@ -93,10 +80,6 @@ export function BusinessHubView({
   // Found Company form
   const [newCompName, setNewCompName] = useState('');
   const [newCompSector, setNewCompSector] = useState<CompanySector>('trade');
-
-  // Buy Property form
-  const [newPropName, setNewPropName] = useState('');
-  const [newPropType, setNewPropType] = useState<PropertyType>('shop');
 
   useEffect(() => {
     const timer = setInterval(() => setNowMs(Date.now()), 1000);
@@ -131,11 +114,6 @@ export function BusinessHubView({
       profile.reputation,
       organizationIncomeBonusRate
     );
-    return sum + netHourly;
-  }, 0);
-
-  const totalPropNetHr = properties.reduce((sum, p) => {
-    const { netHourly } = calculatePropertyHourlyNet(p, profile.skills.negotiation || 0);
     return sum + netHourly;
   }, 0);
 
@@ -266,109 +244,9 @@ export function BusinessHubView({
     }
   }
 
-  async function handleBuyProperty(e: React.FormEvent) {
-    e.preventDefault();
-    setBusyKey('buy_prop');
-    try {
-      await buyProperty(profile.uid, newPropName, newPropType);
-      setNewPropName('');
-      showToast(language === 'ar' ? 'تم شراء العقار بنجاح!' : 'Property acquired!', 'success');
-    } catch (err) {
-      const code = err instanceof Error ? err.message : '';
-      showToast(
-        code === 'INSUFFICIENT_FUNDS'
-          ? language === 'ar'
-            ? 'رصيدك غير كافٍ.'
-            : 'Insufficient funds.'
-          : language === 'ar'
-          ? 'أدخل اسماً صالحاً للعقار.'
-          : 'Enter a valid property name.',
-        'error'
-      );
-    } finally {
-      setBusyKey(null);
-    }
-  }
-
-  async function handleCollectRent(propId: string) {
-    setBusyKey(`pcol_${propId}`);
-    try {
-      const earned = await collectPropertyRent(profile.uid, propId);
-      showToast(
-        language === 'ar' ? `تم تحصيل +${earned} $ إيجار.` : `Collected +${earned} $ rent.`,
-        'success'
-      );
-    } catch (err) {
-      const code = err instanceof Error ? err.message : '';
-      showToast(
-        code === 'PROPERTY_VACANT'
-          ? language === 'ar'
-            ? 'العقار شاغر حالياً. فعّل التأجير أولاً لتحصيل الإيجار.'
-            : 'Property is vacant. Enable leasing first.'
-          : language === 'ar'
-          ? 'لم يتراكم إيجار قابل للتحصيل بعد.'
-          : 'No accrued rent ready yet.',
-        'error'
-      );
-    } finally {
-      setBusyKey(null);
-    }
-  }
-
-  async function handleTogglePropertyLease(propId: string, nextState: boolean) {
-    setBusyKey(`plea_${propId}`);
-    try {
-      await togglePropertyLease(profile.uid, propId, nextState);
-      showToast(
-        nextState
-          ? language === 'ar'
-            ? 'تم تفعيل تأجير العقار.'
-            : 'Property is now leased.'
-          : language === 'ar'
-          ? 'تم تحويل العقار إلى شاغر.'
-          : 'Property set to vacant.',
-        'info'
-      );
-    } catch {
-      showToast(
-        language === 'ar' ? 'تعذر تحديث حالة العقار.' : 'Could not update lease status.',
-        'error'
-      );
-    } finally {
-      setBusyKey(null);
-    }
-  }
-
-  async function handleUpgradeProperty(propId: string) {
-    setBusyKey(`pupg_${propId}`);
-    try {
-      await upgradeProperty(profile.uid, propId);
-      showToast(language === 'ar' ? 'تمت ترقية العقار بنجاح.' : 'Property upgraded.', 'success');
-    } catch (err) {
-      const code = err instanceof Error ? err.message : '';
-      showToast(
-        code === 'MAX_LEVEL'
-          ? language === 'ar'
-            ? `وصل العقار إلى الحد الأقصى للمستوى (${PROPERTY_MAX_LEVEL}).`
-            : `Property reached maximum level (${PROPERTY_MAX_LEVEL}).`
-          : code === 'INSUFFICIENT_FUNDS'
-          ? language === 'ar'
-            ? 'الرصيد غير كافٍ لترقية العقار.'
-            : 'Insufficient funds to upgrade property.'
-          : language === 'ar'
-          ? 'تعذر ترقية العقار.'
-          : 'Property upgrade failed.',
-        'error'
-      );
-    } finally {
-      setBusyKey(null);
-    }
-  }
-
   const subTabs: { id: BusinessSubTab; label: string }[] = [
     { id: 'companies', label: t.subCompanies },
     { id: 'manufacturing', label: t.subManufacturing },
-    { id: 'properties', label: t.subProperties },
     { id: 'inventory', label: t.subInventory },
     { id: 'financials', label: t.subFinancials },
   ];
@@ -761,167 +639,6 @@ export function BusinessHubView({
         </div>
       )}
 
-      {/* 3. PROPERTIES */}
-      {subTab === 'properties' && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-          <form
-            onSubmit={handleBuyProperty}
-            className="bg-[#141821] border border-white/8 rounded-2xl p-5 space-y-4 h-fit"
-          >
-            <div className="flex items-center justify-between">
-              <h2 className="text-base font-semibold text-[#F4F5F7]">{t.buyProperty}</h2>
-              <Landmark className="w-4 h-4 text-[#E04455]" />
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-xs text-[#9299A6]">{t.propertyName}</label>
-              <input
-                type="text"
-                value={newPropName}
-                onChange={(e) => setNewPropName(e.target.value)}
-                maxLength={48}
-                required
-                placeholder={language === 'ar' ? 'برج النخبة التجاري' : 'Apex Plaza Unit'}
-                className="w-full min-h-[44px] px-3.5 rounded-xl bg-[#0B0D12] border border-white/10 text-sm text-[#F4F5F7] focus:outline-none focus:border-[#E04455]"
-              />
-            </div>
-
-            <div className="space-y-2">
-              {PROPERTY_SPECS.map((p) => (
-                <button
-                  key={p.type}
-                  type="button"
-                  onClick={() => setNewPropType(p.type)}
-                  className={`w-full p-3 rounded-xl border text-start flex items-center justify-between transition-colors ${
-                    newPropType === p.type
-                      ? 'bg-[#1B2230] border-[#E04455]'
-                      : 'bg-[#0B0D12] border-white/8 hover:border-white/20'
-                  }`}
-                >
-                  <div>
-                    <p className="text-xs font-semibold text-[#F4F5F7]">
-                      {language === 'ar' ? p.nameAr : p.nameEn}
-                    </p>
-                    <p className="text-[11px] text-[#9299A6] font-mono-num mt-0.5">
-                      +{p.rentPerHour - p.maintenancePerHour}/hr
-                    </p>
-                  </div>
-                  <span className="text-xs font-mono-num font-semibold text-[#E04455]">
-                    {'$'}{p.purchasePrice.toLocaleString()}
-                  </span>
-                </button>
-              ))}
-            </div>
-
-            <button
-              type="submit"
-              disabled={busyKey === 'buy_prop'}
-              className="w-full min-h-[44px] px-4 rounded-xl bg-[#B91C32] hover:bg-[#E04455] text-white text-sm font-semibold transition-colors disabled:opacity-50"
-            >
-              {busyKey === 'buy_prop' ? '...' : t.buyProperty}
-            </button>
-          </form>
-
-          <div className="lg:col-span-2 space-y-4">
-            {properties.length === 0 ? (
-              <div className="bg-[#141821] border border-white/8 rounded-2xl p-8 text-center">
-                <p className="text-sm text-[#9299A6]">
-                  {language === 'ar'
-                    ? 'لا تمتلك عقارات بعد. اشترِ متجراً أو مكتباً لتحصيل الإيجارات المستمرة.'
-                    : 'No properties owned yet. Acquire a shop, office, or facility to earn rent.'}
-                </p>
-              </div>
-            ) : (
-              properties.map((p) => {
-                const { grossRent, maintenance, netHourly } = calculatePropertyHourlyNet(
-                  p,
-                  profile.skills.negotiation || 0
-                );
-                const accrued = calculateAccruedPayout(
-                  netHourly,
-                  timestampToMs(p.lastCollectedAt),
-                  nowMs
-                );
-                const upgradeCost = p.level * 480;
-                const isMaxLevel = p.level >= PROPERTY_MAX_LEVEL;
-
-                return (
-                  <div
-                    key={p.id}
-                    className="bg-[#141821] border border-white/8 rounded-2xl p-5 space-y-4"
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <h3 className="text-base font-bold text-[#F4F5F7]">{p.name}</h3>
-                        <p className="text-xs text-[#9299A6] mt-0.5">
-                          {p.isRented ? t.rented : t.vacant} · {t.level}{' '}
-                          <span className="font-mono-num text-[#F4F5F7]">{p.level}</span>
-                        </p>
-                      </div>
-                      <span
-                        className={`text-sm font-mono-num font-bold ${
-                          netHourly >= 0 ? 'text-emerald-400' : 'text-[#E04455]'
-                        }`}
-                      >
-                        {netHourly >= 0 ? `+${netHourly}/hr` : `${netHourly}/hr`}
-                      </span>
-                    </div>
-
-                    <div className="grid grid-cols-3 gap-3 bg-[#0B0D12] border border-white/6 rounded-xl p-3 text-xs">
-                      <div>
-                        <p className="text-[#9299A6]">{t.grossRentHr}</p>
-                        <p className="font-mono-num font-semibold text-emerald-400 mt-0.5">
-                          +{'$'}{grossRent.toLocaleString()}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-[#9299A6]">{t.maintenanceHr}</p>
-                        <p className="font-mono-num font-semibold text-[#E04455] mt-0.5">
-                          -{'$'}{maintenance.toLocaleString()}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-[#9299A6]">{language === 'ar' ? 'الإيجار المتراكم' : 'Accrued'}</p>
-                        <p className="font-mono-num font-semibold text-[#F4F5F7] mt-0.5">
-                          {accrued.toLocaleString()}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="flex flex-wrap items-center gap-2.5">
-                      <button
-                        type="button"
-                        disabled={accrued < 1 || busyKey === `pcol_${p.id}`}
-                        onClick={() => handleCollectRent(p.id)}
-                        className="flex-1 min-h-[42px] px-4 rounded-xl bg-[#B91C32] hover:bg-[#E04455] text-white text-xs font-semibold whitespace-nowrap disabled:bg-[#1B2230] disabled:text-[#9299A6]"
-                      >
-                        {t.collectRent} ({accrued})
-                      </button>
-                      <button
-                        type="button"
-                        disabled={busyKey === `plea_${p.id}`}
-                        onClick={() => handleTogglePropertyLease(p.id, !p.isRented)}
-                        className="min-h-[42px] px-3.5 rounded-xl bg-[#1B2230] hover:bg-[#232C3E] text-[#F4F5F7] text-xs font-semibold whitespace-nowrap disabled:opacity-50"
-                      >
-                        {t.toggleRent}
-                      </button>
-                      <button
-                        type="button"
-                        disabled={isMaxLevel || busyKey === `pupg_${p.id}` || (wallet?.balance ?? 0) < upgradeCost}
-                        onClick={() => handleUpgradeProperty(p.id)}
-                        className="min-h-[42px] px-3.5 rounded-xl bg-[#1B2230] hover:bg-[#232C3E] text-[#F4F5F7] text-xs font-semibold whitespace-nowrap disabled:opacity-50"
-                      >
-                        {isMaxLevel ? t.maxLevelReached : `${t.upgradeProperty} (${upgradeCost})`}
-                      </button>
-                    </div>
-                  </div>
-                );
-              })
-            )}
-          </div>
-        </div>
-      )}
-
       {/* 4. INVENTORY */}
       {subTab === 'inventory' && (
         <div className="bg-[#141821] border border-white/8 rounded-2xl p-5 space-y-4">
@@ -977,7 +694,7 @@ export function BusinessHubView({
 
       {/* 5. FINANCIAL SUMMARY */}
       {subTab === 'financials' && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           <div className="bg-[#141821] border border-white/8 rounded-2xl p-5">
             <div className="flex items-center justify-between text-xs text-[#9299A6]">
               <span>{language === 'ar' ? 'إجمالي الدخل التراكمي' : 'Total Lifetime Earned'}</span>
@@ -1008,19 +725,7 @@ export function BusinessHubView({
             </p>
           </div>
 
-          <div className="bg-[#141821] border border-white/8 rounded-2xl p-5">
-            <div className="flex items-center justify-between text-xs text-[#9299A6]">
-              <span>{language === 'ar' ? 'صافي العقارات / ساعة' : 'Properties Net / hr'}</span>
-              <Landmark className="w-4 h-4 text-[#9299A6]" />
-            </div>
-            <p
-              className={`text-xl font-bold font-mono-num mt-2 ${
-                totalPropNetHr >= 0 ? 'text-emerald-400' : 'text-[#E04455]'
-              }`}
-            >
-              {totalPropNetHr >= 0 ? `+${'$'}{totalPropNetHr.toLocaleString()}` : totalPropNetHr.toLocaleString()}
-            </p>
-          </div>
+
         </div>
       )}
     </div>

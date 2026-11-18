@@ -13,7 +13,6 @@ import {
   getMissionProgress,
   LISTING_MAX_PRICE,
   LISTING_MAX_QTY,
-  PROPERTY_MAX_LEVEL,
   sanitizePositiveInt,
 } from '../lib/economy';
 
@@ -44,14 +43,12 @@ describe('NEXORA Audit Regression & Security Invariants', () => {
       stats: {
         tradesCount: 7,
         companiesOwned: 2,
-        propertiesOwned: 1,
         totalProduced: 14,
       },
     };
 
     expect(getMissionProgress('trades', sampleProfile)).toBe(7);
     expect(getMissionProgress('companies', sampleProfile)).toBe(2);
-    expect(getMissionProgress('properties', sampleProfile)).toBe(1);
     expect(getMissionProgress('produced', sampleProfile)).toBe(14);
     expect(getMissionProgress('level', sampleProfile)).toBe(4);
     expect(getMissionProgress('org', sampleProfile)).toBe(1);
@@ -63,7 +60,6 @@ describe('NEXORA Audit Regression & Security Invariants', () => {
 
   it('exposes consistent progression and listing ceiling constants', () => {
     expect(COMPANY_MAX_LEVEL).toBe(100);
-    expect(PROPERTY_MAX_LEVEL).toBe(15);
     expect(LISTING_MAX_QTY).toBe(10_000);
     expect(LISTING_MAX_PRICE).toBe(1_000_000);
   });

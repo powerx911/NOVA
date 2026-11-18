@@ -88,7 +88,7 @@ async function bootstrap(admin: ReturnType<typeof getAdminClient>, uid: string) 
   const db = admin.schema("nexora");
   const [
     profile, userPrivate, wallet, inventory, sent, received, marketListings,
-    marketOrders, companies, companyLogs, properties, organizations,
+    marketOrders, companies, companyLogs, organizations,
     organizationMembers, organizationRequests, playerMissions, dailyClaims,
     contractClaims, playerAchievements, notifications, worldEvents,
   ] = await Promise.all([
@@ -102,7 +102,6 @@ async function bootstrap(admin: ReturnType<typeof getAdminClient>, uid: string) 
     queryData(db.from("market_orders").select("*").eq("buyer_uid", uid).order("created_at", { ascending: false }).limit(25)),
     queryData(db.from("companies").select("*").eq("owner_uid", uid)),
     queryData(db.from("company_logs").select("*").eq("owner_uid", uid).order("created_at", { ascending: false }).limit(25)),
-    queryData(db.from("properties").select("*").eq("owner_uid", uid)),
     queryData(db.from("organizations").select("*").gte("reputation", 0).order("reputation", { ascending: false }).limit(40)),
     queryData(db.from("organization_members").select("*").eq("user_id", uid).limit(1)),
     queryData(db.from("organization_requests").select("*").eq("user_id", uid)),
@@ -141,7 +140,6 @@ async function bootstrap(admin: ReturnType<typeof getAdminClient>, uid: string) 
     marketOrders: camelRow(marketOrders),
     companies: camelRow(companies),
     companyLogs: camelRow(companyLogs),
-    properties: camelRow(properties),
     organizations: camelRow(organizations),
     myOrgMember: camelRow((organizationMembers as Record<string, unknown>[])[0] ?? null),
     orgMembers: camelRow(orgMembers),
@@ -389,45 +387,6 @@ Deno.serve(async (req: Request) => {
         return json({ error: known ?? "COMPANY_FOUNDING_FAILED" }, 409, origin);
       }
       return json({ ok: true, data }, 201, origin);
-    }
-
-    if (body.action === "buy_property") {
-      const name = typeof body.name === "string" ? body.name.trim() : "";
-      const propertyType = typeof body.propertyType === "string" ? body.propertyType : "";
-      const { data, error } = await db.rpc("buy_property", { p_uid: identity.uid, p_name: name, p_type: propertyType });
-      if (error) {
-        const known = ["INVALID_NAME","INVALID_PROPERTY_TYPE","ACCOUNT_NOT_FOUND","INSUFFICIENT_FUNDS"].find((code) => error.message.includes(code));
-        return json({ error: known ?? "PROPERTY_PURCHASE_FAILED" }, 409, origin);
-      }
-      return json({ ok: true, data }, 201, origin);
-    }
-
-    if (body.action === "toggle_property_lease") {
-      const propertyId = typeof body.propertyId === "string" ? body.propertyId : "";
-      if (typeof body.nextState !== "boolean") return json({ error: "INVALID_LEASE_STATE" }, 400, origin);
-      const { data, error } = await db.rpc("toggle_property_lease", { p_uid: identity.uid, p_property_id: propertyId, p_next_state: body.nextState });
-      if (error) return json({ error: error.message.includes("PROPERTY_NOT_FOUND_OR_UNAUTHORIZED") ? "UNAUTHORIZED" : "LEASE_UPDATE_FAILED" }, 409, origin);
-      return json({ ok: true, data }, 200, origin);
-    }
-
-    if (body.action === "upgrade_property") {
-      const propertyId = typeof body.propertyId === "string" ? body.propertyId : "";
-      const { data, error } = await db.rpc("upgrade_property", { p_uid: identity.uid, p_property_id: propertyId });
-      if (error) {
-        const known = ["PROPERTY_NOT_FOUND","UNAUTHORIZED","MAX_LEVEL","ACCOUNT_NOT_FOUND","INSUFFICIENT_FUNDS"].find((code) => error.message.includes(code));
-        return json({ error: known ?? "PROPERTY_UPGRADE_FAILED" }, 409, origin);
-      }
-      return json({ ok: true, data }, 200, origin);
-    }
-
-    if (body.action === "collect_property_rent") {
-      const propertyId = typeof body.propertyId === "string" ? body.propertyId : "";
-      const { data, error } = await db.rpc("collect_property_rent", { p_uid: identity.uid, p_property_id: propertyId });
-      if (error) {
-        const known = ["PROPERTY_NOT_FOUND","UNAUTHORIZED","PROPERTY_VACANT","NOTHING_TO_COLLECT","ACCOUNT_NOT_FOUND"].find((code) => error.message.includes(code));
-        return json({ error: known ?? "PROPERTY_COLLECTION_FAILED" }, 409, origin);
-      }
-      return json({ ok: true, data }, 200, origin);
     }
 
     const companyId = typeof body.companyId === "string" ? body.companyId : "";

@@ -17,7 +17,6 @@ import type {
   OrganizationTransaction,
   PlayerMissionClaim,
   PlayerProfile,
-  PropertyAsset,
   TransactionRecord,
   UserPrivate,
   Wallet,
@@ -37,7 +36,6 @@ export interface GameDataState {
   marketOrders: MarketOrder[];
   companies: Company[];
   companyLogs: CompanyLog[];
-  properties: PropertyAsset[];
   organizations: Organization[];
   myOrgMember: OrganizationMember | null;
   orgMembers: OrganizationMember[];
@@ -73,7 +71,6 @@ export function useGameData(): GameDataState {
   const [marketOrders, setMarketOrders] = useState<MarketOrder[]>([]);
   const [companies, setCompanies] = useState<Company[]>([]);
   const [companyLogs, setCompanyLogs] = useState<CompanyLog[]>([]);
-  const [properties, setProperties] = useState<PropertyAsset[]>([]);
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [myOrgMember, setMyOrgMember] = useState<OrganizationMember | null>(null);
   const [orgMemberLoaded, setOrgMemberLoaded] = useState(false);
@@ -137,7 +134,6 @@ export function useGameData(): GameDataState {
     setMarketOrders([]);
     setCompanies([]);
     setCompanyLogs([]);
-    setProperties([]);
     setOrganizations([]);
     setMyOrgMember(null);
     setOrgMemberLoaded(false);
@@ -188,10 +184,13 @@ export function useGameData(): GameDataState {
   useEffect(() => {
     if (!authUser) return;
     let cancelled = false;
-    setProfileLoading(true);
     const uid = authUser.uid;
+    if (bootstrappedUidRef.current !== uid) setProfileLoading(true);
+    let refreshInFlight = false;
 
     const loadGameState = async () => {
+      if (refreshInFlight) return;
+      refreshInFlight = true;
       try {
         const data = await nexoraApi<Record<string, any>>('bootstrap');
         if (cancelled) return;
@@ -205,7 +204,6 @@ export function useGameData(): GameDataState {
         setMarketOrders((data.marketOrders ?? []) as MarketOrder[]);
         setCompanies((data.companies ?? []) as Company[]);
         setCompanyLogs((data.companyLogs ?? []) as CompanyLog[]);
-        setProperties((data.properties ?? []) as PropertyAsset[]);
         setOrganizations((data.organizations ?? []) as Organization[]);
         setMyOrgMember(data.myOrgMember as OrganizationMember | null);
         setOrgMemberLoaded(true);
@@ -221,12 +219,16 @@ export function useGameData(): GameDataState {
         ));
         setNotifications((data.notifications ?? []) as GameNotification[]);
         setWorldEvents((data.worldEvents ?? []) as WorldEvent[]);
+        bootstrappedUidRef.current = uid;
         setProfileLoading(false);
       } catch (error) {
         if (cancelled) return;
         console.error('NOVA Supabase bootstrap failed:', error);
-        setProfile(null);
+        if (bootstrappedUidRef.current !== uid) setProfile(null);
+        bootstrappedUidRef.current = uid;
         setProfileLoading(false);
+      } finally {
+        refreshInFlight = false;
       }
     };
 
@@ -297,7 +299,6 @@ export function useGameData(): GameDataState {
     marketOrders,
     companies,
     companyLogs,
-    properties,
     organizations,
     myOrgMember,
     orgMembers,

@@ -11,7 +11,6 @@ import {
   calculateLevelProgress,
   calculateManufacturingCost,
   calculateMarketTaxRate,
-  calculatePropertyHourlyNet,
   hasOrgPermission,
   isValidUsername,
   validateTransfer,
@@ -171,20 +170,6 @@ describe('NEXORA Core Economy & Security Invariants', () => {
     );
     expect(skilled.netHourly).toBeGreaterThan(base.netHourly);
     expect(skilled.expenseHourly).toBeGreaterThan(0);
-  });
-
-  it('calculates property rent yield and handles vacant maintenance correctly', () => {
-    const leased = calculatePropertyHourlyNet(
-      { rentPerHour: 200, maintenancePerHour: 45, level: 1, isRented: true },
-      2
-    );
-    expect(leased.netHourly).toBeGreaterThan(155);
-
-    const vacant = calculatePropertyHourlyNet(
-      { rentPerHour: 200, maintenancePerHour: 45, level: 1, isRented: false },
-      2
-    );
-    expect(vacant.netHourly).toBe(-45);
   });
 
   it('reduces manufacturing processing cost based on Industry skill with a 10 N-Credit floor', () => {
