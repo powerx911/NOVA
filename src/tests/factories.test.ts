@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { COMPANY_SECTORS, FACTORY_RESOURCES, ITEM_MAP } from '../data/catalog';
+import { COMPANY_SECTORS, FACTORY_RESOURCES, ITEM_MAP, MANUFACTURING_RECIPES } from '../data/catalog';
 
 describe('Raw resource factories', () => {
   it('only produces catalog resources classified as raw', () => {
@@ -37,6 +37,13 @@ describe('Raw resource factories', () => {
       const marginRatio = grossValue / factory.operatingCostPerHour;
       expect(marginRatio).toBeGreaterThan(1);
       expect(marginRatio).toBeLessThanOrEqual(1.3);
+    }
+  });
+
+  it('gives every advanced raw resource a real manufacturing use', () => {
+    const advancedResources = ['titanium_ore', 'polymer_resin', 'biotech_gel', 'quantum_dust'];
+    for (const resourceId of advancedResources) {
+      expect(MANUFACTURING_RECIPES.some((recipe) => recipe.inputs.some((input) => input.itemId === resourceId))).toBe(true);
     }
   });
 });
