@@ -275,100 +275,15 @@ export async function fulfillTradeContract(_uid: string, contractId: string): Pr
 }
 
 export async function foundCompany(
-  uid: string,
-  ownerName: string,
+  _uid: string,
+  _ownerName: string,
   name: string,
   sector: CompanySector
 ): Promise<void> {
   const cleanName = name.trim();
   if (cleanName.length < 2 || cleanName.length > 48) throw new Error('INVALID_NAME');
-  const spec = COMPANY_SECTORS.find((s) => s.sector === sector);
-  if (!spec) throw new Error('INVALID_SECTOR');
-
-  const companyId = genId('cmp');
-  const txId = genId('tx');
-  const logId = genId('clog');
-
-  try {
-    await runTransaction(db, async (tx) => {
-      const walletRef = doc(db, 'wallets', uid);
-      const profileRef = doc(db, 'profiles', uid);
-      const [walletSnap, profileSnap] = await Promise.all([
-        tx.get(walletRef),
-        tx.get(profileRef),
-      ]);
-
-      if (!walletSnap.exists() || !profileSnap.exists()) throw new Error('ACCOUNT_NOT_FOUND');
-      const wallet = walletSnap.data() as Wallet;
-      const profile = profileSnap.data() as PlayerProfile;
-
-      if (wallet.balance < spec.foundingCost) throw new Error('INSUFFICIENT_FUNDS');
-
-      tx.set(doc(db, 'companies', companyId), {
-        id: companyId,
-        ownerUid: uid,
-        ownerName,
-        name: cleanName,
-        sector,
-        level: 1,
-        capital: spec.foundingCost,
-        baseRevenuePerHour: spec.baseRevenuePerHour,
-        expensePerHour: spec.baseExpensePerHour,
-        totalRevenue: 0,
-        vaultLevel: 1,
-        vaultBalance: 0,
-        lastCollectedAt: serverTimestamp(),
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-      });
-
-      tx.set(doc(db, 'transactions', txId), {
-        id: txId,
-        fromUid: uid,
-        toUid: 'SYSTEM',
-        amount: spec.foundingCost,
-        fee: 0,
-        netAmount: spec.foundingCost,
-        type: 'company_create',
-        referenceId: companyId,
-        description: `Founded company: ${cleanName}`,
-        status: 'completed',
-        createdAt: serverTimestamp(),
-      });
-
-      tx.update(walletRef, {
-        balance: wallet.balance - spec.foundingCost,
-        totalSpent: wallet.totalSpent + spec.foundingCost,
-        lastTxId: txId,
-        updatedAt: serverTimestamp(),
-      });
-
-      const xpUpdate = applyXpAndLevel(profile, 100, 10, 8);
-      tx.update(profileRef, {
-        ...xpUpdate,
-        stats: {
-          ...profile.stats,
-          companiesOwned: profile.stats.companiesOwned + 1,
-        },
-        updatedAt: serverTimestamp(),
-      });
-
-      tx.set(doc(db, 'company_logs', logId), {
-        id: logId,
-        companyId,
-        ownerUid: uid,
-        action: 'founded',
-        amount: -spec.foundingCost,
-        details: `Company established in ${sector} sector`,
-        createdAt: serverTimestamp(),
-      });
-    });
-  } catch (error) {
-    if (error instanceof Error && ['INVALID_NAME', 'INVALID_SECTOR', 'INSUFFICIENT_FUNDS'].includes(error.message)) {
-      throw error;
-    }
-    handleFirestoreError(error, OperationType.WRITE, `companies/${companyId}`);
-  }
+  if (!COMPANY_SECTORS.some((item) => item.sector === sector)) throw new Error('INVALID_SECTOR');
+  await nexoraApi('found_company', { name: cleanName, sector });
 }
 
 export async function upgradeCompany(uid: string, companyId: string): Promise<void> {
@@ -417,213 +332,27 @@ export async function collectCompanyRevenue(uid: string, companyId: string): Pro
 }
 
 export async function buyProperty(
-  uid: string,
+  _uid: string,
   name: string,
   type: PropertyType
 ): Promise<void> {
   const cleanName = name.trim();
   if (cleanName.length < 2 || cleanName.length > 48) throw new Error('INVALID_NAME');
-  const spec = PROPERTY_SPECS.find((p) => p.type === type);
-  if (!spec) throw new Error('INVALID_PROPERTY_TYPE');
-
-  const propId = genId('prop');
-  const txId = genId('tx');
-
-  try {
-    await runTransaction(db, async (tx) => {
-      const walletRef = doc(db, 'wallets', uid);
-      const profileRef = doc(db, 'profiles', uid);
-      const [walletSnap, profileSnap] = await Promise.all([
-        tx.get(walletRef),
-        tx.get(profileRef),
-      ]);
-
-      if (!walletSnap.exists() || !profileSnap.exists()) throw new Error('ACCOUNT_NOT_FOUND');
-      const wallet = walletSnap.data() as Wallet;
-      const profile = profileSnap.data() as PlayerProfile;
-      if (wallet.balance < spec.purchasePrice) throw new Error('INSUFFICIENT_FUNDS');
-
-      tx.set(doc(db, 'properties', propId), {
-        id: propId,
-        ownerUid: uid,
-        name: cleanName,
-        type,
-        level: 1,
-        purchasePrice: spec.purchasePrice,
-        rentPerHour: spec.rentPerHour,
-        maintenancePerHour: spec.maintenancePerHour,
-        isRented: true,
-        lastCollectedAt: serverTimestamp(),
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-      });
-
-      tx.set(doc(db, 'transactions', txId), {
-        id: txId,
-        fromUid: uid,
-        toUid: 'SYSTEM',
-        amount: spec.purchasePrice,
-        fee: 0,
-        netAmount: spec.purchasePrice,
-        type: 'property_buy',
-        referenceId: propId,
-        description: `Acquired property: ${cleanName}`,
-        status: 'completed',
-        createdAt: serverTimestamp(),
-      });
-
-      tx.update(walletRef, {
-        balance: wallet.balance - spec.purchasePrice,
-        totalSpent: wallet.totalSpent + spec.purchasePrice,
-        lastTxId: txId,
-        updatedAt: serverTimestamp(),
-      });
-
-      const xpUpdate = applyXpAndLevel(profile, 90, 8, 6);
-      tx.update(profileRef, {
-        ...xpUpdate,
-        stats: {
-          ...profile.stats,
-          propertiesOwned: profile.stats.propertiesOwned + 1,
-        },
-        updatedAt: serverTimestamp(),
-      });
-    });
-  } catch (error) {
-    if (error instanceof Error && ['INVALID_NAME', 'INVALID_PROPERTY_TYPE', 'INSUFFICIENT_FUNDS'].includes(error.message)) {
-      throw error;
-    }
-    handleFirestoreError(error, OperationType.WRITE, `properties/${propId}`);
-  }
+  if (!PROPERTY_SPECS.some((property) => property.type === type)) throw new Error('INVALID_PROPERTY_TYPE');
+  await nexoraApi('buy_property', { name: cleanName, propertyType: type });
 }
 
-export async function togglePropertyLease(uid: string, propertyId: string, nextState: boolean): Promise<void> {
-  try {
-    await updateDoc(doc(db, 'properties', propertyId), {
-      isRented: nextState,
-      updatedAt: serverTimestamp(),
-    });
-  } catch (error) {
-    handleFirestoreError(error, OperationType.UPDATE, `properties/${propertyId}`);
-  }
+export async function togglePropertyLease(_uid: string, propertyId: string, nextState: boolean): Promise<void> {
+  await nexoraApi('toggle_property_lease', { propertyId, nextState });
 }
 
-export async function upgradeProperty(uid: string, propertyId: string): Promise<void> {
-  const txId = genId('tx');
-  try {
-    await runTransaction(db, async (tx) => {
-      const propRef = doc(db, 'properties', propertyId);
-      const walletRef = doc(db, 'wallets', uid);
-      const [propSnap, walletSnap] = await Promise.all([tx.get(propRef), tx.get(walletRef)]);
-      if (!propSnap.exists()) throw new Error('PROPERTY_NOT_FOUND');
-      const prop = propSnap.data() as PropertyAsset;
-      if (prop.ownerUid !== uid) throw new Error('UNAUTHORIZED');
-      if (prop.level >= PROPERTY_MAX_LEVEL) throw new Error('MAX_LEVEL');
-
-      const cost = prop.level * 480;
-      const wallet = walletSnap.data() as Wallet;
-      if (wallet.balance < cost) throw new Error('INSUFFICIENT_FUNDS');
-
-      tx.set(doc(db, 'transactions', txId), {
-        id: txId,
-        fromUid: uid,
-        toUid: 'SYSTEM',
-        amount: cost,
-        fee: 0,
-        netAmount: cost,
-        type: 'property_upgrade',
-        referenceId: propertyId,
-        description: `Upgraded property ${prop.name} to Lv.${prop.level + 1}`,
-        status: 'completed',
-        createdAt: serverTimestamp(),
-      });
-
-      tx.update(walletRef, {
-        balance: wallet.balance - cost,
-        totalSpent: wallet.totalSpent + cost,
-        lastTxId: txId,
-        updatedAt: serverTimestamp(),
-      });
-
-      tx.update(propRef, {
-        level: prop.level + 1,
-        updatedAt: serverTimestamp(),
-      });
-    });
-  } catch (error) {
-    if (error instanceof Error && ['PROPERTY_NOT_FOUND', 'UNAUTHORIZED', 'MAX_LEVEL', 'INSUFFICIENT_FUNDS'].includes(error.message)) {
-      throw error;
-    }
-    handleFirestoreError(error, OperationType.UPDATE, `properties/${propertyId}`);
-  }
+export async function upgradeProperty(_uid: string, propertyId: string): Promise<void> {
+  await nexoraApi('upgrade_property', { propertyId });
 }
 
-export async function collectPropertyRent(uid: string, propertyId: string): Promise<number> {
-  const txId = genId('tx');
-  try {
-    let payout = 0;
-    await runTransaction(db, async (tx) => {
-      const propRef = doc(db, 'properties', propertyId);
-      const walletRef = doc(db, 'wallets', uid);
-      const profileRef = doc(db, 'profiles', uid);
-      const [propSnap, walletSnap, profileSnap] = await Promise.all([
-        tx.get(propRef),
-        tx.get(walletRef),
-        tx.get(profileRef),
-      ]);
-      if (!propSnap.exists()) throw new Error('PROPERTY_NOT_FOUND');
-      const prop = propSnap.data() as PropertyAsset;
-      if (prop.ownerUid !== uid) throw new Error('UNAUTHORIZED');
-      if (!prop.isRented) throw new Error('PROPERTY_VACANT');
-
-      const nowMs = Date.now();
-      const lastCollectedMs = timestampToMs(prop.lastCollectedAt);
-      if (nowMs - lastCollectedMs < 60_000) {
-        throw new Error('NOTHING_TO_COLLECT');
-      }
-
-      const wallet = walletSnap.data() as Wallet;
-      const profile = profileSnap.data() as PlayerProfile;
-      const { netHourly } = calculatePropertyHourlyNet(prop, profile.skills.negotiation || 0);
-      if (netHourly <= 0) throw new Error('PROPERTY_VACANT');
-
-      const rawAccrued = calculateAccruedPayout(netHourly, lastCollectedMs, nowMs);
-      payout = Math.min(15000, rawAccrued);
-      if (payout < 1) throw new Error('NOTHING_TO_COLLECT');
-
-      tx.set(doc(db, 'transactions', txId), {
-        id: txId,
-        fromUid: 'SYSTEM',
-        toUid: uid,
-        amount: payout,
-        fee: 0,
-        netAmount: payout,
-        type: 'property_collect',
-        referenceId: propertyId,
-        description: `Collected rent from ${prop.name}`,
-        status: 'completed',
-        createdAt: serverTimestamp(),
-      });
-
-      tx.update(walletRef, {
-        balance: wallet.balance + payout,
-        totalEarned: wallet.totalEarned + payout,
-        lastTxId: txId,
-        updatedAt: serverTimestamp(),
-      });
-
-      tx.update(propRef, {
-        lastCollectedAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-      });
-    });
-    return payout;
-  } catch (error) {
-    if (error instanceof Error && ['PROPERTY_NOT_FOUND', 'UNAUTHORIZED', 'PROPERTY_VACANT', 'NOTHING_TO_COLLECT'].includes(error.message)) {
-      throw error;
-    }
-    handleFirestoreError(error, OperationType.UPDATE, `properties/${propertyId}`);
-  }
+export async function collectPropertyRent(_uid: string, propertyId: string): Promise<number> {
+  const result = await nexoraApi<{ payout: number }>('collect_property_rent', { propertyId });
+  return result.payout;
 }
 
 export async function claimMissionReward(uid: string, missionId: string): Promise<void> {
