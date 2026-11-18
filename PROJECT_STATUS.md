@@ -369,3 +369,19 @@ The user explicitly requires NOVA to be online and socially connected from its f
 - Added player command overview, activity/report inbox, bookmarks, and configurable notifications as core quality-of-life systems.
 - Detailed requirements recorded in docs/ONLINE_GAME_FOUNDATION.md, docs/PLAYER_EXPERIENCE_AND_OPERATIONS.md, and docs/PRODUCT_VISION.md.
 - Documentation-only change. No gameplay code, database schema, item balances, or live relocation behavior has been implemented. No deployment is claimed.
+
+
+## 17. First playable castle prototype (2026-11-18)
+
+- Started the first executable NOVA player-facing prototype in branch `feat/first-playable-castle-prototype`; this is the first move from requirements-only work into an interactive game client.
+- Replaced the static placeholder landing page with an Arabic-first, RTL, mobile-first castle-management interface.
+- Added an original CSS castle scene, resource bar (food, wood, stone, iron, gold), four building cards (keep, farm, lumber mill, barracks), resource collection, upgrade cost checks, and level progression.
+- Added a 7×7 kingdom-map prototype with distinct terrain/location types, location inspection, current castle marker, advanced relocation to a selected empty land tile, and random relocation to an eligible tile.
+- Added a persistent local inventory prototype with Advanced Relocation, Random Relocation, and Supply Pack items; quantity display, filtering, confirmation dialogs, and local consumption.
+- Added starter objectives and rewards, player profile summary, and local browser persistence with a reset option.
+- All prototype state is explicitly local to the current browser/device. No authentication, multiplayer, shared world, authoritative server rules, production Supabase schema, combat, or real item economy has been implemented. Relocation and rewards are simulations only and must not be described as live online functionality.
+- The client uses dependency-free HTML/CSS/JavaScript for a fast interaction spike; this does **not** lock the final production client/game-engine choice. A technical decision record and online vertical-slice architecture remain necessary before production backend integration.
+- Added a pull-request validation workflow for JavaScript syntax, required page assets/anchors, and whitespace checks.
+- Updated README to describe the prototype and its limitations accurately.
+- Validation planned in this PR: `node --check app.js`, required asset/DOM anchor checks, and `git diff --check`. Real browser/device interaction and Android device testing are not yet verified.
+- PR: pending creation. Merge: pending. Deployment: not performed or verified. GitHub Pages activation remains unverified.
