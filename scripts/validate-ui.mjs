@@ -15,4 +15,6 @@ for(const name of nav) assert.ok(screens.includes(name),`Navigation target scree
 assert.ok(html.includes('name="viewport"'),"Mobile viewport meta tag is required");
 assert.ok(html.includes('aria-label="التنقل الرئيسي"'),"Primary navigation needs an accessible label");
 assert.ok(!html.includes('world-map')&&!html.includes('map-grid-lines'),"This product direction must not include a map UI");
+for (const id of ["market-listing-form","market-listings","market-item-code","market-quantity","market-unit-price","create-listing","alloy-count","circuits-count","fuel-count","rare-chip-count"]) assert.ok(idSet.has(id),`Missing shared-market UI element: ${id}`);
+assert.ok(!html.includes('id="buy-materials"'),"Legacy local market purchase must be removed");
 console.log(`UI validation passed: ${ids.length} unique IDs, ${screens.length} screens, ${nav.length} navigation targets.`);

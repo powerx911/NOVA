@@ -541,3 +541,15 @@ The user explicitly requires NOVA to be online and socially connected from its f
 - External HTTP/browser verification could not be completed from the development environment. The successful GitHub Pages deployment is verified; independent live page rendering and real Android-device testing are still outstanding.
 - Account signup/login, email-confirmation redirect configuration, first-player initialization, two-player isolation, operation/upgrade RPCs under real authenticated sessions, and Realtime client delivery have not yet been integration-tested because no test accounts were created. Supabase Auth redirect allowlist must include `https://powerx911.github.io/NOVA/` before email confirmation can return to the Pages client.
 - Next implementation priority: complete real-account smoke tests, then build the shared player market with server-owned listings/orders and atomic transfers. Matchmaking/challenges, organizations, season scoring, and broader PvP systems remain subsequent phases.
+
+
+## 26. Shared player market — implementation in progress (2026-11-18)
+
+- New branch: `feature/nova-shared-player-market` from latest main; PR will add the first true peer-to-peer economy loop.
+- Added migration proposal `20261118172000_nova_shared_market.sql` with player inventory, public active listings, market orders, and inventory movement ledger. Starter inventory is seeded through a private database trigger when a player profile is created; existing profiles are safely backfilled.
+- Added server-authoritative RPCs for creating listings, partial purchases, and cancelling remaining listings. Each command uses a per-player idempotency key, checks ownership and stock, locks listing/inventory/wallet rows, updates buyer and seller credits atomically, and writes order, inventory-ledger, credit-ledger, and public activity records.
+- Public clients can read only active listings. Players can read only their own inventory/orders/ledger. No client-side INSERT/UPDATE/DELETE policies or grants are added for market state.
+- Updated the market screen to display actual player offers, quantity controls, create-listing form, purchase and cancellation actions; inventory counts are loaded from the database. Realtime activity inserts refresh the market and player data.
+- Added market migration security-contract checks and UI validation for all market controls. CI will verify syntax, IDs/navigation, RLS and RPC security boundaries, idempotency, atomic wallet transfer, and patch whitespace.
+- The market migration is **not applied** to Supabase yet; this branch must pass CI and merge first. Existing live competitive tables/data are untouched by this proposal.
+- No real player accounts exist yet, so market concurrency, cross-player settlement, partial fills, and realtime UI behavior still require integration tests with two authenticated accounts after migration.

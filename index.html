@@ -61,20 +61,21 @@
   <article class="asset-row"><span class="asset-icon amber">◇</span><div><b>مجمّع التصنيع</b><small>صناعة · مستوى 02</small></div><div><b>+540</b><small>دخل / ساعة</small></div><button class="row-action" data-asset="مجمّع التصنيع">↗</button></article>
  </div>
  <div class="section-heading"><div><span class="eyebrow">المواد والمعدات</span><h2>المخزون</h2></div><span class="subtle">4 عناصر</span></div>
- <div class="inventory-grid"><button class="inventory-item" data-item="سبائك"><span>⬡</span><b>سبائك</b><small id="alloy-count">340</small></button><button class="inventory-item" data-item="دوائر إلكترونية"><span>▦</span><b>دوائر إلكترونية</b><small>86</small></button><button class="inventory-item" data-item="وقود"><span>ϟ</span><b>وقود</b><small>125</small></button><button class="inventory-item" data-item="شريحة نادرة"><span>✧</span><b>شريحة نادرة</b><small>4</small></button></div>
+ <div class="inventory-grid"><button class="inventory-item" data-item="سبائك"><span>⬡</span><b>سبائك</b><small id="alloy-count">340</small></button><button class="inventory-item" data-item="دوائر إلكترونية"><span>▦</span><b>دوائر إلكترونية</b><small id="circuits-count">86</small></button><button class="inventory-item" data-item="وقود"><span>ϟ</span><b>وقود</b><small id="fuel-count">125</small></button><button class="inventory-item" data-item="شريحة نادرة"><span>✧</span><b>شريحة نادرة</b><small id="rare-chip-count">4</small></button></div>
 </section>
 
 <section class="screen" id="screen-exchange">
  <div class="page-intro"><span class="eyebrow">اقتصاد اللاعبين</span><h1>مركز التداول</h1><p>تابع الأسعار وابنِ ثروتك من قرارات السوق.</p></div>
- <div class="market-total"><div><small>حجم التداول اليومي</small><b>12.84M <i>◈</i></b><span class="positive">▲ 6.2% مقارنة بالأمس</span></div><div class="market-orbit">⌁</div></div>
- <div class="section-heading"><div><span class="eyebrow">السوق المشترك</span><h2>الأسعار الحالية</h2></div><span class="live-label"><i></i> بيانات عرض تجريبية</span></div>
- <div class="price-list" id="price-list">
-  <article><span class="price-icon">⬡</span><div><b>سبائك معدنية</b><small>MAT-001</small></div><b>42 ◈</b><span class="positive">+4.8%</span></article>
-  <article><span class="price-icon">▦</span><div><b>دوائر إلكترونية</b><small>TEC-014</small></div><b>68 ◈</b><span class="positive">+2.1%</span></article>
-  <article><span class="price-icon">ϟ</span><div><b>وقود صناعي</b><small>ENR-006</small></div><b>31 ◈</b><span class="negative">−1.4%</span></article>
-  <article><span class="price-icon">✿</span><div><b>مواد مركّبة</b><small>BLD-021</small></div><b>18 ◈</b><span class="positive">+0.7%</span></article>
+ <div class="market-total"><div><small>العروض المفتوحة</small><b id="market-listing-count">0 <i>عرض</i></b><span class="positive" id="market-status">السوق المشترك · مباشر</span></div><div class="market-orbit">⌁</div></div>
+ <div class="section-heading"><div><span class="eyebrow">السوق المشترك بين اللاعبين</span><h2>العروض الحالية</h2></div><span class="live-label"><i></i> مباشر</span></div>
+ <div class="market-listings" id="market-listings"><article class="market-empty">جارٍ تحميل عروض اللاعبين...</article></div>
+ <div class="trade-panel"><div><div><b>انشر عرض بيع</b><small>اختر مادة من مخزونك وحدد الكمية والسعر.</small></div><span class="trade-cost">P2P</span></div>
+  <form id="market-listing-form" class="market-form">
+   <label>المادة<select id="market-item-code" required><option value="alloy">سبائك معدنية</option><option value="circuits">دوائر إلكترونية</option><option value="fuel">وقود صناعي</option><option value="rare_chip">شريحة نادرة</option></select></label>
+   <div class="market-form-row"><label>الكمية<input id="market-quantity" type="number" min="1" max="10000" value="10" required></label><label>سعر الوحدة<input id="market-unit-price" type="number" min="1" max="1000000" value="42" required></label></div>
+   <button class="primary-btn" id="create-listing" type="submit">نشر العرض في السوق</button>
+  </form>
  </div>
- <div class="trade-panel"><div><div><b>صفقة تجريبية</b><small>اشترِ مواداً لاستخدامها في التطوير.</small></div><span class="trade-cost">500 ◈</span></div><button class="primary-btn" id="buy-materials">شراء 50 سبيكة</button></div>
 </section>
 
 <section class="screen" id="screen-community">
