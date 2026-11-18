@@ -255,110 +255,14 @@ export async function cancelMarketListing(_uid: string, listingId: string): Prom
   }
 }
 
-export async function manufactureRecipe(uid: string, recipeId: string, batchQuantity = 1): Promise<void> {
-  const recipe = MANUFACTURING_RECIPES.find((r) => r.id === recipeId);
-  if (!recipe) throw new Error('INVALID_RECIPE');
+export async function manufactureRecipe(_uid: string, recipeId: string, batchQuantity = 1): Promise<void> {
+  if (!MANUFACTURING_RECIPES.some((recipe) => recipe.id === recipeId)) throw new Error('INVALID_RECIPE');
   if (!Number.isInteger(batchQuantity) || batchQuantity < 1 || batchQuantity > 999) throw new Error('INVALID_QUANTITY');
-  const txId = genId('tx');
-
   try {
-    await runTransaction(db, async (tx) => {
-      const profileRef = doc(db, 'profiles', uid);
-      const walletRef = doc(db, 'wallets', uid);
-      const outInvRef = doc(db, 'inventory', `${uid}_${recipe.outputItemId}`);
-
-      const inputRefs = recipe.inputs.map((inp) => doc(db, 'inventory', `${uid}_${inp.itemId}`));
-      const [profileSnap, walletSnap, outInvSnap, ...inputSnaps] = await Promise.all([
-        tx.get(profileRef),
-        tx.get(walletRef),
-        tx.get(outInvRef),
-        ...inputRefs.map((ref) => tx.get(ref)),
-      ]);
-
-      if (!profileSnap.exists() || !walletSnap.exists()) throw new Error('ACCOUNT_NOT_FOUND');
-      const profile = profileSnap.data() as PlayerProfile;
-      const wallet = walletSnap.data() as Wallet;
-
-      if ((profile.skills.industry || 0) < recipe.requiredIndustrySkill) {
-        throw new Error('INDUSTRY_SKILL_TOO_LOW');
-      }
-
-      const cost = calculateManufacturingCost(recipe, profile.skills.industry || 0) * batchQuantity;
-      if (wallet.balance < cost) throw new Error('INSUFFICIENT_FUNDS');
-
-      for (let i = 0; i < recipe.inputs.length; i++) {
-        const inp = recipe.inputs[i];
-        const snap = inputSnaps[i];
-        if (!snap.exists() || (snap.data() as InventoryItem).quantity < inp.qty * batchQuantity) {
-          throw new Error('MISSING_INPUTS');
-        }
-      }
-
-      tx.set(doc(db, 'transactions', txId), {
-        id: txId,
-        fromUid: uid,
-        toUid: 'SYSTEM',
-        amount: cost,
-        fee: 0,
-        netAmount: cost,
-        type: 'manufacturing',
-        referenceId: recipeId,
-        description: `Manufactured ${recipe.outputQty * batchQuantity}x ${recipe.outputItemId} (${batchQuantity} batches)`,
-        status: 'completed',
-        createdAt: serverTimestamp(),
-      });
-
-      tx.update(walletRef, {
-        balance: wallet.balance - cost,
-        totalSpent: wallet.totalSpent + cost,
-        lastTxId: txId,
-        updatedAt: serverTimestamp(),
-      });
-
-      for (let i = 0; i < recipe.inputs.length; i++) {
-        const inp = recipe.inputs[i];
-        const prev = (inputSnaps[i].data() as InventoryItem).quantity;
-        tx.update(inputRefs[i], {
-          quantity: prev - inp.qty * batchQuantity,
-          updatedAt: serverTimestamp(),
-        });
-      }
-
-      if (outInvSnap.exists()) {
-        const prevOut = (outInvSnap.data() as InventoryItem).quantity;
-        tx.update(outInvRef, {
-          quantity: prevOut + recipe.outputQty * batchQuantity,
-          updatedAt: serverTimestamp(),
-        });
-      } else {
-        tx.set(outInvRef, {
-          uid,
-          itemId: recipe.outputItemId,
-          quantity: recipe.outputQty * batchQuantity,
-          updatedAt: serverTimestamp(),
-        });
-      }
-
-      const xpUpdate = applyXpAndLevel(profile, recipe.xpReward * batchQuantity, 3, 2);
-      tx.update(profileRef, {
-        ...xpUpdate,
-        stats: {
-          ...profile.stats,
-          totalProduced: profile.stats.totalProduced + recipe.outputQty * batchQuantity,
-        },
-        updatedAt: serverTimestamp(),
-      });
-    });
+    await nexoraApi('manufacture_recipe', { recipeId, batches: batchQuantity });
   } catch (error) {
-    if (
-      error instanceof Error &&
-      ['INVALID_RECIPE', 'INVALID_QUANTITY', 'INDUSTRY_SKILL_TOO_LOW', 'INSUFFICIENT_FUNDS', 'MISSING_INPUTS'].includes(
-        error.message
-      )
-    ) {
-      throw error;
-    }
-    handleFirestoreError(error, OperationType.WRITE, `manufacturing/${recipeId}`);
+    if (error instanceof Error && 'code' in error) throw new Error(String((error as { code?: unknown }).code ?? 'MANUFACTURING_FAILED'));
+    throw error;
   }
 }
 
