@@ -12,7 +12,6 @@ import type {
   OrganizationMember,
   OrgPermission,
   OrgRole,
-  PropertyAsset,
   ReputationTier,
   SkillsMap,
   WorldEvent,
@@ -300,30 +299,6 @@ export function calculateCompanyHourlyNet(
 }
 
 /**
- * Computes net hourly property rent factoring in Negotiation skill and lease state.
- */
-export function calculatePropertyHourlyNet(
-  property: Pick<PropertyAsset, 'rentPerHour' | 'maintenancePerHour' | 'level' | 'isRented'>,
-  negotiationSkill: number
-): {
-  grossRent: number;
-  maintenance: number;
-  netHourly: number;
-} {
-  const levelMult = 1 + (property.level - 1) * 0.28;
-  const negMult = 1 + Math.max(0, negotiationSkill) * 0.07;
-  const grossRent = property.isRented
-    ? Math.round(property.rentPerHour * levelMult * negMult)
-    : 0;
-  const maintenance = Math.round(property.maintenancePerHour * (1 + (property.level - 1) * 0.15));
-  return {
-    grossRent,
-    maintenance,
-    netHourly: grossRent - maintenance,
-  };
-}
-
-/**
  * Computes manufacturing cost after Industry skill discount.
  */
 export function calculateManufacturingCost(
@@ -505,14 +480,13 @@ export function sanitizePositiveInt(raw: unknown, fallback = 1, max = Number.MAX
 }
 
 export function getMissionProgress(
-  metric: 'trades' | 'companies' | 'properties' | 'produced' | 'level' | 'org',
+  metric: 'trades' | 'companies' | 'produced' | 'level' | 'org',
   profile: {
     level: number;
     orgId?: string | null;
     stats: {
       tradesCount: number;
       companiesOwned: number;
-      propertiesOwned: number;
       totalProduced: number;
     };
   }
@@ -522,8 +496,6 @@ export function getMissionProgress(
       return profile.stats.tradesCount;
     case 'companies':
       return profile.stats.companiesOwned;
-    case 'properties':
-      return profile.stats.propertiesOwned;
     case 'produced':
       return profile.stats.totalProduced;
     case 'org':
@@ -535,7 +507,7 @@ export function getMissionProgress(
 }
 
 export function getAchievementProgress(
-  metric: 'trades' | 'companies' | 'properties' | 'produced' | 'level' | 'reputation',
+  metric: 'trades' | 'companies' | 'produced' | 'level' | 'reputation',
   profile: {
     level: number;
     reputation: number;
