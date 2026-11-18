@@ -213,11 +213,11 @@ Deno.serve(async (req: Request) => {
     if (body.action === "username_available") {
       const username = typeof body.username === "string" ? body.username.trim() : "";
       if (!/^[a-zA-Z0-9_]{3,24}$/.test(username)) {
-        return json({ ok: true, available: false }, 200, origin);
+        return json({ ok: true, data: { available: false } }, 200, origin);
       }
       const { data, error } = await db.from("usernames").select("uid").eq("username_lower", username.toLowerCase()).maybeSingle();
       if (error) throw error;
-      return json({ ok: true, available: !data }, 200, origin);
+      return json({ ok: true, data: { available: !data } }, 200, origin);
     }
 
     if (body.action === "create_character") {
