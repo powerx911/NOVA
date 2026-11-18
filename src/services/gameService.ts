@@ -30,7 +30,6 @@ import {
   calculateAccruedPayout,
   calculateContractPayout,
   calculateLevelProgress,
-  calculateManufacturingCost,
   calculatePropertyHourlyNet,
   canManageOrgMember,
   getAchievementProgress,
