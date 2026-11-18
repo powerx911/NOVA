@@ -559,6 +559,7 @@ Deno.serve(async (req: Request) => {
     const requestId = typeof body.requestId === "string" ? body.requestId : "";
     const socialActions: Record<string, { rpc: string; args: Record<string, unknown> }> = {
       get_public_player_profile: { rpc: "get_public_player_profile", args: { p_target_uid: targetUid } },
+      get_org_donation_ranking: { rpc: "get_org_donation_ranking", args: { p_org_id: typeof body.orgId === "string" ? body.orgId : "", p_user_id: identity.uid } },
       touch_player_presence: { rpc: "touch_player_presence", args: { p_user_id: identity.uid } },
       get_players_presence: { rpc: "get_players_presence", args: { p_user_ids: Array.isArray(body.userIds) ? body.userIds.filter((id): id is string => typeof id === "string").slice(0, 60) : [] } },
       search_players: { rpc: "search_players", args: { p_user_id: identity.uid, p_prefix: typeof body.prefix === "string" ? body.prefix : "" } },
