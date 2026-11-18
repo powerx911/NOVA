@@ -432,5 +432,15 @@ The user explicitly requires NOVA to be online and socially connected from its f
 - Castle coordinates are allocated uniquely within an initial 1000×1000 kingdom grid. Terrain, map placement rules, and relocation remain future work.
 - Added docs/SERVER_AUTHORITATIVE_PLAYER_FOUNDATION.md documenting scope, security, limitations, and the post-merge verification plan.
 - Added scripts/check-player-migration.mjs and extended .github/workflows/prototype-checks.yml to statically check table/RLS coverage, RPC grants, idempotency lock, ownership check, ledger, and absence of direct client mutation policies.
-- Important: Migration is a proposal on the feature branch only. It has not been applied to the Supabase project. No production database schema was changed.
+- PR #15 merged successfully as 5c062b53c728f5b75dc0123d2286630bb2488a11. The migration was then applied to the existing Supabase NOVA project as version 20261118151416. All six tables were verified present with RLS enabled; each currently has zero rows. This is an additive schema change only.
 - Checks still to run: Node syntax and migration-contract script in Actions; inspect the complete diff; open PR; wait for CI; review before merge. After merge, apply the migration and run the documented authenticated multi-user/idempotency tests before enabling the client to call these RPCs.
+
+
+## 21. Security advisor follow-up for player RPCs (2026-11-18)
+
+- Applied migration 20261118160000_nova_player_core to the existing Supabase project after PR #15 merged. Verified all six tables exist and RLS is enabled on each.
+- Supabase security advisor reported two warnings because the public RPC functions were SECURITY DEFINER and callable by authenticated users. This behavior was intentional for atomic authoritative mutations, but the advisor correctly highlighted the exposed-schema risk.
+- Created follow-up branch fix/harden-player-command-rpcs. Added a migration to move the privileged SECURITY DEFINER implementations into the non-exposed private schema and replace the public API functions with SECURITY INVOKER wrappers.
+- Updated the server-authoritative foundation documentation and CI static checks to enforce this boundary.
+- The follow-up migration has not yet been applied to Supabase. The current live database still has the two security advisor warnings until the follow-up PR is reviewed, merged, and applied.
+- Performance advisor reports two unused indexes on empty tables; this is expected before gameplay traffic exists and will be re-evaluated after usage.
