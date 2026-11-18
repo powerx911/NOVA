@@ -461,3 +461,16 @@ The user explicitly requires NOVA to be online and socially connected from its f
 
 - Added PR #17 to keep the project handover aligned with the live Supabase schema and the zero-warning security-advisor result.
 - This documentation-only update does not alter runtime code, database schema, or deployment behavior.
+
+
+### 2026-11-18 — New 2D world-simulation direction and first visual foundation
+
+- Product direction reset following the owner's request: no nation-state/castle strategy framing. The new concept is a simple-to-enter, persistent shared-world 2D simulation centered on player-owned businesses, economy, a sector map, organizations, and simulated conflicts.
+- Replaced the previous castle prototype interface with a new Arabic-first, mobile-first visual foundation: modern dark teal palette, illustrated city hero, player wallet, business management, sector map, simulated market, conflict report, organization overview, missions, and profile.
+- Added local preview interactions for buying a business, purchasing materials, navigating sectors, and running a training conflict simulation. These are local demo interactions only and must not be represented as multiplayer/server-backed features.
+- Updated README to reflect the new product direction and current implementation limits.
+- Files changed: `index.html`, `styles.css`, `app.js`, `README.md`, `PROJECT_STATUS.md`.
+- Branch: `feat/new-world-game-foundation`.
+- Validation at this point: source content authored and reviewed for responsive structure and explicit local-preview labeling. Automated syntax/DOM checks and browser/device testing are pending; no PR has been opened or merged yet.
+- Backend: existing Supabase project and prior secured player foundation are preserved but are not yet connected to this new game experience. No database migration or production data change was made.
+- Deployment: not yet triggered; this branch is not deployed to GitHub Pages.
