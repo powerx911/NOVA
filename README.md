@@ -1,10 +1,10 @@
-# NEXORA
+# NOVA
 
-**NEXORA** is a portrait-first (Mobile-First) economic, corporate management, and social strategy simulation browser game built with **React 19**, **TypeScript**, **Tailwind CSS v4**, **Firebase Authentication** for identity, and **Supabase Postgres + Edge Functions** for live game data and trusted operations.
+**NOVA** is a portrait-first (Mobile-First) economic, corporate management, and social strategy simulation browser game built with **React 19**, **TypeScript**, **Tailwind CSS v4**, **Firebase Authentication** for identity, and **Supabase Postgres + Edge Functions** for live game data and trusted operations.
 
 Default UI language is **Arabic (`RTL`)** with instant switching to **English (`LTR`)**.
 
-> **NOVA database isolation:** NEXORA's new database target is the dedicated Supabase project `NOVA` (`hmrprnjhyzyefocdmnxf`) and its isolated `nexora` schema. The old NOVA game tables and their `nova_*` functions have been removed after verifying that the legacy tables contained zero rows. The new schema is provisioned with RLS enabled and no direct `anon`/`authenticated` table access. The live game client still uses the original Firebase Auth/Firestore runtime until the Supabase game API and identity boundary are completed; do not deploy this source snapshot as a live game yet. Read [docs/SUPABASE_SHARED_PROJECT.md](docs/SUPABASE_SHARED_PROJECT.md) before database or Auth changes.
+> **NOVA database isolation:** NOVA's new database target is the dedicated Supabase project `NOVA` (`hmrprnjhyzyefocdmnxf`) and its isolated `nexora` schema. The old NOVA game tables and their `nova_*` functions have been removed after verifying that the legacy tables contained zero rows. The new schema is provisioned with RLS enabled and no direct `anon`/`authenticated` table access. The live game client still uses the original Firebase Auth/Firestore runtime until the Supabase game API and identity boundary are completed; do not deploy this source snapshot as a live game yet. Read [docs/SUPABASE_SHARED_PROJECT.md](docs/SUPABASE_SHARED_PROJECT.md) before database or Auth changes.
 
 ---
 
@@ -18,11 +18,11 @@ Default UI language is **Arabic (`RTL`)** with instant switching to **English (`
 - **Manufacturing Chains**: Three-tier industrial chains and daily trade contracts.
 - **Companies & Real Estate**: Five business sectors, staffing, upgrades, independent profit vaults, properties, leases, and hourly revenue. Vault upgrades and collection are handled by the authenticated Supabase Edge API and atomic Postgres RPCs in the NOVA `nexora` schema.
 - **Organizations & RBAC**: Organization membership, role permissions, join requests, and shared treasury.
-- **NEXORA Diagnostics**: Owner-restricted, read-only diagnostics with sanitization and JSON export.
+- **NOVA Diagnostics**: Owner-restricted, read-only diagnostics with sanitization and JSON export.
 
 ## Current Runtime — Supabase gameplay backend
 
-- Firebase Auth remains the identity provider during this staged cutover. The browser sends its Firebase ID token to the NEXORA Edge Function; the function validates the token and derives the UID server-side.
+- Firebase Auth remains the identity provider during this staged cutover. The browser sends its Firebase ID token to the NOVA Edge Function; the function validates the token and derives the UID server-side.
 - Supabase project `NOVA` (`hmrprnjhyzyefocdmnxf`), schema `nexora`, is the live source of truth for core gameplay data.
 - All core gameplay reads are loaded through the authenticated `bootstrap` Edge Function. Mutations for wallets, market, manufacturing, companies, properties, organizations, missions, achievements, notifications and leaderboards run through trusted Edge Function handlers and server-side Postgres RPCs.
 - `service_role` is only used inside the Edge Function. It is never included in the browser bundle. Direct table access for `anon` and `authenticated` remains closed; RLS stays enabled.
@@ -32,7 +32,7 @@ Default UI language is **Arabic (`RTL`)** with instant switching to **English (`
 ## Supabase Target — NOVA isolated namespace
 
 - **Project**: `NOVA` (`hmrprnjhyzyefocdmnxf`, `eu-west-1`).
-- **NEXORA schema**: `nexora`; 23 tables with RLS enabled.
+- **NOVA schema**: `nexora`; 23 tables with RLS enabled.
 - **Security**: no direct `anon` or `authenticated` table grants. The trusted Edge Function validates Firebase identity and invokes the database with service privileges.
 - **Legacy cleanup**: the 17 old `public.nova_*` game tables and old `nova_*` functions were removed only after verifying the legacy game tables were empty. Supabase Auth and platform-managed schemas were not modified.
 - **Runtime status**: core gameplay uses Supabase. The GitHub Pages workflow is configured with base path `/NOVA/` and deploys automatically on pushes to `main`. The latest build and deployment completed successfully; an interactive sign-in smoke test has not yet been performed.
