@@ -3,109 +3,120 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#101a27">
-  <meta name="description" content="NOVA — أعد بناء قلعتك، واستكشف المملكة، واصنع إرثك.">
-  <title>NOVA — مملكتك تبدأ من هنا</title>
+  <meta name="theme-color" content="#101820">
+  <meta name="description" content="NOVA — ابنِ نفوذك، اصنع ثروتك، ونافس العالم.">
+  <title>NOVA — عالم النفوذ</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Alexandria:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="./styles.css">
   <script src="./app.js" defer></script>
 </head>
 <body>
-  <div class="game-shell">
-    <header class="topbar">
-      <a class="brand" href="#" aria-label="NOVA الرئيسية"><span class="brand-mark">✦</span><span>NOVA</span></a>
-      <div class="realm-label"><span class="live-dot"></span><span>مملكة 1</span></div>
-      <button class="icon-button" id="profile-button" aria-label="الملف الشخصي" title="الملف الشخصي">♙</button>
-    </header>
+<div class="app">
+  <header class="topbar">
+    <a class="brand" href="#" aria-label="NOVA"><span class="brand-glyph">N</span><span>NOVA</span><small>DOMINION</small></a>
+    <div class="world-status"><i></i><span>العالم المشترك</span><b>موسم 01</b></div>
+    <button class="avatar-button" id="profile-open" aria-label="الملف الشخصي">A</button>
+  </header>
+  <section class="wallet" aria-label="الموارد">
+    <div><span class="wallet-icon coin">◈</span><small>الرصيد</small><b id="cash">12,450</b></div>
+    <div><span class="wallet-icon energy">ϟ</span><small>الطاقة</small><b id="energy">86/100</b></div>
+    <div><span class="wallet-icon parts">⬡</span><small>المواد</small><b id="materials">340</b></div>
+    <div><span class="wallet-icon influence">✧</span><small>النفوذ</small><b id="influence">125</b></div>
+  </section>
 
-    <section class="resource-strip" aria-label="موارد المملكة">
-      <div class="resource"><span class="resource-icon food">✿</span><span><small>الطعام</small><b id="food-value">1,250</b></span></div>
-      <div class="resource"><span class="resource-icon wood">♜</span><span><small>الخشب</small><b id="wood-value">980</b></span></div>
-      <div class="resource"><span class="resource-icon stone">◆</span><span><small>الحجر</small><b id="stone-value">720</b></span></div>
-      <div class="resource"><span class="resource-icon iron">⚒</span><span><small>الحديد</small><b id="iron-value">360</b></span></div>
-      <div class="resource"><span class="resource-icon gold">◈</span><span><small>الذهب</small><b id="gold-value">150</b></span></div>
+  <main>
+    <section class="view active" id="view-home">
+      <div class="hero">
+        <div class="hero-copy"><span class="eyebrow"><i></i> بداية صعودك</span><h1>اصنع مكانك<br><em>في هذا العالم.</em></h1><p>ابنِ أعمالك. كوّن قوتك. نافس على النفوذ.</p><div class="hero-actions"><button class="btn-primary" data-go="empire">إدارة إمبراطوريتك <span>←</span></button><span class="online-count"><i></i> 2,481 لاعباً متصلاً</span></div></div>
+        <div class="hero-art" aria-label="مدينة مستقبلية مرسومة"><div class="orb"></div><div class="sunline"></div><div class="city city-back"><i></i><i></i><i></i><i></i></div><div class="city city-front"><i></i><i></i><i></i><i></i><i></i></div><div class="road"></div><div class="hero-label"><b>SECTOR 07</b><small>منطقة الأعمال</small></div></div>
+      </div>
+      <div class="section-head"><div><span class="eyebrow">نظرة عامة</span><h2>لوحة القيادة</h2></div><span class="live-tag"><i></i> مباشر تجريبياً</span></div>
+      <div class="stats-grid">
+        <article class="stat-card"><span class="stat-icon mint">↗</span><small>دخل الساعة</small><strong id="hourly-income">+420</strong><span class="trend up">▲ 8.4%</span></article>
+        <article class="stat-card"><span class="stat-icon amber">▤</span><small>الأصول</small><strong id="asset-count">4</strong><span class="stat-foot">منشآت نشطة</span></article>
+        <article class="stat-card"><span class="stat-icon violet">⚑</span><small>قوة الفريق</small><strong id="team-power">1,280</strong><span class="stat-foot">جاهزية 92%</span></article>
+      </div>
+      <div class="section-head compact"><div><span class="eyebrow">فرصتك التالية</span><h2>مهام اليوم</h2></div><button class="text-button" data-go="missions">عرض الكل</button></div>
+      <div class="mission-card"><div class="mission-symbol">✦</div><div class="mission-info"><b>وسّع شبكة أعمالك</b><small>اشترِ منشأة جديدة لزيادة دخلك.</small><div class="progress"><i style="width:50%"></i></div></div><span class="reward">+750 ◈</span></div>
+      <div class="section-head compact"><div><span class="eyebrow">العالم لا ينتظر</span><h2>ما يحدث الآن</h2></div></div>
+      <div class="feed-list"><article><span class="feed-mark war">⚔</span><div><b>نزاع على ميناء الشمال</b><small>منظمتان تتنافسان على السيطرة · منذ 4 دقائق</small></div><span class="feed-arrow">↗</span></article><article><span class="feed-mark market">↗</span><div><b>ارتفاع الطلب على السبائك</b><small>السوق العالمي · منذ 12 دقيقة</small></div><span class="feed-arrow">↗</span></article></div>
     </section>
 
-    <main>
-      <section class="screen active" id="screen-castle" aria-labelledby="castle-heading">
-        <div class="welcome-row">
-          <div><p class="eyebrow">انهض من بين الرماد</p><h1 id="castle-heading">قلعتك، قصتك</h1><p class="muted">كل إمبراطورية عظيمة بدأت بخطوة.</p></div>
-          <div class="level-medallion"><span>المستوى</span><strong id="keep-level">1</strong></div>
-        </div>
+    <section class="view" id="view-empire">
+      <div class="page-title"><span class="eyebrow">من مركزك تبدأ الحكاية</span><h1>إمبراطوريتك</h1><p>طوّر منشآتك واجعل كل أصل يعمل لصالحك.</p></div>
+      <div class="base-banner"><div><small>المقر الرئيسي · المستوى 03</small><b>مجمع أوريون</b><span>القطاع 07 · المنطقة الوسطى</span></div><div class="base-emblem">⌂</div></div>
+      <div class="section-head"><div><span class="eyebrow">أصولك</span><h2>المنشآت التجارية</h2></div><button class="btn-outline" id="buy-business">+ منشأة</button></div>
+      <div class="business-list" id="business-list"></div>
+      <div class="production-note"><span>ϟ</span><div><b>الإنتاج مستمر</b><small>تتراكم عوائد منشآتك أثناء غيابك في النسخة الكاملة.</small></div></div>
+    </section>
 
-        <div class="castle-scene">
-          <div class="scene-sky"></div><div class="scene-moon"></div>
-          <div class="mountain mountain-back"></div><div class="mountain mountain-front"></div>
-          <div class="castle-art" aria-label="رسم توضيحي لقلعة NOVA">
-            <div class="tower tower-left"><i></i><b></b></div><div class="wall"><i></i><i></i><i></i><div class="gate"></div></div><div class="tower tower-right"><i></i><b></b></div><div class="keep"><i></i><b></b><span></span></div>
-            <div class="flag flag-left">✦</div><div class="flag flag-right">✦</div>
-          </div>
-          <div class="scene-ground"></div>
-          <div class="scene-caption"><span class="status-pill"><i></i> آمنة</span><span id="castle-location">الإحداثيات: 12 : 18</span></div>
-        </div>
+    <section class="view" id="view-world">
+      <div class="page-title"><span class="eyebrow">الخريطة التفاعلية</span><h1>العالم</h1><p>اكتشف القطاعات وتنافس على المواقع الاستراتيجية.</p></div>
+      <div class="map-toolbar"><span><i></i> 18 قطاعاً مكتشفاً</span><span>المنطقة الوسطى⌄</span></div>
+      <div class="world-map" id="world-map">
+        <div class="map-grid-lines"></div>
+        <div class="district d1"><b>07</b><small>الأعمال</small></div><div class="district d2"><b>12</b><small>الميناء</small></div><div class="district d3"><b>04</b><small>الصناعة</small></div><div class="district d4"><b>19</b><small>المرتفعات</small></div><div class="district d5"><b>22</b><small>الواحة</small></div>
+        <div class="map-route"></div><div class="map-pin home-pin">⌂</div><div class="map-pin rival-pin">⚑</div><div class="map-compass">N<br>↑</div>
+      </div>
+      <div class="district-card" id="district-card"><div><span class="eyebrow">موقعك الحالي</span><h3>القطاع 07 — منطقة الأعمال</h3><p>مركز تجاري نشط وموقع مناسب لتوسيع أعمالك.</p></div><span class="owned-pill">تحت إدارتك</span></div>
+      <div class="section-head compact"><div><span class="eyebrow">مواقع واعدة</span><h2>قطاعات قريبة</h2></div></div>
+      <div class="sector-list"><button data-sector="12"><span class="sector-icon blue">⚓</span><span><b>ميناء الشمال</b><small>تجارة · موارد نادرة</small></span><strong>12</strong></button><button data-sector="04"><span class="sector-icon orange">▥</span><span><b>الحزام الصناعي</b><small>تصنيع · إنتاج مرتفع</small></span><strong>04</strong></button></div>
+    </section>
 
-        <div class="section-heading"><div><p class="eyebrow">إدارة المدينة</p><h2>مباني القلعة</h2></div><span class="count-label" id="building-count">4 مبانٍ</span></div>
-        <div class="building-grid" id="building-grid">
-          <article class="building-card" data-building="keep"><div class="building-icon keep-icon">♜</div><div class="building-info"><h3>القصر</h3><p>مركز تطور قلعتك</p><span class="building-level">المستوى <b>1</b></span></div><button class="upgrade-button" data-upgrade="keep">تطوير</button></article>
-          <article class="building-card" data-building="farm"><div class="building-icon farm-icon">✿</div><div class="building-info"><h3>المزرعة</h3><p>إنتاج الطعام</p><span class="building-level">المستوى <b>1</b></span></div><button class="upgrade-button" data-upgrade="farm">تطوير</button></article>
-          <article class="building-card" data-building="lumber"><div class="building-icon lumber-icon">♣</div><div class="building-info"><h3>منشرة الخشب</h3><p>إنتاج الأخشاب</p><span class="building-level">المستوى <b>1</b></span></div><button class="upgrade-button" data-upgrade="lumber">تطوير</button></article>
-          <article class="building-card" data-building="barracks"><div class="building-icon barracks-icon">⚔</div><div class="building-info"><h3>الثكنة</h3><p>تدريب قواتك</p><span class="building-level">المستوى <b>1</b></span></div><button class="upgrade-button" data-upgrade="barracks">تطوير</button></article>
-        </div>
+    <section class="view" id="view-market">
+      <div class="page-title"><span class="eyebrow">اقتصاد اللاعبين</span><h1>السوق</h1><p>تداول الموارد والمنتجات واستفد من حركة السوق.</p></div>
+      <div class="market-highlight"><div><small>قيمة التداول اليوم</small><b>8.42M <i>◈</i></b><span class="trend up">▲ 12.6% خلال 24 ساعة</span></div><div class="market-spark">⌁</div></div>
+      <div class="section-head"><div><span class="eyebrow">الأكثر تداولاً</span><h2>السلع</h2></div><span class="market-live"><i></i> تحديث تجريبي</span></div>
+      <div class="market-list" id="market-list"></div>
+      <div class="trade-box"><div><b>صفقة سريعة</b><small>اشترِ مواداً لتطوير منشآتك.</small></div><button class="btn-primary" id="quick-buy">شراء 50 مادة · 500 ◈</button></div>
+    </section>
 
-        <div class="production-panel">
-          <div><span class="production-icon">✧</span><div><h3>حصاد الموارد</h3><p>اجمع إنتاجاً أولياً لمواصلة البناء.</p></div></div>
-          <button class="primary-button" id="collect-button">جمع الموارد</button>
-        </div>
-      </section>
+    <section class="view" id="view-conflict">
+      <div class="page-title"><span class="eyebrow">القوة تصنع التوازن</span><h1>المنافسة</h1><p>كوّن فريقك وادخل مواجهات تحسمها القوة والتخطيط.</p></div>
+      <div class="power-card"><div><small>قوة مجموعتك</small><strong id="army-power">1,280</strong><span>جاهزية قتالية ممتازة</span></div><div class="power-ring"><b>92<small>%</small></b></div></div>
+      <div class="section-head"><div><span class="eyebrow">مواجهات متاحة</span><h2>نزاعات القطاعات</h2></div><span class="live-tag">2 نشطة</span></div>
+      <article class="conflict-card"><div class="conflict-top"><span class="conflict-type">نزاع موارد</span><small>ينتهي خلال 02:14:36</small></div><h3>السيطرة على ميناء الشمال</h3><div class="versus"><div><span class="faction blue">N</span><b>فجر الشمال</b><small>قوة 1,460</small></div><strong>VS</strong><div><span class="faction red">V</span><b>الحرس الحديدي</b><small>قوة 1,220</small></div></div><div class="conflict-reward">المكافأة <b>2,400 ◈</b> + نفوذ</div><button class="btn-primary full" id="simulate-battle">محاكاة مواجهة تدريبية</button></article>
+      <div class="section-head compact"><div><span class="eyebrow">تطوير القوة</span><h2>وحداتك</h2></div></div>
+      <div class="unit-row"><span class="unit-icon">⬡</span><div><b>فريق الحماية</b><small>32 فرداً · دفاع</small></div><strong>520</strong></div><div class="unit-row"><span class="unit-icon">ϟ</span><div><b>وحدة الاستطلاع</b><small>18 فرداً · سرعة</small></div><strong>360</strong></div><div class="unit-row"><span class="unit-icon">✧</span><div><b>الدعم التقني</b><small>12 فرداً · تعزيز</small></div><strong>400</strong></div>
+    </section>
 
-      <section class="screen" id="screen-map" aria-labelledby="map-heading">
-        <div class="screen-title"><div><p class="eyebrow">العالم المفتوح</p><h1 id="map-heading">خريطة المملكة</h1><p class="muted">استكشف الأراضي واختر موقعك التالي.</p></div><span class="map-coordinates" id="map-coordinates">12 : 18</span></div>
-        <div class="map-legend"><span><i class="legend-castle"></i> قلعتك</span><span><i class="legend-village"></i> قرية</span><span><i class="legend-resource"></i> موارد</span><span><i class="legend-ruin"></i> أطلال</span></div>
-        <div class="map-frame"><div class="map-grid" id="map-grid" role="grid" aria-label="مواقع المملكة"></div></div>
-        <div class="map-hint" id="map-hint"><span>⌖</span> اختر موقعاً لمعرفة تفاصيله. استخدم غرض النقل المتقدم من الحقيبة لنقل قلعتك.</div>
-        <div class="location-card" id="location-card"><div><p class="eyebrow">الموقع المحدد</p><h3 id="location-name">غابة الصنوبر</h3><p id="location-description">أرض غنية بالأخشاب وهادئة.</p></div><span class="location-type" id="location-type">موارد</span></div>
-      </section>
+    <section class="view" id="view-social">
+      <div class="page-title"><span class="eyebrow">القوة معاً</span><h1>المنظمات</h1><p>انضم إلى مجتمع، أو أنشئ منظمتك الخاصة.</p></div>
+      <div class="guild-banner"><div class="guild-mark">✦</div><div><small>منظمتك الحالية</small><b>روّاد الفجر</b><span>24 عضواً · المستوى 05</span></div><span class="guild-online"><i></i> 8 متصلون</span></div>
+      <div class="section-head"><div><span class="eyebrow">مجتمعك</span><h2>أعضاء المنظمة</h2></div><button class="text-button" id="guild-chat">الدردشة ←</button></div>
+      <div class="member-list"><div><span class="member-avatar gold">R</span><span><b>Raven</b><small>القائد</small></span><i class="online"></i></div><div><span class="member-avatar blue">M</span><span><b>Mirage</b><small>نائب القائد</small></span><i class="online"></i></div><div><span class="member-avatar purple">K</span><span><b>Kairo</b><small>استراتيجي</small></span><i></i></div></div>
+      <div class="section-head compact"><div><span class="eyebrow">تواصل وتعاون</span><h2>نشاط المجتمع</h2></div></div>
+      <div class="feed-list"><article><span class="feed-mark market">✦</span><div><b>تم تمويل مشروع الميناء</b><small>بمساهمة 14 عضواً · قبل 20 دقيقة</small></div></article><article><span class="feed-mark war">⚔</span><div><b>اجتماع التخطيط الأسبوعي</b><small>اليوم · 20:00 بتوقيت العالم</small></div></article></div>
+    </section>
 
-      <section class="screen" id="screen-bag" aria-labelledby="bag-heading">
-        <div class="screen-title"><div><p class="eyebrow">مخزونك الشخصي</p><h1 id="bag-heading">الحقيبة</h1><p class="muted">أغراضك وأدواتك في مكان واحد.</p></div><span class="bag-capacity" id="bag-capacity">4 / 20</span></div>
-        <div class="inventory-tabs"><button class="inventory-tab active" data-filter="all">الكل</button><button class="inventory-tab" data-filter="relocation">النقل</button><button class="inventory-tab" data-filter="boost">التعزيزات</button></div>
-        <div class="inventory-grid" id="inventory-grid">
-          <article class="item-card"><div class="item-art relocation-art">⌖</div><div class="item-copy"><span class="item-rarity">نادر</span><h3>نقل متقدم</h3><p>اختر موقعاً صالحاً على خريطة المملكة.</p><b>الكمية: 1</b></div><button class="item-action">استخدام</button></article>
-          <article class="item-card"><div class="item-art random-art">✧</div><div class="item-copy"><span class="item-rarity common">شائع</span><h3>نقل عشوائي</h3><p>انتقل إلى موقع صالح يختاره النظام.</p><b>الكمية: 1</b></div><button class="item-action">استخدام</button></article>
-          <article class="item-card"><div class="item-art boost-art">✿</div><div class="item-copy"><span class="item-rarity common">شائع</span><h3>حزمة مؤن</h3><p>أضف موارد إلى مخزون قلعتك.</p><b>الكمية: 2</b></div><button class="item-action">استخدام</button></article>
-        </div>
-        <p class="prototype-note">هذه نسخة تجريبية محلية؛ استخدام الأغراض هنا لا يؤثر في عالم أونلاين أو حساب حقيقي.</p>
-      </section>
+    <section class="view" id="view-missions">
+      <div class="page-title"><span class="eyebrow">تقدمك ومكافآتك</span><h1>المهام</h1><p>كل خطوة تقرّبك من القمة.</p></div>
+      <div class="mission-card"><div class="mission-symbol">✦</div><div class="mission-info"><b>وسّع شبكة أعمالك</b><small>اشترِ منشأة جديدة لزيادة دخلك.</small><div class="progress"><i id="mission-progress" style="width:50%"></i></div></div><span class="reward">+750 ◈</span></div>
+      <div class="mission-card"><div class="mission-symbol">⬡</div><div class="mission-info"><b>جهّز مخزونك</b><small>اشترِ مواداً من السوق.</small><div class="progress"><i style="width:25%"></i></div></div><span class="reward">+250 ◈</span></div>
+      <div class="mission-card"><div class="mission-symbol">⚑</div><div class="mission-info"><b>شارك في المنافسة</b><small>أكمل محاكاة مواجهة تدريبية.</small><div class="progress"><i id="battle-progress" style="width:0%"></i></div></div><span class="reward">+400 ◈</span></div>
+    </section>
 
-      <section class="screen" id="screen-quests" aria-labelledby="quests-heading">
-        <div class="screen-title"><div><p class="eyebrow">طريق إعادة البناء</p><h1 id="quests-heading">المهام</h1><p class="muted">خطواتك الأولى نحو مملكة قوية.</p></div><span class="quest-progress" id="quest-progress">0 / 3</span></div>
-        <div class="quest-list" id="quest-list">
-          <article class="quest-card"><span class="quest-symbol">⌂</span><div><h3>أعد بناء القصر</h3><p>طوّر مركز قلعتك إلى المستوى الثاني.</p><span class="quest-reward">المكافأة: 100 ذهب</span></div><span class="quest-state">قيد التنفيذ</span></article>
-          <article class="quest-card"><span class="quest-symbol">✿</span><div><h3>أمّن المؤونة</h3><p>اجمع الموارد من مخزون الإنتاج.</p><span class="quest-reward">المكافأة: 150 طعام</span></div><span class="quest-state">قيد التنفيذ</span></article>
-          <article class="quest-card"><span class="quest-symbol">⌖</span><div><h3>اكتشف المملكة</h3><p>افتح الخريطة وتفقد أحد المواقع.</p><span class="quest-reward">المكافأة: 80 خشب</span></div><span class="quest-state">قيد التنفيذ</span></article>
-        </div>
-      </section>
+    <section class="view" id="view-profile">
+      <div class="page-title"><span class="eyebrow">هويتك في العالم</span><h1>الملف الشخصي</h1></div>
+      <div class="profile-hero"><div class="profile-avatar">A</div><div><h2>المؤسس</h2><p>مستثمر ناشئ · المستوى 03</p><span class="live-tag">عضو منذ اليوم الأول</span></div></div>
+      <div class="stats-grid profile-stats"><article class="stat-card"><small>الترتيب</small><strong>#248</strong></article><article class="stat-card"><small>السمعة</small><strong>780</strong></article><article class="stat-card"><small>الإنجازات</small><strong>12</strong></article></div>
+      <div class="settings-list"><button><span>⚙</span> الإعدادات <b>←</b></button><button><span>♧</span> الأصدقاء <b>←</b></button><button><span>◉</span> مركز المساعدة <b>←</b></button></div>
+      <p class="prototype-disclaimer">نسخة استكشافية محلية. الحسابات والتجارة والمواجهات الجماعية الحقيقية ستعمل بعد ربط خدمات الخادم.</p>
+    </section>
+  </main>
 
-      <section class="screen" id="screen-profile" aria-labelledby="profile-heading">
-        <div class="screen-title"><div><p class="eyebrow">هويتك في المملكة</p><h1 id="profile-heading">ملف اللاعب</h1></div></div>
-        <div class="profile-card"><div class="avatar">♙</div><div><h2>مؤسس القلعة</h2><p>مستكشف جديد في مملكة 1</p><span class="status-pill"><i></i> متصل محلياً</span></div></div>
-        <div class="profile-stats"><div><b id="profile-keep-level">1</b><span>مستوى القصر</span></div><div><b id="profile-buildings">4</b><span>المباني</span></div><div><b id="profile-quests">0</b><span>المهام المكتملة</span></div></div>
-        <div class="settings-card"><h3>إعدادات النموذج</h3><p>تُحفظ تجربة النموذج على هذا الجهاز فقط.</p><button class="secondary-button" id="reset-button">إعادة ضبط النموذج</button></div>
-      </section>
-    </main>
-
-    <nav class="bottom-nav" aria-label="التنقل الرئيسي">
-      <button class="nav-item active" data-screen="castle"><span>♜</span><small>القلعة</small></button>
-      <button class="nav-item" data-screen="map"><span>⌖</span><small>الخريطة</small></button>
-      <button class="nav-item" data-screen="bag"><span>▣</span><small>الحقيبة</small><i class="nav-dot"></i></button>
-      <button class="nav-item" data-screen="quests"><span>⚑</span><small>المهام</small></button>
-      <button class="nav-item" data-screen="profile"><span>♙</span><small>حسابي</small></button>
-    </nav>
-  </div>
-
-  <div class="toast" id="toast" role="status" aria-live="polite"></div>
-  <dialog class="confirm-dialog" id="confirm-dialog"><div class="dialog-content"><span class="dialog-symbol" id="dialog-symbol">✦</span><p class="eyebrow" id="dialog-eyebrow">تأكيد العملية</p><h2 id="dialog-title">هل تريد المتابعة؟</h2><p id="dialog-description"></p><div class="dialog-actions"><button class="secondary-button" id="dialog-cancel">إلغاء</button><button class="primary-button" id="dialog-confirm">تأكيد</button></div></div></dialog>
+  <nav class="bottom-nav" aria-label="التنقل الرئيسي">
+    <button class="nav-item active" data-view="home"><span>⌂</span><small>الرئيسية</small></button>
+    <button class="nav-item" data-view="empire"><span>▦</span><small>أعمالي</small></button>
+    <button class="nav-item nav-world" data-view="world"><span>◎</span><small>العالم</small></button>
+    <button class="nav-item" data-view="market"><span>◈</span><small>السوق</small></button>
+    <button class="nav-item" data-view="conflict"><span>⚔</span><small>المنافسة</small></button>
+    <button class="nav-item" data-view="social"><span>✧</span><small>المجتمع</small></button>
+  </nav>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<dialog id="result-dialog"><div class="dialog-inner"><span class="dialog-icon" id="dialog-icon">✦</span><span class="eyebrow" id="dialog-kicker">نتيجة العملية</span><h2 id="dialog-title">تمت العملية</h2><p id="dialog-text"></p><button class="btn-primary full" id="dialog-close">متابعة</button></div></dialog>
 </body>
 </html>
