@@ -1,6 +1,6 @@
 # NEXORA
 
-**NEXORA** is a portrait-first (Mobile-First) economic, corporate management, and social strategy simulation browser game built with **React 19**, **TypeScript**, **Tailwind CSS v4**, **Firebase Authentication**, and **Cloud Firestore**. The NOVA Supabase schema is provisioned; the live gameplay client is still on Firebase pending the secure API cutover.
+**NEXORA** is a portrait-first (Mobile-First) economic, corporate management, and social strategy simulation browser game built with **React 19**, **TypeScript**, **Tailwind CSS v4**, **Firebase Authentication** for identity, and **Supabase Postgres + Edge Functions** for live game data and trusted operations.
 
 Default UI language is **Arabic (`RTL`)** with instant switching to **English (`LTR`)**.
 
@@ -20,20 +20,22 @@ Default UI language is **Arabic (`RTL`)** with instant switching to **English (`
 - **Organizations & RBAC**: Organization membership, role permissions, join requests, and shared treasury.
 - **NEXORA Diagnostics**: Owner-restricted, read-only diagnostics with sanitization and JSON export.
 
-## Current Runtime — Firebase (Active Source of Truth)
-- Firebase Auth (Google provider) is still the active login.
-- Cloud Firestore remains the source of truth for live game data.
-- Firebase Cloud Functions Gen 2 remain the read-only diagnostics backend.
-- Company profit-vault operations are now routed through a Vercel server-side API. The API verifies Firebase ID tokens, obtains short-lived Google credentials through Vercel OIDC/WIF, and uses Firestore REST transactions against the named database. Build and live transaction verification are pending.
-- Do not remove Firebase or switch live writes until Supabase auth strategy, trusted server operations, RLS, migration, parity tests, and rollback are complete.
+## Current Runtime — Supabase gameplay backend
+
+- Firebase Auth remains the identity provider during this staged cutover. The browser sends its Firebase ID token to the NEXORA Edge Function; the function validates the token and derives the UID server-side.
+- Supabase project `NOVA` (`hmrprnjhyzyefocdmnxf`), schema `nexora`, is the live source of truth for core gameplay data.
+- All core gameplay reads are loaded through the authenticated `bootstrap` Edge Function. Mutations for wallets, market, manufacturing, companies, properties, organizations, missions, achievements, notifications and leaderboards run through trusted Edge Function handlers and server-side Postgres RPCs.
+- `service_role` is only used inside the Edge Function. It is never included in the browser bundle. Direct table access for `anon` and `authenticated` remains closed; RLS stays enabled.
+- The legacy owner diagnostics screen still contains Firestore/Vercel-only health probes. Those probes are not part of gameplay or economy operations and must be migrated or disabled before claiming that all Firebase/Vercel dependencies are removed.
+- No Firestore player data has been imported. Existing accounts remain authenticated by the original Firebase Auth project; a separate identity migration is not part of this staged gameplay cutover.
 
 ## Supabase Target — NOVA isolated namespace
+
 - **Project**: `NOVA` (`hmrprnjhyzyefocdmnxf`, `eu-west-1`).
-- **NEXORA schema**: `nexora`; provisioned on 2026-11-18 with 23 tables (22 domain tables plus username reservations).
-- **Security**: RLS enabled on all 23 tables; no `anon` or `authenticated` table access; `service_role` reserved for trusted server operations. No player data has been imported.
-- **Fail-closed state**: no browser policies or grants have been added. The `rls_enabled_no_policy` INFO notices are expected until the trusted game API and authorization model are implemented.
-- **Legacy cleanup**: all 17 old `public.nova_*` game tables and the old `nova_*` functions were removed after verifying zero rows in every legacy game table. Supabase Auth and platform schemas were not modified.
-- **Runtime status**: Firebase Auth remains for identity only. Core gameplay state and migrated operations use the NOVA Supabase `nexora` schema; some remaining organization/mission/achievement flows are not yet cut over. Do not publish this source snapshot as production until the backend cutover and security tests are complete.
+- **NEXORA schema**: `nexora`; 23 tables with RLS enabled.
+- **Security**: no direct `anon` or `authenticated` table grants. The trusted Edge Function validates Firebase identity and invokes the database with service privileges.
+- **Legacy cleanup**: the 17 old `public.nova_*` game tables and old `nova_*` functions were removed only after verifying the legacy game tables were empty. Supabase Auth and platform-managed schemas were not modified.
+- **Runtime status**: core gameplay uses Supabase. The GitHub Pages workflow is configured with base path `/NOVA/`; run and verify that deployment before treating the public game link as updated.
 
 ## Documentation
 - `PROJECT_STATUS.md` — Living project status and verification record.
