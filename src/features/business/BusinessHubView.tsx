@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useToast } from '../../components/ui/ToastProvider';
+import { FactoriesPanel } from './FactoriesPanel';
 import {
   COMPANY_SECTORS,
   ITEM_MAP,
@@ -42,6 +43,7 @@ import {
 import type {
   BusinessSubTab,
   Company,
+  Factory,
   CompanyAuction,
   CompanyLog,
   CompanySector,
@@ -56,6 +58,7 @@ interface BusinessHubViewProps {
   profile: PlayerProfile;
   wallet: Wallet | null;
   companies: Company[];
+  factories: Factory[];
   companyLogs: CompanyLog[];
   inventory: InventoryItem[];
   worldEvents: WorldEvent[];
@@ -68,6 +71,7 @@ export function BusinessHubView({
   profile,
   wallet,
   companies,
+  factories,
   companyLogs,
   inventory,
   worldEvents,
@@ -323,6 +327,7 @@ export function BusinessHubView({
   const subTabs: { id: BusinessSubTab; label: string }[] = [
     { id: 'companies', label: t.subCompanies },
     { id: 'auction', label: language === 'ar' ? 'مزاد الشركات' : 'Company Auction' },
+    { id: 'factories', label: language === 'ar' ? 'المصانع' : 'Factories' },
     { id: 'inventory', label: t.subInventory },
     { id: 'financials', label: t.subFinancials },
   ];
@@ -687,6 +692,16 @@ export function BusinessHubView({
             })}
           </section>
         </div>
+      )}
+
+      {subTab === 'factories' && (
+        <FactoriesPanel
+          factories={factories}
+          inventory={inventory}
+          profile={profile}
+          wallet={wallet}
+          language={language}
+        />
       )}
 
       {/* 4. INVENTORY */}
