@@ -10,7 +10,7 @@ Build NOVA as an original, polished, Android-first game with the quality discipl
 
 The ambition is to create a memorable game with a coherent world, satisfying moment-to-moment play, meaningful progression, responsive controls, excellent presentation, reliable saving, and enough depth to keep players returning. "Global quality" is an aspiration, not a claim that can be made before real testing, localization review, and release validation.
 
-## 2. Initial genre and product direction
+## 2. Confirmed product direction; final genre remains open
 
 Current user-defined direction: **online-first, persistent multiplayer competition**, with alliances, diplomacy, economy, armies, and wars at its core. Professional player profiles, friends, private messaging, and global chat are foundational—not optional add-ons.
 
@@ -69,7 +69,7 @@ Before a screen or feature is considered complete:
 - Check Arabic spelling, grammar, punctuation, terminology, RTL ordering, numerals, and text expansion/clipping.
 - Check English spelling, grammar, tone, consistency, and natural phrasing when English is supported.
 - Keep copy concise and useful. Remove text that does not help the player understand, decide, act, or recover.
-- Use a consistent glossary for character attributes, currencies, items, quests, combat actions, and system messages.
+- Use a consistent glossary for player profiles, alliances, resources, currencies, diplomacy, military orders, battles, and system messages; finalize exact terms only after the game model is selected.
 - Test long strings and different screen sizes; do not rely on visual inspection of a single device size.
 
 ## 7. Definition of done
@@ -102,15 +102,15 @@ A feature is not complete merely because code exists or a build succeeds. Its de
 
 The agent should maintain and reprioritize a living roadmap. Initial order:
 
-1. **Foundation audit:** inspect repository, CI, deployment, Supabase function health, security boundaries, and current runtime state. Resolve blockers and document actual status.
-2. **Game definition:** prototype the core loop, camera/perspective, input model, world structure, combat/interaction model, and progression before committing to a full engine/content pipeline.
-3. **Technical selection:** compare a small number of viable stacks against Android feel, 2D/3D needs, performance, deployment constraints, testability, and long-term maintenance.
-4. **Vertical slice:** build one small but polished playable segment demonstrating the real game loop, touch controls, visual direction, audio feedback, save/reload, and error/offline behavior.
-5. **Core systems:** implement only the systems needed by the validated loop; add quests, inventory, equipment, progression, economy, social, or live operations in dependency order.
-6. **Content and polish:** build coherent environments, characters, animations, sound, localization, onboarding, accessibility, and balanced progression.
-7. **Quality and release:** device matrix, performance/crash testing, security review, privacy/data disclosures, Android package/signing, Play Console requirements, store listing, staged testing, and release approval.
+1. **Foundation audit:** verify repository, CI, deployment, Supabase services, security boundaries, and current runtime status.
+2. **Online product definition:** detail player identity, profiles, friends, private/global/alliance chat, moderation, presence, alliances and roles, diplomacy, persistent economy, armies, war, seasons, and competition.
+3. **Technical selection:** compare client/game stacks and hosting patterns against the online-first requirements, mobile experience, concurrency, authoritative simulation, cost, testability, and long-term maintenance.
+4. **Prototype gate:** validate one narrow end-to-end online loop, including authentication, a player-facing social interaction, a server-authoritative shared-world action, persistence, and reconnect/retry behavior.
+5. **Vertical slice:** turn the validated loop into a polished, cohesive experience with the required visual, audio, localization, accessibility, and mobile quality.
+6. **Core systems and live world:** expand alliance, economy, diplomacy, military, social, event, and competitive systems in dependency order.
+7. **Quality and release:** test security, anti-abuse, concurrency, performance, backups, device compatibility, privacy/data disclosures, Android packaging where selected, store requirements, staged rollout, and release approval.
 
-Do not mistake this roadmap for a promise that all systems must be built. Remove or defer features that do not improve the game.
+The agent is authorized to select ordinary product and technical details based on evidence and document the decision. Stop for owner approval only when a defined financial, legal, identity, privacy/monetization, destructive-production, or public-release boundary is reached. Do not mistake this roadmap for a promise that all systems must be built; remove or defer features that do not improve the coherent online game.
 
 ## 10. Reporting standard
 
