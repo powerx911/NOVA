@@ -26,7 +26,7 @@ The current main branch includes:
 
 No real player accounts have been created or end-to-end integration-tested yet. Email confirmation requires the Pages URL `https://powerx911.github.io/NOVA/` to be present in Supabase Auth's redirect allowlist.
 
-Asynchronous player challenges and server-simulated duels are being developed in the open competitive-duels PR; the migration is not yet applied. Organizations, season system, and broader PvP features remain future implementation phases.
+Asynchronous player challenges and server-simulated duels are merged in the client, but their database migration is undergoing a small SQL quoting repair in PR #25. The duel migration must be applied before authenticated battle features are usable. Organizations, season system, and broader PvP features remain future implementation phases.
 
 ## Infrastructure and safety
 
