@@ -27,6 +27,7 @@ import {
 } from '../../lib/economy';
 import {
   collectCompanyRevenue,
+  timestampToMs,
   completeCompanyUpgrade,
   completeCompanyVaultUpgrade,
   foundCompany,
@@ -88,11 +89,13 @@ export function BusinessHubView({
 
   useEffect(() => {
     for (const company of companies) {
-      if (company.levelUpgradeEndsAt && company.levelUpgradeEndsAt <= nowMs && busyKey !== `complete_company_${company.id}`) {
+      const companyEndsAt = company.levelUpgradeEndsAt ? timestampToMs(company.levelUpgradeEndsAt) : 0;
+      if (companyEndsAt > 0 && companyEndsAt <= nowMs && busyKey !== `complete_company_${company.id}`) {
         setBusyKey(`complete_company_${company.id}`);
         void completeCompanyUpgrade(profile.uid, company.id).then(() => showToast(language === 'ar' ? 'اكتمل تطوير الشركة!' : 'Company upgrade completed!', 'success')).catch(() => undefined).finally(() => setBusyKey((current) => current === `complete_company_${company.id}` ? null : current));
       }
-      if (company.vaultUpgradeEndsAt && company.vaultUpgradeEndsAt <= nowMs && busyKey !== `complete_vault_${company.id}`) {
+      const vaultEndsAt = company.vaultUpgradeEndsAt ? timestampToMs(company.vaultUpgradeEndsAt) : 0;
+      if (vaultEndsAt > 0 && vaultEndsAt <= nowMs && busyKey !== `complete_vault_${company.id}`) {
         setBusyKey(`complete_vault_${company.id}`);
         void completeCompanyVaultUpgrade(profile.uid, company.id).then(() => showToast(language === 'ar' ? 'اكتمل تطوير الخزينة!' : 'Vault upgrade completed!', 'success')).catch(() => undefined).finally(() => setBusyKey((current) => current === `complete_vault_${company.id}` ? null : current));
       }
@@ -370,8 +373,12 @@ export function BusinessHubView({
                   : false;
                 const vaultProgress = Math.min(100, (accrued / vaultCapacity) * 100);
                 const upgradeCost = c.level * 550;
-                const companyUpgradeRemaining = c.levelUpgradeEndsAt ? Math.max(0, c.levelUpgradeEndsAt - nowMs) : 0;
-                const vaultUpgradeRemaining = c.vaultUpgradeEndsAt ? Math.max(0, c.vaultUpgradeEndsAt - nowMs) : 0;
+                const companyUpgradeEndsAt = c.levelUpgradeEndsAt ? timestampToMs(c.levelUpgradeEndsAt) : 0;
+                const vaultUpgradeEndsAt = c.vaultUpgradeEndsAt ? timestampToMs(c.vaultUpgradeEndsAt) : 0;
+                const companyUpgradeRemaining = companyUpgradeEndsAt ? Math.max(0, companyUpgradeEndsAt - nowMs) : 0;
+                const vaultUpgradeRemaining = vaultUpgradeEndsAt ? Math.max(0, vaultUpgradeEndsAt - nowMs) : 0;
+                const companyUpgradePending = Boolean(c.levelUpgradeStartedAt || c.levelUpgradeEndsAt || c.levelUpgradeTargetLevel);
+                const vaultUpgradePending = Boolean(c.vaultUpgradeStartedAt || c.vaultUpgradeEndsAt || c.vaultUpgradeTargetLevel);
                 const formatRemaining = (ms: number) => { const total = Math.ceil(ms / 1000); const days = Math.floor(total / 86400); const hours = Math.floor((total % 86400) / 3600); const minutes = Math.floor((total % 3600) / 60); const seconds = total % 60; return days > 0 ? `${days}d ${hours}h` : hours > 0 ? `${hours}h ${minutes}m` : minutes > 0 ? `${minutes}m ${seconds}s` : `${seconds}s`; };
                 const isMaxLevel = c.level >= COMPANY_MAX_LEVEL;
                 const sectorSpec = COMPANY_SECTORS.find((s) => s.sector === c.sector);
@@ -484,11 +491,11 @@ export function BusinessHubView({
                           </div>
                           <button
                             type="button"
-                            disabled={vaultUpgradeRemaining > 0 || (wallet?.balance ?? 0) < vaultUpgrade.cost || !vaultMaterialsAvailable || busyKey === `vault_${c.id}`}
+                            disabled={vaultUpgradePending || (wallet?.balance ?? 0) < vaultUpgrade.cost || !vaultMaterialsAvailable || busyKey === `vault_${c.id}`}
                             onClick={() => handleUpgradeCompanyVault(c.id)}
                             className="w-full min-h-[40px] rounded-xl bg-cyan-700/80 hover:bg-cyan-600 text-white text-xs font-semibold disabled:opacity-40 transition-colors"
                           >
-                            {vaultUpgradeRemaining > 0 ? (language === 'ar' ? `جارٍ التطوير: ${formatRemaining(vaultUpgradeRemaining)}` : `Upgrading: ${formatRemaining(vaultUpgradeRemaining)}`) : (language === 'ar' ? 'بدء تطوير الخزينة' : 'Start Vault Upgrade')}
+                            {vaultUpgradePending ? (vaultUpgradeRemaining > 0 ? (language === 'ar' ? `جارٍ التطوير: ${formatRemaining(vaultUpgradeRemaining)}` : `Upgrading: ${formatRemaining(vaultUpgradeRemaining)}`) : (language === 'ar' ? 'جارٍ إكمال التطوير...' : 'Finishing upgrade...')) : (language === 'ar' ? 'بدء تطوير الخزينة' : 'Start Vault Upgrade')}
                           </button>
                         </div>
                       ) : (
@@ -507,11 +514,11 @@ export function BusinessHubView({
                       </button>
                       <button
                         type="button"
-                        disabled={isMaxLevel || companyUpgradeRemaining > 0 || busyKey === `upg_${c.id}` || (wallet?.balance ?? 0) < upgradeCost}
+                        disabled={isMaxLevel || companyUpgradePending || busyKey === `upg_${c.id}` || (wallet?.balance ?? 0) < upgradeCost}
                         onClick={() => handleUpgradeCompany(c.id)}
                         className="min-h-[42px] px-3.5 rounded-xl bg-[#1B2230] hover:bg-[#232C3E] text-[#F4F5F7] text-xs font-semibold whitespace-nowrap disabled:opacity-50 transition-colors"
                       >
-                        {isMaxLevel ? t.maxLevelReached : companyUpgradeRemaining > 0 ? (language === 'ar' ? `جارٍ التطوير: ${formatRemaining(companyUpgradeRemaining)}` : `Upgrading: ${formatRemaining(companyUpgradeRemaining)}`) : (language === 'ar' ? 'بدء تطوير الشركة' : 'Start Company Upgrade')}
+                        {isMaxLevel ? t.maxLevelReached : companyUpgradePending ? (companyUpgradeRemaining > 0 ? (language === 'ar' ? `جارٍ التطوير: ${formatRemaining(companyUpgradeRemaining)}` : `Upgrading: ${formatRemaining(companyUpgradeRemaining)}`) : (language === 'ar' ? 'جارٍ إكمال التطوير...' : 'Finishing upgrade...')) : (language === 'ar' ? 'بدء تطوير الشركة' : 'Start Company Upgrade')}
                       </button>
                     </div>
                   </div>
