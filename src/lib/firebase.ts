@@ -92,4 +92,4 @@ export async function testFirestoreConnection(): Promise<boolean> {
   }
 }
 
-testFirestoreConnection();
+// Firestore is retained only for the legacy owner diagnostics screen; do not probe it during normal gameplay startup.
