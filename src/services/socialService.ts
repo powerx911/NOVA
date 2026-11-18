@@ -50,3 +50,8 @@ export const invitePlayerToOrganization = (targetUid: string) =>
   nexoraApi<{ok:boolean}>('invite_player_to_organization', { targetUid });
 export const respondOrganizationInvite = (inviteId: string, response: 'accept'|'decline') =>
   nexoraApi<{ok:boolean;status:string}>('respond_organization_invite', { inviteId, response });
+
+export type SocialPresence = { uid: string; isOnline: boolean; onlineSince: unknown; lastSeenAt: unknown };
+export const touchPlayerPresence = () => nexoraApi<{ok:boolean}>('touch_player_presence');
+export const getPlayersPresence = async (userIds: string[]) =>
+  (await nexoraApi<{players:SocialPresence[]}>('get_players_presence', { userIds: [...new Set(userIds)].slice(0, 60) })).players;
