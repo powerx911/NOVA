@@ -298,6 +298,19 @@ Deno.serve(async (req: Request) => {
       return json({ ok: true, data }, 200, origin);
     }
 
+    if (body.action === "manufacture_recipe") {
+      const recipeId = typeof body.recipeId === "string" ? body.recipeId : "";
+      const batches = typeof body.batches === "number" && Number.isFinite(body.batches) ? Math.floor(body.batches) : 0;
+      const { data, error } = await db.rpc("manufacture_recipe", {
+        p_uid: identity.uid, p_recipe_id: recipeId, p_batches: batches,
+      });
+      if (error) {
+        const known = ["INVALID_RECIPE","INVALID_QUANTITY","ACCOUNT_NOT_FOUND","INDUSTRY_SKILL_TOO_LOW","INSUFFICIENT_FUNDS","MISSING_INPUTS"].find((code) => error.message.includes(code));
+        return json({ error: known ?? "MANUFACTURING_FAILED" }, 409, origin);
+      }
+      return json({ ok: true, data }, 200, origin);
+    }
+
     return json({ error: "UNKNOWN_ACTION" }, 400, origin);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
