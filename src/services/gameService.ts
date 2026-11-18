@@ -337,6 +337,12 @@ export async function upgradeFactory(factoryId: string): Promise<void> {
 export async function completeFactoryUpgrade(factoryId: string): Promise<void> {
   await callFactoryAction('complete_factory_upgrade', factoryId);
 }
+export async function upgradeFactoryWarehouse(factoryId: string): Promise<void> {
+  await callFactoryAction('upgrade_factory_warehouse', factoryId);
+}
+export async function completeFactoryWarehouseUpgrade(factoryId: string): Promise<void> {
+  await callFactoryAction('complete_factory_warehouse_upgrade', factoryId);
+}
 export async function upgradeFactorySkill(factoryId: string): Promise<void> {
   await callFactoryAction('upgrade_factory_skill', factoryId);
 }
