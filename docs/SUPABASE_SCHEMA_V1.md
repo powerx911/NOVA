@@ -29,15 +29,15 @@ The baseline includes typed columns, primary/unique keys, non-negative/range che
 - No browser RLS policies have been added. With RLS enabled and no grants/policies, client access remains denied.
 - No NEXORA player data has been imported.
 - The legacy NOVA public game tables and `nova_*` functions were removed after confirming that the legacy tables contained zero rows.
-- Firebase Auth and Firestore remain the active application runtime and source of truth.
+- Firebase Auth remains the identity provider during the staged cutover. Core gameplay state and the migrated economy/company/property operations now use the trusted Supabase Edge API; unported organization/mission/achievement flows remain transitional and must not be treated as production-ready.
 
 The Security Advisor reports `rls_enabled_no_policy` INFO notices for the 22 NEXORA tables. These are expected for this closed bootstrap state; do not add permissive policies just to silence the notices. The Advisor also reports existing notices for OneState's `public` tables; they are outside this project's scope and must not be changed.
 
-## Follow-up work before any cutover
+## Follow-up work before production release
 
 1. Decide the identity boundary. Supabase Auth is project-wide and cannot be assumed to be separate from OneState. Keep Firebase Auth until an approved design supports secure server verification.
-2. Implement trusted server-side operations (or carefully reviewed RPCs) for character creation, wallet ledger mutations, inventory, market escrow, XP/skills, company/property revenue, organization RBAC/treasury, claims, and diagnostics.
-3. Write tests for authorization, idempotency, concurrency, replay, negative balances, minting, and immutable records.
+2. Finish trusted server-side operations for organization RBAC/treasury, missions, achievements, diagnostics, and any remaining legacy client actions.
+3. Expand tests for authorization, idempotency, concurrency, replay, negative balances, minting, and immutable records across every migrated RPC.
 4. Design and test row-level read policies only after the chosen identity model is settled.
 5. Prepare export/import with counts, reconciliation, and rollback; do not copy or delete Firestore data before this passes.
 6. Keep `nexora` unexposed and client grants absent until all security checks pass.
