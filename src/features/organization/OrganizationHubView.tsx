@@ -511,9 +511,9 @@ export function OrganizationHubView({
   const upgradeHoursLeft = upgradeInProgress ? Math.ceil((currentOrg.upgradeEndsAt! - clockNow) / 3_600_000) : 0;
 
   return (
-    <div className="space-y-5">
+    <div className="w-full min-w-0 space-y-4 sm:space-y-5">
       {/* Organization Header */}
-      <div className="bg-[#141821] border border-white/8 rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="min-w-0 w-full bg-[#141821] border border-white/8 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="space-y-1">
           <div className="flex items-center gap-2.5">
             <Shield className="w-5 h-5 text-[#E04455]" />
@@ -619,8 +619,8 @@ export function OrganizationHubView({
 
       <div className="grid min-w-0 grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5">
         {/* Shared Treasury Operations & RBAC Matrix */}
-        <div className="space-y-5">
-          <div className="bg-[#141821] border border-white/8 rounded-2xl p-5 space-y-4">
+        <div className="w-full min-w-0 space-y-4 sm:space-y-5">
+          <div className="min-w-0 bg-[#141821] border border-white/8 rounded-2xl p-4 sm:p-5 space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="text-base font-semibold text-[#F4F5F7]">{language === 'ar' ? 'خزينة المنظمة والتبرعات' : 'Organization treasury & donations'}</h2>
               <Vault className="w-4 h-4 text-[#E04455]" />
@@ -694,7 +694,7 @@ export function OrganizationHubView({
           </div>
 
           {/* Role Permissions Matrix */}
-          <div className="bg-[#141821] border border-white/8 rounded-2xl p-5 space-y-3">
+          <div className="min-w-0 bg-[#141821] border border-white/8 rounded-2xl p-4 sm:p-5 space-y-3">
             <h2 className="text-sm font-semibold text-[#F4F5F7]">{t.orgPerks}</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
               {(['leader', 'deputy', 'officer', 'member'] as const).map((role) => {
