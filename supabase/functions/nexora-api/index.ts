@@ -1,0 +1,227 @@
+import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+import { createClient } from "npm:@supabase/supabase-js@2.95.0";
+import { createRemoteJWKSet, jwtVerify } from "npm:jose@5.10.0";
+
+const FIREBASE_PROJECT_ID = "gen-lang-client-0074900177";
+const FIREBASE_ISSUER = `https://securetoken.google.com/${FIREBASE_PROJECT_ID}`;
+const FIREBASE_KEYS = createRemoteJWKSet(
+  new URL("https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com"),
+);
+const ALLOWED_ORIGINS = new Set([
+  "https://powerx911.github.io",
+  "http://localhost:3000",
+  "http://localhost:5173",
+]);
+
+const cors = (origin: string | null) => ({
+  "Access-Control-Allow-Origin": origin && ALLOWED_ORIGINS.has(origin) ? origin : "https://powerx911.github.io",
+  "Access-Control-Allow-Headers": "authorization, apikey, content-type, x-client-info",
+  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+  "Access-Control-Max-Age": "86400",
+  "Vary": "Origin",
+});
+const json = (body: unknown, status = 200, origin: string | null = null) =>
+  new Response(JSON.stringify(body), {
+    status,
+    headers: { ...cors(origin), "Content-Type": "application/json", "Cache-Control": "no-store" },
+  });
+
+function camelKey(key: string): string {
+  return key === "user_id" ? "uid" : key.replace(/_([a-z])/g, (_, letter: string) => letter.toUpperCase());
+}
+function camelRow<T>(row: T): T {
+  if (Array.isArray(row)) return row.map((item) => camelRow(item)) as T;
+  if (!row || typeof row !== "object") return row;
+  return Object.fromEntries(Object.entries(row as Record<string, unknown>).map(([k, v]) => [camelKey(k), v])) as T;
+}
+
+function getAdminClient() {
+  const url = Deno.env.get("SUPABASE_URL");
+  if (!url) throw new Error("SUPABASE_URL_MISSING");
+  // Prefer the legacy JWT service_role key with supabase-js v2. The newer
+  // sb_secret_* key is not a JWT and must be sent via apikey-only headers.
+  let key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+  if (!key) {
+    const secrets = Deno.env.get("SUPABASE_SECRET_KEYS");
+    if (secrets) {
+      try { key = JSON.parse(secrets).default ?? ""; } catch { /* fail closed below */ }
+    }
+  }
+  if (!key) throw new Error("SUPABASE_SERVER_KEY_MISSING");
+  return createClient(url, key, {
+    db: { schema: "nexora" },
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+}
+
+async function authenticate(req: Request) {
+  const header = req.headers.get("Authorization") ?? "";
+  const token = header.startsWith("Bearer ") ? header.slice(7) : "";
+  if (!token) throw new Error("UNAUTHENTICATED");
+  const { payload } = await jwtVerify(token, FIREBASE_KEYS, {
+    issuer: FIREBASE_ISSUER,
+    audience: FIREBASE_PROJECT_ID,
+    algorithms: ["RS256"],
+  });
+  const firebase = payload.firebase && typeof payload.firebase === "object"
+    ? payload.firebase as Record<string, unknown>
+    : {};
+  const isAnonymous = firebase.sign_in_provider === "anonymous";
+  if (
+    typeof payload.sub !== "string" || !payload.sub ||
+    (!isAnonymous && payload.email_verified !== true)
+  ) throw new Error("VERIFIED_EMAIL_REQUIRED");
+  return {
+    uid: payload.sub,
+    email: typeof payload.email === "string" ? payload.email : "",
+  };
+}
+
+async function queryData<T>(promise: Promise<{ data: T; error: { message: string } | null }>): Promise<T> {
+  const { data, error } = await promise;
+  if (error) throw new Error(error.message);
+  return data;
+}
+
+async function bootstrap(admin: ReturnType<typeof getAdminClient>, uid: string) {
+  const db = admin.schema("nexora");
+  const [
+    profile, userPrivate, wallet, inventory, sent, received, marketListings,
+    marketOrders, companies, companyLogs, properties, organizations,
+    organizationMembers, organizationRequests, playerMissions, dailyClaims,
+    contractClaims, playerAchievements, notifications, worldEvents,
+  ] = await Promise.all([
+    queryData(db.from("player_profiles").select("*").eq("user_id", uid).maybeSingle()),
+    queryData(db.from("player_private").select("*").eq("user_id", uid).maybeSingle()),
+    queryData(db.from("wallets").select("*").eq("user_id", uid).maybeSingle()),
+    queryData(db.from("inventory").select("*").eq("user_id", uid)),
+    queryData(db.from("transactions").select("*").eq("from_uid", uid).order("created_at", { ascending: false }).limit(30)),
+    queryData(db.from("transactions").select("*").eq("to_uid", uid).order("created_at", { ascending: false }).limit(30)),
+    queryData(db.from("market_listings").select("*").eq("status", "active").order("created_at", { ascending: false }).limit(100)),
+    queryData(db.from("market_orders").select("*").eq("buyer_uid", uid).order("created_at", { ascending: false }).limit(25)),
+    queryData(db.from("companies").select("*").eq("owner_uid", uid)),
+    queryData(db.from("company_logs").select("*").eq("owner_uid", uid).order("created_at", { ascending: false }).limit(25)),
+    queryData(db.from("properties").select("*").eq("owner_uid", uid)),
+    queryData(db.from("organizations").select("*").gte("reputation", 0).order("reputation", { ascending: false }).limit(40)),
+    queryData(db.from("organization_members").select("*").eq("user_id", uid).limit(1)),
+    queryData(db.from("organization_requests").select("*").eq("user_id", uid)),
+    queryData(db.from("player_missions").select("*").eq("user_id", uid)),
+    queryData(db.from("daily_claims").select("*").eq("user_id", uid).eq("date_key", new Date().toISOString().slice(0, 10)).maybeSingle()),
+    queryData(db.from("contract_claims").select("*").eq("user_id", uid)),
+    queryData(db.from("player_achievements").select("*").eq("user_id", uid)),
+    queryData(db.from("notifications").select("*").eq("user_id", uid).order("created_at", { ascending: false }).limit(30)),
+    queryData(db.from("world_events").select("*").eq("active", true)),
+  ]);
+
+  const orgId = (profile as Record<string, unknown> | null)?.org_id;
+  const [orgMembers, orgRequests, orgTransactions] = orgId
+    ? await Promise.all([
+        queryData(db.from("organization_members").select("*").eq("org_id", orgId)),
+        queryData(db.from("organization_requests").select("*").eq("org_id", orgId).eq("status", "pending")),
+        queryData(db.from("organization_transactions").select("*").eq("org_id", orgId).order("created_at", { ascending: false }).limit(40)),
+      ])
+    : [[], [], []];
+
+  const txMap = new Map<string, Record<string, unknown>>();
+  for (const tx of [...(sent as Record<string, unknown>[]), ...(received as Record<string, unknown>[])]) {
+    txMap.set(String(tx.id), tx);
+  }
+  const transactions = [...txMap.values()].sort(
+    (a, b) => new Date(String(b.created_at)).getTime() - new Date(String(a.created_at)).getTime(),
+  ).slice(0, 40);
+
+  return {
+    profile: camelRow(profile),
+    userPrivate: camelRow(userPrivate),
+    wallet: camelRow(wallet),
+    inventory: camelRow(inventory),
+    transactions: camelRow(transactions),
+    marketListings: camelRow(marketListings),
+    marketOrders: camelRow(marketOrders),
+    companies: camelRow(companies),
+    companyLogs: camelRow(companyLogs),
+    properties: camelRow(properties),
+    organizations: camelRow(organizations),
+    myOrgMember: camelRow((organizationMembers as Record<string, unknown>[])[0] ?? null),
+    orgMembers: camelRow(orgMembers),
+    orgRequests: camelRow(orgRequests),
+    myPendingOrgIds: (organizationRequests as Record<string, unknown>[]).filter((r) => r.status === "pending").map((r) => r.org_id),
+    orgTransactions: camelRow(orgTransactions),
+    playerMissions: camelRow(playerMissions),
+    claimedDailyToday: Boolean(dailyClaims),
+    contractClaims: camelRow(contractClaims),
+    claimedContractsToday: (contractClaims as Record<string, unknown>[]).map((r) => r.contract_id),
+    playerAchievements: camelRow(playerAchievements),
+    notifications: camelRow(notifications),
+    worldEvents: camelRow(worldEvents),
+  };
+}
+
+Deno.serve(async (req: Request) => {
+  const origin = req.headers.get("Origin");
+  if (origin && !ALLOWED_ORIGINS.has(origin)) return json({ error: "FORBIDDEN_ORIGIN" }, 403, origin);
+  if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: cors(origin) });
+
+  if (req.method === "GET") {
+    try {
+      const admin = getAdminClient().schema("nexora");
+      const { error } = await admin.from("world_events").select("id").limit(1);
+      if (error) throw error;
+      return json({ ok: true, service: "nexora-api", schema: "nexora" }, 200, origin);
+    } catch {
+      return json({ ok: false, error: "DATABASE_UNAVAILABLE" }, 503, origin);
+    }
+  }
+
+  if (req.method !== "POST") return json({ error: "METHOD_NOT_ALLOWED" }, 405, origin);
+
+  try {
+    const identity = await authenticate(req);
+    const body = await req.json().catch(() => null) as Record<string, unknown> | null;
+    if (!body || typeof body.action !== "string") return json({ error: "INVALID_REQUEST" }, 400, origin);
+    const admin = getAdminClient();
+    const db = admin.schema("nexora");
+
+    if (body.action === "bootstrap") {
+      return json({ ok: true, data: await bootstrap(admin, identity.uid) }, 200, origin);
+    }
+
+    if (body.action === "username_available") {
+      const username = typeof body.username === "string" ? body.username.trim() : "";
+      if (!/^[a-zA-Z0-9_]{3,24}$/.test(username)) {
+        return json({ ok: true, available: false }, 200, origin);
+      }
+      const { data, error } = await db.from("usernames").select("uid").eq("username_lower", username.toLowerCase()).maybeSingle();
+      if (error) throw error;
+      return json({ ok: true, available: !data }, 200, origin);
+    }
+
+    if (body.action === "create_character") {
+      const username = typeof body.username === "string" ? body.username.trim() : "";
+      const avatarId = typeof body.avatarId === "string" ? body.avatarId : "strategist";
+      const language = body.language === "en" ? "en" : "ar";
+      if (!/^[a-zA-Z0-9_]{3,24}$/.test(username)) return json({ error: "INVALID_USERNAME" }, 400, origin);
+      const { data, error } = await db.rpc("create_player_character", {
+        p_uid: identity.uid,
+        p_email: identity.email,
+        p_username: username,
+        p_avatar_id: avatarId,
+        p_language: language,
+      });
+      if (error) {
+        const message = error.message.includes("USERNAME_TAKEN") ? "USERNAME_TAKEN"
+          : error.message.includes("PROFILE_EXISTS") ? "PROFILE_EXISTS"
+          : error.message.includes("INVALID_USERNAME") ? "INVALID_USERNAME"
+          : "CREATE_CHARACTER_FAILED";
+        return json({ error: message }, 409, origin);
+      }
+      return json({ ok: true, data }, 201, origin);
+    }
+
+    return json({ error: "UNKNOWN_ACTION" }, 400, origin);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    const status = message === "UNAUTHENTICATED" ? 401 : message === "VERIFIED_EMAIL_REQUIRED" ? 403 : 500;
+    return json({ error: status === 500 ? "INTERNAL_ERROR" : message }, status, origin);
+  }
+});
