@@ -740,7 +740,6 @@ export function OrganizationHubView({
                     </div>
                   </div>
           
-                  {/* Members & RBAC + Join Requests */}
         )}
         {activeOrgTab === 'members' && (
                   <div className="space-y-5">
