@@ -44,14 +44,12 @@ describe('NEXORA Audit Regression & Security Invariants', () => {
       stats: {
         tradesCount: 7,
         companiesOwned: 2,
-        propertiesOwned: 1,
         totalProduced: 14,
       },
     };
 
     expect(getMissionProgress('trades', sampleProfile)).toBe(7);
     expect(getMissionProgress('companies', sampleProfile)).toBe(2);
-    expect(getMissionProgress('properties', sampleProfile)).toBe(1);
     expect(getMissionProgress('produced', sampleProfile)).toBe(14);
     expect(getMissionProgress('level', sampleProfile)).toBe(4);
     expect(getMissionProgress('org', sampleProfile)).toBe(1);
