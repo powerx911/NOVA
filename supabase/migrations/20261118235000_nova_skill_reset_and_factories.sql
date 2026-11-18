@@ -84,7 +84,7 @@ revoke all on nexora.factories from public,anon,authenticated;
 create or replace function nexora.factory_resource_config(p_resource_id text)
 returns table(founding_cost bigint, production_rate numeric, operating_cost numeric, rarity_factor numeric)
 language sql immutable set search_path = '' as $$
-  select founding_cost,production_rate,operating_cost,rarity_factor from (values
+  select cfg.founding_cost,cfg.production_rate,cfg.operating_cost,cfg.rarity_factor from (values
     ('copper_wire'::text, 5000::bigint, 3.00::numeric, 160.00::numeric, 1.00::numeric),
     ('silicon_ore', 6500, 2.40, 190.00, 1.20),
     ('energy_cells', 8000, 2.00, 230.00, 1.40),
@@ -163,7 +163,7 @@ begin
   v_hours:=least(v_elapsed,greatest(0,(v_space-v_factory.production_remainder)/v_rate));
   v_raw_cost:=v_factory.operating_cost_remainder+v_expense*v_hours;
   v_cost:=floor(v_raw_cost)::bigint;
-  if v_cost>v_wallet.balance then
+  if v_raw_cost>v_wallet.balance then
     v_hours:=greatest(0,(v_wallet.balance-v_factory.operating_cost_remainder)/v_expense);
     v_cost:=v_wallet.balance;
     v_cost_remainder:=0;
