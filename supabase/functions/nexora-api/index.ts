@@ -423,14 +423,17 @@ Deno.serve(async (req: Request) => {
 
     if (body.action === "sync_factory" || body.action === "upgrade_factory" ||
         body.action === "complete_factory_upgrade" || body.action === "upgrade_factory_skill" ||
-        body.action === "withdraw_factory_warehouse" || body.action === "set_factory_active" ||\n        body.action === "upgrade_factory_warehouse" || body.action === "complete_factory_warehouse_upgrade") {
+        body.action === "withdraw_factory_warehouse" || body.action === "set_factory_active" ||
+        body.action === "upgrade_factory_warehouse" || body.action === "complete_factory_warehouse_upgrade") {
       const factoryId = typeof body.factoryId === "string" ? body.factoryId : "";
       if (!factoryId || factoryId.length > 128) return json({ error: "INVALID_ARGUMENT" }, 400, origin);
       let rpcName = "sync_factory_production";
       let args: Record<string, unknown> = { p_uid: identity.uid, p_factory_id: factoryId };
       if (body.action === "upgrade_factory") rpcName = "upgrade_factory";
       else if (body.action === "complete_factory_upgrade") rpcName = "complete_factory_upgrade";
-      else if (body.action === "upgrade_factory_skill") rpcName = "upgrade_factory_skill";\n      else if (body.action === "upgrade_factory_warehouse") rpcName = "upgrade_factory_warehouse";\n      else if (body.action === "complete_factory_warehouse_upgrade") rpcName = "complete_factory_warehouse_upgrade";
+      else if (body.action === "upgrade_factory_skill") rpcName = "upgrade_factory_skill";
+      else if (body.action === "upgrade_factory_warehouse") rpcName = "upgrade_factory_warehouse";
+      else if (body.action === "complete_factory_warehouse_upgrade") rpcName = "complete_factory_warehouse_upgrade";
       else if (body.action === "set_factory_active") {
         rpcName = "set_factory_active";
         args = { ...args, p_active: body.active === true };
