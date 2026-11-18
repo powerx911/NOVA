@@ -53,7 +53,6 @@ export const NEXORA_COLLECTION_CATALOG: readonly CollectionCatalogEntry[] = [
   { name: 'market_orders', category: 'economy', piiRestricted: false, clientCountMode: 'self_scoped' },
   { name: 'companies', category: 'business', piiRestricted: false, clientCountMode: 'global_filtered' },
   { name: 'company_logs', category: 'business', piiRestricted: false, clientCountMode: 'self_scoped' },
-  { name: 'properties', category: 'business', piiRestricted: false, clientCountMode: 'self_scoped' },
   { name: 'organizations', category: 'social', piiRestricted: false, clientCountMode: 'global_filtered' },
   { name: 'organization_members', category: 'social', piiRestricted: false, clientCountMode: 'self_scoped' },
   { name: 'organization_requests', category: 'social', piiRestricted: false, clientCountMode: 'self_scoped' },
@@ -206,7 +205,7 @@ async function runRulesCompliantCount(
         q = query(collection(db, 'transactions'), where('fromUid', '==', uid));
       } else if (entry.name === 'market_orders') {
         q = query(collection(db, 'market_orders'), where('buyerUid', '==', uid));
-      } else if (entry.name === 'companies' || entry.name === 'company_logs' || entry.name === 'properties') {
+      } else if (entry.name === 'companies' || entry.name === 'company_logs') {
         q = query(collection(db, entry.name), where('ownerUid', '==', uid));
       } else {
         q = query(collection(db, entry.name), where('uid', '==', uid));
@@ -249,7 +248,6 @@ export interface ClientSnapshotContext {
   wallet: Wallet | null;
   myOrgMember: OrganizationMember | null;
   companiesCount: number;
-  propertiesCount: number;
   inventoryCount: number;
   claimedMissionsCount: number;
   unlockedAchievementsCount: number;
@@ -466,18 +464,6 @@ export async function generateDiagnosticReport(
         ownerClaimedMissions: ctx.claimedMissionsCount,
         ownerUnlockedAchievements: ctx.unlockedAchievementsCount,
         ownerContractClaims: countByName.get('contract_claims') ?? null,
-      },
-      issues: [],
-    },
-    {
-      key: 'inventory_properties',
-      labelAr: 'المخزون والعقارات',
-      labelEn: 'Inventory & Properties',
-      status: 'healthy',
-      collectionsChecked: ['inventory', 'properties'],
-      metrics: {
-        ownerInventoryStacks: ctx.inventoryCount,
-        ownerPropertiesLoaded: ctx.propertiesCount,
       },
       issues: [],
     },
