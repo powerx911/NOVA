@@ -17,7 +17,6 @@ import {
 import { nexoraApi } from '../lib/nexoraApi';
 import type {
   Company,
-  Factory,
   FactoryResourceId,
   CompanySector,
   CompanyAuction,
