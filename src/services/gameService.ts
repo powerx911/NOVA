@@ -46,6 +46,7 @@ import {
   validateTransfer,
 } from '../lib/economy';
 import { auth, db, handleFirestoreError, OperationType } from '../lib/firebase';
+import { nexoraApi } from '../lib/nexoraApi';
 import type {
   Company,
   CompanySector,
@@ -136,10 +137,10 @@ export async function ensureBootstrapWorldData(): Promise<void> {
 }
 
 export async function isUsernameAvailable(username: string): Promise<boolean> {
-  const clean = username.trim().toLowerCase();
-  if (!isValidUsername(username)) return false;
-  const snap = await getDoc(doc(db, 'usernames', clean));
-  return !snap.exists();
+  const clean = username.trim();
+  if (!isValidUsername(clean)) return false;
+  const result = await nexoraApi<{ available: boolean }>('username_available', { username: clean });
+  return result.available;
 }
 
 export async function createPlayerCharacter(
@@ -150,108 +151,21 @@ export async function createPlayerCharacter(
   language: Language
 ): Promise<void> {
   const trimmed = username.trim();
-  if (!isValidUsername(trimmed)) {
-    throw new Error('INVALID_USERNAME');
-  }
-  const usernameLower = trimmed.toLowerCase();
-  const initTxId = `init_${uid}`;
-  const notifId = genId('ntf');
-
-  const initialSkills: SkillsMap = {
-    trade: 0,
-    management: 0,
-    industry: 0,
-    negotiation: 0,
-    finance: 0,
-    leadership: 0,
-  };
-
+  if (!isValidUsername(trimmed)) throw new Error('INVALID_USERNAME');
   try {
-    await runTransaction(db, async (tx) => {
-      const unameRef = doc(db, 'usernames', usernameLower);
-      const profileRef = doc(db, 'profiles', uid);
-      const privateRef = doc(db, 'users_private', uid);
-      const walletRef = doc(db, 'wallets', uid);
-
-      const [unameSnap, profileSnap] = await Promise.all([
-        tx.get(unameRef),
-        tx.get(profileRef),
-      ]);
-
-      if (profileSnap.exists()) {
-        throw new Error('PROFILE_EXISTS');
-      }
-      if (unameSnap.exists()) {
-        throw new Error('USERNAME_TAKEN');
-      }
-
-      tx.set(unameRef, {
-        uid,
-        username: trimmed,
-        createdAt: serverTimestamp(),
-      });
-
-      tx.set(profileRef, {
-        uid,
-        username: trimmed,
-        usernameLower,
-        avatarId,
-        title: language === 'ar' ? 'مؤسس طموح' : 'Executive Founder',
-        level: 1,
-        xp: 0,
-        reputation: 10,
-        influence: 5,
-        skillPoints: 3,
-        skills: initialSkills,
-        stats: {
-          missionsCompleted: 0,
-          tradesCount: 0,
-          companiesOwned: 0,
-          propertiesOwned: 0,
-          totalProduced: 0,
-        },
-        orgId: null,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-      });
-
-      tx.set(privateRef, {
-        uid,
-        email,
-        language,
-        notificationsEnabled: true,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-      });
-
-      tx.set(walletRef, {
-        uid,
-        balance: STARTING_CREDITS,
-        totalEarned: STARTING_CREDITS,
-        totalSpent: 0,
-        lastTxId: initTxId,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-      });
-
-      tx.set(doc(db, 'notifications', notifId), {
-        id: notifId,
-        uid,
-        title: language === 'ar' ? 'مرحباً بك في NEXORA' : 'Welcome to NEXORA',
-        body:
-          language === 'ar'
-            ? `تم إيداع $${STARTING_CREDITS.toLocaleString()} في محفظتك وتخصيص 3 نقاط مهارة.`
-            : `$${STARTING_CREDITS.toLocaleString()} and 3 skill points credited to your account.`,
-        type: 'system',
-        read: false,
-        createdAt: serverTimestamp(),
-      });
+    await nexoraApi('create_character', {
+      username: trimmed,
+      avatarId,
+      language,
     });
   } catch (error) {
-    if (error instanceof Error && ['INVALID_USERNAME', 'USERNAME_TAKEN', 'PROFILE_EXISTS'].includes(error.message)) {
-      throw error;
+    if (error instanceof Error && 'code' in error) {
+      const code = String((error as { code?: unknown }).code ?? '');
+      if (['INVALID_USERNAME', 'USERNAME_TAKEN', 'PROFILE_EXISTS'].includes(code)) {
+        throw new Error(code);
+      }
     }
-    handleFirestoreError(error, OperationType.WRITE, `profiles/${uid}`);
+    throw error;
   }
 }
 
