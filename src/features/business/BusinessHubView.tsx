@@ -232,6 +232,10 @@ export function BusinessHubView({
           ? language === 'ar'
             ? 'رصيدك غير كافٍ.'
             : 'Insufficient funds.'
+          : code === 'COMPANY_CAPACITY_REACHED'
+          ? language === 'ar'
+            ? 'لا يمكنك تأسيس شركة إضافية؛ الحد الأقصى 3 شركات ويشمل عروض المزاد الأعلى.'
+            : 'You cannot found another company; the limit is three, including leading auction bids.'
           : language === 'ar'
           ? 'تأكد من إدخال اسم شركة صالح.'
           : 'Please enter a valid company name.',
@@ -640,7 +644,7 @@ export function BusinessHubView({
                           {companyLogs.filter((log) => log.companyId === selectedCompanyId).length > 0 && (
               <div className="bg-[#141821] border border-white/8 rounded-2xl p-5 space-y-3">
                 <h3 className="text-sm font-semibold text-[#F4F5F7]">
-                  {language === 'ar' ? 'سجل عمليات الشركات' : 'Company Operations Log'}
+                  {language === 'ar' ? 'سجل عمليات الشركة' : 'Company Operations Log'}
                 </h3>
                 <div className="space-y-2">
                   {companyLogs.filter((log) => log.companyId === selectedCompanyId).slice(0, 20).map((log) => (
