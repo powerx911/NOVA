@@ -626,7 +626,7 @@ export function OrganizationHubView({
               <Vault className="w-4 h-4 text-[#E04455]" />
             </div>
 
-            <div className="flex items-center gap-2.5">
+            <div className="flex min-w-0 flex-wrap items-center gap-2.5">
               <input
                 type="number"
                 min={1}
