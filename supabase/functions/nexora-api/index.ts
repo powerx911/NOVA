@@ -183,7 +183,19 @@ Deno.serve(async (req: Request) => {
     const db = admin.schema("nexora");
 
     if (body.action === "bootstrap") {
+      const { error: achievementError } = await db.rpc("unlock_eligible_achievements", { p_uid: identity.uid });
+      if (achievementError) throw achievementError;
       return json({ ok: true, data: await bootstrap(admin, identity.uid) }, 200, origin);
+    }
+
+    if (body.action === "claim_mission_reward") {
+      const missionId = typeof body.missionId === "string" ? body.missionId : "";
+      const { data, error } = await db.rpc("claim_mission_reward", { p_uid: identity.uid, p_mission_id: missionId });
+      if (error) {
+        const known = ["INVALID_MISSION","MISSION_ALREADY_CLAIMED","MISSION_NOT_COMPLETE","ACCOUNT_NOT_FOUND"].find((code) => error.message.includes(code));
+        return json({ error: known ?? "MISSION_CLAIM_FAILED" }, 409, origin);
+      }
+      return json({ ok: true, data }, 200, origin);
     }
 
     if (body.action === "username_available") {
