@@ -26,7 +26,7 @@ create table if not exists public.nova_competitive_battles (
   winner_name text,
   result_text text,
   created_at timestamptz not null default now(),
-  resolved_at timestamptz not null default now(),
+  resolved_at timestamptz,
   check (challenger_id <> defender_id)
 );
 create index if not exists nova_competitive_battles_challenger_idx
@@ -80,13 +80,12 @@ begin
       where challenger_id=v_user_id and defender_id=v_target_id and status='pending') then
     raise exception 'Challenge already pending' using errcode = '23505';
   end if;
-  select count(*) into v_pending from public.nova_competitive_battles
-    where challenger_id=v_user_id and status='pending';
-  if v_pending >= 3 then raise exception 'You already have three pending challenges' using errcode = '22023'; end if;
-
   select p.display_name into v_challenger_name from public.nova_competitive_profiles p where p.user_id=v_user_id;
   select power, energy into v_power, v_energy from public.nova_competitive_wallets where user_id=v_user_id for update;
   if not found then raise exception 'Player wallet is missing' using errcode = 'P0002'; end if;
+  select count(*) into v_pending from public.nova_competitive_battles
+    where challenger_id=v_user_id and status='pending';
+  if v_pending >= 3 then raise exception 'You already have three pending challenges' using errcode = '22023'; end if;
   if v_energy < 15 then raise exception 'Insufficient energy' using errcode = '22023'; end if;
   update public.nova_competitive_wallets set energy=energy-15, updated_at=now()
     where user_id=v_user_id returning energy into v_energy;
