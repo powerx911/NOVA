@@ -29,6 +29,8 @@ export interface GameDataState {
   authReady: boolean;
   profile: PlayerProfile | null;
   profileLoading: boolean;
+  profileLoadError: boolean;
+  retryProfileLoad: () => void;
   userPrivate: UserPrivate | null;
   wallet: Wallet | null;
   inventory: InventoryItem[];
@@ -65,6 +67,8 @@ export function useGameData(): GameDataState {
   const [authReady, setAuthReady] = useState(false);
   const [profile, setProfile] = useState<PlayerProfile | null>(null);
   const [profileLoading, setProfileLoading] = useState(true);
+  const [profileLoadError, setProfileLoadError] = useState(false);
+  const [bootstrapRetryKey, setBootstrapRetryKey] = useState(0);
   const [userPrivate, setUserPrivate] = useState<UserPrivate | null>(null);
   const [wallet, setWallet] = useState<Wallet | null>(null);
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
@@ -137,6 +141,7 @@ export function useGameData(): GameDataState {
   const clearSessionState = useCallback(() => {
     setProfile(null);
     setProfileLoading(false);
+    setProfileLoadError(false);
     setUserPrivate(null);
     setWallet(null);
     setInventory([]);
@@ -197,7 +202,10 @@ export function useGameData(): GameDataState {
     if (!authUser) return;
     let cancelled = false;
     const uid = authUser.uid;
-    if (bootstrappedUidRef.current !== uid) setProfileLoading(true);
+    if (bootstrappedUidRef.current !== uid) {
+      setProfileLoading(true);
+      setProfileLoadError(false);
+    }
     let refreshInFlight = false;
 
     const loadGameState = async () => {
@@ -233,12 +241,14 @@ export function useGameData(): GameDataState {
         setNotifications((data.notifications ?? []) as GameNotification[]);
         setWorldEvents((data.worldEvents ?? []) as WorldEvent[]);
         bootstrappedUidRef.current = uid;
+        setProfileLoadError(false);
         setProfileLoading(false);
       } catch (error) {
         if (cancelled) return;
         console.error('NOVA Supabase bootstrap failed:', error);
-        if (bootstrappedUidRef.current !== uid) setProfile(null);
-        bootstrappedUidRef.current = uid;
+        // A failed bootstrap is NOT proof that the player has no character.
+        // Preserve any loaded profile and block onboarding until a successful retry.
+        setProfileLoadError(true);
         setProfileLoading(false);
       } finally {
         refreshInFlight = false;
@@ -254,7 +264,13 @@ export function useGameData(): GameDataState {
       window.removeEventListener('nova:refresh-game', refreshFromCharacterCreation);
       window.clearInterval(refresh);
     };
-  }, [authUser, setLanguageLocal, utcDateKey]);
+  }, [authUser, setLanguageLocal, utcDateKey, bootstrapRetryKey]);
+
+  const retryProfileLoad = useCallback(() => {
+    setProfileLoadError(false);
+    setProfileLoading(true);
+    setBootstrapRetryKey((value) => value + 1);
+  }, []);
 
   const loginWithGoogle = useCallback(async () => {
     // Prefer popup on every device. On mobile browsers, redirect-based OAuth can
@@ -304,6 +320,8 @@ export function useGameData(): GameDataState {
     authReady,
     profile,
     profileLoading,
+    profileLoadError,
+    retryProfileLoad,
     userPrivate,
     wallet,
     inventory,
