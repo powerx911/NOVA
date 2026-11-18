@@ -474,3 +474,11 @@ The user explicitly requires NOVA to be online and socially connected from its f
 - Validation at this point: source content authored and reviewed for responsive structure and explicit local-preview labeling. Automated syntax/DOM checks and browser/device testing are pending; no PR has been opened or merged yet.
 - Backend: existing Supabase project and prior secured player foundation are preserved but are not yet connected to this new game experience. No database migration or production data change was made.
 - Deployment: not yet triggered; this branch is not deployed to GitHub Pages.
+
+
+### 2026-11-18 — First CI feedback and correction
+
+- Initial PR #18 validation run `44337798673` found a JavaScript syntax error in the preview wallet updater (an extra closing parenthesis).
+- Corrected the syntax in `app.js`; rerun validation is required before merge.
+- The initial CI run stopped at the syntax check, so DOM-entry, migration-contract, and whitespace checks did not run in that attempt.
+- PR #18 remains open and unmerged. No deployment has been triggered.
