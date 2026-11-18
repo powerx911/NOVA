@@ -585,3 +585,14 @@ The user explicitly requires NOVA to be online and socially connected from its f
 - Repair branch `fix/nova-duel-migration-dollar-quotes` restores paired `$$` delimiters, replaces literal escaped newline sequences with real line breaks, and adds CI checks for dollar-quote pairing and escaped newline text.
 - This repair must pass CI, merge, and then be applied before the duel UI can load correctly for authenticated players, because the client now calls `nova_competitive_refresh_energy`.
 - No real player accounts exist, so no user progress was affected. Two-account battle testing remains outstanding after the migration succeeds.
+
+
+## 30. Competitive duels activated on Supabase (2026-11-18)
+
+- PR #24 merged as `6bb699572a188fe8319ba94bbc4e7ffd4a13356b`; its migration needed a quoting repair. PR #25 merged as `1b53d9072e3b4d8f8f35acb58aa6f603d16ae628` with both CI checks passing, and the repaired migration was applied successfully as version `20261118162050` (`nova_competitive_duels`).
+- Verified battle table exists with RLS enabled, authenticated-only participant reads, and Realtime publication. Anonymous users cannot read battle rows. Challenge/accept/decline and energy refresh public wrappers are SECURITY INVOKER and executable only by authenticated users; private implementations are SECURITY DEFINER with direct execution revoked.
+- Verified `energy_updated_at` exists and the server-side regeneration function is not directly executable by anon/authenticated. Operations and challenges call the helper; the client refreshes the energy display once per minute while open. Rate: one energy per five minutes, capped at 100.
+- Supabase security advisor: zero findings. Performance advisor: no unindexed foreign-key findings; remaining unused-index INFO notices are expected while the game tables contain no real player rows.
+- GitHub Pages deployment run 44346155471 succeeded for main commit `1b53d9072e3b4d8f8f35acb58aa6f603d16ae628`; all deployment steps passed and the `github-pages` artifact was 84,612 bytes. Published URL: https://powerx911.github.io/NOVA/.
+- No player accounts or test data have been created. Auth email confirmation redirect configuration and real two-account challenge/market smoke tests are still outstanding. The Supabase Auth redirect allowlist must include `https://powerx911.github.io/NOVA/`.
+- Next required validation: configure the redirect allowlist, create two real test players, and verify signup/login, initial profile/inventory seeding, operation rewards, market partial settlement/cancellation, duel accept/decline/rewards, energy regeneration, and Realtime updates on Android.
