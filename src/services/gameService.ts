@@ -341,6 +341,9 @@ export async function upgradeFactorySkill(factoryId: string): Promise<void> {
   await callFactoryAction('upgrade_factory_skill', factoryId);
 }
 export async function setFactoryActive(factoryId: string, active: boolean): Promise<void> {
+  // Settle all accrued production and costs before pausing so players cannot
+  // avoid operating expenses by switching the factory off at the last moment.
+  if (!active) await callFactoryAction('sync_factory', factoryId);
   await callFactoryAction('set_factory_active', factoryId, { active });
 }
 export async function withdrawFactoryWarehouse(factoryId: string, quantityRaw: number): Promise<void> {
