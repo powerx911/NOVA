@@ -168,7 +168,7 @@ Statuses below distinguish completed source changes from verified live behavior.
 | GitHub Pages enabled | **Pending** | `has_pages: false` appeared in an earlier repository snapshot. |
 | First Pages deployment | **Blocked — Pages site not enabled** | Workflow run `44329798929` failed at `actions/configure-pages@v5` with HTTP 404 (`Get Pages site failed`); artifact upload and deployment were skipped. Enable GitHub Pages for this repository with source `GitHub Actions`, then rerun the workflow. |
 | Automated branch/PR/test/merge/deploy lifecycle | **Process agreed; not yet fully validated** | Follow the mandatory lifecycle in section 1 for every future change. |
-| Game implementation | **First local playable prototype merged** | Castle/buildings/resources, 7×7 map, bag and relocation simulations, starter quests, and local saving are implemented. Authentication, multiplayer, server-authoritative gameplay, combat, and production schema remain unimplemented. |
+| Game implementation | **First local playable prototype merged** | Castle/buildings/resources, 7×7 map, bag and relocation simulations, starter quests, and local saving are implemented. React/TypeScript + Vite + Phaser 4 is selected for the next implementation spike; authentication, multiplayer, server-authoritative gameplay, combat, and production schema remain unimplemented. |
 
 ### Known risks / checks still required
 
@@ -397,3 +397,16 @@ The user explicitly requires NOVA to be online and socially connected from its f
 - Required one-time owner-side setting if no authorized API path is available: repository Settings → Pages → Build and deployment → Source → GitHub Actions. Then rerun the existing Pages workflow.
 - Do not set `enablement: true` with the default `GITHUB_TOKEN`: the official configure-pages action documents that automatic enablement requires a token other than `GITHUB_TOKEN` with appropriate repository administration and Pages permissions.
 - No paid hosting, Vercel, production database changes, or secrets were introduced.
+
+
+## 19. Client architecture decision (2026-11-18)
+
+- Added docs/TECHNICAL_DECISIONS.md with architecture decision records for the player client, backend authority, delivery, and first authenticated vertical slice.
+- Selected React + TypeScript + Vite for application UI/build tooling and Phaser 4 for 2D map/castle rendering as the next implementation spike. This is not yet a claim that mobile performance, production suitability, or the final client implementation has been verified.
+- Kept the current dependency-free HTML/CSS/JavaScript client explicitly as a local interaction prototype, not the production stack.
+- Evaluated PixiJS as a lower-level 2D rendering fallback and documented why the current NOVA interaction model favors a React UI plus a dedicated 2D scene framework.
+- Confirmed architecture boundaries: Supabase Auth for identity, Postgres for durable canonical state, trusted server-side commands for valuable mutations, Realtime Broadcast for transient delivery, and Presence for low-frequency online state. No production schema or migration was created.
+- Defined the next end-to-end vertical slice: authenticated player profile → server-loaded castle/resources → validated building-upgrade command → atomic resource deduction and command receipt → reconnect/reload verification.
+- Research references: Phaser official docs and input guide; Vite static deployment/build docs; PixiJS renderer and performance docs. URLs are recorded in docs/TECHNICAL_DECISIONS.md.
+- GitHub Pages remains blocked until the repository's Pages source is enabled as documented in section 18.
+- Validation: documentation review and consistency check; no runtime code or dependencies changed. PR: pending. Merge/deployment: pending.
