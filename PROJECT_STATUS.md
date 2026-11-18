@@ -168,7 +168,7 @@ Statuses below distinguish completed source changes from verified live behavior.
 | GitHub Pages enabled | **Pending** | `has_pages: false` appeared in an earlier repository snapshot. |
 | First Pages deployment | **Unverified** | Check Pages settings, workflow run, and live URL. |
 | Automated branch/PR/test/merge/deploy lifecycle | **Process agreed; not yet fully validated** | Follow the mandatory lifecycle in section 1 for every future change. |
-| Game implementation | **Not started by instruction** | Wait for explicit user direction. |
+| Game implementation | **Not started** | Current work is foundation preparation only. Complete the online-first requirements and technical evaluation before selecting the final game presentation or starting the playable slice. The user has delegated ordinary product/engineering decisions; do not ask for technical choices that can be resolved by research. |
 
 ### Known risks / checks still required
 
@@ -185,7 +185,7 @@ Statuses below distinguish completed source changes from verified live behavior.
 ### 2026-11-18 — Autonomous product-development mandate
 
 - The user explicitly delegated day-to-day product, design, engineering, quality, and prioritization decisions for NOVA. The assistant should proactively identify and implement necessary features, improvements, fixes, and polish without requiring the user to specify each task.
-- Established the initial product direction as an original Android-first adventure RPG, using selected RPG systems from VORZANE as research and considering NEXORA-inspired economy/social systems only when they strengthen the core game loop.
+- Recorded a provisional Android-first adventure-RPG idea as an early proposal. **Superseded on 2026-11-18** by the owner's explicit online-first competitive multiplayer requirements in section 13; it is not the selected genre.
 - Added `docs/PRODUCT_VISION.md` as the product decision and quality charter.
 - This mandate does not authorize spending money, accepting legal terms, making identity/account ownership declarations, exposing secrets, or destructive production data changes without explicit user approval.
 - All implementation continues to follow branch → review/tests → PR → merge → deployment verification. No direct pushes to `main`.
@@ -279,7 +279,7 @@ Research findings and candidate systems are recorded in `docs/REUSE_RESEARCH.md`
 - Reuse decisions are conditional on NOVA's still-unconfirmed game genre, code ownership, dependency compatibility, and per-asset/per-component license review.
 - Do not import VORZANE's generic client full-save mutation path or client-computed battle settlement as authoritative game state. Its own audit identifies these as unresolved server-authority blockers.
 - Do not import old Firebase or Vercel-specific infrastructure into NOVA. NOVA remains on GitHub + its existing Supabase project; Vercel is prohibited for this project.
-- Do not begin game implementation until the user explicitly approves the game direction and first feature scope.
+- Do not begin the playable game implementation until the online-first foundation and a documented technical/product evaluation identify a justified first vertical slice. The user has delegated ordinary product and engineering decisions; no separate approval is needed for routine technical choices.
 
 
 ## 12. Autonomous product-development mandate
