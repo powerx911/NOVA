@@ -2,9 +2,9 @@
 
 > **Purpose:** This is the handover source of truth for any developer or AI agent continuing NOVA. Read this file before making changes, then inspect the repository and GitHub Actions for the live state. Update this file in the same change as every project change.
 
-**Last verified/updated:** 2026-11-18 (Pages deployment verified; player foundation PR in progress)  
-**Repository:** https://github.com/powerx911/NOVA  
-**Default branch:** `main`  
+**Last verified/updated:** 2026-11-18 (Pages deployment verified; player foundation PR in progress)
+**Repository:** https://github.com/powerx911/NOVA
+**Default branch:** `main`
 **Project name:** NOVA
 
 ---
