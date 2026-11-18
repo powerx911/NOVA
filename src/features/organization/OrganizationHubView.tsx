@@ -374,11 +374,11 @@ export function OrganizationHubView({
 
   if (!myOrgMember || !currentOrg) {
     return (
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+      <div className="grid w-full min-w-0 grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-5">
         {/* Create Organization */}
         <form
           onSubmit={handleCreateOrg}
-          className="bg-[#141821] border border-white/8 rounded-2xl p-5 space-y-4 h-fit"
+          className="min-w-0 w-full bg-[#141821] border border-white/8 rounded-2xl p-4 sm:p-5 space-y-4 h-fit"
         >
           <div className="flex items-center justify-between">
             <h2 className="text-base font-bold text-[#F4F5F7]">{t.createOrg}</h2>
@@ -434,7 +434,7 @@ export function OrganizationHubView({
         </form>
 
         {/* Browse Organizations */}
-        <div className="lg:col-span-2 space-y-3.5">
+        <div className="min-w-0 lg:col-span-2 space-y-3.5">
           <div className="flex items-center justify-between">
             <h2 className="text-base font-semibold text-[#F4F5F7]">
               {language === 'ar' ? 'المنظمات والتحالفات النشطة' : 'Active Syndicates & Organizations'}
@@ -470,7 +470,7 @@ export function OrganizationHubView({
                 return (
                   <div
                     key={org.id}
-                    className="bg-[#141821] border border-white/8 rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+                    className="min-w-0 w-full bg-[#141821] border border-white/8 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4"
                   >
                     <div className="space-y-1">
                       <h3 className="text-base font-bold text-[#F4F5F7]">
@@ -491,7 +491,7 @@ export function OrganizationHubView({
                       type="button"
                       disabled={isPending || busyKey === `join_${org.id}`}
                       onClick={() => handleRequestJoin(org.id)}
-                      className="min-h-[42px] px-4 rounded-xl bg-[#B91C32] hover:bg-[#E04455] text-white text-xs font-semibold whitespace-nowrap shrink-0 disabled:bg-[#1B2230] disabled:text-[#9299A6]"
+                      className="w-full sm:w-auto min-h-[42px] px-4 rounded-xl bg-[#B91C32] hover:bg-[#E04455] text-white text-xs font-semibold whitespace-nowrap shrink-0 disabled:bg-[#1B2230] disabled:text-[#9299A6]"
                     >
                       {isPending ? t.requestPending : busyKey === `join_${org.id}` ? '...' : t.joinOrg}
                     </button>
@@ -517,7 +517,7 @@ export function OrganizationHubView({
         <div className="space-y-1">
           <div className="flex items-center gap-2.5">
             <Shield className="w-5 h-5 text-[#E04455]" />
-            <h1 className="text-xl font-bold text-[#F4F5F7]">
+            <h1 className="min-w-0 break-words text-lg sm:text-xl font-bold text-[#F4F5F7]">
               [{currentOrg.tag}] {currentOrg.name}
             </h1>
           </div>
@@ -530,7 +530,7 @@ export function OrganizationHubView({
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex w-full sm:w-auto flex-wrap items-center gap-2 sm:gap-3">
           <div className="text-end">
             <p className="text-xs text-[#9299A6]">{t.orgTreasury}</p>
             <p className="text-lg font-bold font-mono-num text-emerald-400">
@@ -550,7 +550,7 @@ export function OrganizationHubView({
                 currentOrg.treasuryBalance < orgUpgradeCost
               }
               onClick={handleUpgradeOrg}
-              className="min-h-[40px] px-3.5 rounded-xl bg-[#B91C32] hover:bg-[#E04455] text-white text-xs font-semibold flex items-center gap-1.5 whitespace-nowrap disabled:bg-[#1B2230] disabled:text-[#9299A6]"
+              className="min-h-[42px] w-full sm:w-auto justify-center px-3.5 rounded-xl bg-[#B91C32] hover:bg-[#E04455] text-white text-xs font-semibold flex items-center gap-1.5 whitespace-nowrap disabled:bg-[#1B2230] disabled:text-[#9299A6]"
             >
               <ArrowUpCircle className="w-4 h-4" />
               <span>
@@ -574,7 +574,7 @@ export function OrganizationHubView({
         </div>
       </div>
 
-      <section className="rounded-2xl border border-white/8 bg-[#141821] p-5 space-y-4">
+      <section className="min-w-0 rounded-2xl border border-white/8 bg-[#141821] p-4 sm:p-5 space-y-4">
         <div className="flex items-center justify-between gap-3">
           <div>
             <h2 className="text-base font-bold text-[#F4F5F7]">{language === 'ar' ? 'أبحاث المنظمة' : 'Organization Research'}</h2>
@@ -582,7 +582,7 @@ export function OrganizationHubView({
           </div>
           <span className="rounded-lg bg-[#0B0D12] px-3 py-1.5 text-xs text-[#E5A0A8]">{language === 'ar' ? '10 مستويات' : '10 levels'}</span>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+        <div className="grid min-w-0 grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
           {(Object.keys(ORG_RESEARCH_DEFINITIONS) as OrganizationResearchId[]).map((researchId) => {
             const definition = ORG_RESEARCH_DEFINITIONS[researchId];
             const level = currentOrg.research?.[researchId] ?? 0;
@@ -617,7 +617,7 @@ export function OrganizationHubView({
         {!canManageOrg && <p className="text-xs text-[#9299A6]">{language === 'ar' ? 'تطوير الأبحاث متاح للقائد والنائب.' : 'Research upgrades are available to the leader and deputy.'}</p>}
       </section>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+      <div className="grid min-w-0 grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5">
         {/* Shared Treasury Operations & RBAC Matrix */}
         <div className="space-y-5">
           <div className="bg-[#141821] border border-white/8 rounded-2xl p-5 space-y-4">
@@ -636,13 +636,13 @@ export function OrganizationHubView({
                   setTreasuryAmt(v === '' ? 0 : sanitizePositiveInt(v, 1));
                 }}
                 onBlur={() => setTreasuryAmt((v) => sanitizePositiveInt(v, 1))}
-                className="flex-1 min-h-[44px] px-3.5 rounded-xl bg-[#0B0D12] border border-white/10 text-sm font-mono-num text-[#F4F5F7]"
+                className="w-full sm:flex-1 min-w-0 min-h-[44px] px-3.5 rounded-xl bg-[#0B0D12] border border-white/10 text-sm font-mono-num text-[#F4F5F7]"
               />
               <button
                 type="button"
                 disabled={busyKey === 'dep' || treasuryAmt < 1 || (wallet?.balance ?? 0) < treasuryAmt}
                 onClick={handleDeposit}
-                className="min-h-[44px] px-4 rounded-xl bg-[#B91C32] hover:bg-[#E04455] text-white text-xs font-semibold whitespace-nowrap disabled:bg-[#1B2230] disabled:text-[#9299A6]"
+                className="flex-1 sm:flex-none min-w-0 min-h-[44px] px-3 sm:px-4 rounded-xl bg-[#B91C32] hover:bg-[#E04455] text-white text-xs font-semibold whitespace-nowrap disabled:bg-[#1B2230] disabled:text-[#9299A6]"
               >
                 {language === 'ar' ? 'تبرع للخزنة' : 'Donate to treasury'}
               </button>
@@ -651,7 +651,7 @@ export function OrganizationHubView({
                   type="button"
                   disabled={busyKey === 'wdr' || treasuryAmt < 1 || currentOrg.treasuryBalance < treasuryAmt}
                   onClick={handleWithdraw}
-                  className="min-h-[44px] px-4 rounded-xl bg-[#1B2230] hover:bg-[#232C3E] text-[#F4F5F7] text-xs font-semibold whitespace-nowrap disabled:opacity-50"
+                  className="flex-1 sm:flex-none min-w-0 min-h-[44px] px-3 sm:px-4 rounded-xl bg-[#1B2230] hover:bg-[#232C3E] text-[#F4F5F7] text-xs font-semibold whitespace-nowrap disabled:opacity-50"
                 >
                   {t.withdraw}
                 </button>
@@ -696,7 +696,7 @@ export function OrganizationHubView({
           {/* Role Permissions Matrix */}
           <div className="bg-[#141821] border border-white/8 rounded-2xl p-5 space-y-3">
             <h2 className="text-sm font-semibold text-[#F4F5F7]">{t.orgPerks}</h2>
-            <div className="grid grid-cols-2 gap-2.5 text-xs">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
               {(['leader', 'deputy', 'officer', 'member'] as const).map((role) => {
                 const perms = ROLE_DEFAULT_PERMISSIONS[role];
                 const isMine = myOrgMember.role === role;
