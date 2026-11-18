@@ -249,7 +249,7 @@ export function ProfileHubView({
       const result = await response.json().catch(() => ({})) as { error?: string };
       if (!response.ok) throw new Error(result.error || 'FEEDBACK_DELIVERY_FAILED');
       setFeedbackText('');
-      showToast(language === 'ar' ? 'تم إرسال رسالتك بنجاح. شكراً لمساعدتنا في تحسين NEXORA.' : 'Your message was sent. Thank you for helping improve NEXORA.', 'success');
+      showToast(language === 'ar' ? 'تم إرسال رسالتك بنجاح. شكراً لمساعدتنا في تحسين NOVA.' : 'Your message was sent. Thank you for helping improve NOVA.', 'success');
     } catch {
       showToast(language === 'ar' ? 'تعذر إرسال الرسالة حالياً. حاول لاحقاً.' : 'Could not send your message right now. Try again later.', 'error');
     } finally {
