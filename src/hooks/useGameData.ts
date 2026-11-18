@@ -224,16 +224,19 @@ export function useGameData(): GameDataState {
         setProfileLoading(false);
       } catch (error) {
         if (cancelled) return;
-        console.error('NEXORA Supabase bootstrap failed:', error);
+        console.error('NOVA Supabase bootstrap failed:', error);
         setProfile(null);
         setProfileLoading(false);
       }
     };
 
+    const refreshFromCharacterCreation = () => { void loadGameState(); };
+    window.addEventListener('nova:refresh-game', refreshFromCharacterCreation);
     void loadGameState();
     const refresh = window.setInterval(() => { void loadGameState(); }, 30_000);
     return () => {
       cancelled = true;
+      window.removeEventListener('nova:refresh-game', refreshFromCharacterCreation);
       window.clearInterval(refresh);
     };
   }, [authUser, setLanguageLocal, utcDateKey]);
