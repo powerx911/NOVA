@@ -21,6 +21,7 @@ async function loadPlayer(current){if(!db||!current)return;if(loadingUser===curr
  const {data:p,error:pe}=await db.from("nova_competitive_profiles").select("display_name").eq("user_id",current.id).maybeSingle();
  if(pe)throw pe;
  if(!p){const suggested=String(current.user_metadata?.display_name||"").trim();if(suggested){const {error}=await db.rpc("nova_competitive_initialize",{p_display_name:suggested});if(error)throw error;const {data:created,error:ce}=await db.from("nova_competitive_profiles").select("display_name").eq("user_id",current.id).single();if(ce)throw ce;profile=created}else{openAuth("setup");authMessage("اختر اسم اللاعب الذي سيظهر في التصنيف.");return}}else profile=p;
+ const {error:energyError}=await db.rpc("nova_competitive_refresh_energy");if(energyError)throw energyError;
  const [wr,ar,ir]=await Promise.all([
   db.from("nova_competitive_wallets").select("credits,energy,influence,net_worth,power").eq("user_id",current.id).single(),
   db.from("nova_competitive_assets").select("id,asset_code,level,income_per_hour,asset_value").eq("user_id",current.id).order("asset_code"),
