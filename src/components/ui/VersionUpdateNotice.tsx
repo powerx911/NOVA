@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 
-const STORAGE_KEY = 'nexora-installed-version';
+const STORAGE_KEY = 'nova-installed-version';
 const CHECK_INTERVAL_MS = 45_000;
 
 /** Detects a newly deployed build without requiring a page refresh. */
@@ -19,7 +19,7 @@ export function VersionUpdateNotice() {
 
     const checkVersion = async () => {
       try {
-        const response = await fetch('/version.json', { cache: 'no-store' });
+        const response = await fetch(`${import.meta.env.BASE_URL}version.json`, { cache: 'no-store' });
         if (!response.ok) return;
         const payload = (await response.json()) as { version?: unknown };
         if (typeof payload.version !== 'string' || !payload.version.trim() || !active) return;
