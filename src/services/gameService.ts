@@ -28,6 +28,11 @@ import type {
   Wallet,
 } from '../types/game';
 
+export type OrgDonationRankEntry = { uid: string; username: string; amount: number };
+export async function getOrgDonationRanking(orgId: string): Promise<OrgDonationRankEntry[]> {
+  return (await nexoraApi<{ ranking: OrgDonationRankEntry[] }>('get_org_donation_ranking', { orgId })).ranking;
+}
+
 export function getUtcDateKey(): string {
   return new Date().toISOString().slice(0, 10);
 }
