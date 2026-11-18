@@ -63,11 +63,11 @@ export function AppShell({
           >
             <img
               src={BRAND_ASSETS.emblem}
-              alt="NEXORA"
+              alt="NOVA"
               referrerPolicy="no-referrer"
               className="w-7 h-7 rounded-lg object-cover border border-white/10"
             />
-            <span className="text-base font-bold tracking-tight text-[#F4F5F7]">NEXORA</span>
+            <span className="text-base font-bold tracking-tight text-[#F4F5F7]">NOVA</span>
           </button>
 
           {/* Desktop inline navigation */}
