@@ -5,6 +5,7 @@ import {
   Check,
   Coins,
   Home,
+  MessageCircle,
   Store,
   User,
   X,
@@ -49,6 +50,7 @@ export function AppShell({
     { id: 'business', label: t.navBusiness, icon: Briefcase },
     { id: 'market', label: t.navMarket, icon: Store },
     { id: 'organization', label: t.navOrganization, icon: Building2 },
+    { id: 'social', label: language === 'ar' ? 'التواصل' : 'Social', icon: MessageCircle },
     { id: 'profile', label: t.navProfile, icon: User },
   ];
 
@@ -73,7 +75,7 @@ export function AppShell({
           </button>
 
           {/* Desktop inline navigation */}
-          <nav className="hidden lg:flex items-center gap-6">
+          <nav className="hidden lg:flex items-center gap-4">
             {navItems.map((item) => {
               const isActive = activeTab === item.id;
               return (
@@ -134,7 +136,7 @@ export function AppShell({
         aria-label="Primary Navigation"
         className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#0B0D12]/95 backdrop-blur-md border-t border-white/10 pb-safe"
       >
-        <div className="grid w-full max-w-lg mx-auto grid-cols-[repeat(5,minmax(0,1fr))] h-16">
+        <div className="grid w-full max-w-lg mx-auto grid-cols-[repeat(6,minmax(0,1fr))] h-16">
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = activeTab === item.id;
