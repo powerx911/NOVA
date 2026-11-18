@@ -177,6 +177,8 @@ begin
     from public.nova_competitive_profiles where lower(display_name)=lower(trim(p_target_name));
   if not found then raise exception 'Player not found' using errcode = 'P0002'; end if;
   if v_target_id = v_user_id then raise exception 'You cannot challenge yourself' using errcode = '22023'; end if;
+  update public.nova_competitive_battles set status='expired',resolved_at=now()
+    where challenger_id=v_user_id and status='pending' and created_at < now()-interval '24 hours';
   if exists(select 1 from public.nova_competitive_battles
       where challenger_id=v_user_id and defender_id=v_target_id and status='pending') then
     raise exception 'Challenge already pending' using errcode = '23505';
