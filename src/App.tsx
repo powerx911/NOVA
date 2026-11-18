@@ -109,6 +109,7 @@ function NovaAppContent() {
           profile={game.profile}
           wallet={game.wallet}
           companies={game.companies}
+          factories={game.factories}
           companyLogs={game.companyLogs}
           inventory={game.inventory}
           worldEvents={game.worldEvents}
