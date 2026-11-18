@@ -210,250 +210,48 @@ export async function transferCredits(
 }
 
 export async function createMarketListing(
-  uid: string,
-  username: string,
+  _uid: string,
+  _username: string,
   itemId: string,
   qtyRaw: number,
   unitPriceRaw: number
 ): Promise<void> {
-  const qty = Number.isFinite(qtyRaw) ? Math.floor(qtyRaw) : 0;
+  const quantity = Number.isFinite(qtyRaw) ? Math.floor(qtyRaw) : 0;
   const unitPrice = Number.isFinite(unitPriceRaw) ? Math.round(unitPriceRaw) : 0;
   if (!ITEM_MAP[itemId]) throw new Error('INVALID_ITEM');
-  if (qty < 1 || qty > LISTING_MAX_QTY || unitPrice < 1 || unitPrice > LISTING_MAX_PRICE) {
+  if (quantity < 1 || quantity > LISTING_MAX_QTY || unitPrice < 1 || unitPrice > LISTING_MAX_PRICE) {
     throw new Error('INVALID_LISTING_PARAMS');
   }
-
-  const invDocId = `${uid}_${itemId}`;
-  const listingId = genId('lst');
-
   try {
-    await runTransaction(db, async (tx) => {
-      const invRef = doc(db, 'inventory', invDocId);
-      const invSnap = await tx.get(invRef);
-      if (!invSnap.exists()) throw new Error('INSUFFICIENT_INVENTORY');
-      const inv = invSnap.data() as InventoryItem;
-      if (inv.quantity < qty) throw new Error('INSUFFICIENT_INVENTORY');
-
-      tx.update(invRef, {
-        quantity: inv.quantity - qty,
-        updatedAt: serverTimestamp(),
-      });
-
-      tx.set(doc(db, 'market_listings', listingId), {
-        id: listingId,
-        sellerUid: uid,
-        sellerName: username,
-        itemId,
-        quantity: qty,
-        remainingQty: qty,
-        unitPrice,
-        status: 'active',
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-      });
-    });
+    await nexoraApi('create_market_listing', { itemId, quantity, unitPrice });
   } catch (error) {
-    if (error instanceof Error && ['INVALID_ITEM', 'INVALID_LISTING_PARAMS', 'INSUFFICIENT_INVENTORY'].includes(error.message)) {
-      throw error;
-    }
-    handleFirestoreError(error, OperationType.WRITE, `market_listings/${listingId}`);
+    if (error instanceof Error && 'code' in error) throw new Error(String((error as { code?: unknown }).code ?? 'CREATE_LISTING_FAILED'));
+    throw error;
   }
 }
 
 export async function buyMarketListing(
-  buyerUid: string,
+  _buyerUid: string,
   listingId: string,
   buyQtyRaw: number,
-  taxRate: number
+  _taxRate: number
 ): Promise<void> {
-  const buyQty = Math.floor(buyQtyRaw);
-  if (buyQty < 1) throw new Error('INVALID_QUANTITY');
-
-  const txId = genId('tx');
-  const orderId = `ord_${txId}`;
-
+  const quantity = Number.isFinite(buyQtyRaw) ? Math.floor(buyQtyRaw) : 0;
+  if (quantity < 1) throw new Error('INVALID_QUANTITY');
   try {
-    await runTransaction(db, async (tx) => {
-      const listingRef = doc(db, 'market_listings', listingId);
-      const buyerWalletRef = doc(db, 'wallets', buyerUid);
-      const buyerProfileRef = doc(db, 'profiles', buyerUid);
-
-      const [listingSnap, buyerWalletSnap, buyerProfileSnap] = await Promise.all([
-        tx.get(listingRef),
-        tx.get(buyerWalletRef),
-        tx.get(buyerProfileRef),
-      ]);
-
-      if (!listingSnap.exists()) throw new Error('LISTING_NOT_FOUND');
-      if (!buyerWalletSnap.exists() || !buyerProfileSnap.exists()) throw new Error('ACCOUNT_NOT_FOUND');
-
-      const listing = listingSnap.data() as MarketListing;
-      if (listing.status !== 'active' || listing.remainingQty < buyQty) {
-        throw new Error('INSUFFICIENT_LISTING_QTY');
-      }
-      if (listing.sellerUid === buyerUid) {
-        throw new Error('CANNOT_BUY_OWN_LISTING');
-      }
-
-      const buyerWallet = buyerWalletSnap.data() as Wallet;
-      const buyerProfile = buyerProfileSnap.data() as PlayerProfile;
-
-      const totalPrice = listing.unitPrice * buyQty;
-      if (buyerWallet.balance < totalPrice) {
-        throw new Error('INSUFFICIENT_FUNDS');
-      }
-
-      const fee = Math.round(totalPrice * taxRate);
-      const netAmount = totalPrice - fee;
-
-      const invDocId = `${buyerUid}_${listing.itemId}`;
-      const invRef = doc(db, 'inventory', invDocId);
-      const invSnap = await tx.get(invRef);
-
-      let sellerWalletSnap = null;
-      const sellerWalletRef = doc(db, 'wallets', listing.sellerUid);
-      if (listing.sellerUid !== 'SYSTEM') {
-        sellerWalletSnap = await tx.get(sellerWalletRef);
-      }
-
-      const newRemaining = listing.remainingQty - buyQty;
-
-      tx.set(doc(db, 'transactions', txId), {
-        id: txId,
-        fromUid: buyerUid,
-        toUid: listing.sellerUid,
-        amount: totalPrice,
-        fee,
-        netAmount,
-        type: 'market_buy',
-        referenceId: listingId,
-        description: `Market buy: ${buyQty}x ${listing.itemId}`,
-        status: 'completed',
-        createdAt: serverTimestamp(),
-      });
-
-      tx.update(buyerWalletRef, {
-        balance: buyerWallet.balance - totalPrice,
-        totalSpent: buyerWallet.totalSpent + totalPrice,
-        lastTxId: txId,
-        updatedAt: serverTimestamp(),
-      });
-
-      if (sellerWalletSnap && sellerWalletSnap.exists()) {
-        const sw = sellerWalletSnap.data() as Wallet;
-        tx.update(sellerWalletRef, {
-          balance: sw.balance + netAmount,
-          totalEarned: sw.totalEarned + netAmount,
-          lastTxId: txId,
-          updatedAt: serverTimestamp(),
-        });
-      }
-
-      tx.update(listingRef, {
-        remainingQty: newRemaining,
-        status: newRemaining === 0 ? 'sold' : 'active',
-        updatedAt: serverTimestamp(),
-      });
-
-      tx.set(doc(db, 'market_orders', orderId), {
-        id: orderId,
-        listingId,
-        buyerUid,
-        sellerUid: listing.sellerUid,
-        itemId: listing.itemId,
-        quantity: buyQty,
-        unitPrice: listing.unitPrice,
-        totalPrice,
-        taxAmount: fee,
-        txId,
-        createdAt: serverTimestamp(),
-      });
-
-      if (invSnap.exists()) {
-        const prevQty = (invSnap.data() as InventoryItem).quantity;
-        tx.update(invRef, {
-          quantity: prevQty + buyQty,
-          updatedAt: serverTimestamp(),
-        });
-      } else {
-        tx.set(invRef, {
-          uid: buyerUid,
-          itemId: listing.itemId,
-          quantity: buyQty,
-          updatedAt: serverTimestamp(),
-        });
-      }
-
-      const xpUpdate = applyXpAndLevel(buyerProfile, 25 + Math.min(50, buyQty * 2), 2, 1);
-      tx.update(buyerProfileRef, {
-        ...xpUpdate,
-        stats: {
-          ...buyerProfile.stats,
-          tradesCount: buyerProfile.stats.tradesCount + 1,
-        },
-        updatedAt: serverTimestamp(),
-      });
-    });
+    await nexoraApi('buy_market_listing', { listingId, quantity });
   } catch (error) {
-    if (
-      error instanceof Error &&
-      [
-        'INVALID_QUANTITY',
-        'LISTING_NOT_FOUND',
-        'INSUFFICIENT_LISTING_QTY',
-        'CANNOT_BUY_OWN_LISTING',
-        'INSUFFICIENT_FUNDS',
-      ].includes(error.message)
-    ) {
-      throw error;
-    }
-    handleFirestoreError(error, OperationType.WRITE, `market_listings/${listingId}`);
+    if (error instanceof Error && 'code' in error) throw new Error(String((error as { code?: unknown }).code ?? 'MARKET_PURCHASE_FAILED'));
+    throw error;
   }
 }
 
-export async function cancelMarketListing(uid: string, listingId: string): Promise<void> {
+export async function cancelMarketListing(_uid: string, listingId: string): Promise<void> {
   try {
-    await runTransaction(db, async (tx) => {
-      const listingRef = doc(db, 'market_listings', listingId);
-      const listingSnap = await tx.get(listingRef);
-      if (!listingSnap.exists()) throw new Error('LISTING_NOT_FOUND');
-
-      const listing = listingSnap.data() as MarketListing;
-      if (listing.sellerUid !== uid || listing.status !== 'active') {
-        throw new Error('CANNOT_CANCEL_LISTING');
-      }
-
-      const invRef = doc(db, 'inventory', `${uid}_${listing.itemId}`);
-      const invSnap = await tx.get(invRef);
-
-      tx.update(listingRef, {
-        remainingQty: 0,
-        status: 'cancelled',
-        updatedAt: serverTimestamp(),
-      });
-
-      if (invSnap.exists()) {
-        const prev = (invSnap.data() as InventoryItem).quantity;
-        tx.update(invRef, {
-          quantity: prev + listing.remainingQty,
-          lastListingId: listingId,
-          updatedAt: serverTimestamp(),
-        });
-      } else {
-        tx.set(invRef, {
-          uid,
-          itemId: listing.itemId,
-          quantity: listing.remainingQty,
-          lastListingId: listingId,
-          updatedAt: serverTimestamp(),
-        });
-      }
-    });
+    await nexoraApi('cancel_market_listing', { listingId });
   } catch (error) {
-    if (error instanceof Error && ['LISTING_NOT_FOUND', 'CANNOT_CANCEL_LISTING'].includes(error.message)) {
-      throw error;
-    }
-    handleFirestoreError(error, OperationType.UPDATE, `market_listings/${listingId}`);
+    if (error instanceof Error && 'code' in error) throw new Error(String((error as { code?: unknown }).code ?? 'CANCEL_LISTING_FAILED'));
+    throw error;
   }
 }
 
