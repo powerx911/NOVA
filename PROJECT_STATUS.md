@@ -553,3 +553,14 @@ The user explicitly requires NOVA to be online and socially connected from its f
 - Added market migration security-contract checks and UI validation for all market controls. CI will verify syntax, IDs/navigation, RLS and RPC security boundaries, idempotency, atomic wallet transfer, and patch whitespace.
 - The market migration is **not applied** to Supabase yet; this branch must pass CI and merge first. Existing live competitive tables/data are untouched by this proposal.
 - No real player accounts exist yet, so market concurrency, cross-player settlement, partial fills, and realtime UI behavior still require integration tests with two authenticated accounts after migration.
+
+
+## 27. Market migration activated and FK index follow-up (2026-11-18)
+
+- PR #22 merged as `ad7d5b96cc758d410de0c7aa99e01c0cf09dc1ba`. Both CI checks passed on head `9d5cec458c03e55a505329d8c7ba2f6f8439d1dc`: NOVA Prototype Checks run 44344248773 and Validate NOVA run 44344248481.
+- Applied `20261118172000_nova_shared_market.sql` to existing Supabase project `hmrprnjhyzyefocdmnxf`; recorded migration version `20261118161142` (`nova_shared_market`). The market inventory/listing/order/ledger tables exist with RLS enabled; current row counts remain zero because no player accounts have been created.
+- Verified anonymous users can read active listings but cannot read player inventory. Authenticated users have SELECT grants constrained by their own-row RLS policies for inventory and orders. Activity Realtime remains enabled.
+- Supabase security advisors remain at zero findings. Performance advisors report three INFO-level unindexed foreign keys (listing seller, order listing, inventory-ledger listing), plus unused-index notices while tables are empty.
+- Created follow-up branch `perf/nova-market-fk-indexes` with additive indexes for those three foreign keys and CI assertions. This performance-only migration is pending PR review/merge/application.
+- GitHub Pages deployment for PR #22 merge commit `ad7d5b96cc758d410de0c7aa99e01c0cf09dc1ba` succeeded in run 44344339762; all five deployment steps passed and the `github-pages` artifact was 80,990 bytes. The published URL is https://powerx911.github.io/NOVA/. External live-browser and Android-device verification remain outstanding.
+- No player accounts or test records have been created. Two-account market settlement, partial fills, cancellations, auth email redirect, realtime delivery, and Android testing remain outstanding.
