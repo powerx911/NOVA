@@ -138,7 +138,7 @@ declare
   v_result jsonb;
 begin
   if v_user_id is null then raise exception 'Authentication required' using errcode = '28000'; end if;
-  if p_command_id is null or p_item_code not in ('alloy','circuits','fuel','rare_chip')
+  if p_command_id is null or p_item_code is null or p_item_code not in ('alloy','circuits','fuel','rare_chip')
      or p_quantity is null or p_quantity not between 1 and 10000
      or p_unit_price is null or p_unit_price not between 1 and 1000000 then
     raise exception 'Invalid market listing details' using errcode = '22023';
