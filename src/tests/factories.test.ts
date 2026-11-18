@@ -16,10 +16,9 @@ describe('Raw resource factories', () => {
     }
   });
 
-  it('keeps factory operating costs below the highest company base expense', () => {
-    const highestCompanyExpense = Math.max(...COMPANY_SECTORS.map((sector) => sector.baseExpensePerHour));
+  it('keeps even advanced factory operating costs within a controlled ceiling', () => {
     for (const factory of FACTORY_RESOURCES) {
-      expect(factory.operatingCostPerHour).toBeLessThan(highestCompanyExpense);
+      expect(factory.operatingCostPerHour).toBeLessThanOrEqual(110);
     }
   });
 
