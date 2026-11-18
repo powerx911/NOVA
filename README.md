@@ -35,7 +35,7 @@ Default UI language is **Arabic (`RTL`)** with instant switching to **English (`
 - **NEXORA schema**: `nexora`; 23 tables with RLS enabled.
 - **Security**: no direct `anon` or `authenticated` table grants. The trusted Edge Function validates Firebase identity and invokes the database with service privileges.
 - **Legacy cleanup**: the 17 old `public.nova_*` game tables and old `nova_*` functions were removed only after verifying the legacy game tables were empty. Supabase Auth and platform-managed schemas were not modified.
-- **Runtime status**: core gameplay uses Supabase. The GitHub Pages workflow is configured with base path `/NOVA/`; run and verify that deployment before treating the public game link as updated.
+- **Runtime status**: core gameplay uses Supabase. The GitHub Pages workflow is configured with base path `/NOVA/` and deploys automatically on pushes to `main`. The latest build and deployment completed successfully; an interactive sign-in smoke test has not yet been performed.
 
 ## Documentation
 - `PROJECT_STATUS.md` — Living project status and verification record.
