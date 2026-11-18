@@ -1,6 +1,8 @@
 name: NOVA Prototype Checks
 
 on:
+  push:
+    branches: [feat/new-world-game-foundation]
   pull_request:
     branches: [main]
   workflow_dispatch:
