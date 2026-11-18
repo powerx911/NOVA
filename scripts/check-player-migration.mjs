@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs'
 import { strict as assert } from 'node:assert'
 
 const sql = readFileSync('supabase/migrations/20261118160000_nova_player_core.sql', 'utf8')
+const hardening = readFileSync('supabase/migrations/20261118151500_harden_player_rpc_schema.sql', 'utf8')
 const tables = [
   'nova_player_profiles',
   'nova_player_economy',
@@ -30,3 +31,9 @@ assert.doesNotMatch(sql, /create policy[^;]+on public\.nova_player_economy for (
 assert.doesNotMatch(sql, /create policy[^;]+on public\.nova_buildings for (insert|update|delete)/i, 'clients must not directly mutate buildings')
 
 console.log('NOVA player migration security-contract checks passed.')
+
+assert.match(hardening, /create schema if not exists private/i, 'privileged functions must be moved to a non-exposed schema')
+assert.match(hardening, /alter function public\.nova_initialize_player\(text\) set schema private/i)
+assert.match(hardening, /alter function public\.nova_upgrade_building\(uuid, uuid\) set schema private/i)
+assert.match(hardening, /create or replace function public\.nova_initialize_player\([\s\S]*?security invoker/i)
+assert.match(hardening, /create or replace function public\.nova_upgrade_building\([\s\S]*?security invoker/i)
