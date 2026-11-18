@@ -124,8 +124,6 @@ function NovaAppContent() {
           wallet={game.wallet}
           inventory={game.inventory}
           marketListings={game.marketListings}
-          marketOrders={game.marketOrders}
-          transactions={game.transactions}
           worldEvents={game.worldEvents}
           claimedContractsToday={game.claimedContractsToday}
           language={game.language}
