@@ -19,7 +19,6 @@ import {
   sendDirectMessage,
   sendGlobalChatMessage,
   unblockPlayer as unblockPlayerOnSupabase,
-  touchPlayerPresence,
   getPlayersPresence,
 } from '../../services/socialService';
 import type {
