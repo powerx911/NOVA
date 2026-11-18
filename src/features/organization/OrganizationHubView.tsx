@@ -517,8 +517,9 @@ export function OrganizationHubView({
   return (
     <div className="w-full min-w-0 space-y-4 sm:space-y-5">
       {/* Organization Header */}
-      <div className="min-w-0 w-full bg-[#141821] border border-white/8 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div id="org-info" className="min-w-0 w-full bg-[#141821] border border-white/8 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="space-y-1">
+          <p className="text-[10px] font-semibold tracking-wide text-[#E5A0A8]">{language === 'ar' ? 'معلومات المنظمة' : 'Organization information'}</p>
           <div className="flex items-center gap-2.5">
             <Shield className="w-5 h-5 text-[#E04455]" />
             <h1 className="min-w-0 break-words text-lg sm:text-xl font-bold text-[#F4F5F7]">
@@ -530,7 +531,9 @@ export function OrganizationHubView({
             {t.members}{' '}
             <span className="font-mono-num text-[#F4F5F7]">{currentOrg.memberCount}/{memberCapacity}</span> ·{' '}
             {t.reputation}{' '}
-            <span className="font-mono-num text-[#F4F5F7]">{currentOrg.reputation}</span>
+            <span className="font-mono-num text-[#F4F5F7]">{currentOrg.reputation}</span> ·{' '}
+            {language === 'ar' ? 'القائد' : 'Leader'}{' '}
+            <span className="text-[#F4F5F7]">{currentOrg.leaderName}</span>
           </p>
         </div>
 
@@ -578,7 +581,11 @@ export function OrganizationHubView({
         </div>
       </div>
 
-      <section className="min-w-0 rounded-2xl border border-white/8 bg-[#141821] p-4 sm:p-5 space-y-4">
+      <nav aria-label={language === 'ar' ? 'أقسام المنظمة' : 'Organization sections'} className="flex gap-2 overflow-x-auto rounded-xl border border-white/8 bg-[#141821] p-2 text-xs">
+        {[['org-info', language === 'ar' ? 'معلومات المنظمة' : 'Information'], ['org-members', t.members], ['org-research', language === 'ar' ? 'الأبحاث' : 'Research'], ['org-treasury', language === 'ar' ? 'الخزنة' : 'Treasury'], ['org-donations', language === 'ar' ? 'ترتيب التبرعات' : 'Donations']].map(([id, label]) => <a key={id} href={`#${id}`} className="shrink-0 rounded-lg bg-[#0B0D12] px-3 py-2 text-[#D5D9E1] hover:bg-[#252B36]">{label}</a>)}
+      </nav>
+
+      <section id="org-research" className="min-w-0 rounded-2xl border border-white/8 bg-[#141821] p-4 sm:p-5 space-y-4">
         <div className="flex items-center justify-between gap-3">
           <div>
             <h2 className="text-base font-bold text-[#F4F5F7]">{language === 'ar' ? 'أبحاث المنظمة' : 'Organization Research'}</h2>
@@ -624,7 +631,7 @@ export function OrganizationHubView({
       <div className="grid min-w-0 grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5">
         {/* Shared Treasury Operations & RBAC Matrix */}
         <div className="w-full min-w-0 space-y-4 sm:space-y-5">
-          <div className="min-w-0 bg-[#141821] border border-white/8 rounded-2xl p-4 sm:p-5 space-y-4">
+          <div id="org-treasury" className="min-w-0 bg-[#141821] border border-white/8 rounded-2xl p-4 sm:p-5 space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="text-base font-semibold text-[#F4F5F7]">{language === 'ar' ? 'خزينة المنظمة والتبرعات' : 'Organization treasury & donations'}</h2>
               <Vault className="w-4 h-4 text-[#E04455]" />
@@ -698,7 +705,7 @@ export function OrganizationHubView({
           </div>
 
           {/* Donation leaderboard */}
-          <div className="min-w-0 bg-[#141821] border border-white/8 rounded-2xl p-4 sm:p-5 space-y-3">
+          <div id="org-donations" className="min-w-0 bg-[#141821] border border-white/8 rounded-2xl p-4 sm:p-5 space-y-3">
             <h2 className="text-sm font-semibold text-[#F4F5F7]">{language === 'ar' ? 'ترتيب التبرعات' : 'Donation leaderboard'}</h2>
             {donationRanking.length === 0 ? <p className="py-4 text-center text-xs text-[#9299A6]">{language === 'ar' ? 'لا توجد تبرعات صافية حتى الآن.' : 'No net donations yet.'}</p> : donationRanking.map((entry, index) => (
               <div key={entry.uid} className="flex items-center justify-between rounded-xl border border-white/6 bg-[#0B0D12] px-3 py-2.5"><span className="flex items-center gap-3 min-w-0"><span className="w-6 text-center text-xs font-bold text-amber-200">#{index + 1}</span><span className="truncate text-sm text-[#F4F5F7]">{entry.username}</span></span><span className="text-xs font-semibold font-mono-num text-emerald-400">${entry.amount.toLocaleString()}}</span></div>
@@ -744,7 +751,7 @@ export function OrganizationHubView({
             </div>
           )}
 
-          <div className="bg-[#141821] border border-white/8 rounded-2xl p-5 space-y-3">
+          <div id="org-members" className="bg-[#141821] border border-white/8 rounded-2xl p-5 space-y-3">
             <div className="flex items-center justify-between">
               <h2 className="text-base font-semibold text-[#F4F5F7]">{t.members}</h2>
               <Users className="w-4 h-4 text-[#9299A6]" />
