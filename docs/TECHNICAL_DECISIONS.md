@@ -1,6 +1,6 @@
 # NOVA — Technical Decision Records
 
-**Last updated:** 2026-11-18  
+**Last updated:** 2026-11-18
 **Decision status:** Initial client architecture selected for the next implementation spike; production deployment and backend architecture remain subject to validation.
 
 This document records durable engineering decisions. A prototype experiment is not automatically a production commitment.
