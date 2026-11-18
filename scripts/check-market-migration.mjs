@@ -32,4 +32,10 @@ for (const line of [
   "grant execute on function private.nova_market_cancel_listing(uuid,uuid) to authenticated",
 ]) assert.ok(sql.includes(line), "missing secure market RPC grant: " + line);
 assert.ok(sql.includes("market_list") && sql.includes("market_buy") && sql.includes("market_cancel"), "market command types must be permitted by the receipt constraint");
+
+const indexSql = readFileSync("supabase/migrations/20261118173000_nova_market_fk_indexes.sql", "utf8");
+for (const indexName of ["nova_market_listings_seller_id_idx","nova_market_orders_listing_id_idx","nova_market_inventory_ledger_listing_id_idx"]) {
+  assert.ok(indexSql.includes("create index if not exists " + indexName), "missing market foreign-key index: " + indexName);
+}
+
 console.log("NOVA shared market security-contract checks passed.");
