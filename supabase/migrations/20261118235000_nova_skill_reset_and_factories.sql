@@ -85,12 +85,12 @@ create or replace function nexora.factory_resource_config(p_resource_id text)
 returns table(founding_cost bigint, production_rate numeric, operating_cost numeric, rarity_factor numeric)
 language sql immutable set search_path = '' as $$
   select cfg.founding_cost,cfg.production_rate,cfg.operating_cost,cfg.rarity_factor from (values
-    ('copper_wire'::text, 5000::bigint, 3.00::numeric, 160.00::numeric, 1.00::numeric),
-    ('silicon_ore', 6500, 2.40, 190.00, 1.20),
-    ('energy_cells', 8000, 2.00, 230.00, 1.40),
-    ('crude_alloy', 9500, 1.80, 270.00, 1.65),
-    ('carbon_fiber', 12500, 1.25, 350.00, 2.10),
-    ('rare_minerals', 26000, 0.55, 560.00, 3.60)
+    ('copper_wire'::text, 5000::bigint, 5.00::numeric, 125.00::numeric, 1.00::numeric),
+    ('silicon_ore', 6500, 4.20, 130.00, 1.20),
+    ('energy_cells', 8000, 3.50, 140.00, 1.40),
+    ('crude_alloy', 9500, 3.80, 145.00, 1.65),
+    ('carbon_fiber', 12500, 3.00, 150.00, 2.10),
+    ('rare_minerals', 26000, 2.50, 160.00, 3.60)
   ) as cfg(resource_id,founding_cost,production_rate,operating_cost,rarity_factor)
   where cfg.resource_id=p_resource_id
 $$;
