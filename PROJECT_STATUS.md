@@ -526,3 +526,18 @@ The user explicitly requires NOVA to be online and socially connected from its f
 - Files changed: `index.html`, `styles.css`, `app.js`, `supabase/migrations/20261118170000_nova_competitive_core.sql`, `scripts/check-competitive-migration.mjs`, `.github/workflows/prototype-checks.yml`, `README.md`, and this status log.
 - **Not yet done:** the migration has not been applied to the live Supabase database; email-confirmation redirect configuration is not verified; real account creation, two-player isolation, idempotency, Realtime delivery, Android device behavior, and Pages deployment are not yet verified.
 - Do not merge until CI passes. After merge, apply the migration, verify RLS/advisors and RPCs, run account/command integration tests, and confirm the GitHub Pages deployment.
+
+
+## 25. Competitive online core activated on Supabase (2026-11-18)
+
+- PR #20 merged successfully (squash) as `fc52f0420072d6a6484170a71204b34dd09f0a6a`. It includes the map-free mobile UI, Supabase auth client, competitive core migration, server-authoritative RPCs, live public activity, and updated CI checks.
+- Both PR checks passed on the final PR head `28769698b8610a44cca7238ce5f7c23b609453d0`: NOVA Prototype Checks run 44343056228 and Validate NOVA run 44343057734.
+- The competitive migration was applied to the existing Supabase project `hmrprnjhyzyefocdmnxf` as migration version `20261118160528` (`nova_competitive_core`). No existing tables or player data were deleted or modified.
+- Verified all six new competitive tables exist with RLS enabled. The new competitive tables currently contain zero player rows; no player accounts or test data were created.
+- Verified wallet access grants: anon cannot read player wallets; authenticated can read only through the RLS policy for their own user_id. Verified public activity is included in `supabase_realtime` publication.
+- Verified RPC boundaries: private implementations are SECURITY DEFINER; public wrappers are SECURITY INVOKER. Anonymous execution is denied for initialization, simulation, and asset upgrades; anonymous execution is allowed only for the safe leaderboard RPC. Authenticated execution is granted for player commands.
+- Supabase security advisors: **zero findings**. Performance advisor currently reports five INFO-level unused indexes across empty ledger/receipt/activity tables; expected before traffic and to be re-evaluated after usage.
+- GitHub Pages deployment run 44343113839 completed successfully on main commit `fc52f0420072d6a6484170a71204b34dd09f0a6a`. All deployment steps passed (Setup Pages, artifact upload, Deploy to GitHub Pages). Artifact `github-pages` was 74,196 bytes. Live URL: https://powerx911.github.io/NOVA/.
+- External HTTP/browser verification could not be completed from the development environment. The successful GitHub Pages deployment is verified; independent live page rendering and real Android-device testing are still outstanding.
+- Account signup/login, email-confirmation redirect configuration, first-player initialization, two-player isolation, operation/upgrade RPCs under real authenticated sessions, and Realtime client delivery have not yet been integration-tested because no test accounts were created. Supabase Auth redirect allowlist must include `https://powerx911.github.io/NOVA/` before email confirmation can return to the Pages client.
+- Next implementation priority: complete real-account smoke tests, then build the shared player market with server-owned listings/orders and atomic transfers. Matchmaking/challenges, organizations, season scoring, and broader PvP systems remain subsequent phases.
