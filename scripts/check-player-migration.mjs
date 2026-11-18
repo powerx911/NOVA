@@ -30,7 +30,6 @@ assert.match(sql, /insert into public\.nova_resource_ledger/i, 'resource mutatio
 assert.doesNotMatch(sql, /create policy[^;]+on public\.nova_player_economy for (insert|update|delete)/i, 'clients must not directly mutate economy')
 assert.doesNotMatch(sql, /create policy[^;]+on public\.nova_buildings for (insert|update|delete)/i, 'clients must not directly mutate buildings')
 
-console.log('NOVA player migration security-contract checks passed.')
 
 assert.match(hardening, /create schema if not exists private/i, 'privileged functions must be moved to a non-exposed schema')
 assert.match(hardening, /alter function public\.nova_initialize_player\(text\) set schema private/i)
@@ -43,3 +42,5 @@ assert.match(hardening, /grant execute on function private\.nova_initialize_play
 assert.match(hardening, /grant execute on function private\.nova_upgrade_building\(uuid, uuid\) to authenticated/i)
 assert.match(hardening, /revoke all on function public\.nova_initialize_player\(text\) from public, anon/i)
 assert.match(hardening, /revoke all on function public\.nova_upgrade_building\(uuid, uuid\) from public, anon/i)
+
+console.log('NOVA player migration security-contract checks passed.')
