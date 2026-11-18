@@ -16,7 +16,7 @@ Default UI language is **Arabic (`RTL`)** with instant switching to **English (`
 - **Character & Skill Tree**: Level/XP progression and six functionally bound skills.
 - **Interconnected Economy**: Atomic `$` wallets, append-only ledger, player transfers, market listings/orders, dynamic pricing, tax rates, and world events.
 - **Manufacturing Chains**: Three-tier industrial chains and daily trade contracts.
-- **Companies & Real Estate**: Five business sectors, staffing, upgrades, independent profit vaults, properties, leases, and hourly revenue. Vault upgrades and collection are handled by authenticated Vercel API routes using Google Workload Identity Federation; live deployment and transaction testing are pending.
+- **Companies & Real Estate**: Five business sectors, staffing, upgrades, independent profit vaults, properties, leases, and hourly revenue. Vault upgrades and collection are handled by the authenticated Supabase Edge API and atomic Postgres RPCs in the NOVA `nexora` schema.
 - **Organizations & RBAC**: Organization membership, role permissions, join requests, and shared treasury.
 - **NEXORA Diagnostics**: Owner-restricted, read-only diagnostics with sanitization and JSON export.
 
