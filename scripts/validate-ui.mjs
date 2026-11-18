@@ -17,4 +17,5 @@ assert.ok(html.includes('aria-label="التنقل الرئيسي"'),"Primary nav
 assert.ok(!html.includes('world-map')&&!html.includes('map-grid-lines'),"This product direction must not include a map UI");
 for (const id of ["market-listing-form","market-listings","market-item-code","market-quantity","market-unit-price","create-listing","alloy-count","circuits-count","fuel-count","rare-chip-count"]) assert.ok(idSet.has(id),`Missing shared-market UI element: ${id}`);
 assert.ok(!html.includes('id="buy-materials"'),"Legacy local market purchase must be removed");
+assert.ok(idSet.has("battle-list"),"Challenge arena must be present in the community UI");
 console.log(`UI validation passed: ${ids.length} unique IDs, ${screens.length} screens, ${nav.length} navigation targets.`);
