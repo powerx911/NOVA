@@ -555,6 +555,40 @@ Deno.serve(async (req: Request) => {
       return json({ ok: true, data }, 200, origin);
     }
 
+    const targetUid = typeof body.targetUid === "string" ? body.targetUid : "";
+    const requestId = typeof body.requestId === "string" ? body.requestId : "";
+    const socialActions: Record<string, { rpc: string; args: Record<string, unknown> }> = {
+      get_public_player_profile: { rpc: "get_public_player_profile", args: { p_target_uid: targetUid } },
+      search_players: { rpc: "search_players", args: { p_user_id: identity.uid, p_prefix: typeof body.prefix === "string" ? body.prefix : "" } },
+      list_blocked_players: { rpc: "list_blocked_players", args: { p_user_id: identity.uid } },
+      block_player: { rpc: "block_player", args: { p_user_id: identity.uid, p_target_uid: targetUid } },
+      unblock_player: { rpc: "unblock_player", args: { p_user_id: identity.uid, p_target_uid: targetUid } },
+      submit_player_report: { rpc: "submit_player_report", args: { p_user_id: identity.uid, p_target_uid: targetUid, p_reason: body.reason, p_request_id: requestId } },
+      open_direct_conversation: { rpc: "open_direct_conversation", args: { p_user_id: identity.uid, p_target_uid: targetUid } },
+      send_direct_message: { rpc: "send_direct_message", args: { p_user_id: identity.uid, p_target_uid: targetUid, p_text: body.text, p_request_id: requestId } },
+      send_global_chat_message: { rpc: "send_global_chat_message", args: { p_user_id: identity.uid, p_text: body.text, p_request_id: requestId } },
+      list_direct_conversations: { rpc: "list_direct_conversations", args: { p_user_id: identity.uid } },
+      list_direct_messages: { rpc: "list_direct_messages", args: { p_user_id: identity.uid, p_conversation_id: body.conversationId } },
+      list_global_chat_messages: { rpc: "list_global_chat_messages", args: { p_user_id: identity.uid } },
+      list_organization_invites: { rpc: "list_organization_invites", args: { p_user_id: identity.uid } },
+      invite_player_to_organization: { rpc: "invite_player_to_organization", args: { p_user_id: identity.uid, p_target_uid: targetUid } },
+      respond_organization_invite: { rpc: "respond_organization_invite", args: { p_user_id: identity.uid, p_invite_id: body.inviteId, p_response: body.response } },
+    };
+    const socialAction = socialActions[body.action];
+    if (socialAction) {
+      const { data, error } = await db.rpc(socialAction.rpc, socialAction.args);
+      if (error) {
+        const known = [
+          "PLAYER_NOT_FOUND","INVALID_TARGET","INVALID_REPORT","REPORT_RATE_LIMIT","PLAYER_BLOCKED",
+          "CONVERSATION_ACCESS_DENIED","INVALID_MESSAGE","EMPTY_MESSAGE","CHAT_RATE_LIMIT",
+          "PROFILE_NOT_FOUND","NOT_IN_ORG","INVITE_PERMISSION_REQUIRED","TARGET_ALREADY_IN_ORG",
+          "INVITE_ALREADY_PENDING","INVITE_NOT_AVAILABLE","ALREADY_IN_ORG","ORG_FULL",
+        ].find((code) => error.message.includes(code));
+        return json({ error: known ?? "SOCIAL_OPERATION_FAILED" }, 409, origin);
+      }
+      return json({ ok: true, data }, 200, origin);
+    }
+
     return json({ error: "UNKNOWN_ACTION" }, 400, origin);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
