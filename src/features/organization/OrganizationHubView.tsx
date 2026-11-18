@@ -109,10 +109,12 @@ export function OrganizationHubView({
 
   const contributionsByUid = new Map<string, number>();
   for (const otx of orgTransactions) {
-    if (otx.type === 'deposit') {
-      contributionsByUid.set(otx.uid, (contributionsByUid.get(otx.uid) || 0) + otx.amount);
+    if (otx.type === 'deposit' || otx.type === 'withdraw') {
+      const direction = otx.type === 'deposit' ? 1 : -1;
+      contributionsByUid.set(otx.uid, (contributionsByUid.get(otx.uid) || 0) + direction * otx.amount);
     }
   }
+  const donationRanking = [...contributionsByUid.entries()].filter(([, amount]) => amount > 0).sort((a, b) => b[1] - a[1]);
 
   async function handleCreateOrg(e: React.FormEvent) {
     e.preventDefault();
@@ -693,50 +695,13 @@ export function OrganizationHubView({
             </div>
           </div>
 
-          {/* Role Permissions Matrix */}
+          {/* Donation leaderboard */}
           <div className="min-w-0 bg-[#141821] border border-white/8 rounded-2xl p-4 sm:p-5 space-y-3">
-            <h2 className="text-sm font-semibold text-[#F4F5F7]">{t.orgPerks}</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
-              {(['leader', 'deputy', 'officer', 'member'] as const).map((role) => {
-                const perms = ROLE_DEFAULT_PERMISSIONS[role];
-                const isMine = myOrgMember.role === role;
-                return (
-                  <div
-                    key={role}
-                    className={`p-3 rounded-xl border ${
-                      isMine ? 'bg-[#1B2230] border-[#E04455]/50' : 'bg-[#0B0D12] border-white/6'
-                    }`}
-                  >
-                    <p className="font-semibold text-[#F4F5F7]">{formatOrgRole(role, language)}</p>
-                    <p className="text-[11px] text-[#9299A6] mt-1 leading-relaxed">
-                      {perms.length === 0
-                        ? language === 'ar'
-                          ? 'مساهمة الخزينة والاطلاع'
-                          : 'Treasury deposits & view'
-                        : perms
-                            .map((p) =>
-                              p === 'manage_members'
-                                ? language === 'ar'
-                                  ? 'الأعضاء'
-                                  : 'Members'
-                                : p === 'manage_roles'
-                                ? language === 'ar'
-                                  ? 'الرتب'
-                                  : 'Roles'
-                                : p === 'manage_treasury'
-                                ? language === 'ar'
-                                  ? 'السحب'
-                                  : 'Treasury'
-                                : language === 'ar'
-                                ? 'الترقية'
-                                : 'Upgrade'
-                            )
-                            .join(' · ')}
-                    </p>
-                  </div>
-                );
-              })}
-            </div>
+            <h2 className="text-sm font-semibold text-[#F4F5F7]">{language === 'ar' ? 'ترتيب التبرعات' : 'Donation leaderboard'}</h2>
+            {donationRanking.length === 0 ? <p className="py-4 text-center text-xs text-[#9299A6]">{language === 'ar' ? 'لا توجد تبرعات صافية حتى الآن.' : 'No net donations yet.'}</p> : donationRanking.map(([uid, amount], index) => {
+              const member = orgMembers.find((item) => item.uid === uid);
+              return <div key={uid} className="flex items-center justify-between rounded-xl border border-white/6 bg-[#0B0D12] px-3 py-2.5"><span className="flex items-center gap-3 min-w-0"><span className="w-6 text-center text-xs font-bold text-amber-200">#{index + 1}</span><span className="truncate text-sm text-[#F4F5F7]">{member?.username || orgTransactions.find((item) => item.uid === uid)?.username || (language === 'ar' ? 'لاعب' : 'Player')}</span></span><span className="text-xs font-semibold font-mono-num text-emerald-400">${amount.toLocaleString()}}</span></div>;
+            })}
           </div>
         </div>
 
@@ -785,7 +750,6 @@ export function OrganizationHubView({
             </div>
             <div className="space-y-2">
               {orgMembers.map((m) => {
-                const contributed = contributionsByUid.get(m.uid) || 0;
                 const canChangeRole =
                   canManageRoles &&
                   m.uid !== profile.uid &&
@@ -805,29 +769,19 @@ export function OrganizationHubView({
                       <p className="text-sm font-medium text-[#F4F5F7] truncate">{m.username}</p>
                       <p className="text-xs text-[#9299A6] mt-0.5">
                         {formatOrgRole(m.role, language)}
-                        {contributed > 0 && (
-                          <span className="ms-2 font-mono-num text-emerald-400">
-                            · +${contributed.toLocaleString()}
-                          </span>
-                        )}
+
                       </p>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
                       {canChangeRole && (
-                        <select
-                          value={m.role}
-                          disabled={busyKey === `role_${m.uid}`}
-                          onChange={(e) =>
-                            handleRoleChange(m.uid, e.target.value as Exclude<OrgRole, 'leader'>)
-                          }
-                          className="min-h-[38px] px-2.5 rounded-lg bg-[#141821] border border-white/10 text-xs text-[#F4F5F7]"
-                        >
-                          <option value="member">{formatOrgRole('member', language)}</option>
-                          <option value="officer">{formatOrgRole('officer', language)}</option>
-                          {myOrgMember.role === 'leader' && (
-                            <option value="deputy">{formatOrgRole('deputy', language)}</option>
-                          )}
-                        </select>
+                        <div className="flex flex-col items-end gap-1">
+                          <select value={m.role} disabled={busyKey === `role_${m.uid}`} onChange={(e) => handleRoleChange(m.uid, e.target.value as Exclude<OrgRole, 'leader'>)} className="min-h-[38px] px-2.5 rounded-lg bg-[#141821] border border-white/10 text-xs text-[#F4F5F7]">
+                            {myOrgMember.role === 'leader' && <option value="deputy">{formatOrgRole('deputy', language)}</option>}
+                            <option value="officer">{formatOrgRole('officer', language)}</option>
+                            <option value="member">{formatOrgRole('member', language)}</option>
+                          </select>
+                          <span className="max-w-[190px] text-[10px] text-[#9299A6] text-end">{(ROLE_DEFAULT_PERMISSIONS[m.role] || []).length === 0 ? (language === 'ar' ? 'صلاحيات العضو الأساسية' : 'Basic member access') : (ROLE_DEFAULT_PERMISSIONS[m.role] || []).map((p) => p === 'manage_members' ? (language === 'ar' ? 'إدارة الأعضاء' : 'Members') : p === 'manage_roles' ? (language === 'ar' ? 'إدارة الرتب' : 'Roles') : p === 'manage_treasury' ? (language === 'ar' ? 'الخزينة' : 'Treasury') : (language === 'ar' ? 'إدارة المنظمة' : 'Organization')).join(' · ')}</span>
+                        </div>
                       )}
                       {canKick && (
                         <button
