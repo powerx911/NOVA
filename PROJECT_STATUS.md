@@ -137,6 +137,16 @@ Files introduced/updated by this PR:
 - `docs/NOVA-CONTROL-MCP.md`
 - `.github/workflows/deploy-nova-control.yml`
 
+### PR #2 — Project status and handover baseline
+
+- PR: https://github.com/powerx911/NOVA/pull/2
+- Head branch: `docs/project-state-baseline`
+- Result: **Merged** (squash).
+- Merge commit: `a7a1786f6bedb9f66bf2ffa648b1c4c3e1dd9361`
+- Added `PROJECT_STATUS.md` as the durable project handover record.
+- Checks: documentation consistency review; no application code changed. Runtime tests were not applicable to this documentation-only PR.
+- Deployment: no deployment behavior was changed or triggered by this documentation-only PR.
+
 Important: PR merge success confirms source integration only. It does not confirm that the Edge Function deployed, the endpoint is healthy, or MCP calls work.
 
 ---
@@ -149,6 +159,7 @@ Statuses below distinguish completed source changes from verified live behavior.
 |---|---|---|
 | GitHub repository connected and writable | Reported working | GitHub connector has repository access; verify if permissions change. |
 | NOVA Control MCP source merged | **Done** | PR #1 merged to `main`. |
+| Project handover document | **Done** | `PROJECT_STATUS.md` is present on `main`; keep it current with every change. |
 | Three Actions secrets added | User-reported done | Workflow must prove they are valid and sufficiently scoped. |
 | First `deploy-nova-control.yml` run | **Pending** | User was asked to manually run it once on `main`; no successful run result has yet been confirmed. |
 | Supabase Edge Function deployment | **Unverified** | Check GitHub Actions run and Supabase function list/deployed version. |
@@ -171,6 +182,16 @@ Statuses below distinguish completed source changes from verified live behavior.
 
 ## 8. Change log
 
+### 2026-11-18 — Record baseline PR merge
+
+- Updated this file to record PR #2 and its squash merge commit.
+- Marked the handover document as present on `main`.
+- Confirmed the documentation-only change did not alter application code or deployment behavior.
+- Branch: `docs/record-baseline-merge`.
+- Checks: reviewed the updated project status content; runtime tests are not applicable to this documentation-only update.
+- PR: https://github.com/powerx911/NOVA/pull/2
+- Merge commit: `a7a1786f6bedb9f66bf2ffa648b1c4c3e1dd9361`.
+
 ### 2026-11-18 — Project handover baseline created
 
 - Added this file: `PROJECT_STATUS.md`.
@@ -178,7 +199,7 @@ Statuses below distinguish completed source changes from verified live behavior.
 - Recorded known architecture, repository inventory, MCP design, workflow behavior, secret names, PR #1 merge details, and all currently unverified deployment/testing items.
 - Checks: documentation consistency review against the known project history. No application code was changed by this baseline.
 - Branch: `docs/project-state-baseline`.
-- PR/merge/deployment: pending at the time this entry was written; update this entry after integration.
+- PR #2 was opened and merged after this initial entry was written; see the PR #2 record above.
 
 ### Earlier history — NOVA Control MCP
 
