@@ -23,8 +23,8 @@ create table if not exists public.nova_castles (
   user_id uuid not null unique references auth.users(id) on delete cascade,
   kingdom_id text not null default 'kingdom-1',
   castle_name text not null default 'قلعة البداية',
-  map_x integer not null default 0,
-  map_y integer not null default 0,
+  map_x integer not null default (floor(random() * 1000)::integer),
+  map_y integer not null default (floor(random() * 1000)::integer),
   created_at timestamptz not null default now(),
   unique (kingdom_id, map_x, map_y)
 );
@@ -110,6 +110,7 @@ as $$
 declare
   v_user_id uuid := auth.uid();
   v_castle_id uuid;
+  v_attempt integer;
 begin
   if v_user_id is null then
     raise exception 'Authentication required' using errcode = '28000';
@@ -126,13 +127,21 @@ begin
   values (v_user_id)
   on conflict (user_id) do nothing;
 
-  insert into public.nova_castles (user_id)
-  values (v_user_id)
-  on conflict (user_id) do nothing
-  returning id into v_castle_id;
-
-  if v_castle_id is null then
+  for v_attempt in 1..20 loop
+    insert into public.nova_castles (user_id)
+    values (v_user_id)
+    on conflict do nothing
+    returning id into v_castle_id;
+    if v_castle_id is not null then
+      exit;
+    end if;
     select id into v_castle_id from public.nova_castles where user_id = v_user_id;
+    if v_castle_id is not null then
+      exit;
+    end if;
+  end loop;
+  if v_castle_id is null then
+    raise exception 'Could not allocate a free castle location' using errcode = 'P0001';
   end if;
 
   insert into public.nova_buildings (castle_id, building_type)
@@ -182,6 +191,8 @@ begin
   if p_command_id is null or p_building_id is null then
     raise exception 'Command id and building id are required' using errcode = '22023';
   end if;
+
+  perform pg_advisory_xact_lock(hashtextextended(v_user_id::text || p_command_id::text, 0));
 
   select result into v_receipt
   from public.nova_command_receipts
