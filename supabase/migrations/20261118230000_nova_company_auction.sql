@@ -370,7 +370,9 @@ grant execute on function nexora.delete_company(text,text) to service_role;
 
 -- Settle auctions automatically, even when no player is online.
 create extension if not exists pg_cron with schema pg_catalog;
-do $$
+grant usage on schema cron to postgres;
+grant all privileges on all tables in schema cron to postgres;
+do $
 begin
   if not exists (select 1 from cron.job where jobname='nexora-company-auction-settlement') then
     perform cron.schedule('nexora-company-auction-settlement','* * * * *',
