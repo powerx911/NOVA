@@ -1,6 +1,6 @@
 # NEXORA
 
-**NEXORA** is a portrait-first (Mobile-First) economic, corporate management, and social strategy simulation browser game built with **React 19**, **TypeScript**, **Tailwind CSS v4**, **Firebase Authentication**, and **Cloud Firestore**. Supabase is currently an isolated future backend target; it is not connected to live gameplay.
+**NEXORA** is a portrait-first (Mobile-First) economic, corporate management, and social strategy simulation browser game built with **React 19**, **TypeScript**, **Tailwind CSS v4**, **Firebase Authentication**, and **Cloud Firestore**. The NOVA Supabase schema is provisioned; the live gameplay client is still on Firebase pending the secure API cutover.
 
 Default UI language is **Arabic (`RTL`)** with instant switching to **English (`LTR`)**.
 
@@ -27,13 +27,13 @@ Default UI language is **Arabic (`RTL`)** with instant switching to **English (`
 - Company profit-vault operations are now routed through a Vercel server-side API. The API verifies Firebase ID tokens, obtains short-lived Google credentials through Vercel OIDC/WIF, and uses Firestore REST transactions against the named database. Build and live transaction verification are pending.
 - Do not remove Firebase or switch live writes until Supabase auth strategy, trusted server operations, RLS, migration, parity tests, and rollback are complete.
 
-## Supabase Target — Isolated Namespace
-- **Shared project**: `OneState-Trading-DB` (`dmeupqmhsyojxlgalxrc`, `eu-west-1`).
-- **NEXORA schema**: `nexora`; baseline schema applied on 2026-11-16.
-- **Baseline**: 22 NEXORA tables, RLS enabled on all 22, zero `anon`/`authenticated` table grants, no Data API exposure, and no NEXORA player data imported.
-- **Fail-closed state is intentional**: no client RLS policies or table grants have been added yet. The database advisor's `rls_enabled_no_policy` notices for NEXORA are expected until a reviewed identity model and policies are implemented. Do not loosen this state to silence the notice.
-- **OneState**: existing `public` tables/views remain outside the NEXORA migration. Do not modify them.
-- **Auth boundary**: Supabase Auth is shared at project level. Firebase Auth remains active pending an explicit isolated identity design.
+## Supabase Target — NOVA isolated namespace
+- **Project**: `NOVA` (`hmrprnjhyzyefocdmnxf`, `eu-west-1`).
+- **NEXORA schema**: `nexora`; provisioned on 2026-11-18 with 23 tables (22 domain tables plus username reservations).
+- **Security**: RLS enabled on all 23 tables; no `anon` or `authenticated` table access; `service_role` reserved for trusted server operations. No player data has been imported.
+- **Fail-closed state**: no browser policies or grants have been added. The `rls_enabled_no_policy` INFO notices are expected until the trusted game API and authorization model are implemented.
+- **Legacy cleanup**: all 17 old `public.nova_*` game tables and the old `nova_*` functions were removed after verifying zero rows in every legacy game table. Supabase Auth and platform schemas were not modified.
+- **Runtime status**: Firebase Auth/Firestore are still the active game runtime. Supabase is provisioned but not yet the live gameplay source of truth. Do not publish this source snapshot as production until the backend cutover and security tests are complete.
 
 ## Documentation
 - `PROJECT_STATUS.md` — Living project status and verification record.
