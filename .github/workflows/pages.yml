@@ -27,6 +27,8 @@ jobs:
           node-version: 24
       - name: Install dependencies
         run: npm install --no-audit --no-fund --package-lock=false
+      - name: Write deployment version
+        run: node scripts/write-version.mjs
       - name: Build for GitHub Pages
         run: npm run build
         env:
