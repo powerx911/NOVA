@@ -333,3 +333,17 @@ The user explicitly requires NOVA to be online and socially connected from its f
 - Branch: `docs/online-world-foundation`.
 - Validation: reviewed source docs and Supabase project/table/function state; re-fetched changed documents and checked alignment across README, product vision, foundation requirements, and project status. Runtime game tests are not applicable because no executable game code or database schema was changed.
 - Deployment: no runtime code or deployment workflow changed; no deployment is claimed.
+
+
+## 14. Player experience, alliance governance, and global operations
+
+- The owner requires NOVA to be reviewed from both the operator's perspective (safe, fair, sustainable global service) and the player's perspective (enjoyable play, convenience, clear goals, meaningful long-term progress).
+- Added `docs/PLAYER_EXPERIENCE_AND_OPERATIONS.md` covering player onboarding and return journeys, multi-horizon goals, quality-of-life, alliance discovery/invitations/settings/roles/permissions/member removal/succession, support tickets, moderation workflows, staff roles, admin control plane, audit trails, and live operations.
+- Alliance governance is server-enforced; invitation links need expiry/quotas; treasury and high-impact actions need auditable approvals; removals need reasoned records and fair appeal paths.
+- Support requires searchable self-service help, ticket IDs/status/history, escalation, privacy-safe evidence, and secure account recovery.
+- Staff permissions must be least-privilege and separated between moderation, support, economy, content, and platform ownership. Moderators cannot edit balances or battle outcomes.
+- Retention design uses meaningful short/medium/long-term goals, social belonging, sustainable events and updates, new-player protection, and fair recovery—not manipulative daily attendance.
+- Research references reviewed: Roblox onboarding and LiveOps guidance, Meta's 2026 live-service checklist, Ofcom's interactive-services moderation model, and Fair Play Alliance/ADL reporting and enforcement framework. Links are in the new document.
+- No analytics collecting personal data, support portal, moderator console, or game code was implemented by this documentation change.
+- Branch: `docs/player-journey-and-live-operations`.
+- Validation pending: re-fetch and cross-check documents, compare with main, and review PR before merging. No deployment is claimed.
