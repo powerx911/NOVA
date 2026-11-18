@@ -162,7 +162,11 @@ async function bootstrap(admin: ReturnType<typeof getAdminClient>, uid: string) 
     contractClaims: camelRow(contractClaims),
     claimedContractsToday: (contractClaims as Record<string, unknown>[]).map((r) => r.contract_id),
     playerAchievements: camelRow(playerAchievements),
-    notifications: camelRow(notifications),
+    notifications: (notifications as Record<string, unknown>[]).map((notification) => ({
+      ...camelRow(notification),
+      // The game client reads `read`; the database stores this as `is_read`.
+      read: notification.is_read === true,
+    })),
     worldEvents: camelRow(worldEvents),
   };
 }
