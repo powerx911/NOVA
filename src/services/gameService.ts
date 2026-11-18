@@ -129,6 +129,15 @@ export async function upgradeSkill(_uid: string, skillKey: SkillKey): Promise<vo
   }
 }
 
+export async function resetSkills(_uid: string): Promise<void> {
+  try {
+    await nexoraApi('reset_skills');
+  } catch (error) {
+    if (error instanceof Error && 'code' in error) throw new Error(String((error as { code?: unknown }).code ?? 'SKILL_RESET_FAILED'));
+    throw error;
+  }
+}
+
 export async function transferCredits(
   _fromUid: string,
   recipientUsername: string,
