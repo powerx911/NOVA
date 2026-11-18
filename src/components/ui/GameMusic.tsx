@@ -23,7 +23,7 @@ function readVolume(): number {
 export function GameMusic() {
   useEffect(() => {
     const audio = new Audio(TRACKS[0]);
-    audio.preload = 'none';
+    audio.preload = 'auto';
     audio.volume = readVolume();
     let trackIndex = 0;
     let started = false;
