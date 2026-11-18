@@ -284,6 +284,15 @@ Deno.serve(async (req: Request) => {
       return json({ ok: true, data }, 200, origin);
     }
 
+    if (body.action === "reset_skills") {
+      const { data, error } = await db.rpc("reset_player_skills", { p_uid: identity.uid });
+      if (error) {
+        const known = ["ACCOUNT_NOT_FOUND","NO_SKILLS_TO_RESET","INSUFFICIENT_FUNDS"].find((code) => error.message.includes(code));
+        return json({ error: known ?? "SKILL_RESET_FAILED" }, 409, origin);
+      }
+      return json({ ok: true, data }, 200, origin);
+    }
+
     if (body.action === "transfer_credits") {
       const recipientUsername = typeof body.recipientUsername === "string" ? body.recipientUsername.trim() : "";
       const amount = typeof body.amount === "number" && Number.isFinite(body.amount) ? Math.floor(body.amount) : 0;
