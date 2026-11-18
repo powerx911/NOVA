@@ -2,6 +2,7 @@ import {
   COMPANY_SECTORS,
   ITEM_MAP,
   MANUFACTURING_RECIPES,
+  FACTORY_RESOURCES,
   MISSIONS,
   SKILL_DEFINITIONS,
   TRADE_CONTRACTS,
@@ -16,6 +17,7 @@ import {
 import { nexoraApi } from '../lib/nexoraApi';
 import type {
   Company,
+  FactoryResourceId,
   CompanySector,
   CompanyAuction,
   InventoryItem,
@@ -32,6 +34,13 @@ import type {
 export type OrgDonationRankEntry = { uid: string; username: string; amount: number };
 export async function getOrgDonationRanking(orgId: string): Promise<OrgDonationRankEntry[]> {
   return (await nexoraApi<{ ranking: OrgDonationRankEntry[] }>('get_org_donation_ranking', { orgId })).ranking;
+}
+
+export interface PlayerPresence { uid: string; isOnline: boolean; onlineSince: number | null; lastSeenAt: number | null }
+export async function getPlayersPresence(userIds: string[]): Promise<PlayerPresence[]> {
+  if (!userIds.length) return [];
+  const result = await nexoraApi<{ players: PlayerPresence[] }>('get_players_presence', { userIds: userIds.slice(0, 60) });
+  return result.players ?? [];
 }
 
 export function getUtcDateKey(): string {
@@ -118,6 +127,15 @@ export async function upgradeSkill(_uid: string, skillKey: SkillKey): Promise<vo
     if (error instanceof Error && 'code' in error) {
       throw new Error(String((error as { code?: unknown }).code ?? 'SKILL_UPGRADE_FAILED'));
     }
+    throw error;
+  }
+}
+
+export async function resetSkills(_uid: string): Promise<void> {
+  try {
+    await nexoraApi('reset_skills');
+  } catch (error) {
+    if (error instanceof Error && 'code' in error) throw new Error(String((error as { code?: unknown }).code ?? 'SKILL_RESET_FAILED'));
     throw error;
   }
 }
@@ -287,6 +305,48 @@ export async function deleteCompany(companyId: string): Promise<void> {
     if (error instanceof Error && 'code' in error) throw new Error(String((error as { code?: unknown }).code ?? 'COMPANY_DELETE_FAILED'));
     throw error;
   }
+}
+
+export async function foundFactory(name: string, resourceId: FactoryResourceId): Promise<void> {
+  const cleanName = name.trim();
+  if (cleanName.length < 2 || cleanName.length > 48) throw new Error('INVALID_NAME');
+  if (!FACTORY_RESOURCES.some((resource) => resource.resourceId === resourceId)) throw new Error('INVALID_RESOURCE');
+  try {
+    await nexoraApi('found_factory', { name: cleanName, resourceId });
+  } catch (error) {
+    if (error instanceof Error && 'code' in error) throw new Error(String((error as { code?: unknown }).code ?? 'FACTORY_FOUNDING_FAILED'));
+    throw error;
+  }
+}
+
+async function callFactoryAction<T>(action: string, factoryId: string, extra: Record<string, unknown> = {}): Promise<T> {
+  try {
+    return await nexoraApi<T>(action, { factoryId, ...extra });
+  } catch (error) {
+    if (error instanceof Error && 'code' in error) throw new Error(String((error as { code?: unknown }).code ?? 'FACTORY_OPERATION_FAILED'));
+    throw error;
+  }
+}
+
+export async function syncFactory(factoryId: string): Promise<void> {
+  await callFactoryAction('sync_factory', factoryId);
+}
+export async function upgradeFactory(factoryId: string): Promise<void> {
+  await callFactoryAction('upgrade_factory', factoryId);
+}
+export async function completeFactoryUpgrade(factoryId: string): Promise<void> {
+  await callFactoryAction('complete_factory_upgrade', factoryId);
+}
+export async function upgradeFactorySkill(factoryId: string): Promise<void> {
+  await callFactoryAction('upgrade_factory_skill', factoryId);
+}
+export async function setFactoryActive(factoryId: string, active: boolean): Promise<void> {
+  await callFactoryAction('set_factory_active', factoryId, { active });
+}
+export async function withdrawFactoryWarehouse(factoryId: string, quantityRaw: number): Promise<void> {
+  const quantity = Number.isFinite(quantityRaw) ? Math.floor(quantityRaw) : 0;
+  if (quantity < 1) throw new Error('INVALID_QUANTITY');
+  await callFactoryAction('withdraw_factory_warehouse', factoryId, { quantity });
 }
 
 export async function claimMissionReward(_uid: string, missionId: string): Promise<void> {

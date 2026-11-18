@@ -1,6 +1,4 @@
 import {
-  ArrowDownLeft,
-  ArrowUpRight,
   FileCheck2,
   Search,
   Send,
@@ -9,9 +7,10 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
+import { ManufacturingPanel } from './ManufacturingPanel';
 import { useToast } from '../../components/ui/ToastProvider';
 import { BRAND_ASSETS, CATALOG_ITEMS, ITEM_MAP, TRADE_CONTRACTS } from '../../data/catalog';
-import { useTranslations, formatTxType } from '../../i18n/translations';
+import { useTranslations } from '../../i18n/translations';
 import {
   calculateContractPayout,
   calculateDynamicItemPrice,
@@ -34,10 +33,8 @@ import type {
   ItemTier,
   Language,
   MarketListing,
-  MarketOrder,
   MarketSubTab,
   PlayerProfile,
-  TransactionRecord,
   Wallet,
   WorldEvent,
 } from '../../types/game';
@@ -47,8 +44,6 @@ interface MarketHubViewProps {
   wallet: Wallet | null;
   inventory: InventoryItem[];
   marketListings: MarketListing[];
-  marketOrders: MarketOrder[];
-  transactions: TransactionRecord[];
   worldEvents: WorldEvent[];
   claimedContractsToday: Set<string>;
   language: Language;
@@ -59,8 +54,6 @@ export function MarketHubView({
   wallet,
   inventory,
   marketListings,
-  marketOrders,
-  transactions,
   worldEvents,
   claimedContractsToday,
   language,
@@ -285,7 +278,7 @@ export function MarketHubView({
     { id: 'exchange', label: t.subExchange },
     { id: 'contracts', label: t.subContracts },
     { id: 'bank', label: t.subBank },
-    { id: 'ledger', label: t.subLedger },
+    { id: 'manufacturing', label: t.subManufacturing },
   ];
 
   return (
@@ -763,97 +756,14 @@ export function MarketHubView({
         </div>
       )}
 
-      {/* 4. TRANSACTION & ORDERS LEDGER */}
-      {subTab === 'ledger' && (
-        <div className="space-y-5">
-          {marketOrders.length > 0 && (
-            <div className="bg-[#141821] border border-white/8 rounded-2xl p-5 space-y-3">
-              <h2 className="text-base font-semibold text-[#F4F5F7]">{t.executedOrders}</h2>
-              <div className="space-y-2">
-                {marketOrders.slice(0, 12).map((ord) => {
-                  const ordItem = ITEM_MAP[ord.itemId];
-                  return (
-                    <div
-                      key={ord.id}
-                      className="p-3.5 rounded-xl bg-[#0B0D12] border border-white/6 flex items-center justify-between gap-3"
-                    >
-                      <div className="min-w-0">
-                        <p className="text-xs font-medium text-[#F4F5F7] truncate">
-                          {ordItem ? (language === 'ar' ? ordItem.nameAr : ordItem.nameEn) : ord.itemId} ×
-                          <span className="font-mono-num">{ord.quantity}</span>
-                        </p>
-                        <p className="text-[11px] text-[#9299A6] mt-0.5 font-mono-num">
-                          {'$'}{ord.unitPrice.toLocaleString()} / {language === 'ar' ? 'وحدة' : 'unit'} · {ord.id}
-                        </p>
-                      </div>
-                      <div className="text-end shrink-0">
-                        <p className="text-sm font-mono-num font-bold text-[#F4F5F7]">
-                          -{'$'}{ord.totalPrice.toLocaleString()}
-                        </p>
-                        <p className="text-[10px] font-mono-num text-[#9299A6]">
-                          Tax: {ord.taxAmount}
-                        </p>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          <div className="bg-[#141821] border border-white/8 rounded-2xl p-5 space-y-3">
-            <h2 className="text-base font-semibold text-[#F4F5F7]">{t.financialLedger}</h2>
-            {transactions.length === 0 ? (
-              <p className="text-sm text-[#9299A6] py-8 text-center">{t.noActivity}</p>
-            ) : (
-              <div className="space-y-2">
-                {transactions.map((tx) => {
-                  const isCredit = tx.toUid === profile.uid;
-                  return (
-                    <div
-                      key={tx.id}
-                      className="p-3.5 rounded-xl bg-[#0B0D12] border border-white/6 flex items-center justify-between gap-3"
-                    >
-                      <div className="flex items-center gap-3 min-w-0">
-                        <div className="w-8 h-8 rounded-lg bg-[#1B2230] flex items-center justify-center shrink-0">
-                          {isCredit ? (
-                            <ArrowDownLeft className="w-4 h-4 text-emerald-400" />
-                          ) : (
-                            <ArrowUpRight className="w-4 h-4 text-[#E04455]" />
-                          )}
-                        </div>
-                        <div className="min-w-0">
-                          <p className="text-xs font-medium text-[#F4F5F7] truncate">
-                            {tx.description}
-                          </p>
-                          <p className="text-[11px] text-[#9299A6] mt-0.5">
-                            <span className="font-mono-num">{tx.id}</span> · {formatTxType(tx.type, language)}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="text-end shrink-0">
-                        <p
-                          className={`text-sm font-mono-num font-bold ${
-                            isCredit ? 'text-emerald-400' : 'text-[#F4F5F7]'
-                          }`}
-                        >
-                          {isCredit
-                            ? `+$${tx.netAmount.toLocaleString()}`
-                            : `-$${tx.amount.toLocaleString()}`}
-                        </p>
-                        {tx.fee > 0 && (
-                          <p className="text-[10px] font-mono-num text-[#9299A6]">
-                            Fee: {tx.fee}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        </div>
+      {subTab === 'manufacturing' && (
+        <ManufacturingPanel
+          profile={profile}
+          wallet={wallet}
+          inventory={inventory}
+          language={language}
+          onNavigateToExchange={() => setSubTab('exchange')}
+        />
       )}
 
       <ConfirmDialog

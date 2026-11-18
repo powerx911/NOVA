@@ -2,6 +2,7 @@ import type {
   AchievementDefinition,
   CatalogItem,
   CompanySector,
+  FactoryResourceId,
   ManufacturingRecipe,
   MissionDefinition,
   OrgPermission,
@@ -321,6 +322,27 @@ export interface CompanySectorSpec {
   baseRevenuePerHour: number;
   baseExpensePerHour: number;
 }
+
+export interface FactoryResourceSpec {
+  resourceId: FactoryResourceId;
+  nameAr: string;
+  nameEn: string;
+  foundingCost: number;
+  productionPerHour: number;
+  operatingCostPerHour: number;
+  rarityFactor: number;
+  descriptionAr: string;
+  descriptionEn: string;
+}
+
+export const FACTORY_RESOURCES: FactoryResourceSpec[] = [
+  { resourceId: 'copper_wire', nameAr: 'أسلاك النحاس', nameEn: 'Copper Wire', foundingCost: 5000, productionPerHour: 5, operatingCostPerHour: 125, rarityFactor: 1, descriptionAr: 'مصنع موارد أساسية بإنتاج سريع وتكلفة تطوير منخفضة.', descriptionEn: 'An entry-level resource factory with faster output and lower upgrade costs.' },
+  { resourceId: 'silicon_ore', nameAr: 'خام السيليكون', nameEn: 'Silicon Ore', foundingCost: 6500, productionPerHour: 4.2, operatingCostPerHour: 130, rarityFactor: 1.2, descriptionAr: 'إنتاج خام مهم لسلاسل التقنية وأشباه الموصلات.', descriptionEn: 'A key raw material for technology and semiconductor supply chains.' },
+  { resourceId: 'energy_cells', nameAr: 'خلايا الطاقة', nameEn: 'Energy Cells', foundingCost: 8000, productionPerHour: 4, operatingCostPerHour: 140, rarityFactor: 1.4, descriptionAr: 'إنتاج متوسط الصعوبة مع مصاريف تشغيل مرتفعة.', descriptionEn: 'Mid-tier production with higher operating expenses.' },
+  { resourceId: 'crude_alloy', nameAr: 'سبائك خام', nameEn: 'Crude Alloy', foundingCost: 9500, productionPerHour: 3.8, operatingCostPerHour: 145, rarityFactor: 1.65, descriptionAr: 'يتطلب استثماراً أكبر وإدارة تشغيلية أدق.', descriptionEn: 'Requires greater investment and more demanding operations.' },
+  { resourceId: 'carbon_fiber', nameAr: 'ألياف الكربون', nameEn: 'Carbon Fiber', foundingCost: 12500, productionPerHour: 3, operatingCostPerHour: 150, rarityFactor: 2.1, descriptionAr: 'مورد متقدم بإنتاج أبطأ وتطوير مكلف.', descriptionEn: 'An advanced material with slower output and expensive upgrades.' },
+  { resourceId: 'rare_minerals', nameAr: 'معادن نادرة', nameEn: 'Rare Minerals', foundingCost: 26000, productionPerHour: 2.5, operatingCostPerHour: 160, rarityFactor: 3.6, descriptionAr: 'أعلى المصانع تكلفة وصعوبة، وإنتاجه محدود لقيمة المورد.', descriptionEn: 'The most expensive and demanding factory, with deliberately limited output.' },
+];
 
 export const COMPANY_SECTORS: CompanySectorSpec[] = [
   {

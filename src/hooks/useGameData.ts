@@ -5,6 +5,7 @@ import { getUtcDateKey } from '../services/gameService';
 import { nexoraApi } from '../lib/nexoraApi';
 import type {
   Company,
+  Factory,
   CompanyLog,
   GameNotification,
   InventoryItem,
@@ -35,6 +36,7 @@ export interface GameDataState {
   marketListings: MarketListing[];
   marketOrders: MarketOrder[];
   companies: Company[];
+  factories: Factory[];
   companyLogs: CompanyLog[];
   organizations: Organization[];
   myOrgMember: OrganizationMember | null;
@@ -70,6 +72,7 @@ export function useGameData(): GameDataState {
   const [marketListings, setMarketListings] = useState<MarketListing[]>([]);
   const [marketOrders, setMarketOrders] = useState<MarketOrder[]>([]);
   const [companies, setCompanies] = useState<Company[]>([]);
+  const [factories, setFactories] = useState<Factory[]>([]);
   const [companyLogs, setCompanyLogs] = useState<CompanyLog[]>([]);
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [myOrgMember, setMyOrgMember] = useState<OrganizationMember | null>(null);
@@ -141,6 +144,7 @@ export function useGameData(): GameDataState {
     setMarketListings([]);
     setMarketOrders([]);
     setCompanies([]);
+    setFactories([]);
     setCompanyLogs([]);
     setOrganizations([]);
     setMyOrgMember(null);
@@ -211,6 +215,7 @@ export function useGameData(): GameDataState {
         setMarketListings((data.marketListings ?? []) as MarketListing[]);
         setMarketOrders((data.marketOrders ?? []) as MarketOrder[]);
         setCompanies((data.companies ?? []) as Company[]);
+        setFactories((data.factories ?? []) as Factory[]);
         setCompanyLogs((data.companyLogs ?? []) as CompanyLog[]);
         setOrganizations((data.organizations ?? []) as Organization[]);
         setMyOrgMember(data.myOrgMember as OrganizationMember | null);
@@ -306,6 +311,7 @@ export function useGameData(): GameDataState {
     marketListings,
     marketOrders,
     companies,
+    factories,
     companyLogs,
     organizations,
     myOrgMember,

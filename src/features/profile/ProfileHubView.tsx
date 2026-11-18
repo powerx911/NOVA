@@ -21,6 +21,7 @@ import {
   updatePlayerAvatar,
   updatePlayerSettings,
   upgradeSkill,
+  resetSkills,
 } from '../../services/gameService';
 import type {
   Company,
@@ -144,6 +145,26 @@ export function ProfileHubView({
           : 'Could not upgrade skill.',
         'error'
       );
+    } finally {
+      setBusyKey(null);
+    }
+  }
+
+  async function handleResetSkills() {
+    if (!window.confirm(language === 'ar'
+      ? 'إعادة تعيين جميع المهارات مقابل 2,500؟ ستعود نقاط المهارات التي أنفقتها إلى رصيدك.'
+      : 'Reset all skills for 2,500? All spent skill points will be refunded.')) return;
+    setBusyKey('reset_skills');
+    try {
+      await resetSkills(profile.uid);
+      showToast(language === 'ar' ? 'تمت إعادة تعيين المهارات وإرجاع النقاط.' : 'Skills reset and points refunded.', 'success');
+    } catch (err) {
+      const code = err instanceof Error ? err.message : '';
+      showToast(code === 'INSUFFICIENT_FUNDS'
+        ? (language === 'ar' ? 'تحتاج إلى 2,500 لإعادة تعيين المهارات.' : 'You need 2,500 credits to reset skills.')
+        : code === 'NO_SKILLS_TO_RESET'
+        ? (language === 'ar' ? 'لا توجد مهارات مطوّرة لإعادة تعيينها.' : 'There are no upgraded skills to reset.')
+        : (language === 'ar' ? 'تعذر إعادة تعيين المهارات.' : 'Could not reset skills.'), 'error');
     } finally {
       setBusyKey(null);
     }
@@ -486,6 +507,13 @@ export function ProfileHubView({
             <span className="text-lg font-bold font-mono-num text-[#E04455]">
               {profile.skillPoints}
             </span>
+          </div>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-2xl border border-rose-500/20 bg-[#141821] p-4">
+            <div>
+              <p className="text-sm font-semibold text-[#F4F5F7]">{language === 'ar' ? 'إعادة توزيع المهارات' : 'Respec skills'}</p>
+              <p className="mt-1 text-xs text-[#9299A6]">{language === 'ar' ? 'التكلفة 2,500، وتُعاد جميع النقاط التي أنفقتها إلى رصيد نقاط المهارة.' : 'Costs 2,500 credits and refunds all skill points you have spent.'}</p>
+            </div>
+            <button type="button" disabled={busyKey === 'reset_skills'} onClick={() => void handleResetSkills()} className="min-h-[42px] shrink-0 rounded-xl bg-[#B91C32] px-4 text-xs font-semibold text-white hover:bg-[#E04455] disabled:opacity-50">{busyKey === 'reset_skills' ? '...' : (language === 'ar' ? 'إعادة التعيين · 2,500' : 'Reset · 2,500')}</button>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

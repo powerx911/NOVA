@@ -19,7 +19,7 @@ export function VersionUpdateNotice() {
 
     const checkVersion = async () => {
       try {
-        const response = await fetch('/version.json', { cache: 'no-store' });
+        const response = await fetch(`${import.meta.env.BASE_URL}version.json`, { cache: 'no-store' });
         if (!response.ok) return;
         const payload = (await response.json()) as { version?: unknown };
         if (typeof payload.version !== 'string' || !payload.version.trim() || !active) return;
@@ -43,9 +43,11 @@ export function VersionUpdateNotice() {
 
     void checkVersion();
     const timer = window.setInterval(() => void checkVersion(), CHECK_INTERVAL_MS);
+    window.addEventListener('online', checkVersion);
     return () => {
       active = false;
       window.clearInterval(timer);
+      window.removeEventListener('online', checkVersion);
     };
   }, []);
 
@@ -57,7 +59,7 @@ export function VersionUpdateNotice() {
     } catch {
       // Reload regardless; version detection can recover on the next session.
     }
-    window.location.reload();
+    window.location.replace(`${import.meta.env.BASE_URL}?v=${encodeURIComponent(availableVersion as string)}`);
   }
 
   return (

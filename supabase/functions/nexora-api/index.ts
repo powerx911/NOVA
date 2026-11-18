@@ -99,7 +99,7 @@ async function bootstrap(admin: ReturnType<typeof getAdminClient>, uid: string) 
   const db = admin.schema("nexora");
   const [
     profile, userPrivate, wallet, inventory, sent, received, marketListings,
-    marketOrders, companies, organizations,
+    marketOrders, companies, factories, organizations,
     organizationMembers, organizationRequests, playerMissions, dailyClaims,
     contractClaims, playerAchievements, notifications, worldEvents,
   ] = await Promise.all([
@@ -112,6 +112,7 @@ async function bootstrap(admin: ReturnType<typeof getAdminClient>, uid: string) 
     queryData(db.from("market_listings").select("*").eq("status", "active").order("created_at", { ascending: false }).limit(100)),
     queryData(db.from("market_orders").select("*").eq("buyer_uid", uid).order("created_at", { ascending: false }).limit(25)),
     queryData(db.from("companies").select("*").eq("owner_uid", uid).eq("is_deleted", false)),
+    queryData(db.from("factories").select("*").eq("owner_uid", uid).order("created_at", { ascending: true })),
     queryData(db.from("organizations").select("*").gte("reputation", 0).order("reputation", { ascending: false }).limit(40)),
     queryData(db.from("organization_members").select("*").eq("user_id", uid).limit(1)),
     queryData(db.from("organization_requests").select("*").eq("user_id", uid)),
@@ -155,6 +156,7 @@ async function bootstrap(admin: ReturnType<typeof getAdminClient>, uid: string) 
     marketListings: camelRow(marketListings),
     marketOrders: camelRow(marketOrders),
     companies: camelRow(companies),
+    factories: camelRow(factories),
     companyLogs: camelRow(companyLogs),
     organizations: camelRow(organizations),
     myOrgMember: camelRow((organizationMembers as Record<string, unknown>[])[0] ?? null),
@@ -284,6 +286,15 @@ Deno.serve(async (req: Request) => {
       return json({ ok: true, data }, 200, origin);
     }
 
+    if (body.action === "reset_skills") {
+      const { data, error } = await db.rpc("reset_player_skills", { p_uid: identity.uid });
+      if (error) {
+        const known = ["ACCOUNT_NOT_FOUND","NO_SKILLS_TO_RESET","INSUFFICIENT_FUNDS"].find((code) => error.message.includes(code));
+        return json({ error: known ?? "SKILL_RESET_FAILED" }, 409, origin);
+      }
+      return json({ ok: true, data }, 200, origin);
+    }
+
     if (body.action === "transfer_credits") {
       const recipientUsername = typeof body.recipientUsername === "string" ? body.recipientUsername.trim() : "";
       const amount = typeof body.amount === "number" && Number.isFinite(body.amount) ? Math.floor(body.amount) : 0;
@@ -395,6 +406,50 @@ Deno.serve(async (req: Request) => {
     if (body.action === "mark_all_notifications_read") {
       const { data, error } = await db.rpc("mark_all_notifications_read", { p_uid: identity.uid });
       if (error) return json({ error: "NOTIFICATION_UPDATE_FAILED" }, 409, origin);
+      return json({ ok: true, data }, 200, origin);
+    }
+
+
+    if (body.action === "found_factory") {
+      const name = typeof body.name === "string" ? body.name.trim() : "";
+      const resourceId = typeof body.resourceId === "string" ? body.resourceId : "";
+      const { data, error } = await db.rpc("found_factory", { p_uid: identity.uid, p_name: name, p_resource_id: resourceId });
+      if (error) {
+        const known = ["INVALID_NAME","INVALID_RESOURCE","ACCOUNT_NOT_FOUND","FACTORY_CAPACITY_REACHED","INSUFFICIENT_FUNDS"].find((code) => error.message.includes(code));
+        return json({ error: known ?? "FACTORY_FOUNDING_FAILED" }, 409, origin);
+      }
+      return json({ ok: true, data }, 201, origin);
+    }
+
+    if (body.action === "sync_factory" || body.action === "upgrade_factory" ||
+        body.action === "complete_factory_upgrade" || body.action === "upgrade_factory_skill" ||
+        body.action === "withdraw_factory_warehouse" || body.action === "set_factory_active") {
+      const factoryId = typeof body.factoryId === "string" ? body.factoryId : "";
+      if (!factoryId || factoryId.length > 128) return json({ error: "INVALID_ARGUMENT" }, 400, origin);
+      let rpcName = "sync_factory_production";
+      let args: Record<string, unknown> = { p_uid: identity.uid, p_factory_id: factoryId };
+      if (body.action === "upgrade_factory") rpcName = "upgrade_factory";
+      else if (body.action === "complete_factory_upgrade") rpcName = "complete_factory_upgrade";
+      else if (body.action === "upgrade_factory_skill") rpcName = "upgrade_factory_skill";
+      else if (body.action === "set_factory_active") {
+        rpcName = "set_factory_active";
+        args = { ...args, p_active: body.active === true };
+      }
+      else if (body.action === "withdraw_factory_warehouse") {
+        rpcName = "withdraw_factory_warehouse";
+        const quantity = typeof body.quantity === "number" && Number.isFinite(body.quantity) ? Math.floor(body.quantity) : 0;
+        args = { ...args, p_quantity: quantity };
+      }
+      const { data, error } = await db.rpc(rpcName, args);
+      if (error) {
+        const known = [
+          "FACTORY_NOT_FOUND","UNAUTHORIZED","ACCOUNT_NOT_FOUND","INSUFFICIENT_FUNDS",
+          "FACTORY_CAPACITY_REACHED","UPGRADE_IN_PROGRESS","MAX_LEVEL","MISSING_FACTORY_MATERIALS",
+          "NO_UPGRADE_IN_PROGRESS","UPGRADE_NOT_FINISHED","SKILL_MAXED","INVALID_QUANTITY",
+          "WAREHOUSE_INSUFFICIENT_STOCK",
+        ].find((code) => error.message.includes(code));
+        return json({ error: known ?? "FACTORY_OPERATION_FAILED" }, 409, origin);
+      }
       return json({ ok: true, data }, 200, origin);
     }
 

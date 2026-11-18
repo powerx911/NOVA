@@ -2,8 +2,8 @@ export type Language = 'ar' | 'en';
 
 export type MainTab = 'home' | 'business' | 'market' | 'organization' | 'social' | 'profile';
 
-export type BusinessSubTab = 'companies' | 'auction' | 'manufacturing' | 'inventory' | 'financials';
-export type MarketSubTab = 'exchange' | 'contracts' | 'bank' | 'ledger';
+export type BusinessSubTab = 'companies' | 'auction' | 'factories' | 'inventory' | 'financials';
+export type MarketSubTab = 'exchange' | 'contracts' | 'bank' | 'manufacturing';
 export type ProfileSubTab = 'overview' | 'skills' | 'missions' | 'rankings' | 'settings' | 'diagnostics';
 
 export type SkillKey =
@@ -74,6 +74,11 @@ export type TransactionType =
   | 'company_auction_refund'
   | 'company_auction_sale'
   | 'manufacturing'
+  | 'skill_reset'
+  | 'factory_create'
+  | 'factory_operating'
+  | 'factory_upgrade'
+  | 'factory_skill'
   | 'org_create'
   | 'org_deposit'
   | 'org_withdraw'
@@ -207,6 +212,28 @@ export interface CompanyLog {
   amount: number;
   details: string;
   createdAt: unknown;
+}
+
+export type FactoryResourceId = 'copper_wire' | 'silicon_ore' | 'energy_cells' | 'crude_alloy' | 'carbon_fiber' | 'rare_minerals';
+export interface Factory {
+  id: string;
+  ownerUid: string;
+  ownerName: string;
+  name: string;
+  resourceId: FactoryResourceId;
+  level: number;
+  skillLevel: number;
+  isActive: boolean;
+  warehouseQty: number;
+  productionRemainder: number;
+  operatingCostRemainder: number;
+  lastProducedAt: number;
+  upgradeStartedAt?: number | null;
+  upgradeEndsAt?: number | null;
+  upgradeTargetLevel?: number | null;
+  upgradeCost?: number | null;
+  createdAt: unknown;
+  updatedAt: unknown;
 }
 
 export type OrgRole = 'leader' | 'deputy' | 'officer' | 'member';

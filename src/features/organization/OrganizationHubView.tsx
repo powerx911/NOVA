@@ -28,6 +28,7 @@ import {
   researchOrganization,
   withdrawFromOrgTreasury,
   getOrgDonationRanking,
+  getPlayersPresence,
 } from '../../services/gameService';
 import type {
   Language,
@@ -79,6 +80,7 @@ export function OrganizationHubView({
   const [clockNow, setClockNow] = useState(Date.now());
   const [donationRanking, setDonationRanking] = useState<Array<{ uid: string; username: string; amount: number }>>([]);
   const [activeOrgTab, setActiveOrgTab] = useState<'info' | 'members' | 'research' | 'treasury'>('info');
+  const [memberPresence, setMemberPresence] = useState<Record<string, boolean>>({});
 
   const currentOrg = myOrgMember
     ? organizations.find((o) => o.id === myOrgMember.orgId) || null
@@ -113,11 +115,27 @@ export function OrganizationHubView({
   useEffect(() => {
     if (!currentOrg?.id) { setDonationRanking([]); return; }
     let active = true;
-    void getOrgDonationRanking(currentOrg.id).then((ranking) => { if (active) setDonationRanking(ranking); }).catch(() => {
-      if (active) setDonationRanking([]);
-    });
-    return () => { active = false; };
+    const refresh = () => { void getOrgDonationRanking(currentOrg.id).then((ranking) => { if (active) setDonationRanking(ranking); }).catch(() => undefined); };
+    refresh();
+    const timer = window.setInterval(refresh, 8_000);
+    window.addEventListener('nova:refresh-game', refresh);
+    window.addEventListener('focus', refresh);
+    return () => { active = false; window.clearInterval(timer); window.removeEventListener('nova:refresh-game', refresh); window.removeEventListener('focus', refresh); };
   }, [currentOrg?.id]);
+
+  useEffect(() => {
+    const ids = orgMembers.map((member) => member.uid);
+    if (!ids.length) { setMemberPresence({}); return; }
+    let active = true;
+    const refresh = () => { void getPlayersPresence(ids).then((rows) => {
+      if (!active) return;
+      setMemberPresence(Object.fromEntries(rows.map((row) => [row.uid, row.isOnline])));
+    }).catch(() => undefined); };
+    refresh();
+    const timer = window.setInterval(refresh, 15_000);
+    window.addEventListener('focus', refresh);
+    return () => { active = false; window.clearInterval(timer); window.removeEventListener('focus', refresh); };
+  }, [orgMembers]);
 
   async function handleCreateOrg(e: React.FormEvent) {
     e.preventDefault();
@@ -785,7 +803,7 @@ export function OrganizationHubView({
                         <Users className="w-4 h-4 text-[#9299A6]" />
                       </div>
                       <div className="space-y-2">
-                        {orgMembers.map((m) => {
+                        {[...orgMembers].sort((a, b) => Number(Boolean(memberPresence[b.uid])) - Number(Boolean(memberPresence[a.uid])) || ({ leader: 0, deputy: 1, officer: 2, member: 3 }[a.role] - { leader: 0, deputy: 1, officer: 2, member: 3 }[b.role])).map((m) => {
                           const canChangeRole =
                             canManageRoles &&
                             m.uid !== profile.uid &&
@@ -805,7 +823,7 @@ export function OrganizationHubView({
                                 <p className="text-sm font-medium text-[#F4F5F7] truncate">{m.username}</p>
                                 <p className="text-xs text-[#9299A6] mt-0.5">
                                   {formatOrgRole(m.role, language)}
-          
+                                  <span className={`mt-1 inline-flex items-center gap-1.5 ${memberPresence[m.uid] ? 'text-emerald-400' : 'text-[#77808F]'}`}><span className={`h-1.5 w-1.5 rounded-full ${memberPresence[m.uid] ? 'bg-emerald-400' : 'bg-[#77808F]'}`} />{memberPresence[m.uid] ? (language === 'ar' ? 'متصل الآن' : 'Online now') : (language === 'ar' ? 'غير متصل' : 'Offline')}</span>
                                 </p>
                               </div>
                               <div className="flex items-center gap-2 shrink-0">

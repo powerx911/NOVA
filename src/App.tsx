@@ -109,6 +109,7 @@ function NovaAppContent() {
           profile={game.profile}
           wallet={game.wallet}
           companies={game.companies}
+          factories={game.factories}
           companyLogs={game.companyLogs}
           inventory={game.inventory}
           worldEvents={game.worldEvents}
@@ -124,8 +125,6 @@ function NovaAppContent() {
           wallet={game.wallet}
           inventory={game.inventory}
           marketListings={game.marketListings}
-          marketOrders={game.marketOrders}
-          transactions={game.transactions}
           worldEvents={game.worldEvents}
           claimedContractsToday={game.claimedContractsToday}
           language={game.language}
