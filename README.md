@@ -33,7 +33,7 @@ Default UI language is **Arabic (`RTL`)** with instant switching to **English (`
 - **Security**: RLS enabled on all 23 tables; no `anon` or `authenticated` table access; `service_role` reserved for trusted server operations. No player data has been imported.
 - **Fail-closed state**: no browser policies or grants have been added. The `rls_enabled_no_policy` INFO notices are expected until the trusted game API and authorization model are implemented.
 - **Legacy cleanup**: all 17 old `public.nova_*` game tables and the old `nova_*` functions were removed after verifying zero rows in every legacy game table. Supabase Auth and platform schemas were not modified.
-- **Runtime status**: Firebase Auth/Firestore are still the active game runtime. Supabase is provisioned but not yet the live gameplay source of truth. Do not publish this source snapshot as production until the backend cutover and security tests are complete.
+- **Runtime status**: Firebase Auth remains for identity only. Core gameplay state and migrated operations use the NOVA Supabase `nexora` schema; some remaining organization/mission/achievement flows are not yet cut over. Do not publish this source snapshot as production until the backend cutover and security tests are complete.
 
 ## Documentation
 - `PROJECT_STATUS.md` — Living project status and verification record.
