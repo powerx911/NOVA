@@ -66,6 +66,7 @@ create table if not exists nexora.factories (
   resource_id text not null check (resource_id in ('silicon_ore','copper_wire','energy_cells','crude_alloy','carbon_fiber','rare_minerals')),
   level integer not null default 1 check (level between 1 and 50),
   skill_level integer not null default 0 check (skill_level between 0 and 10),
+  is_active boolean not null default true,
   warehouse_qty bigint not null default 0 check (warehouse_qty >= 0),
   production_remainder numeric(12,6) not null default 0 check (production_remainder >= 0 and production_remainder < 1),
   operating_cost_remainder numeric(12,6) not null default 0 check (operating_cost_remainder >= 0 and operating_cost_remainder < 1),
@@ -147,6 +148,10 @@ begin
   select * into v_factory from nexora.factories where id=p_factory_id for update;
   if not found then raise exception 'FACTORY_NOT_FOUND'; end if;
   if v_factory.owner_uid<>p_uid then raise exception 'UNAUTHORIZED'; end if;
+  if not v_factory.is_active then
+    update nexora.factories set last_produced_at=now(),updated_at=now() where id=p_factory_id;
+    return jsonb_build_object('produced',0,'operating_cost',0,'warehouse_qty',v_factory.warehouse_qty,'capacity',150+v_factory.level*100,'is_active',false);
+  end if;
   select * into v_wallet from nexora.wallets where user_id=p_uid for update;
   if not found then raise exception 'ACCOUNT_NOT_FOUND'; end if;
   select * into v_cfg from nexora.factory_resource_config(v_factory.resource_id);
@@ -269,6 +274,17 @@ begin
   return jsonb_build_object('ok',true,'skill_level',v_factory.skill_level+1,'cost',v_cost,'materials',v_materials);
 end $$;
 
+create or replace function nexora.set_factory_active(p_uid text,p_factory_id text,p_active boolean)
+returns jsonb language plpgsql security definer set search_path = '' as $
+declare v_factory nexora.factories%rowtype;
+begin
+  select * into v_factory from nexora.factories where id=p_factory_id for update;
+  if not found then raise exception 'FACTORY_NOT_FOUND'; end if;
+  if v_factory.owner_uid<>p_uid then raise exception 'UNAUTHORIZED'; end if;
+  update nexora.factories set is_active=coalesce(p_active,false),last_produced_at=now(),updated_at=now() where id=p_factory_id;
+  return jsonb_build_object('ok',true,'is_active',coalesce(p_active,false));
+end $;
+
 create or replace function nexora.withdraw_factory_warehouse(p_uid text,p_factory_id text,p_quantity integer)
 returns jsonb language plpgsql security definer set search_path = '' as $$
 declare v_factory nexora.factories%rowtype;
@@ -291,6 +307,7 @@ revoke all on function nexora.upgrade_factory(text,text) from public,anon,authen
 revoke all on function nexora.complete_factory_upgrade(text,text) from public,anon,authenticated;
 revoke all on function nexora.upgrade_factory_skill(text,text) from public,anon,authenticated;
 revoke all on function nexora.withdraw_factory_warehouse(text,text,integer) from public,anon,authenticated;
+revoke all on function nexora.set_factory_active(text,text,boolean) from public,anon,authenticated;
 grant execute on function nexora.factory_resource_config(text) to service_role;
 grant execute on function nexora.found_factory(text,text,text) to service_role;
 grant execute on function nexora.sync_factory_production(text,text) to service_role;
@@ -298,3 +315,4 @@ grant execute on function nexora.upgrade_factory(text,text) to service_role;
 grant execute on function nexora.complete_factory_upgrade(text,text) to service_role;
 grant execute on function nexora.upgrade_factory_skill(text,text) to service_role;
 grant execute on function nexora.withdraw_factory_warehouse(text,text,integer) to service_role;
+grant execute on function nexora.set_factory_active(text,text,boolean) to service_role;
