@@ -145,7 +145,7 @@ function NovaAppContent() {
       )}
 
       {activeTab === 'social' && (
-        <SocialHubView profile={game.profile} myOrgMember={game.myOrgMember} language={game.language} />
+        <SocialHubView profile={game.profile} myOrgMember={game.myOrgMember} organizations={game.organizations} language={game.language} />
       )}
 
       {activeTab === 'profile' && (
