@@ -32,7 +32,9 @@ import {
   deleteCompany,
   fetchCompanyAuctions,
   listCompanyForAuction,
+  listFactoryForAuction,
   placeCompanyAuctionBid,
+  placeFactoryAuctionBid,
   timestampToMs,
   completeCompanyUpgrade,
   completeCompanyVaultUpgrade,
@@ -126,9 +128,12 @@ export function BusinessHubView({
   }, []);
   const visibleCompanies = companies.filter((company) => !deletedCompanyIds.includes(company.id));
   const activeAuctions = auctions.filter((auction) => auction.status === 'active');
-  const activeBidReservations = activeAuctions.filter((auction) => auction.highestBidderUid === profile.uid).length;
-  const occupiedCompanySlots = visibleCompanies.length + activeBidReservations;
+  const companyBidReservations = activeAuctions.filter((auction) => auction.assetType !== 'factory' && auction.highestBidderUid === profile.uid).length;
+  const factoryBidReservations = activeAuctions.filter((auction) => auction.assetType === 'factory' && auction.highestBidderUid === profile.uid).length;
+  const activeBidReservations = companyBidReservations + factoryBidReservations;
+  const occupiedCompanySlots = visibleCompanies.length + companyBidReservations;
   const hasCompanySlot = occupiedCompanySlots < 3;
+  const hasFactorySlot = factories.length + factoryBidReservations < 3;
   const canFoundCompany = hasCompanySlot && activeBidReservations === 0;
   const refreshAuctions = async () => setAuctions(await fetchCompanyAuctions());
   const formatAuctionRemaining = (endsAt: number) => {
@@ -155,17 +160,37 @@ export function BusinessHubView({
       showToast(messages[code] || (language === 'ar' ? 'تعذر إدراج الشركة في المزاد.' : 'Could not list the company.'), 'error');
     } finally { setBusyKey(null); }
   }
+  async function handleListFactory(factoryId: string) {
+    setBusyKey('auction_list_' + factoryId);
+    try {
+      await listFactoryForAuction(factoryId, Number(startingPrices[factoryId] || '10000'));
+      await refreshAuctions();
+      showToast(language === 'ar' ? 'تم إدراج المصنع في مزاد الأعمال لمدة 24 ساعة.' : 'Factory listed in the 24-hour business auction.', 'success');
+    } catch (error) {
+      const code = error instanceof Error ? error.message : '';
+      const messages: Record<string, string> = {
+        FACTORY_LEVEL_TOO_LOW: language === 'ar' ? 'يجب أن يكون مستوى المصنع 50 أو أعلى.' : 'Factory level must be 50 or higher.',
+        FACTORY_ALREADY_LISTED: language === 'ar' ? 'المصنع مدرج بالفعل في المزاد.' : 'This factory is already listed.',
+        FACTORY_UPGRADE_IN_PROGRESS: language === 'ar' ? 'انتظر انتهاء تطوير المصنع قبل إدراجه.' : 'Wait for the factory upgrade to finish before listing.',
+        INVALID_STARTING_PRICE: language === 'ar' ? 'أدخل سعر بداية صحيحاً.' : 'Enter a valid starting price.',
+      };
+      showToast(messages[code] || (language === 'ar' ? 'تعذر إدراج المصنع.' : 'Could not list the factory.'), 'error');
+    } finally { setBusyKey(null); }
+  }
   async function handlePlaceBid(auction: CompanyAuction) {
     const raw = bidDrafts[auction.id] || String(auction.highestBidderUid ? auction.currentPrice + 1 : auction.startingPrice);
     setBusyKey('auction_bid_' + auction.id);
     try {
-      await placeCompanyAuctionBid(auction.id, Number(raw));
+      if (auction.assetType === 'factory') await placeFactoryAuctionBid(auction.id, Number(raw));
+      else await placeCompanyAuctionBid(auction.id, Number(raw));
       await refreshAuctions();
       setBidDrafts((previous) => ({ ...previous, [auction.id]: '' }));
       showToast(language === 'ar' ? 'تم حجز مبلغ عرضك في الضمان بنجاح.' : 'Your bid was placed and secured in escrow.', 'success');
     } catch (error) {
       const code = error instanceof Error ? error.message : '';
       const messages: Record<string, string> = {
+        FACTORY_CAPACITY_REACHED: language === 'ar' ? 'وصلت إلى الحد الأقصى لامتلاك 3 مصانع.' : 'You have reached the three-factory limit.',
+        CANNOT_BID_OWN_FACTORY: language === 'ar' ? 'لا يمكنك المزايدة على مصنعك.' : 'You cannot bid on your own factory.',
         BID_TOO_LOW: language === 'ar' ? 'العرض أقل من الحد المطلوب. ارفع قيمة المزايدة.' : 'Bid is below the minimum. Increase your offer.',
         INSUFFICIENT_FUNDS: language === 'ar' ? 'رصيدك المتاح لا يكفي لهذا العرض.' : 'Your available balance is too low for this bid.',
         COMPANY_CAPACITY_REACHED: language === 'ar' ? 'وصلت إلى الحد الأقصى (3 شركات) بين شركاتك وعروضك الأعلى حالياً.' : 'You have reached the 3-company limit across owned companies and leading bids.',
@@ -650,8 +675,8 @@ export function BusinessHubView({
       {subTab === 'auction' && (
         <div className="space-y-4">
           <section className="rounded-2xl border border-amber-400/20 bg-[#141821] p-4 space-y-2">
-            <div className="flex items-center gap-2 text-sm font-bold text-amber-200"><Gavel className="w-4 h-4" />{language === 'ar' ? 'مزاد الشركات' : 'Company Auction'}</div>
-            <p className="text-xs text-[#AAB1BD]">{language === 'ar' ? 'الشركات من المستوى 50 فأعلى فقط. مدة المزاد 24 ساعة، ويُحجز مبلغ العرض في الضمان حتى الفوز أو تجاوزه.' : 'Level 50+ companies only. Auctions last 24 hours; bids are held in escrow until settlement or being outbid.'}</p>
+            <div className="flex items-center gap-2 text-sm font-bold text-amber-200"><Gavel className="w-4 h-4" />{language === 'ar' ? 'مزاد الأعمال' : 'Business Auction'}</div>
+            <p className="text-xs text-[#AAB1BD]">{language === 'ar' ? 'الشركات والمصانع من المستوى 50 فأعلى. مدة المزاد 24 ساعة، ويُحجز مبلغ العرض في الضمان حتى الفوز أو تجاوزه.' : 'Level 50+ companies and factories. Auctions last 24 hours; bids are held in escrow until settlement or being outbid.'}</p>
             <p className="text-xs text-[#9299A6]">{language === 'ar' ? 'المساحات المستخدمة: ' + occupiedCompanySlots + '/3 (الشركات المملوكة والعروض الأعلى)' : 'Company slots used: ' + occupiedCompanySlots + '/3 (owned companies and leading bids)'}</p>
           </section>
           <section className="rounded-2xl border border-white/8 bg-[#141821] p-4 space-y-3">
@@ -664,16 +689,26 @@ export function BusinessHubView({
               </div>
             ))}
           </section>
+          <section className="rounded-2xl border border-white/8 bg-[#141821] p-4 space-y-3">
+            <h3 className="text-sm font-bold text-[#F4F5F7]">{language === 'ar' ? 'إدراج مصنع في المزاد' : 'List a factory'}</h3>
+            {factories.filter((factory) => factory.level >= 50 && !factory.auctionId).length === 0 ? <p className="text-xs text-[#9299A6]">{language === 'ar' ? 'لا يوجد مصنع مؤهل حالياً. يحتاج المصنع إلى المستوى 50 على الأقل.' : 'No eligible factory. Factories must be level 50 or higher.'}</p> : factories.filter((factory) => factory.level >= 50 && !factory.auctionId).map((factory) => (
+              <div key={factory.id} className="rounded-xl bg-[#0B0D12] border border-white/8 p-3 space-y-2">
+                <div className="flex items-center justify-between gap-2"><span className="text-sm font-semibold text-[#F4F5F7]">{factory.name}</span><span className="text-xs text-amber-200">Lv.{factory.level}</span></div>
+                <div className="flex gap-2"><input type="number" min="1" step="1" value={startingPrices[factory.id] ?? '10000'} onChange={(e) => setStartingPrices((previous) => ({ ...previous, [factory.id]: e.target.value }))} placeholder={language === 'ar' ? 'سعر البداية' : 'Starting price'} className="min-w-0 flex-1 min-h-[42px] rounded-xl bg-[#141821] border border-white/10 px-3 text-sm text-[#F4F5F7]" />
+                  <button type="button" disabled={busyKey === 'auction_list_' + factory.id} onClick={() => void handleListFactory(factory.id)} className="min-h-[42px] px-4 rounded-xl bg-[#B91C32] text-white text-xs font-semibold disabled:opacity-50">{language === 'ar' ? 'إدراج' : 'List'}</button></div>
+              </div>
+            ))}
+          </section>
           <section className="space-y-3">
             <h3 className="text-sm font-bold text-[#F4F5F7]">{language === 'ar' ? 'المزادات المتاحة' : 'Available auctions'}</h3>
             {activeAuctions.length === 0 ? <div className="rounded-2xl border border-white/8 bg-[#141821] p-8 text-center text-sm text-[#9299A6]">{language === 'ar' ? 'لا توجد مزادات نشطة حالياً.' : 'There are no active auctions right now.'}</div> : activeAuctions.map((auction) => {
               const isLeading = auction.highestBidderUid === profile.uid;
               const isSeller = auction.sellerUid === profile.uid;
               const minBid = auction.highestBidderUid ? auction.currentPrice + 1 : auction.startingPrice;
-              const canBid = !isSeller && (isLeading || hasCompanySlot);
+              const canBid = !isSeller && (isLeading || (auction.assetType === 'factory' ? hasFactorySlot : hasCompanySlot));
               return (
                 <article key={auction.id} className="rounded-2xl border border-white/8 bg-[#141821] p-4 space-y-3">
-                  <div className="flex items-start justify-between gap-3"><div><h4 className="text-sm font-bold text-[#F4F5F7]">{auction.companyName}</h4><p className="mt-1 text-xs text-[#9299A6]">{language === 'ar' ? 'البائع' : 'Seller'}: {auction.sellerName} · Lv.{auction.companyLevel}</p></div>{isLeading && <span className="rounded-lg bg-emerald-500/10 px-2 py-1 text-[10px] text-emerald-300">{language === 'ar' ? 'أنت الأعلى' : 'You lead'}</span>}</div>
+                  <div className="flex items-start justify-between gap-3"><div><h4 className="text-sm font-bold text-[#F4F5F7]">{auction.companyName}</h4><p className="mt-1 text-xs text-[#9299A6]">{auction.assetType === 'factory' ? (language === 'ar' ? 'مصنع' : 'Factory') : (language === 'ar' ? 'شركة' : 'Company')} · {language === 'ar' ? 'البائع' : 'Seller'}: {auction.sellerName} · Lv.{auction.companyLevel}</p></div>{isLeading && <span className="rounded-lg bg-emerald-500/10 px-2 py-1 text-[10px] text-emerald-300">{language === 'ar' ? 'أنت الأعلى' : 'You lead'}</span>}</div>
                   <div className="grid grid-cols-2 gap-2 rounded-xl bg-[#0B0D12] p-3">
                     <div><p className="text-[10px] text-[#9299A6]">{language === 'ar' ? 'سعر البداية' : 'Starting price'}</p><p className="text-sm font-mono-num font-semibold text-[#F4F5F7]">{'$'}{auction.startingPrice.toLocaleString()}</p></div>
                     <div><p className="text-[10px] text-[#9299A6]">{language === 'ar' ? 'أعلى عرض' : 'Highest bid'}</p><p className="text-sm font-mono-num font-semibold text-amber-200">{'$'}{auction.currentPrice.toLocaleString()}</p></div>
