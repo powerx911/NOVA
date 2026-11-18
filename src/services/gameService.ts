@@ -144,8 +144,8 @@ export async function isUsernameAvailable(username: string): Promise<boolean> {
 }
 
 export async function createPlayerCharacter(
-  uid: string,
-  email: string,
+  _uid: string,
+  _email: string,
   username: string,
   avatarId: string,
   language: Language
