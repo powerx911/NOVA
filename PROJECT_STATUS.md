@@ -182,6 +182,18 @@ Statuses below distinguish completed source changes from verified live behavior.
 
 ## 8. Change log
 
+### 2026-11-18 — Autonomous product-development mandate
+
+- The user explicitly delegated day-to-day product, design, engineering, quality, and prioritization decisions for NOVA. The assistant should proactively identify and implement necessary features, improvements, fixes, and polish without requiring the user to specify each task.
+- Established the initial product direction as an original Android-first adventure RPG, using selected RPG systems from VORZANE as research and considering NEXORA-inspired economy/social systems only when they strengthen the core game loop.
+- Added `docs/PRODUCT_VISION.md` as the product decision and quality charter.
+- This mandate does not authorize spending money, accepting legal terms, making identity/account ownership declarations, exposing secrets, or destructive production data changes without explicit user approval.
+- All implementation continues to follow branch → review/tests → PR → merge → deployment verification. No direct pushes to `main`.
+- PR: pending.
+- Checks: documentation content and consistency review; runtime tests are not applicable to this documentation-only change.
+- Deployment: not applicable; no runtime or deployment configuration changed.
+
+
 ### 2026-11-18 — Android-first standard and game-reuse research
 
 - Added mandatory Android-first product/UX requirements for NOVA.
@@ -267,3 +279,22 @@ Research findings and candidate systems are recorded in `docs/REUSE_RESEARCH.md`
 - Do not import VORZANE's generic client full-save mutation path or client-computed battle settlement as authoritative game state. Its own audit identifies these as unresolved server-authority blockers.
 - Do not import old Firebase or Vercel-specific infrastructure into NOVA. NOVA remains on GitHub + its existing Supabase project; Vercel is prohibited for this project.
 - Do not begin game implementation until the user explicitly approves the game direction and first feature scope.
+
+
+## 12. Autonomous product-development mandate
+
+The user has explicitly delegated day-to-day product, design, engineering, prioritization, and quality decisions to the development agent. Do not wait for the user to name every feature or technical task. Proactively inspect the product, identify gaps and risks, propose priorities internally, and implement the highest-value improvements in small reviewable increments.
+
+Initial product direction: an original Android-first adventure RPG with a strong character-progression, exploration, and discovery loop. Use VORZANE as a source of selectively reusable RPG design patterns. Consider NEXORA-inspired economy, crafting, trade, and social systems only when they improve the core loop; do not turn NOVA into an unfocused feature collection. The product vision and roadmap live in `docs/PRODUCT_VISION.md` and may evolve based on playtesting and evidence.
+
+Autonomy boundaries:
+- The agent may make ordinary product, UX, architecture, code, test, documentation, and non-destructive development decisions without asking the user each time.
+- The agent must not spend money, subscribe to paid services, accept legal terms, make identity/ownership declarations, expose or request secrets in chat, or perform destructive production-data/account actions without explicit user approval.
+- Never silently introduce analytics, advertising, invasive tracking, loot-box monetization, pay-to-win mechanics, or purchases. Any monetization must be transparent, fair, age-appropriate, and separately approved.
+- Preserve the user's GitHub-only source/merge/deployment preference and existing Supabase project. Vercel remains prohibited.
+- Continue to use isolated branches, meaningful tests, reviewable PRs, merge only after checks, and verify actual deployment separately.
+- Be honest about what is implemented, tested, deployed, and still incomplete. Never call a prototype production-ready merely because it builds.
+
+Quality gate: no placeholder copy, lorem ipsum, dead controls, fake functionality, unhandled error states, preventable data loss, obvious spelling/grammar defects, or unverified claims. All player-facing text must be reviewed in its target language and context. A feature is not complete until its real user flow, loading/empty/error/offline states, accessibility/touch behavior, and relevant Android layouts have been checked.
+
+Release aspiration: target a polished, stable, store-quality Android game. Google Play release readiness requires separate verification of Android packaging/signing, target API requirements, privacy/data disclosures, content rating, store assets/listing, device compatibility, crash/performance behavior, and Play Console submission. Do not claim Play Store publication or native APK/AAB readiness until those steps have actually been completed and any account-owner approvals obtained.
