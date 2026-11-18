@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { ArrowLeft, Ban, Flag, Globe2, MessageCircle, Search, Send, ShieldCheck, Users, UserRound } from 'lucide-react';
 import { AVATARS } from '../../data/catalog';
 import { timestampToMs } from '../../lib/economy';
-import type { Language, OrganizationMember, PlayerProfile } from '../../types/game';
+import type { Language, Organization, OrganizationMember, PlayerProfile } from '../../types/game';
 import {
   blockPlayer as blockPlayerOnSupabase,
   getPublicPlayerProfile,
@@ -31,10 +31,11 @@ import type {
 interface SocialHubViewProps {
   profile: PlayerProfile;
   myOrgMember: OrganizationMember | null;
+  organizations: Organization[];
   language: Language;
 }
 
-export function SocialHubView({ profile, myOrgMember, language }: SocialHubViewProps) {
+export function SocialHubView({ profile, myOrgMember, organizations, language }: SocialHubViewProps) {
   const ar = language === 'ar';
   const [mode, setMode] = useState<'players' | 'messages' | 'global'>('players');
   const [search, setSearch] = useState('');
@@ -50,6 +51,8 @@ export function SocialHubView({ profile, myOrgMember, language }: SocialHubViewP
   const [draft, setDraft] = useState('');
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState('');
+  const [dismissedUnread, setDismissedUnread] = useState<string[]>([]);
+  const [selectedOrganization, setSelectedOrganization] = useState<Organization | null>(null);
 
   const avatarUrl = (avatarId: string | undefined) =>
     AVATARS.find((avatar) => avatar.id === avatarId)?.src || AVATARS[0]?.src || '';
@@ -71,6 +74,7 @@ export function SocialHubView({ profile, myOrgMember, language }: SocialHubViewP
   ));
 
   const selectedConversationData = conversations.find((item) => item.id === selectedConversation) || null;
+  const unreadConversations = conversations.filter((item) => item.lastSenderUid !== profile.uid && !dismissedUnread.includes(item.id));
   const targetUid = selectedConversationData?.participants.find((uid) => uid !== profile.uid) || '';
 
   useEffect(() => {
@@ -147,6 +151,7 @@ export function SocialHubView({ profile, myOrgMember, language }: SocialHubViewP
       const result = await openDirectConversation(player.uid);
       setSelectedPlayer(player);
       setSelectedConversation(result.conversationId);
+      setDismissedUnread((previous) => previous.includes(result.conversationId) ? previous : [...previous, result.conversationId]);
       setMode('messages');
     } catch {
       setError(ar ? 'تعذر فتح المحادثة.' : 'Could not open conversation.');
@@ -280,12 +285,13 @@ export function SocialHubView({ profile, myOrgMember, language }: SocialHubViewP
           return (
             <button key={tab.id} type="button" onClick={() => { setMode(tab.id); setError(''); }}
               className={'min-h-[42px] flex items-center justify-center gap-1.5 rounded-lg text-xs font-semibold ' + (mode === tab.id ? 'bg-[#B91C32] text-white' : 'text-[#9299A6]')}>
-              <Icon className="w-4 h-4" />{tab.label}
+              <Icon className="w-4 h-4" />{tab.label}{tab.id === 'messages' && unreadConversations.length > 0 && <span className="ms-1 min-w-5 h-5 px-1 rounded-full bg-red-600 text-white text-[10px] font-bold flex items-center justify-center">{unreadConversations.length}</span>}
             </button>
           );
         })}
       </nav>
 
+      {mode === 'messages' && unreadConversations.length > 0 && <div className="flex items-center justify-between gap-3 rounded-xl border border-red-500/20 bg-red-500/5 px-3 py-2"><p className="text-xs text-[#F4F5F7]">{ar ? `${unreadConversations.length} محادثة فيها رسائل جديدة` : `${unreadConversations.length} conversation(s) with new messages`}</p><button type="button" onClick={() => setDismissedUnread((previous) => [...new Set([...previous, ...unreadConversations.map((item) => item.id)])])} className="text-[11px] text-red-300 underline underline-offset-2">{ar ? 'إغلاق الإشعارات' : 'Dismiss notifications'}</button></div>}
       {error && <p className="rounded-xl border border-white/10 bg-[#141821] px-3 py-2 text-xs text-[#F4C66A]">{error}</p>}
 
       {mode === 'players' && (
@@ -325,7 +331,7 @@ export function SocialHubView({ profile, myOrgMember, language }: SocialHubViewP
                   <div className="rounded-xl bg-[#0B0D12] p-3"><p className="text-[11px] text-[#9299A6]">{ar ? 'المستوى' : 'Level'}</p><p className="mt-1 text-lg font-bold">{selectedPlayer.level}</p></div>
                   <div className="rounded-xl bg-[#0B0D12] p-3"><p className="text-[11px] text-[#9299A6]">{ar ? 'السمعة' : 'Reputation'}</p><p className="mt-1 text-lg font-bold">{selectedPlayer.reputation}</p></div>
                   <div className="rounded-xl bg-[#0B0D12] p-3"><p className="text-[11px] text-[#9299A6]">{ar ? 'النفوذ' : 'Influence'}</p><p className="mt-1 text-lg font-bold">{selectedPlayer.influence}</p></div>
-                  <div className="rounded-xl bg-[#0B0D12] p-3"><p className="text-[11px] text-[#9299A6]">{ar ? 'المنظمة' : 'Organization'}</p><p className="mt-1 text-sm font-semibold">{selectedPlayer.orgId || (ar ? 'بدون منظمة' : 'None')}</p></div>
+                  <div className="rounded-xl bg-[#0B0D12] p-3"><p className="text-[11px] text-[#9299A6]">{ar ? 'المنظمة' : 'Organization'}</p>{(() => { const org = organizations.find((item) => item.id === selectedPlayer.orgId); return org ? <button type="button" onClick={() => setSelectedOrganization(org)} className="mt-1 text-sm font-semibold text-amber-200 underline underline-offset-2 text-start">[{org.tag}] {org.name}</button> : <p className="mt-1 text-sm font-semibold">{ar ? 'بدون منظمة' : 'None'}</p>; })()}</div>
                 </div>
                 <button type="button" disabled={busy === 'open'} onClick={() => void openConversation(selectedPlayer)}
                   className="w-full min-h-[44px] rounded-xl bg-[#B91C32] text-white text-sm font-semibold flex items-center justify-center gap-2">
@@ -378,12 +384,12 @@ export function SocialHubView({ profile, myOrgMember, language }: SocialHubViewP
               const name = conversation.participantNames?.[otherUid] || (ar ? 'لاعب' : 'Player');
               return (
                 <button key={conversation.id} type="button" onClick={() => setSelectedConversation(conversation.id)}
-                  className={'w-full rounded-xl p-3 text-start ' + (selectedConversation === conversation.id ? 'bg-[#252B36]' : 'hover:bg-[#1B2230]')}>
+                  className={'w-full rounded-xl border border-white/8 p-3 text-start transition-colors ' + (selectedConversation === conversation.id ? 'bg-[#252B36] border-white/20' : 'bg-[#0B0D12] hover:bg-[#1B2230]')}>
                   <span className="flex items-center gap-2 text-sm font-semibold text-[#F4F5F7]">
                     <img src={avatarUrl(conversation.participantAvatars?.[otherUid])} alt="" className="h-8 w-8 rounded-lg object-cover bg-[#252B36]" />
                     {name}
                   </span>
-                  <span className="block mt-1 text-[11px] text-[#9299A6] truncate">{conversation.lastMessage || (ar ? 'ابدأ المحادثة' : 'Start conversation')}</span>
+                  <span className="flex items-center justify-between gap-2 mt-1"><span className="text-[11px] text-[#9299A6] truncate">{conversation.lastMessage || (ar ? 'ابدأ المحادثة' : 'Start conversation')}</span>{unreadConversations.some((item) => item.id === conversation.id) && <span className="h-2 w-2 rounded-full bg-red-500 shrink-0" />}</span>
                 </button>
               );
             })}
@@ -420,6 +426,8 @@ export function SocialHubView({ profile, myOrgMember, language }: SocialHubViewP
         </section>
       )}
 
+      {selectedOrganization && <div className="fixed inset-0 z-50 bg-black/70 p-4 flex items-center justify-center" role="dialog" aria-modal="true"><div className="w-full max-w-md rounded-2xl border border-white/10 bg-[#141821] p-5 space-y-4"><div className="flex items-start justify-between gap-3"><div><p className="text-xs text-amber-200">[{selectedOrganization.tag}]</p><h2 className="text-lg font-bold text-[#F4F5F7]">{selectedOrganization.name}</h2><p className="text-xs text-[#9299A6] mt-1">{selectedOrganization.description || (ar ? 'لا يوجد وصف' : 'No description')}</p></div><button type="button" onClick={() => setSelectedOrganization(null)} className="rounded-lg bg-[#252B36] px-3 py-2 text-xs">{ar ? 'إغلاق' : 'Close'}</button></div><div className="grid grid-cols-2 gap-2">{[[ar ? 'المستوى' : 'Level', selectedOrganization.level],[ar ? 'الأعضاء' : 'Members', selectedOrganization.memberCount],[ar ? 'السمعة' : 'Reputation', selectedOrganization.reputation],[ar ? 'قائد المنظمة' : 'Leader', selectedOrganization.leaderName],[ar ? 'الخزينة' : 'Treasury', `${selectedOrganization.treasuryBalance.toLocaleString()}`]].map(([label,value]) => <div key={String(label)} className="rounded-xl bg-[#0B0D12] p-3"><p className="text-[11px] text-[#9299A6]">{label}</p><p className="mt-1 text-sm font-semibold text-[#F4F5F7]">{value}</p></div>)}</div></div></div>}
+
       {mode === 'global' && (
         <section className="rounded-2xl border border-white/8 bg-[#141821] p-3 flex flex-col min-h-[520px]">
           <div className="flex items-center gap-2 border-b border-white/8 px-2 pb-3"><Globe2 className="w-4 h-4 text-amber-200" /><h2 className="text-sm font-semibold">{ar ? 'الدردشة العامة' : 'Global chat'}</h2><span className="ms-auto text-[10px] text-[#9299A6]">{ar ? 'حد الإرسال: رسالة كل 3 ثوانٍ' : 'Rate limit: one message every 3 seconds'}</span></div>
@@ -428,7 +436,7 @@ export function SocialHubView({ profile, myOrgMember, language }: SocialHubViewP
               <div key={message.id} className="rounded-xl bg-[#0B0D12] p-3">
                 <div className="flex items-center gap-2 mb-1">
                   <img src={avatarUrl(message.avatarId)} alt="" className="h-7 w-7 rounded-lg object-cover bg-[#252B36]" />
-                  <span className="text-xs font-semibold text-amber-200 flex-1">{message.senderName}</span>
+                  <button type="button" onClick={() => void openPlayerProfile(message.senderUid)} className="text-xs font-semibold text-amber-200 flex-1 text-start hover:underline">{message.senderName}</button>
                   <span className="text-[10px] text-[#9299A6]">{dateLabel(message.createdAt)}</span>
                 </div>
                 <p className="text-xs whitespace-pre-wrap break-words">{message.text}</p>
