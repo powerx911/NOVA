@@ -517,6 +517,7 @@ export function OrganizationHubView({
 
   return (
     <div className="w-full min-w-0 space-y-4 sm:space-y-5">
+      {/* Segmented organization navigation */}
       <nav aria-label={language === 'ar' ? 'أقسام المنظمة' : 'Organization sections'} className="flex items-center gap-1.5 overflow-x-auto pb-1">
         {([
           ['info', language === 'ar' ? 'معلومات المنظمة' : 'Information'],
