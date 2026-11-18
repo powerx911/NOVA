@@ -10,6 +10,7 @@ import {
   TRADE_CONTRACTS,
 } from '../data/catalog';
 import {
+  calculateLevelProgress,
   isValidUsername,
   LISTING_MAX_PRICE,
   LISTING_MAX_QTY,
