@@ -2,7 +2,7 @@ import type { Language } from '../types/game';
 
 export const TRANSLATIONS: Record<Language, Record<string, string>> = {
   ar: {
-    appName: 'NEXORA',
+    appName: 'NOVA',
     tagline: 'محاكاة الاقتصاد والأعمال والاستراتيجية',
     currency: '$',
     navHome: 'الرئيسية',
@@ -10,7 +10,7 @@ export const TRANSLATIONS: Record<Language, Record<string, string>> = {
     navMarket: 'السوق',
     navOrganization: 'المنظمة',
     navProfile: 'الشخصية',
-    signInTitle: 'ابدأ مسيرتك الاقتصادية في NEXORA',
+    signInTitle: 'ابدأ مسيرتك الاقتصادية في NOVA',
     signInSubtitle: 'ادخل بحساب Google لبناء ثروتك، تأسيس الشركات، وقيادة التحالفات في اقتصاد تنافسي حي.',
     signInButton: 'تسجيل الدخول عبر Google',
     signingIn: 'جاري التحقق...',
@@ -173,7 +173,7 @@ export const TRANSLATIONS: Record<Language, Record<string, string>> = {
     maintenanceHr: 'الصيانة / ساعة',
   },
   en: {
-    appName: 'NEXORA',
+    appName: 'NOVA',
     tagline: 'Economy, Management & Strategy Simulation',
     currency: '$',
     navHome: 'Home',
@@ -181,7 +181,7 @@ export const TRANSLATIONS: Record<Language, Record<string, string>> = {
     navMarket: 'Market',
     navOrganization: 'Syndicate',
     navProfile: 'Profile',
-    signInTitle: 'Launch Your Economic Rise in NEXORA',
+    signInTitle: 'Launch Your Economic Rise in NOVA',
     signInSubtitle: 'Sign in with Google to build wealth, found companies, and lead syndicates in a live player economy.',
     signInButton: 'Sign in with Google',
     signingIn: 'Verifying...',

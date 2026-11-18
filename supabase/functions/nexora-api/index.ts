@@ -551,6 +551,15 @@ Deno.serve(async (req: Request) => {
     }
 
     if (body.action === "unlock_eligible_achievements") {
+      // Onboarding clients may request an achievement sync before a character exists.
+      // Treat that state as an empty achievement set instead of surfacing ACCOUNT_NOT_FOUND.
+      const { data: playerProfile, error: profileError } = await db
+        .from("player_profiles")
+        .select("user_id")
+        .eq("user_id", identity.uid)
+        .maybeSingle();
+      if (profileError) throw profileError;
+      if (!playerProfile) return json({ ok: true, data: { unlocked_ids: [] } }, 200, origin);
       const { data, error } = await db.rpc("unlock_eligible_achievements", { p_uid: identity.uid });
       if (error) return json({ error: "ACHIEVEMENT_SYNC_FAILED" }, 409, origin);
       return json({ ok: true, data }, 200, origin);

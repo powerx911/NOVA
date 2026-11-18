@@ -315,7 +315,7 @@ export function MarketHubView({
           <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-[#141821]">
             <img
               src={BRAND_ASSETS.marketBanner}
-              alt="NEXORA Global Exchange"
+              alt="NOVA Global Exchange"
               referrerPolicy="no-referrer"
               className="w-full h-36 sm:h-44 object-cover"
             />
@@ -323,7 +323,7 @@ export function MarketHubView({
               <div className="w-full flex flex-wrap items-end justify-between gap-3">
                 <div>
                   <h1 className="text-lg font-bold text-[#F4F5F7]">
-                    {language === 'ar' ? 'سوق NEXORA المفتوح' : 'NEXORA Open Exchange'}
+                    {language === 'ar' ? 'سوق NOVA المفتوح' : 'NOVA Open Exchange'}
                   </h1>
                   <p className="text-xs text-[#9299A6] mt-0.5">
                     {t.marketTax}:{' '}

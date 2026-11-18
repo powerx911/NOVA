@@ -18,7 +18,7 @@ import { ProfileHubView } from './features/profile/ProfileHubView';
 import { useGameData } from './hooks/useGameData';
 import type { MainTab } from './types/game';
 
-function NexoraAppContent() {
+function NovaAppContent() {
   const game = useGameData();
   const [activeTab, setActiveTab] = useState<MainTab>('home');
 
@@ -174,7 +174,7 @@ export default function App() {
     <ToastProvider>
       <GameAudioFeedback />
       <GameMusic />
-      <NexoraAppContent />
+      <NovaAppContent />
     </ToastProvider>
   );
 }

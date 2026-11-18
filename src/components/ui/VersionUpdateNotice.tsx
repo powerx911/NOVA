@@ -68,7 +68,7 @@ export function VersionUpdateNotice() {
     >
       <div>
         <p className="text-sm font-bold text-emerald-200">تم إطلاق تحديث جديد</p>
-        <p className="mt-1 text-xs text-emerald-100/80">يرجى التحديث للحصول على أحدث نسخة من NEXORA.</p>
+        <p className="mt-1 text-xs text-emerald-100/80">يرجى التحديث للحصول على أحدث نسخة من NOVA.</p>
       </div>
       <button
         type="button"

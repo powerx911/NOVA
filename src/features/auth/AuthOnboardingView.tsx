@@ -167,25 +167,31 @@ export function AuthOnboardingView({
         return;
       }
 
-      await createPlayerCharacter(uid, email || `guest+${uid}@nexora.invalid`, clean, avatarId, language);
+      await createPlayerCharacter(uid, email || `guest+${uid}@nova.invalid`, clean, avatarId, language);
       showToast(
         language === 'ar'
           ? 'تم إنشاء شخصيتك وإيداع رأس المال بنجاح.'
           : 'Character created and starting capital credited.',
         'success'
       );
+      window.dispatchEvent(new Event('nova:refresh-game'));
     } catch (err) {
       const code = err instanceof Error ? err.message : '';
+      const knownMessages: Record<string, { ar: string; en: string }> = {
+        USERNAME_TAKEN: { ar: 'اسم المستخدم محجوز بالفعل.', en: 'Username already taken.' },
+        PROFILE_EXISTS: { ar: 'هذه الشخصية موجودة بالفعل. سنحدّث بيانات اللعبة الآن.', en: 'This character already exists. Refreshing your game data now.' },
+        CREATE_CHARACTER_FAILED: { ar: 'تعذر حفظ الشخصية في قاعدة البيانات. حاول مجدداً بعد لحظات.', en: 'The character could not be saved. Please retry in a moment.' },
+        INTERNAL_ERROR: { ar: 'حدث خطأ داخلي أثناء إنشاء الشخصية. حاول مجدداً.', en: 'A server error occurred while creating the character. Please retry.' },
+        UNAUTHENTICATED: { ar: 'انتهت جلسة الدخول. سجّل الدخول مجدداً.', en: 'Your sign-in session expired. Please sign in again.' },
+      };
+      const known = knownMessages[code];
       showToast(
-        code === 'USERNAME_TAKEN'
-          ? language === 'ar'
-            ? 'اسم المستخدم محجوز بالفعل.'
-            : 'Username already taken.'
-          : language === 'ar'
-          ? 'تعذر إنشاء الشخصية، حاول مرة أخرى.'
-          : 'Could not create profile. Please retry.',
+        known ? (language === 'ar' ? known.ar : known.en) : (language === 'ar'
+          ? `تعذر إنشاء الشخصية (${code || 'UNKNOWN_ERROR'}). حاول مرة أخرى.`
+          : `Could not create profile (${code || 'UNKNOWN_ERROR'}). Please retry.`),
         'error'
       );
+      if (code === 'PROFILE_EXISTS') window.dispatchEvent(new Event('nova:refresh-game'));
     } finally {
       setBusy(false);
     }
@@ -315,11 +321,11 @@ export function AuthOnboardingView({
             </div>
 
             <div className="space-y-2">
-              <label htmlFor="nexora-username" className="block text-sm font-medium text-[#F4F5F7]">
+              <label htmlFor="nova-username" className="block text-sm font-medium text-[#F4F5F7]">
                 {t.usernameLabel}
               </label>
               <input
-                id="nexora-username"
+                id="nova-username"
                 type="text"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
