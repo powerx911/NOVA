@@ -356,6 +356,56 @@ Deno.serve(async (req: Request) => {
       return json({ ok: true, data }, 200, origin);
     }
 
+    if (body.action === "found_company") {
+      const name = typeof body.name === "string" ? body.name.trim() : "";
+      const sector = typeof body.sector === "string" ? body.sector : "";
+      const { data, error } = await db.rpc("found_company", { p_uid: identity.uid, p_name: name, p_sector: sector });
+      if (error) {
+        const known = ["INVALID_NAME","INVALID_SECTOR","ACCOUNT_NOT_FOUND","INSUFFICIENT_FUNDS"].find((code) => error.message.includes(code));
+        return json({ error: known ?? "COMPANY_FOUNDING_FAILED" }, 409, origin);
+      }
+      return json({ ok: true, data }, 201, origin);
+    }
+
+    if (body.action === "buy_property") {
+      const name = typeof body.name === "string" ? body.name.trim() : "";
+      const propertyType = typeof body.propertyType === "string" ? body.propertyType : "";
+      const { data, error } = await db.rpc("buy_property", { p_uid: identity.uid, p_name: name, p_type: propertyType });
+      if (error) {
+        const known = ["INVALID_NAME","INVALID_PROPERTY_TYPE","ACCOUNT_NOT_FOUND","INSUFFICIENT_FUNDS"].find((code) => error.message.includes(code));
+        return json({ error: known ?? "PROPERTY_PURCHASE_FAILED" }, 409, origin);
+      }
+      return json({ ok: true, data }, 201, origin);
+    }
+
+    if (body.action === "toggle_property_lease") {
+      const propertyId = typeof body.propertyId === "string" ? body.propertyId : "";
+      if (typeof body.nextState !== "boolean") return json({ error: "INVALID_LEASE_STATE" }, 400, origin);
+      const { data, error } = await db.rpc("toggle_property_lease", { p_uid: identity.uid, p_property_id: propertyId, p_next_state: body.nextState });
+      if (error) return json({ error: error.message.includes("PROPERTY_NOT_FOUND_OR_UNAUTHORIZED") ? "UNAUTHORIZED" : "LEASE_UPDATE_FAILED" }, 409, origin);
+      return json({ ok: true, data }, 200, origin);
+    }
+
+    if (body.action === "upgrade_property") {
+      const propertyId = typeof body.propertyId === "string" ? body.propertyId : "";
+      const { data, error } = await db.rpc("upgrade_property", { p_uid: identity.uid, p_property_id: propertyId });
+      if (error) {
+        const known = ["PROPERTY_NOT_FOUND","UNAUTHORIZED","MAX_LEVEL","ACCOUNT_NOT_FOUND","INSUFFICIENT_FUNDS"].find((code) => error.message.includes(code));
+        return json({ error: known ?? "PROPERTY_UPGRADE_FAILED" }, 409, origin);
+      }
+      return json({ ok: true, data }, 200, origin);
+    }
+
+    if (body.action === "collect_property_rent") {
+      const propertyId = typeof body.propertyId === "string" ? body.propertyId : "";
+      const { data, error } = await db.rpc("collect_property_rent", { p_uid: identity.uid, p_property_id: propertyId });
+      if (error) {
+        const known = ["PROPERTY_NOT_FOUND","UNAUTHORIZED","PROPERTY_VACANT","NOTHING_TO_COLLECT","ACCOUNT_NOT_FOUND"].find((code) => error.message.includes(code));
+        return json({ error: known ?? "PROPERTY_COLLECTION_FAILED" }, 409, origin);
+      }
+      return json({ ok: true, data }, 200, origin);
+    }
+
     return json({ error: "UNKNOWN_ACTION" }, 400, origin);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
