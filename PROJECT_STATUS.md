@@ -455,3 +455,9 @@ The user explicitly requires NOVA to be online and socially connected from its f
 - Verified with a read-only SQL query: both private functions are SECURITY DEFINER and executable by authenticated but not anon; both public wrappers are SECURITY INVOKER and executable by authenticated but not anon.
 - Re-ran Supabase security advisors: zero security findings. Performance advisor has two INFO-level unused indexes on currently empty ledger/receipt tables; retain pending real usage data.
 - The player schema remains empty. Authenticated player initialization, multi-user isolation, and replay-safe upgrade integration tests still need to be performed using real test accounts before client integration.
+
+
+## 23. Verification log maintenance
+
+- Added PR #17 to keep the project handover aligned with the live Supabase schema and the zero-warning security-advisor result.
+- This documentation-only update does not alter runtime code, database schema, or deployment behavior.
