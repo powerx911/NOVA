@@ -187,9 +187,11 @@ export interface Company {
 
 export interface CompanyAuction {
   id: string;
+  assetType?: 'company' | 'factory';
+  factoryId?: string | null;
   companyId: string;
   companyName: string;
-  companySector: CompanySector;
+  companySector: CompanySector | 'factory';
   companyLevel: number;
   sellerUid: string;
   sellerName: string;
