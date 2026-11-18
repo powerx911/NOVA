@@ -76,7 +76,7 @@ export function SocialHubView({ profile, myOrgMember, organizations, language, o
   const presenceLabel = (uid: string) => {
     const presence = presenceByUid[uid];
     if (!presence) return ar ? 'حالة الاتصال غير متاحة' : 'Status unavailable';
-    if (presence.isOnline) return ar ? `متصل ${presenceDuration(presence.onlineSince)}` : `Online ${presenceDuration(presence.onlineSince)}`;
+    if (presence.isOnline) return ar ? 'متصل الآن' : 'Online now';
     return presence.lastSeenAt ? (ar ? `آخر ظهور ${presenceDuration(presence.lastSeenAt)}` : `Last seen ${presenceDuration(presence.lastSeenAt)}`) : (ar ? 'غير متصل' : 'Offline');
   };
   const socialErrorMessage = (error: unknown, fallback: string) => {
