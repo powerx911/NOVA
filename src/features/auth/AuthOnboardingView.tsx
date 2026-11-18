@@ -178,6 +178,7 @@ export function AuthOnboardingView({
       const code = err instanceof Error ? err.message : '';
       const knownMessages: Record<string, { ar: string; en: string }> = {
         USERNAME_TAKEN: { ar: 'اسم المستخدم محجوز بالفعل.', en: 'Username already taken.' },
+        INVALID_USERNAME: { ar: 'اسم المستخدم غير صالح. استخدم 3 إلى 24 حرفاً إنجليزياً أو رقماً أو (_) فقط، بدون مسافات أو رموز.', en: 'Username is invalid. Use 3–24 English letters, numbers, or underscores (_) only, with no spaces or symbols.' },
         PROFILE_EXISTS: { ar: 'هذه الشخصية موجودة بالفعل. سنحدّث بيانات اللعبة الآن.', en: 'This character already exists. Refreshing your game data now.' },
         CREATE_CHARACTER_FAILED: { ar: 'تعذر حفظ الشخصية في قاعدة البيانات. حاول مجدداً بعد لحظات.', en: 'The character could not be saved. Please retry in a moment.' },
         INTERNAL_ERROR: { ar: 'حدث خطأ داخلي أثناء إنشاء الشخصية. حاول مجدداً.', en: 'A server error occurred while creating the character. Please retry.' },
@@ -186,8 +187,8 @@ export function AuthOnboardingView({
       const known = knownMessages[code];
       showToast(
         known ? (language === 'ar' ? known.ar : known.en) : (language === 'ar'
-          ? `تعذر إنشاء الشخصية (${code || 'UNKNOWN_ERROR'}). حاول مرة أخرى.`
-          : `Could not create profile (${code || 'UNKNOWN_ERROR'}). Please retry.`),
+          ? 'تعذر إنشاء الشخصية الآن. تحقق من اسم المستخدم واتصال الإنترنت ثم حاول مرة أخرى.'
+          : 'Could not create the character right now. Check the username and your connection, then try again.'),
         'error'
       );
       if (code === 'PROFILE_EXISTS') window.dispatchEvent(new Event('nova:refresh-game'));
