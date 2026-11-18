@@ -326,10 +326,9 @@ export function BusinessHubView({
 
   const subTabs: { id: BusinessSubTab; label: string }[] = [
     { id: 'companies', label: t.subCompanies },
-    { id: 'auction', label: language === 'ar' ? 'مزاد الشركات' : 'Company Auction' },
+    { id: 'auction', label: language === 'ar' ? 'مزاد الأعمال' : 'Business Auction' },
     { id: 'factories', label: language === 'ar' ? 'المصانع' : 'Factories' },
     { id: 'inventory', label: t.subInventory },
-    { id: 'financials', label: t.subFinancials },
   ];
 
   return (
@@ -758,41 +757,7 @@ export function BusinessHubView({
       )}
 
       {/* 5. FINANCIAL SUMMARY */}
-      {subTab === 'financials' && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          <div className="bg-[#141821] border border-white/8 rounded-2xl p-5">
-            <div className="flex items-center justify-between text-xs text-[#9299A6]">
-              <span>{language === 'ar' ? 'إجمالي الدخل التراكمي' : 'Total Lifetime Earned'}</span>
-              <TrendingUp className="w-4 h-4 text-emerald-400" />
-            </div>
-            <p className="text-xl font-bold font-mono-num text-[#F4F5F7] mt-2">
-              {'$'}{(wallet?.totalEarned ?? 0).toLocaleString()}
-            </p>
-          </div>
-
-          <div className="bg-[#141821] border border-white/8 rounded-2xl p-5">
-            <div className="flex items-center justify-between text-xs text-[#9299A6]">
-              <span>{language === 'ar' ? 'إجمالي المصروفات' : 'Total Lifetime Spent'}</span>
-              <Coins className="w-4 h-4 text-[#E04455]" />
-            </div>
-            <p className="text-xl font-bold font-mono-num text-[#F4F5F7] mt-2">
-              {'$'}{(wallet?.totalSpent ?? 0).toLocaleString()}
-            </p>
-          </div>
-
-          <div className="bg-[#141821] border border-white/8 rounded-2xl p-5">
-            <div className="flex items-center justify-between text-xs text-[#9299A6]">
-              <span>{language === 'ar' ? 'صافي دخل الشركات / ساعة' : 'Companies Net / hr'}</span>
-              <Building className="w-4 h-4 text-[#9299A6]" />
-            </div>
-            <p className="text-xl font-bold font-mono-num text-emerald-400 mt-2">
-              +{'$'}{totalCompanyNetHr.toLocaleString()}
-            </p>
-          </div>
-
-
-        </div>
-      )}
+}
     </div>
   );
 }
