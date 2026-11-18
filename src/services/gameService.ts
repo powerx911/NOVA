@@ -66,6 +66,7 @@ export async function isUsernameAvailable(username: string): Promise<boolean> {
   const clean = username.trim();
   if (!isValidUsername(clean)) return false;
   const result = await nexoraApi<{ available: boolean }>('username_available', { username: clean });
+  if (typeof result?.available !== 'boolean') throw new Error('USERNAME_CHECK_FAILED');
   return result.available;
 }
 
