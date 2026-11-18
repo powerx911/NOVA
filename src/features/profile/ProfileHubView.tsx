@@ -352,12 +352,11 @@ export function ProfileHubView({
             </div>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {[
               { label: language === 'ar' ? 'الصفقات' : 'Trades', val: profile.stats.tradesCount },
               { label: language === 'ar' ? 'الإنتاج' : 'Produced', val: profile.stats.totalProduced },
               { label: t.subCompanies, val: profile.stats.companiesOwned },
-              { label: t.subProperties, val: profile.stats.propertiesOwned },
               { label: t.subMissions, val: profile.stats.missionsCompleted },
             ].map((s) => (
               <div key={s.label} className="bg-[#141821] border border-white/8 rounded-2xl p-4">
