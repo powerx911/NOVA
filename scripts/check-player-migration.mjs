@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { strict as assert } from 'node:assert'
 
-const sql = readFileSync('supabase/migrations/20261118160000_nova_player_core.sql', 'utf8')
+const sql = readFileSync('supabase/migrations/20261118151416_nova_player_core.sql', 'utf8')
 const hardening = readFileSync('supabase/migrations/20261118151500_harden_player_rpc_schema.sql', 'utf8')
 const tables = [
   'nova_player_profiles',
