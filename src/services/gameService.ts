@@ -169,208 +169,47 @@ export async function createPlayerCharacter(
   }
 }
 
-export async function claimDailyStipend(uid: string): Promise<number> {
-  const dateKey = getUtcDateKey();
-  const claimId = `${uid}_${dateKey}`;
-  const txId = genId('tx');
-  const notifId = genId('ntf');
-
+export async function claimDailyStipend(_uid: string): Promise<number> {
   try {
-    let credited = 0;
-    await runTransaction(db, async (tx) => {
-      const claimRef = doc(db, 'daily_claims', claimId);
-      const walletRef = doc(db, 'wallets', uid);
-      const profileRef = doc(db, 'profiles', uid);
-
-      const [claimSnap, walletSnap, profileSnap] = await Promise.all([
-        tx.get(claimRef),
-        tx.get(walletRef),
-        tx.get(profileRef),
-      ]);
-
-      if (claimSnap.exists()) throw new Error('ALREADY_CLAIMED_TODAY');
-      if (!walletSnap.exists() || !profileSnap.exists()) throw new Error('ACCOUNT_NOT_FOUND');
-
-      const wallet = walletSnap.data() as Wallet;
-      const profile = profileSnap.data() as PlayerProfile;
-      const amount = calculateDailyStipend(profile.level, profile.skills.finance || 0);
-      credited = amount;
-
-      const xpUpdate = applyXpAndLevel(profile, 40, 2, 1);
-
-      tx.set(claimRef, {
-        uid,
-        dateKey,
-        amount,
-        claimedAt: serverTimestamp(),
-      });
-
-      tx.set(doc(db, 'transactions', txId), {
-        id: txId,
-        fromUid: 'SYSTEM',
-        toUid: uid,
-        amount,
-        fee: 0,
-        netAmount: amount,
-        type: 'daily_stipend',
-        referenceId: claimId,
-        description: `Daily operational stipend (${dateKey})`,
-        status: 'completed',
-        createdAt: serverTimestamp(),
-      });
-
-      tx.update(walletRef, {
-        balance: wallet.balance + amount,
-        totalEarned: wallet.totalEarned + amount,
-        lastTxId: txId,
-        updatedAt: serverTimestamp(),
-      });
-
-      tx.update(profileRef, {
-        ...xpUpdate,
-        updatedAt: serverTimestamp(),
-      });
-
-      tx.set(doc(db, 'notifications', notifId), {
-        id: notifId,
-        uid,
-        title: 'Daily Stipend Credited',
-        body: `+$${amount} & +40 XP`,
-        type: 'economy',
-        read: false,
-        createdAt: serverTimestamp(),
-      });
-    });
-    return credited;
+    const result = await nexoraApi<{ amount: number }>('claim_daily_stipend');
+    return result.amount;
   } catch (error) {
-    if (error instanceof Error && error.message === 'ALREADY_CLAIMED_TODAY') throw error;
-    handleFirestoreError(error, OperationType.WRITE, `daily_claims/${claimId}`);
+    if (error instanceof Error && 'code' in error) {
+      throw new Error(String((error as { code?: unknown }).code ?? 'DAILY_CLAIM_FAILED'));
+    }
+    throw error;
   }
 }
 
-export async function upgradeSkill(uid: string, skillKey: SkillKey): Promise<void> {
-  const def = SKILL_DEFINITIONS.find((s) => s.key === skillKey);
-  if (!def) throw new Error('INVALID_SKILL');
-
+export async function upgradeSkill(_uid: string, skillKey: SkillKey): Promise<void> {
   try {
-    await runTransaction(db, async (tx) => {
-      const profileRef = doc(db, 'profiles', uid);
-      const snap = await tx.get(profileRef);
-      if (!snap.exists()) throw new Error('ACCOUNT_NOT_FOUND');
-      const profile = snap.data() as PlayerProfile;
-
-      if (profile.skillPoints < 1) throw new Error('NO_SKILL_POINTS');
-      const currentVal = profile.skills[skillKey] || 0;
-      if (currentVal >= def.maxLevel) throw new Error('SKILL_MAXED');
-
-      tx.update(profileRef, {
-        skillPoints: profile.skillPoints - 1,
-        skills: {
-          ...profile.skills,
-          [skillKey]: currentVal + 1,
-        },
-        updatedAt: serverTimestamp(),
-      });
-    });
+    await nexoraApi('upgrade_skill', { skillKey });
   } catch (error) {
-    if (error instanceof Error && ['NO_SKILL_POINTS', 'SKILL_MAXED', 'INVALID_SKILL'].includes(error.message)) {
-      throw error;
+    if (error instanceof Error && 'code' in error) {
+      throw new Error(String((error as { code?: unknown }).code ?? 'SKILL_UPGRADE_FAILED'));
     }
-    handleFirestoreError(error, OperationType.UPDATE, `profiles/${uid}`);
+    throw error;
   }
 }
 
 export async function transferCredits(
-  fromUid: string,
+  _fromUid: string,
   recipientUsername: string,
   amountRaw: number,
   note: string
 ): Promise<void> {
-  const amount = Math.floor(amountRaw);
-  const cleanName = recipientUsername.trim().toLowerCase();
-  if (!cleanName) throw new Error('RECIPIENT_NOT_FOUND');
-
-  const unameSnap = await getDoc(doc(db, 'usernames', cleanName));
-  if (!unameSnap.exists()) throw new Error('RECIPIENT_NOT_FOUND');
-  const toUid = (unameSnap.data() as { uid: string }).uid;
-
-  const txId = genId('tx');
-  const logId = genId('aud');
-  const notifId = genId('ntf');
-
+  const amount = Number.isFinite(amountRaw) ? Math.floor(amountRaw) : 0;
   try {
-    await runTransaction(db, async (tx) => {
-      const fromWalletRef = doc(db, 'wallets', fromUid);
-      const toWalletRef = doc(db, 'wallets', toUid);
-      const [fromSnap, toSnap] = await Promise.all([tx.get(fromWalletRef), tx.get(toWalletRef)]);
-
-      if (!fromSnap.exists() || !toSnap.exists()) throw new Error('RECIPIENT_NOT_FOUND');
-
-      const fromWallet = fromSnap.data() as Wallet;
-      const toWallet = toSnap.data() as Wallet;
-
-      const validation = validateTransfer(fromUid, toUid, fromWallet.balance, amount);
-      if (!validation.valid) {
-        throw new Error(validation.reason || 'INVALID_TRANSFER');
-      }
-
-      tx.set(doc(db, 'transactions', txId), {
-        id: txId,
-        fromUid,
-        toUid,
-        amount,
-        fee: 0,
-        netAmount: amount,
-        type: 'transfer',
-        referenceId: toUid,
-        description: note.trim() || `Transfer to ${recipientUsername.trim()}`,
-        status: 'completed',
-        createdAt: serverTimestamp(),
-      });
-
-      tx.update(fromWalletRef, {
-        balance: fromWallet.balance - amount,
-        totalSpent: fromWallet.totalSpent + amount,
-        lastTxId: txId,
-        updatedAt: serverTimestamp(),
-      });
-
-      tx.update(toWalletRef, {
-        balance: toWallet.balance + amount,
-        totalEarned: toWallet.totalEarned + amount,
-        lastTxId: txId,
-        updatedAt: serverTimestamp(),
-      });
-
-      tx.set(doc(db, 'audit_logs', logId), {
-        id: logId,
-        uid: fromUid,
-        action: 'wallet_transfer',
-        entityType: 'transaction',
-        entityId: txId,
-        createdAt: serverTimestamp(),
-      });
-
-      tx.set(doc(db, 'notifications', notifId), {
-        id: notifId,
-        uid: fromUid,
-        title: 'Transfer Sent',
-        body: `-$${amount.toLocaleString()} -> ${recipientUsername.trim()}`,
-        type: 'economy',
-        read: false,
-        createdAt: serverTimestamp(),
-      });
+    await nexoraApi('transfer_credits', {
+      recipientUsername: recipientUsername.trim(),
+      amount,
+      note: note.trim().slice(0, 180),
     });
   } catch (error) {
-    if (
-      error instanceof Error &&
-      ['RECIPIENT_NOT_FOUND', 'SELF_OR_MISSING_RECIPIENT', 'INVALID_AMOUNT', 'INSUFFICIENT_FUNDS'].includes(
-        error.message
-      )
-    ) {
-      throw error;
+    if (error instanceof Error && 'code' in error) {
+      throw new Error(String((error as { code?: unknown }).code ?? 'TRANSFER_FAILED'));
     }
-    handleFirestoreError(error, OperationType.WRITE, `transactions/${txId}`);
+    throw error;
   }
 }
 
