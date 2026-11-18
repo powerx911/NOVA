@@ -12,7 +12,7 @@ The ambition is to create a memorable game with a coherent world, satisfying mom
 
 ## 2. Initial genre and product direction
 
-Initial direction: **adventure RPG**, with exploration, character growth, equipment, quests, encounters, and a clear progression loop.
+Current user-defined direction: **online-first, persistent multiplayer competition**, with alliances, diplomacy, economy, armies, and wars at its core. Professional player profiles, friends, private messaging, and global chat are foundational—not optional add-ons.
 
 Why this direction:
 - VORZANE provides a relevant prior RPG design foundation: character classes, progression, equipment, dungeons, expeditions, roaming events, and long quests.
@@ -49,16 +49,17 @@ Never ask the user to paste secrets into chat. Use authorized integrations and s
 
 ## 5. Product principles
 
-1. **Gameplay before feature count:** every system must support the core fantasy, create meaningful choices, or improve the player experience.
-2. **Mobile-first, Android-first:** touch-first controls, portrait-first layouts unless gameplay demands landscape, safe areas, responsive scaling, readable type, haptics where useful, and efficient performance on mid-range devices.
-3. **Immediate clarity:** the player should understand what they can do, what happened, what they earned, and what to do next.
-4. **Meaningful progression:** rewards, equipment, quests, difficulty, and unlocks should form a coherent progression curve.
-5. **Fairness and trust:** no fake rewards, deceptive timers, pay-to-win pressure, hidden costs, or arbitrary loss of progress.
-6. **Reliable persistence:** versioned saves, recovery paths, clear offline behavior, and server authority for valuable shared state.
-7. **Distinctive art and sound:** a consistent visual language and intentional audio identity; no random asset collage or unlicensed content.
-8. **Accessibility and localization:** legible contrast, scalable text, understandable icons, accessible labels, and reviewed Arabic RTL/English LTR experiences.
-9. **Performance as a feature:** fast startup, stable frame pacing, controlled memory use, responsive input, and graceful handling of weak networks/devices.
-10. **Honest quality claims:** prototype, beta, release candidate, native package, and store publication must be described accurately.
+1. **Connected world before feature count:** profiles, friends, messages, chat, alliances, diplomacy, economy, armies, and conflict must form one coherent multiplayer ecosystem.
+2. **Gameplay before feature count:** every system must support the core fantasy, create meaningful choices, or improve the player experience.
+3. **Mobile-first, Android-first:** touch-first controls, portrait-first layouts unless gameplay demands landscape, safe areas, responsive scaling, readable type, haptics where useful, and efficient performance on mid-range devices.
+4. **Immediate clarity:** the player should understand what they can do, what happened, what they earned, and what to do next.
+5. **Meaningful progression:** rewards, equipment, quests, difficulty, and unlocks should form a coherent progression curve.
+6. **Fairness and trust:** no fake rewards, deceptive timers, pay-to-win pressure, hidden costs, or arbitrary loss of progress.
+7. **Reliable persistence:** versioned saves, recovery paths, clear offline behavior, and server authority for valuable shared state.
+8. **Distinctive art and sound:** a consistent visual language and intentional audio identity; no random asset collage or unlicensed content.
+9. **Accessibility and localization:** legible contrast, scalable text, understandable icons, accessible labels, and reviewed Arabic RTL/English LTR experiences.
+10. **Performance as a feature:** fast startup, stable frame pacing, controlled memory use, responsive input, and graceful handling of weak networks/devices.
+11. **Honest quality claims:** prototype, beta, release candidate, native package, and store publication must be described accurately.
 
 ## 6. Player-facing content and language quality gate
 
@@ -94,7 +95,9 @@ A feature is not complete merely because code exists or a build succeeds. Its de
 - Update `PROJECT_STATUS.md` in the same PR as every project change.
 - Verify the deployed service/site after deployment. A merge is not proof of deployment.
 - Do not add dependencies without checking maintenance, license, bundle size, security, and Android/browser compatibility.
-- Keep game rules deterministic and testable where practical; keep valuable economy, inventory, progression, and reward mutations server-authoritative.
+- Keep game rules deterministic and testable where practical; all valuable economy, inventory, production, alliance, military, ranking, and reward mutations must be server-authoritative.
+- Realtime transports events; it is not the durable source of truth for chat history, balances, battle results, or world state.
+- The final client engine and rendering stack remain open until a prototype and technical scorecard establish the right fit for this online-first product.
 
 ## 9. Autonomous roadmap
 
