@@ -112,7 +112,7 @@ async function bootstrap(admin: ReturnType<typeof getAdminClient>, uid: string) 
     queryData(db.from("market_listings").select("*").eq("status", "active").order("created_at", { ascending: false }).limit(100)),
     queryData(db.from("market_orders").select("*").eq("buyer_uid", uid).order("created_at", { ascending: false }).limit(25)),
     queryData(db.from("companies").select("*").eq("owner_uid", uid)),
-    queryData(db.from("company_logs").select("*").eq("owner_uid", uid).order("created_at", { ascending: false }).limit(25)),
+    queryData(db.from("company_logs").select("*").eq("owner_uid", uid).order("created_at", { ascending: false }).limit(200)),
     queryData(db.from("organizations").select("*").gte("reputation", 0).order("reputation", { ascending: false }).limit(40)),
     queryData(db.from("organization_members").select("*").eq("user_id", uid).limit(1)),
     queryData(db.from("organization_requests").select("*").eq("user_id", uid)),
