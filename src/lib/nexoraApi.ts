@@ -5,7 +5,7 @@ const SUPABASE_URL =
 const SUPABASE_PUBLISHABLE_KEY =
   import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || 'sb_publishable_T0zWZ-2mi1K5CW7nVlWy5w_TL9AMWAj';
 const API_URL = `${SUPABASE_URL}/functions/v1/nexora-api`;
-const READ_ONLY_ACTIONS = new Set(['bootstrap', 'username_available', 'fetch_org_pending_requests', 'fetch_leaderboards']);
+const READ_ONLY_ACTIONS = new Set(['bootstrap', 'username_available', 'fetch_org_pending_requests', 'fetch_leaderboards', 'get_public_player_profile', 'search_players', 'list_blocked_players', 'list_direct_conversations', 'list_direct_messages', 'list_global_chat_messages', 'list_organization_invites']);
 
 type ApiEnvelope<T> = { ok?: boolean; data?: T; error?: string } & Record<string, unknown>;
 
