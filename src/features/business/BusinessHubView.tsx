@@ -130,6 +130,7 @@ export function BusinessHubView({
   const activeBidReservations = activeAuctions.filter((auction) => auction.highestBidderUid === profile.uid).length;
   const occupiedCompanySlots = visibleCompanies.length + activeBidReservations;
   const hasCompanySlot = occupiedCompanySlots < 3;
+  const canFoundCompany = hasCompanySlot && activeBidReservations === 0;
   const refreshAuctions = async () => setAuctions(await fetchCompanyAuctions());
   const formatAuctionRemaining = (endsAt: number) => {
     const remaining = Math.max(0, endsAt - nowMs);
@@ -232,10 +233,14 @@ export function BusinessHubView({
           ? language === 'ar'
             ? 'رصيدك غير كافٍ.'
             : 'Insufficient funds.'
+          : code === 'COMPANY_AUCTION_PENDING'
+          ? language === 'ar'
+            ? 'لا يمكنك تأسيس شركة جديدة ما دام عرضك هو الأعلى في مزاد نشط.'
+            : 'You cannot found a company while you are leading an active auction bid.'
           : code === 'COMPANY_CAPACITY_REACHED'
           ? language === 'ar'
-            ? 'لا يمكنك تأسيس شركة إضافية؛ الحد الأقصى 3 شركات ويشمل عروض المزاد الأعلى.'
-            : 'You cannot found another company; the limit is three, including leading auction bids.'
+            ? 'لا يمكنك تأسيس شركة إضافية؛ الحد الأقصى 3 شركات.'
+            : 'You cannot found another company; the limit is three companies.'
           : language === 'ar'
           ? 'تأكد من إدخال اسم شركة صالح.'
           : 'Please enter a valid company name.',
@@ -379,8 +384,8 @@ export function BusinessHubView({
         <div className="space-y-4">
           {companyView === 'overview' && (
             <div className="space-y-4">
-              <button type="button" disabled={!hasCompanySlot} onClick={() => setCompanyView('found')} className="w-full min-h-[64px] rounded-2xl border border-dashed border-[#E04455]/50 bg-[#141821] px-5 py-4 flex items-center justify-between text-start disabled:opacity-40">
-                <span><span className="block text-sm font-bold text-[#F4F5F7]">{language === 'ar' ? 'تأسيس شركة جديدة' : 'Found a new company'}</span><span className="block text-xs text-[#9299A6] mt-1">{hasCompanySlot ? (language === 'ar' ? 'ابدأ مشروعاً جديداً' : 'Start a new enterprise') : (language === 'ar' ? 'اكتمل الحد الأقصى لثلاث شركات مع عروضك الحالية.' : 'You have reached the three-company limit including active leading bids.')}</span></span><Plus className="w-5 h-5 text-[#E04455]" />
+              <button type="button" disabled={!canFoundCompany} onClick={() => setCompanyView('found')} className="w-full min-h-[64px] rounded-2xl border border-dashed border-[#E04455]/50 bg-[#141821] px-5 py-4 flex items-center justify-between text-start disabled:opacity-40">
+                <span><span className="block text-sm font-bold text-[#F4F5F7]">{language === 'ar' ? 'تأسيس شركة جديدة' : 'Found a new company'}</span><span className="block text-xs text-[#9299A6] mt-1">{activeBidReservations > 0 ? (language === 'ar' ? 'لا يمكنك تأسيس شركة ما دام لديك عرض شراء هو الأعلى في المزاد.' : 'You cannot found a company while you are leading an active auction bid.') : canFoundCompany ? (language === 'ar' ? 'ابدأ مشروعاً جديداً' : 'Start a new enterprise') : (language === 'ar' ? 'اكتمل الحد الأقصى لثلاث شركات.' : 'You have reached the three-company limit.')}</span></span><Plus className="w-5 h-5 text-[#E04455]" />
               </button>
               <section className="bg-[#141821] border border-white/8 rounded-2xl p-4 space-y-3">
                 <div className="flex items-center justify-between"><h2 className="text-sm font-bold text-[#F4F5F7]">{language === 'ar' ? 'شركاتي' : 'My companies'}</h2><span className="text-xs text-[#9299A6] font-mono-num">{occupiedCompanySlots}/3</span></div>

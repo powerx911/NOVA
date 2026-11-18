@@ -99,7 +99,7 @@ async function bootstrap(admin: ReturnType<typeof getAdminClient>, uid: string) 
   const db = admin.schema("nexora");
   const [
     profile, userPrivate, wallet, inventory, sent, received, marketListings,
-    marketOrders, companies, companyLogs, organizations,
+    marketOrders, companies, organizations,
     organizationMembers, organizationRequests, playerMissions, dailyClaims,
     contractClaims, playerAchievements, notifications, worldEvents,
   ] = await Promise.all([
@@ -111,8 +111,7 @@ async function bootstrap(admin: ReturnType<typeof getAdminClient>, uid: string) 
     queryData(db.from("transactions").select("*").eq("to_uid", uid).order("created_at", { ascending: false }).limit(30)),
     queryData(db.from("market_listings").select("*").eq("status", "active").order("created_at", { ascending: false }).limit(100)),
     queryData(db.from("market_orders").select("*").eq("buyer_uid", uid).order("created_at", { ascending: false }).limit(25)),
-    queryData(db.from("companies").select("*").eq("owner_uid", uid)),
-    queryData(db.from("company_logs").select("*").eq("owner_uid", uid).order("created_at", { ascending: false }).limit(200)),
+    queryData(db.from("companies").select("*").eq("owner_uid", uid).eq("is_deleted", false)),
     queryData(db.from("organizations").select("*").gte("reputation", 0).order("reputation", { ascending: false }).limit(40)),
     queryData(db.from("organization_members").select("*").eq("user_id", uid).limit(1)),
     queryData(db.from("organization_requests").select("*").eq("user_id", uid)),
@@ -123,6 +122,12 @@ async function bootstrap(admin: ReturnType<typeof getAdminClient>, uid: string) 
     queryData(db.from("notifications").select("*").eq("user_id", uid).order("created_at", { ascending: false }).limit(30)),
     queryData(db.from("world_events").select("*").eq("active", true)),
   ]);
+
+  const ownedCompanyIds = (companies as Record<string, unknown>[]).map((company) => String(company.id)).filter(Boolean);
+  const companyLogs = ownedCompanyIds.length
+    ? await queryData(db.from("company_logs").select("*").in("company_id", ownedCompanyIds)
+        .order("created_at", { ascending: false }).limit(200))
+    : [];
 
   const orgId = (profile as Record<string, unknown> | null)?.org_id;
   const [orgMembers, orgRequests, orgTransactions] = orgId
@@ -398,7 +403,7 @@ Deno.serve(async (req: Request) => {
       const sector = typeof body.sector === "string" ? body.sector : "";
       const { data, error } = await db.rpc("found_company", { p_uid: identity.uid, p_name: name, p_sector: sector });
       if (error) {
-        const known = ["INVALID_NAME","INVALID_SECTOR","ACCOUNT_NOT_FOUND","INSUFFICIENT_FUNDS","COMPANY_CAPACITY_REACHED"].find((code) => error.message.includes(code));
+        const known = ["INVALID_NAME","INVALID_SECTOR","ACCOUNT_NOT_FOUND","INSUFFICIENT_FUNDS","COMPANY_CAPACITY_REACHED","COMPANY_AUCTION_PENDING"].find((code) => error.message.includes(code));
         return json({ error: known ?? "COMPANY_FOUNDING_FAILED" }, 409, origin);
       }
       return json({ ok: true, data }, 201, origin);
