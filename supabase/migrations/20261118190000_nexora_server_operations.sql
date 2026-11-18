@@ -40,7 +40,7 @@ begin
   reputation=reputation+round(v_rep*v_leadership)::bigint,influence=influence+round(5*v_leadership)::bigint,stats=v_stats,updated_at=now()
  where user_id=p_uid;
  return jsonb_build_object('ok',true,'reward_credits',v_credits,'reward_xp',v_xp_gain);
-end;$function$
+end;$function$;
 
 CREATE OR REPLACE FUNCTION nexora.complete_organization_upgrade(p_uid text, p_org_id text)
  RETURNS jsonb
@@ -60,7 +60,7 @@ begin
  v_capacity:=least(80,20+(v_target-1)*5+coalesce((v_org.research->>'expansion')::integer,0));
  update nexora.organizations set level=v_target,member_capacity=v_capacity,upgrade_ends_at=null,upgrade_started_at=null,upgrade_target_level=null,updated_at=now() where id=p_org_id;
  return jsonb_build_object('ok',true,'level',v_target,'member_capacity',v_capacity);
-end;$function$
+end;$function$;
 
 CREATE OR REPLACE FUNCTION nexora.create_organization(p_uid text, p_name text, p_tag text, p_description text)
  RETURNS jsonb
@@ -92,7 +92,7 @@ begin
  where user_id=p_uid;
  return jsonb_build_object('ok',true,'org_id',v_id);
 exception when unique_violation then raise exception 'TAG_TAKEN';
-end;$function$
+end;$function$;
 
 CREATE OR REPLACE FUNCTION nexora.deposit_org_treasury(p_uid text, p_org_id text, p_amount bigint)
  RETURNS jsonb
@@ -112,7 +112,7 @@ begin
  insert into nexora.transactions(id,from_uid,to_uid,amount,fee,net_amount,type,reference_id,description,status) values(v_tx,p_uid,'ORG',p_amount,0,p_amount,'org_deposit',p_org_id,'Org treasury deposit ['||v_org.tag||']','completed');
  insert into nexora.organization_transactions(id,org_id,user_id,username,type,amount,note) values(v_otx,p_org_id,p_uid,v_member.username,'deposit',p_amount,'Deposit by '||v_member.username);
  return jsonb_build_object('ok',true);
-end;$function$
+end;$function$;
 
 CREATE OR REPLACE FUNCTION nexora.fetch_leaderboards()
  RETURNS jsonb
@@ -142,7 +142,7 @@ AS $function$
    'upgradeEndsAt',upgrade_ends_at,'upgradeTargetLevel',upgrade_target_level,'createdAt',created_at,'updatedAt',updated_at
   ) order by reputation desc) from (select * from nexora.organizations order by reputation desc limit 20) o),'[]'::jsonb)
  );
-$function$
+$function$;
 
 CREATE OR REPLACE FUNCTION nexora.get_org_pending_requests(p_org_id text, p_uid text)
  RETURNS jsonb
@@ -157,7 +157,7 @@ begin
  select coalesce(jsonb_agg(jsonb_build_object('id',id,'orgId',org_id,'uid',user_id,'username',username,'status',status,'createdAt',created_at) order by created_at),'[]'::jsonb)
  into v_result from nexora.organization_requests where org_id=p_org_id and status='pending';
  return v_result;
-end;$function$
+end;$function$;
 
 CREATE OR REPLACE FUNCTION nexora.handle_org_join_request(p_actor_uid text, p_org_id text, p_request_id text, p_decision text)
  RETURNS jsonb
@@ -187,7 +187,7 @@ begin
  end if;
  update nexora.organization_requests set status=p_decision,updated_at=now() where id=p_request_id;
  return jsonb_build_object('ok',true);
-end;$function$
+end;$function$;
 
 CREATE OR REPLACE FUNCTION nexora.kick_org_member(p_actor_uid text, p_org_id text, p_target_uid text)
  RETURNS jsonb
@@ -209,7 +209,7 @@ begin
  update nexora.organizations set member_count=greatest(1,member_count-1),updated_at=now() where id=p_org_id;
  update nexora.player_profiles set org_id=null,updated_at=now() where user_id=p_target_uid and org_id=p_org_id;
  return jsonb_build_object('ok',true);
-end;$function$
+end;$function$;
 
 CREATE OR REPLACE FUNCTION nexora.leave_organization(p_uid text, p_org_id text)
  RETURNS jsonb
@@ -226,7 +226,7 @@ begin
  update nexora.organizations set member_count=greatest(1,member_count-1),updated_at=now() where id=p_org_id;
  update nexora.player_profiles set org_id=null,updated_at=now() where user_id=p_uid and org_id=p_org_id;
  return jsonb_build_object('ok',true);
-end;$function$
+end;$function$;
 
 CREATE OR REPLACE FUNCTION nexora.request_join_organization(p_uid text, p_org_id text)
  RETURNS jsonb
@@ -244,7 +244,7 @@ begin
  if exists(select 1 from nexora.organization_requests where org_id=p_org_id and user_id=p_uid and status='pending') then raise exception 'REQUEST_ALREADY_PENDING';end if;
  insert into nexora.organization_requests(id,org_id,user_id,username,status) values(v_id,p_org_id,p_uid,v_profile.username,'pending');
  return jsonb_build_object('ok',true,'request_id',v_id);
-end;$function$
+end;$function$;
 
 CREATE OR REPLACE FUNCTION nexora.research_organization(p_uid text, p_org_id text, p_research_id text)
  RETURNS jsonb
@@ -268,7 +268,7 @@ begin
  insert into nexora.organization_transactions(id,org_id,user_id,username,type,amount,note)
  values(v_tx,p_org_id,p_uid,v_member.username,'upgrade',v_cost,'Research '||p_research_id||' advanced to Lv.'||(v_current+1)::text);
  return jsonb_build_object('ok',true,'research_id',p_research_id,'level',v_current+1,'cost',v_cost,'member_capacity',v_capacity);
-end;$function$
+end;$function$;
 
 CREATE OR REPLACE FUNCTION nexora.start_organization_upgrade(p_uid text, p_org_id text)
  RETURNS jsonb
@@ -293,7 +293,7 @@ begin
  insert into nexora.organization_transactions(id,org_id,user_id,username,type,amount,note)
  values(v_tx,p_org_id,p_uid,v_member.username,'upgrade',v_cost,'Started organization upgrade to Lv.'||v_target::text);
  return jsonb_build_object('ok',true,'target_level',v_target,'ends_at',v_end,'cost',v_cost,'duration_ms',v_duration);
-end;$function$
+end;$function$;
 
 CREATE OR REPLACE FUNCTION nexora.sync_self_org_membership(p_uid text, p_org_id text)
  RETURNS jsonb
@@ -317,7 +317,7 @@ begin
   update nexora.player_profiles set org_id=p_org_id,updated_at=now() where user_id=p_uid;
  end if;
  return jsonb_build_object('ok',true);
-end;$function$
+end;$function$;
 
 CREATE OR REPLACE FUNCTION nexora.unlock_eligible_achievements(p_uid text)
  RETURNS jsonb
@@ -343,7 +343,7 @@ begin
  on conflict(user_id,achievement_id) do nothing;
  select coalesce(array_agg(achievement_id),'{}'::text[]) into v_unlocked from nexora.player_achievements where user_id=p_uid;
  return jsonb_build_object('unlocked_ids',v_unlocked);
-end;$function$
+end;$function$;
 
 CREATE OR REPLACE FUNCTION nexora.update_org_member_role(p_actor_uid text, p_org_id text, p_target_uid text, p_role text)
  RETURNS jsonb
@@ -364,7 +364,7 @@ begin
  v_perms:=case p_role when 'deputy' then '["manage_members","manage_roles","manage_treasury"]'::jsonb when 'officer' then '["manage_members"]'::jsonb else '[]'::jsonb end;
  update nexora.organization_members set role=p_role,permissions=v_perms where org_id=p_org_id and user_id=p_target_uid;
  return jsonb_build_object('ok',true);
-end;$function$
+end;$function$;
 
 CREATE OR REPLACE FUNCTION nexora.withdraw_org_treasury(p_uid text, p_org_id text, p_amount bigint)
  RETURNS jsonb
