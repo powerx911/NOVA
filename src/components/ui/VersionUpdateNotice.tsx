@@ -57,7 +57,7 @@ export function VersionUpdateNotice() {
     } catch {
       // Reload regardless; version detection can recover on the next session.
     }
-    window.location.reload();
+    window.location.replace(`${import.meta.env.BASE_URL}?v=${encodeURIComponent(availableVersion as string)}`);
   }
 
   return (
