@@ -847,7 +847,7 @@ export function ProfileHubView({
             <div className="fixed inset-0 z-[70] flex items-end justify-center bg-black/75 p-0 backdrop-blur-sm sm:items-center sm:p-4" role="dialog" aria-modal="true">
               <div className="w-full max-w-md space-y-4 rounded-t-3xl border border-white/10 bg-[#141821] p-6 sm:rounded-2xl">
                 <h3 className="text-lg font-bold text-[#F4F5F7]">{language === 'ar' ? 'تأكيد حذف الحساب نهائياً' : 'Confirm permanent account deletion'}</h3>
-                <p className="text-sm leading-relaxed text-[#9299A6]">{language === 'ar' ? 'سيتم حذف حساب الدخول وملف اللاعب والمحفظة والشركات والممتلكات وسجلات اللعب المرتبطة به. لا يمكن التراجع عن هذه العملية.' : 'Your sign-in account, player profile, wallet, companies, properties and associated game records will be deleted. This cannot be undone.'}</p>
+                <p className="text-sm leading-relaxed text-[#9299A6]">{language === 'ar' ? 'سيتم حذف حساب الدخول وملف اللاعب والمحفظة والشركات وسجلات اللعب المرتبطة به. لا يمكن التراجع عن هذه العملية.' : 'Your sign-in account, player profile, wallet, companies and associated game records will be deleted. This cannot be undone.'}</p>
                 {!auth.currentUser?.isAnonymous && auth.currentUser?.providerData.some((provider) => provider.providerId === 'password') && (
                   <input type="password" value={deletePassword} onChange={(event) => setDeletePassword(event.target.value)} autoComplete="current-password" placeholder={language === 'ar' ? 'كلمة المرور لتأكيد الهوية' : 'Password to confirm identity'} className="min-h-[44px] w-full rounded-xl border border-white/10 bg-[#0B0D12] px-3 text-sm text-[#F4F5F7]" />
                 )}
