@@ -145,13 +145,12 @@ export function AuthOnboardingView({
     if (!uid || (!email && !isGuest)) return;
 
     const clean = username.trim();
+    if (!/^[A-Za-z0-9_]+$/.test(clean)) {
+      showToast(language === 'ar' ? 'المسموح فقط حروف إنجليزية وأرقام وشرطة سفلية (_) بدون مسافات أو رموز.' : 'Use only English letters, numbers, and underscores (_) — no spaces or symbols.', 'error');
+      return;
+    }
     if (!isValidUsername(clean)) {
-      showToast(
-        language === 'ar'
-          ? 'اسم المستخدم يجب أن يكون بين 3 و24 حرفاً إنجليزياً أو رقماً أو _.'
-          : 'Username must be 3–24 letters, numbers, or underscores.',
-        'error'
-      );
+      showToast(language === 'ar' ? 'اسم المستخدم يجب أن يكون من 3 إلى 24 حرفاً أو رقماً.' : 'Username must be 3–24 characters long.', 'error');
       return;
     }
 
