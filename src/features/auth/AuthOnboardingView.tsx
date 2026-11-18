@@ -1,4 +1,4 @@
-import { Globe, ShieldCheck } from 'lucide-react';
+import { ArrowLeft, Globe, ShieldCheck } from 'lucide-react';
 import { useState } from 'react';
 import { AVATARS, BRAND_ASSETS, STARTING_CREDITS } from '../../data/catalog';
 import { useTranslations } from '../../i18n/translations';
@@ -17,6 +17,7 @@ interface AuthOnboardingViewProps {
   onLoginWithEmail: (email: string, password: string) => Promise<void>;
   onRegisterWithEmail: (email: string, password: string) => Promise<void>;
   onGuestLogin: () => Promise<void>;
+  onBack: () => Promise<void>;
   isGuest?: boolean;
 }
 
@@ -30,6 +31,7 @@ export function AuthOnboardingView({
   onLoginWithEmail,
   onRegisterWithEmail,
   onGuestLogin,
+  onBack,
   isGuest = false,
 }: AuthOnboardingViewProps) {
   const t = useTranslations(language);
@@ -126,6 +128,18 @@ export function AuthOnboardingView({
     finally { setBusy(false); }
   }
 
+  async function handleBackToSignIn() {
+    if (busy) return;
+    setBusy(true);
+    try {
+      await onBack();
+    } catch {
+      showToast(language === 'ar' ? 'تعذر الرجوع الآن. حاول مرة أخرى.' : 'Could not go back. Please try again.', 'error');
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function handleCreateCharacter(e: React.FormEvent) {
     e.preventDefault();
     if (!uid || (!email && !isGuest)) return;
@@ -184,11 +198,11 @@ export function AuthOnboardingView({
         <div className="flex items-center gap-2.5">
           <img
             src={BRAND_ASSETS.emblem}
-            alt="NEXORA"
+            alt="NOVA"
             referrerPolicy="no-referrer"
             className="w-8 h-8 rounded-lg object-cover border border-white/10"
           />
-          <span className="text-lg font-bold tracking-tight">NEXORA</span>
+          <span className="text-lg font-bold tracking-tight">NOVA</span>
         </div>
 
         <button
@@ -208,7 +222,7 @@ export function AuthOnboardingView({
             <div className="flex flex-col items-center text-center space-y-4">
               <img
                 src={BRAND_ASSETS.emblem}
-                alt="NEXORA Emblem"
+                alt="NOVA Emblem"
                 referrerPolicy="no-referrer"
                 className="w-20 h-20 rounded-2xl object-cover border border-white/10"
               />
@@ -286,6 +300,15 @@ export function AuthOnboardingView({
             onSubmit={handleCreateCharacter}
             className="bg-[#141821] border border-white/8 rounded-2xl p-6 sm:p-7 shadow-2xl space-y-5"
           >
+            <button
+              type="button"
+              onClick={handleBackToSignIn}
+              disabled={busy}
+              className="inline-flex min-h-[40px] items-center gap-2 rounded-xl border border-white/10 bg-[#0B0D12] px-3.5 text-sm font-medium text-[#F4F5F7] hover:border-white/20 disabled:opacity-50"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              {language === 'ar' ? 'رجوع وتغيير طريقة الدخول' : 'Back to sign-in options'}
+            </button>
             <div className="space-y-1.5">
               <h1 className="text-xl font-bold text-[#F4F5F7]">{t.onboardingTitle}</h1>
               <p className="text-sm text-[#9299A6]">{t.onboardingSubtitle}</p>
@@ -352,7 +375,7 @@ export function AuthOnboardingView({
       </div>
 
       <footer className="max-w-4xl w-full mx-auto text-center text-xs text-[#9299A6]">
-        NEXORA · {t.tagline}
+        NOVA · {t.tagline}
       </footer>
     </div>
   );
