@@ -259,6 +259,45 @@ Deno.serve(async (req: Request) => {
       return json({ ok: true, data }, 200, origin);
     }
 
+    if (body.action === "create_market_listing") {
+      const itemId = typeof body.itemId === "string" ? body.itemId : "";
+      const quantity = typeof body.quantity === "number" && Number.isFinite(body.quantity) ? Math.floor(body.quantity) : 0;
+      const unitPrice = typeof body.unitPrice === "number" && Number.isFinite(body.unitPrice) ? Math.round(body.unitPrice) : 0;
+      const { data, error } = await db.rpc("create_market_listing", {
+        p_uid: identity.uid, p_item_id: itemId, p_qty: quantity, p_unit_price: unitPrice,
+      });
+      if (error) {
+        const known = ["INVALID_ITEM","INVALID_LISTING_PARAMS","INSUFFICIENT_INVENTORY","ACCOUNT_NOT_FOUND"].find((code) => error.message.includes(code));
+        return json({ error: known ?? "CREATE_LISTING_FAILED" }, 409, origin);
+      }
+      return json({ ok: true, data }, 201, origin);
+    }
+
+    if (body.action === "buy_market_listing") {
+      const listingId = typeof body.listingId === "string" ? body.listingId : "";
+      const quantity = typeof body.quantity === "number" && Number.isFinite(body.quantity) ? Math.floor(body.quantity) : 0;
+      const { data, error } = await db.rpc("buy_market_listing", {
+        p_uid: identity.uid, p_listing_id: listingId, p_qty: quantity,
+      });
+      if (error) {
+        const known = ["INVALID_QUANTITY","LISTING_NOT_FOUND","INSUFFICIENT_LISTING_QTY","CANNOT_BUY_OWN_LISTING","INSUFFICIENT_FUNDS","ACCOUNT_NOT_FOUND","SELLER_ACCOUNT_NOT_FOUND"].find((code) => error.message.includes(code));
+        return json({ error: known ?? "MARKET_PURCHASE_FAILED" }, 409, origin);
+      }
+      return json({ ok: true, data }, 200, origin);
+    }
+
+    if (body.action === "cancel_market_listing") {
+      const listingId = typeof body.listingId === "string" ? body.listingId : "";
+      const { data, error } = await db.rpc("cancel_market_listing", {
+        p_uid: identity.uid, p_listing_id: listingId,
+      });
+      if (error) {
+        const known = ["LISTING_NOT_FOUND","CANNOT_CANCEL_LISTING"].find((code) => error.message.includes(code));
+        return json({ error: known ?? "CANCEL_LISTING_FAILED" }, 409, origin);
+      }
+      return json({ ok: true, data }, 200, origin);
+    }
+
     return json({ error: "UNKNOWN_ACTION" }, 400, origin);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
