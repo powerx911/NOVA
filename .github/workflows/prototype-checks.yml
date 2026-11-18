@@ -37,5 +37,8 @@ jobs:
           grep -Fq 'id="inventory-grid"' index.html
           grep -Fq 'id="quest-list"' index.html
 
+      - name: Validate server-authoritative player migration contract
+        run: node scripts/check-player-migration.mjs
+
       - name: Check patch whitespace
         run: git diff --check origin/main...HEAD

@@ -2,9 +2,9 @@
 
 > **Purpose:** This is the handover source of truth for any developer or AI agent continuing NOVA. Read this file before making changes, then inspect the repository and GitHub Actions for the live state. Update this file in the same change as every project change.
 
-**Last verified/updated:** 2026-11-18  
-**Repository:** https://github.com/powerx911/NOVA  
-**Default branch:** `main`  
+**Last verified/updated:** 2026-11-18 (Pages deployment verified; player foundation PR in progress)
+**Repository:** https://github.com/powerx911/NOVA
+**Default branch:** `main`
 **Project name:** NOVA
 
 ---
@@ -36,7 +36,7 @@ If deployment fails after merge, record the failure and create a separate fix br
 |---|---|
 | Source control | GitHub repository `powerx911/NOVA` |
 | Production branch | `main` |
-| Static hosting target | GitHub Pages (workflow exists; activation/deployment not yet verified) |
+| Static hosting target | GitHub Pages; latest deployment workflow completed successfully (run 44330786982); live URL emitted by deployment: https://powerx911.github.io/NOVA/ |
 | Backend platform | Supabase |
 | Supabase project | `NOVA` |
 | Supabase project ref | `hmrprnjhyzyefocdmnxf` |
@@ -45,7 +45,7 @@ If deployment fails after merge, record the failure and create a separate fix br
 | Control service | Supabase Edge Function `nova-control` (deployment pending verification) |
 | Vercel | **Not used.** The project owner explicitly requires GitHub-based source control, integration, and deployment; do not introduce Vercel. |
 
-The user has requested an online-first competitive multiplayer game foundation before choosing the final game genre, setting, camera, or engine. Prepare and document the social, alliance, economy, war, security, and delivery requirements first; do not lock the final game category or begin the playable implementation prematurely.
+NOVA is an Android-first persistent online strategy game in development. The first local playable prototype is deployed to GitHub Pages; it is not yet a multiplayer game. React + TypeScript + Vite and Phaser 4 are selected for the next implementation spike.
 
 ---
 
@@ -55,8 +55,8 @@ Known files on `main` as of this baseline:
 
 - `README.md` — project overview and current online multiplayer scope.
 - `.gitignore` — ignored files.
-- `index.html` — temporary/static placeholder.
-- `.github/workflows/pages.yml` — GitHub Pages deployment workflow; Pages enablement and a successful live deployment have not yet been confirmed.
+- `index.html`, `styles.css`, `app.js` — local interactive castle/map/inventory prototype (browser-local state only).
+- `.github/workflows/pages.yml` — GitHub Pages deployment workflow; latest deployment succeeded in run 44330786982.
 - `supabase/functions/nova-control/index.ts` — NOVA Control MCP Edge Function implementation.
 - `supabase/config.toml` — Supabase function configuration; `nova-control` has `verify_jwt = false` because the function performs its own bearer-token check.
 - `docs/NOVA-CONTROL-MCP.md` — MCP service documentation.
@@ -116,7 +116,7 @@ The user reported adding all three secrets to the repository's Actions secrets. 
 
 File: `.github/workflows/pages.yml`
 
-The repository API snapshot previously showed `has_pages: false`. Therefore Pages enablement and the first Pages deployment are not confirmed.
+GitHub Pages is enabled with GitHub Actions as its source. Deployment run 44330786982 completed successfully; the deployment job emitted https://powerx911.github.io/NOVA/ as its environment URL. Independent HTTP/browser/device verification remains outstanding.
 
 ---
 
@@ -161,12 +161,12 @@ Statuses below distinguish completed source changes from verified live behavior.
 | NOVA Control MCP source merged | **Done** | PR #1 merged to `main`. |
 | Project handover document | **Done** | `PROJECT_STATUS.md` is present on `main`; keep it current with every change. |
 | Three Actions secrets added | User-reported done | Workflow must prove they are valid and sufficiently scoped. |
-| First `deploy-nova-control.yml` run | **Pending** | User was asked to manually run it once on `main`; no successful run result has yet been confirmed. |
+| First `deploy-nova-control.yml` run | **Unverified** | This is separate from the Pages workflow; confirm the Edge Function deployment run. |
 | Supabase Edge Function deployment | **Unverified** | Check GitHub Actions run and Supabase function list/deployed version. |
 | MCP health endpoint | **Untested** | Verify HTTP health response after deployment. |
 | MCP protocol/tool calls | **Untested** | Test authenticated MCP connection and each required tool safely. |
-| GitHub Pages enabled | **Pending** | `has_pages: false` appeared in an earlier repository snapshot. |
-| First Pages deployment | **Blocked — Pages site not enabled** | Workflow run `44329798929` failed at `actions/configure-pages@v5` with HTTP 404 (`Get Pages site failed`); artifact upload and deployment were skipped. Enable GitHub Pages for this repository with source `GitHub Actions`, then rerun the workflow. |
+| GitHub Pages enabled | **Done** | Source is GitHub Actions; Pages deployment run 44330786982 succeeded. |
+| First Pages deployment | **Done** | Run 44330786982, attempt 2: Setup Pages, artifact upload, and Deploy to GitHub Pages all succeeded. Environment URL: https://powerx911.github.io/NOVA/. The earlier failure 44329798929 is resolved. |
 | Automated branch/PR/test/merge/deploy lifecycle | **Process agreed; not yet fully validated** | Follow the mandatory lifecycle in section 1 for every future change. |
 | Game implementation | **First local playable prototype merged** | Castle/buildings/resources, 7×7 map, bag and relocation simulations, starter quests, and local saving are implemented. React/TypeScript + Vite + Phaser 4 is selected for the next implementation spike; authentication, multiplayer, server-authoritative gameplay, combat, and production schema remain unimplemented. |
 
@@ -410,3 +410,27 @@ The user explicitly requires NOVA to be online and socially connected from its f
 - Research references: Phaser official docs and input guide; Vite static deployment/build docs; PixiJS renderer and performance docs. URLs are recorded in docs/TECHNICAL_DECISIONS.md.
 - GitHub Pages remains blocked until the repository's Pages source is enabled as documented in section 18.
 - Validation: documentation review and consistency check; no runtime code or dependencies changed. PR: pending. Merge/deployment: pending.
+
+
+## 20. GitHub Pages deployment and server-authoritative player foundation (2026-11-18)
+
+### Pages deployment
+
+- The owner selected GitHub Actions in repository Settings → Pages → Build and deployment.
+- Rechecked Pages workflow run 44330786982, attempt 2: overall conclusion success.
+- Deployment job 134899489204: Checkout, Setup Pages, Upload artifact, and Deploy to GitHub Pages all succeeded.
+- The workflow log emitted the environment URL: https://powerx911.github.io/NOVA/.
+- Artifact github-pages uploaded successfully (60,417 bytes).
+- Independent external HTTP/browser/Android verification was not possible in this environment. The deployment itself is confirmed by GitHub Actions; do not claim device testing.
+- The deployed artifact is still the local-only HTML/CSS/JavaScript prototype. It is not a persistent online multiplayer game.
+
+### First server-authoritative player foundation — in progress
+
+- Created feature branch feat/server-authoritative-player-foundation from latest main.
+- Added supabase/migrations/20261118160000_nova_player_core.sql proposing six RLS-protected tables: profiles, economy, personal castles, buildings, idempotent command receipts, and resource ledger.
+- Added two authenticated RPC commands: nova_initialize_player and nova_upgrade_building. The upgrade command validates ownership, calculates costs server-side, locks state, deducts resources and increments the building in one transaction, records a ledger, and returns a replay-safe receipt.
+- Castle coordinates are allocated uniquely within an initial 1000×1000 kingdom grid. Terrain, map placement rules, and relocation remain future work.
+- Added docs/SERVER_AUTHORITATIVE_PLAYER_FOUNDATION.md documenting scope, security, limitations, and the post-merge verification plan.
+- Added scripts/check-player-migration.mjs and extended .github/workflows/prototype-checks.yml to statically check table/RLS coverage, RPC grants, idempotency lock, ownership check, ledger, and absence of direct client mutation policies.
+- Important: Migration is a proposal on the feature branch only. It has not been applied to the Supabase project. No production database schema was changed.
+- Checks still to run: Node syntax and migration-contract script in Actions; inspect the complete diff; open PR; wait for CI; review before merge. After merge, apply the migration and run the documented authenticated multi-user/idempotency tests before enabling the client to call these RPCs.
