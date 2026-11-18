@@ -56,6 +56,44 @@ import type {
   WorldEvent,
 } from '../../types/game';
 
+
+function getCompanyUpgradeMaterials(sector: CompanySector, targetLevel: number): Record<string, number> {
+  const tier = targetLevel <= 10 ? 0 : targetLevel <= 25 ? 1 : targetLevel <= 50 ? 2 : 3;
+  const plans: Record<CompanySector, Record<string, number>[]> = {
+    trade: [
+      { copper_wire: 3, silicon_ore: 2 },
+      { polymer_resin: 2, microchips: 2 },
+      { titanium_ore: 3, precision_frame: 2 },
+      { quantum_dust: 1, quantum_server: 1 },
+    ],
+    manufacturing: [
+      { crude_alloy: 3, carbon_fiber: 2 },
+      { titanium_ore: 2, precision_frame: 2 },
+      { biotech_gel: 2, bio_module: 1 },
+      { quantum_dust: 1, quantum_server: 1 },
+    ],
+    services: [
+      { energy_cells: 3, polymer_resin: 2 },
+      { biotech_gel: 2, bio_module: 1 },
+      { rare_minerals: 3, bio_module: 2 },
+      { quantum_dust: 1, quantum_server: 1 },
+    ],
+    tech: [
+      { silicon_ore: 3, microchips: 2 },
+      { polymer_resin: 2, synth_polymer: 2 },
+      { biotech_gel: 2, bio_module: 2 },
+      { quantum_dust: 2, quantum_server: 1 },
+    ],
+    logistics: [
+      { carbon_fiber: 3, precision_frame: 2 },
+      { titanium_ore: 2, logistics_drone: 1 },
+      { rare_minerals: 3, logistics_drone: 2 },
+      { quantum_dust: 1, logistics_drone: 2 },
+    ],
+  };
+  return plans[sector][tier];
+}
+
 interface BusinessHubViewProps {
   profile: PlayerProfile;
   wallet: Wallet | null;
@@ -320,6 +358,10 @@ export function BusinessHubView({
           ? language === 'ar'
             ? 'الرصيد غير كافٍ للترقية.'
             : 'Insufficient funds to upgrade.'
+          : code === 'MISSING_COMPANY_MATERIALS'
+          ? language === 'ar'
+            ? 'المواد الصناعية المطلوبة لهذه الترقية غير متوفرة في حقيبتك.'
+            : 'You do not have the industrial materials required for this upgrade.'
           : fallbackMessage,
         'error'
       );
@@ -490,7 +532,7 @@ export function BusinessHubView({
                   ? Object.entries(vaultUpgrade.materials).every(([itemId, qty]) => (invMap.get(itemId) || 0) >= qty)
                   : false;
                 const vaultProgress = Math.min(100, (accrued / vaultCapacity) * 100);
-                const upgradeCost = c.level * 550;
+                const upgradeCost = c.level * 550;\n                const companyUpgradeMaterials = getCompanyUpgradeMaterials(c.sector, c.level + 1);\n                const companyMaterialsAvailable = Object.entries(companyUpgradeMaterials).every(([itemId, qty]) => (invMap.get(itemId) || 0) >= qty);
                 const companyUpgradeEndsAt = c.levelUpgradeEndsAt ? timestampToMs(c.levelUpgradeEndsAt) : 0;
                 const vaultUpgradeEndsAt = c.vaultUpgradeEndsAt ? timestampToMs(c.vaultUpgradeEndsAt) : 0;
                 const companyUpgradeRemaining = companyUpgradeEndsAt ? Math.max(0, companyUpgradeEndsAt - nowMs) : 0;
@@ -621,6 +663,19 @@ export function BusinessHubView({
                       )}
                     </div>
 
+                    <div className="rounded-xl border border-amber-400/15 bg-[#11131A] p-3 space-y-2">
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-xs font-bold text-amber-200">{language === 'ar' ? 'مواد تطوير الشركة' : 'Company upgrade materials'}</p>
+                        <span className="text-[10px] text-[#9299A6]">{language === 'ar' ? `للمستوى ${c.level + 1}` : `For level ${c.level + 1}`}</span>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {Object.entries(companyUpgradeMaterials).map(([itemId, qty]) => {
+                          const item = ITEM_MAP[itemId];
+                          const owned = invMap.get(itemId) || 0;
+                          return <span key={itemId} className={`rounded-lg px-2 py-1 text-[11px] ${owned >= qty ? 'bg-emerald-500/10 text-emerald-300' : 'bg-rose-500/10 text-rose-300'}`}>{language === 'ar' ? item?.nameAr : item?.nameEn}: {owned}/{qty}</span>;
+                        })}
+                      </div>
+                    </div>
                     <div className="flex flex-wrap items-center gap-2.5">
                       <button
                         type="button"
@@ -632,7 +687,7 @@ export function BusinessHubView({
                       </button>
                       <button
                         type="button"
-                        disabled={isMaxLevel || companyUpgradePending || busyKey === `upg_${c.id}` || (wallet?.balance ?? 0) < upgradeCost}
+                        disabled={isMaxLevel || companyUpgradePending || busyKey === `upg_${c.id}` || (wallet?.balance ?? 0) < upgradeCost || !companyMaterialsAvailable}
                         onClick={() => handleUpgradeCompany(c.id)}
                         className="min-h-[42px] px-3.5 rounded-xl bg-[#1B2230] hover:bg-[#232C3E] text-[#F4F5F7] text-xs font-semibold whitespace-nowrap disabled:opacity-50 transition-colors"
                       >
