@@ -23,7 +23,7 @@ export function FactoriesPanel({ factories, inventory, profile, wallet, language
   const [withdrawAmount, setWithdrawAmount] = useState(1);
   const [busyKey, setBusyKey] = useState<string | null>(null);
   const [now, setNow] = useState(Date.now());
-  const inventoryMap = useMemo(() => new Map(inventory.map((item) => [item.itemId, item.quantity])), [inventory]);
+  const inventoryMap = useMemo(() => new Map<string, number>(inventory.map((item) => [item.itemId, item.quantity] as [string, number])), [inventory]);
   const selected = factories.find((factory) => factory.id === selectedId) ?? factories[0] ?? null;
   const selectedResource = selected ? FACTORY_RESOURCES.find((item) => item.resourceId === selected.resourceId) : null;
   const selectedUpgradeEnd = selected?.upgradeEndsAt ? timestampToMs(selected.upgradeEndsAt) : 0;
