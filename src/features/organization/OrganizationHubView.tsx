@@ -27,6 +27,7 @@ import {
   completeOrganizationUpgrade,
   researchOrganization,
   withdrawFromOrgTreasury,
+  getOrgDonationRanking,
 } from '../../services/gameService';
 import type {
   Language,
@@ -76,6 +77,7 @@ export function OrganizationHubView({
   const [confirmLeaveOpen, setConfirmLeaveOpen] = useState(false);
   const [kickTarget, setKickTarget] = useState<{ uid: string; username: string } | null>(null);
   const [clockNow, setClockNow] = useState(Date.now());
+  const [donationRanking, setDonationRanking] = useState<Array<{ uid: string; username: string; amount: number }>>([]);
 
   const currentOrg = myOrgMember
     ? organizations.find((o) => o.id === myOrgMember.orgId) || null
@@ -107,12 +109,14 @@ export function OrganizationHubView({
     return () => window.clearTimeout(timer);
   }, [currentOrg?.id, currentOrg?.upgradeEndsAt, language, showToast]);
 
-  const contributionsByUid = new Map<string, number>();
-  for (const otx of orgTransactions) {
-    if (otx.type === 'deposit') {
-      contributionsByUid.set(otx.uid, (contributionsByUid.get(otx.uid) || 0) + otx.amount);
-    }
-  }
+  useEffect(() => {
+    if (!currentOrg?.id) { setDonationRanking([]); return; }
+    let active = true;
+    void getOrgDonationRanking(currentOrg.id).then((ranking) => { if (active) setDonationRanking(ranking); }).catch(() => {
+      if (active) setDonationRanking([]);
+    });
+    return () => { active = false; };
+  }, [currentOrg?.id]);
 
   async function handleCreateOrg(e: React.FormEvent) {
     e.preventDefault();
@@ -513,8 +517,9 @@ export function OrganizationHubView({
   return (
     <div className="w-full min-w-0 space-y-4 sm:space-y-5">
       {/* Organization Header */}
-      <div className="min-w-0 w-full bg-[#141821] border border-white/8 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div id="org-info" className="min-w-0 w-full bg-[#141821] border border-white/8 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="space-y-1">
+          <p className="text-[10px] font-semibold tracking-wide text-[#E5A0A8]">{language === 'ar' ? 'معلومات المنظمة' : 'Organization information'}</p>
           <div className="flex items-center gap-2.5">
             <Shield className="w-5 h-5 text-[#E04455]" />
             <h1 className="min-w-0 break-words text-lg sm:text-xl font-bold text-[#F4F5F7]">
@@ -526,7 +531,9 @@ export function OrganizationHubView({
             {t.members}{' '}
             <span className="font-mono-num text-[#F4F5F7]">{currentOrg.memberCount}/{memberCapacity}</span> ·{' '}
             {t.reputation}{' '}
-            <span className="font-mono-num text-[#F4F5F7]">{currentOrg.reputation}</span>
+            <span className="font-mono-num text-[#F4F5F7]">{currentOrg.reputation}</span> ·{' '}
+            {language === 'ar' ? 'القائد' : 'Leader'}{' '}
+            <span className="text-[#F4F5F7]">{currentOrg.leaderName}</span>
           </p>
         </div>
 
@@ -574,7 +581,11 @@ export function OrganizationHubView({
         </div>
       </div>
 
-      <section className="min-w-0 rounded-2xl border border-white/8 bg-[#141821] p-4 sm:p-5 space-y-4">
+      <nav aria-label={language === 'ar' ? 'أقسام المنظمة' : 'Organization sections'} className="flex gap-2 overflow-x-auto rounded-xl border border-white/8 bg-[#141821] p-2 text-xs">
+        {[['org-info', language === 'ar' ? 'معلومات المنظمة' : 'Information'], ['org-members', t.members], ['org-research', language === 'ar' ? 'الأبحاث' : 'Research'], ['org-treasury', language === 'ar' ? 'الخزنة' : 'Treasury'], ['org-donations', language === 'ar' ? 'ترتيب التبرعات' : 'Donations']].map(([id, label]) => <a key={id} href={`#${id}`} className="shrink-0 rounded-lg bg-[#0B0D12] px-3 py-2 text-[#D5D9E1] hover:bg-[#252B36]">{label}</a>)}
+      </nav>
+
+      <section id="org-research" className="min-w-0 rounded-2xl border border-white/8 bg-[#141821] p-4 sm:p-5 space-y-4">
         <div className="flex items-center justify-between gap-3">
           <div>
             <h2 className="text-base font-bold text-[#F4F5F7]">{language === 'ar' ? 'أبحاث المنظمة' : 'Organization Research'}</h2>
@@ -620,7 +631,7 @@ export function OrganizationHubView({
       <div className="grid min-w-0 grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5">
         {/* Shared Treasury Operations & RBAC Matrix */}
         <div className="w-full min-w-0 space-y-4 sm:space-y-5">
-          <div className="min-w-0 bg-[#141821] border border-white/8 rounded-2xl p-4 sm:p-5 space-y-4">
+          <div id="org-treasury" className="min-w-0 bg-[#141821] border border-white/8 rounded-2xl p-4 sm:p-5 space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="text-base font-semibold text-[#F4F5F7]">{language === 'ar' ? 'خزينة المنظمة والتبرعات' : 'Organization treasury & donations'}</h2>
               <Vault className="w-4 h-4 text-[#E04455]" />
@@ -693,50 +704,12 @@ export function OrganizationHubView({
             </div>
           </div>
 
-          {/* Role Permissions Matrix */}
-          <div className="min-w-0 bg-[#141821] border border-white/8 rounded-2xl p-4 sm:p-5 space-y-3">
-            <h2 className="text-sm font-semibold text-[#F4F5F7]">{t.orgPerks}</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
-              {(['leader', 'deputy', 'officer', 'member'] as const).map((role) => {
-                const perms = ROLE_DEFAULT_PERMISSIONS[role];
-                const isMine = myOrgMember.role === role;
-                return (
-                  <div
-                    key={role}
-                    className={`p-3 rounded-xl border ${
-                      isMine ? 'bg-[#1B2230] border-[#E04455]/50' : 'bg-[#0B0D12] border-white/6'
-                    }`}
-                  >
-                    <p className="font-semibold text-[#F4F5F7]">{formatOrgRole(role, language)}</p>
-                    <p className="text-[11px] text-[#9299A6] mt-1 leading-relaxed">
-                      {perms.length === 0
-                        ? language === 'ar'
-                          ? 'مساهمة الخزينة والاطلاع'
-                          : 'Treasury deposits & view'
-                        : perms
-                            .map((p) =>
-                              p === 'manage_members'
-                                ? language === 'ar'
-                                  ? 'الأعضاء'
-                                  : 'Members'
-                                : p === 'manage_roles'
-                                ? language === 'ar'
-                                  ? 'الرتب'
-                                  : 'Roles'
-                                : p === 'manage_treasury'
-                                ? language === 'ar'
-                                  ? 'السحب'
-                                  : 'Treasury'
-                                : language === 'ar'
-                                ? 'الترقية'
-                                : 'Upgrade'
-                            )
-                            .join(' · ')}
-                    </p>
-                  </div>
-                );
-              })}
-            </div>
+          {/* Donation leaderboard */}
+          <div id="org-donations" className="min-w-0 bg-[#141821] border border-white/8 rounded-2xl p-4 sm:p-5 space-y-3">
+            <h2 className="text-sm font-semibold text-[#F4F5F7]">{language === 'ar' ? 'ترتيب التبرعات' : 'Donation leaderboard'}</h2>
+            {donationRanking.length === 0 ? <p className="py-4 text-center text-xs text-[#9299A6]">{language === 'ar' ? 'لا توجد تبرعات صافية حتى الآن.' : 'No net donations yet.'}</p> : donationRanking.map((entry, index) => (
+              <div key={entry.uid} className="flex items-center justify-between rounded-xl border border-white/6 bg-[#0B0D12] px-3 py-2.5"><span className="flex items-center gap-3 min-w-0"><span className="w-6 text-center text-xs font-bold text-amber-200">#{index + 1}</span><span className="truncate text-sm text-[#F4F5F7]">{entry.username}</span></span><span className="text-xs font-semibold font-mono-num text-emerald-400">${entry.amount.toLocaleString()}</span></div>
+            ))}
           </div>
         </div>
 
@@ -778,14 +751,13 @@ export function OrganizationHubView({
             </div>
           )}
 
-          <div className="bg-[#141821] border border-white/8 rounded-2xl p-5 space-y-3">
+          <div id="org-members" className="bg-[#141821] border border-white/8 rounded-2xl p-5 space-y-3">
             <div className="flex items-center justify-between">
               <h2 className="text-base font-semibold text-[#F4F5F7]">{t.members}</h2>
               <Users className="w-4 h-4 text-[#9299A6]" />
             </div>
             <div className="space-y-2">
               {orgMembers.map((m) => {
-                const contributed = contributionsByUid.get(m.uid) || 0;
                 const canChangeRole =
                   canManageRoles &&
                   m.uid !== profile.uid &&
@@ -805,29 +777,19 @@ export function OrganizationHubView({
                       <p className="text-sm font-medium text-[#F4F5F7] truncate">{m.username}</p>
                       <p className="text-xs text-[#9299A6] mt-0.5">
                         {formatOrgRole(m.role, language)}
-                        {contributed > 0 && (
-                          <span className="ms-2 font-mono-num text-emerald-400">
-                            · +${contributed.toLocaleString()}
-                          </span>
-                        )}
+
                       </p>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
                       {canChangeRole && (
-                        <select
-                          value={m.role}
-                          disabled={busyKey === `role_${m.uid}`}
-                          onChange={(e) =>
-                            handleRoleChange(m.uid, e.target.value as Exclude<OrgRole, 'leader'>)
-                          }
-                          className="min-h-[38px] px-2.5 rounded-lg bg-[#141821] border border-white/10 text-xs text-[#F4F5F7]"
-                        >
-                          <option value="member">{formatOrgRole('member', language)}</option>
-                          <option value="officer">{formatOrgRole('officer', language)}</option>
-                          {myOrgMember.role === 'leader' && (
-                            <option value="deputy">{formatOrgRole('deputy', language)}</option>
-                          )}
-                        </select>
+                        <div className="flex flex-col items-end gap-1">
+                          <select value={m.role} disabled={busyKey === `role_${m.uid}`} onChange={(e) => handleRoleChange(m.uid, e.target.value as Exclude<OrgRole, 'leader'>)} className="min-h-[38px] px-2.5 rounded-lg bg-[#141821] border border-white/10 text-xs text-[#F4F5F7]">
+                            {myOrgMember.role === 'leader' && <option value="deputy">{formatOrgRole('deputy', language)}</option>}
+                            <option value="officer">{formatOrgRole('officer', language)}</option>
+                            <option value="member">{formatOrgRole('member', language)}</option>
+                          </select>
+                          <span className="max-w-[190px] text-[10px] text-[#9299A6] text-end">{(ROLE_DEFAULT_PERMISSIONS[m.role] || []).length === 0 ? (language === 'ar' ? 'صلاحيات العضو الأساسية' : 'Basic member access') : (ROLE_DEFAULT_PERMISSIONS[m.role] || []).map((p) => p === 'manage_members' ? (language === 'ar' ? 'إدارة الأعضاء' : 'Members') : p === 'manage_roles' ? (language === 'ar' ? 'إدارة الرتب' : 'Roles') : p === 'manage_treasury' ? (language === 'ar' ? 'الخزينة' : 'Treasury') : (language === 'ar' ? 'إدارة المنظمة' : 'Organization')).join(' · ')}</span>
+                        </div>
                       )}
                       {canKick && (
                         <button

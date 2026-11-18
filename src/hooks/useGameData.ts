@@ -85,6 +85,14 @@ export function useGameData(): GameDataState {
   const [notifications, setNotifications] = useState<GameNotification[]>([]);
   const [worldEvents, setWorldEvents] = useState<WorldEvent[]>([]);
   const [utcDateKey, setUtcDateKey] = useState(() => getUtcDateKey());
+
+  useEffect(() => {
+    if (!profile?.uid) return;
+    const heartbeat = () => { void nexoraApi('touch_player_presence').catch(() => undefined); };
+    heartbeat();
+    const timer = window.setInterval(heartbeat, 30_000);
+    return () => window.clearInterval(timer);
+  }, [profile?.uid]);
   const [isOnline, setIsOnline] = useState(() =>
     typeof navigator !== 'undefined' ? navigator.onLine : true
   );

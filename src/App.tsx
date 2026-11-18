@@ -22,6 +22,7 @@ import type { MainTab } from './types/game';
 function NovaAppContent() {
   const game = useGameData();
   const [activeTab, setActiveTab] = useState<MainTab>('home');
+  const [socialUnreadCount, setSocialUnreadCount] = useState(0);
 
   if (!game.authReady || (game.authUser && game.profileLoading)) {
     return (
@@ -72,6 +73,7 @@ function NovaAppContent() {
     <AppShell
       activeTab={activeTab}
       onTabChange={setActiveTab}
+      socialUnreadCount={socialUnreadCount}
       profile={game.profile}
       wallet={game.wallet}
       notifications={game.notifications}
@@ -145,7 +147,7 @@ function NovaAppContent() {
       )}
 
       {activeTab === 'social' && (
-        <SocialHubView profile={game.profile} myOrgMember={game.myOrgMember} language={game.language} />
+        <SocialHubView profile={game.profile} myOrgMember={game.myOrgMember} organizations={game.organizations} language={game.language} onUnreadCountChange={setSocialUnreadCount} />
       )}
 
       {activeTab === 'profile' && (

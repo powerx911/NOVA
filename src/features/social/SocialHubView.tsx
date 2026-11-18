@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { ArrowLeft, Ban, Flag, Globe2, MessageCircle, Search, Send, ShieldCheck, Users, UserRound } from 'lucide-react';
 import { AVATARS } from '../../data/catalog';
 import { timestampToMs } from '../../lib/economy';
-import type { Language, OrganizationMember, PlayerProfile } from '../../types/game';
+import type { Language, Organization, OrganizationMember, PlayerProfile } from '../../types/game';
 import {
   blockPlayer as blockPlayerOnSupabase,
   getPublicPlayerProfile,
@@ -19,6 +19,7 @@ import {
   sendDirectMessage,
   sendGlobalChatMessage,
   unblockPlayer as unblockPlayerOnSupabase,
+  getPlayersPresence,
 } from '../../services/socialService';
 import type {
   PublicPlayer,
@@ -26,15 +27,18 @@ import type {
   SocialDirectMessage as DirectMessage,
   SocialGlobalMessage as GlobalMessage,
   SocialOrgInvite as OrgInvite,
+  SocialPresence,
 } from '../../services/socialService';
 
 interface SocialHubViewProps {
   profile: PlayerProfile;
   myOrgMember: OrganizationMember | null;
+  organizations: Organization[];
   language: Language;
+  onUnreadCountChange: (count: number) => void;
 }
 
-export function SocialHubView({ profile, myOrgMember, language }: SocialHubViewProps) {
+export function SocialHubView({ profile, myOrgMember, organizations, language, onUnreadCountChange }: SocialHubViewProps) {
   const ar = language === 'ar';
   const [mode, setMode] = useState<'players' | 'messages' | 'global'>('players');
   const [search, setSearch] = useState('');
@@ -50,6 +54,61 @@ export function SocialHubView({ profile, myOrgMember, language }: SocialHubViewP
   const [draft, setDraft] = useState('');
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState('');
+  const [dismissedUnread, setDismissedUnread] = useState<Record<string, number>>(() => {
+    try { return JSON.parse(window.localStorage.getItem(`nova:dm-read:${profile.uid}`) || '{}') as Record<string, number>; }
+    catch { return {}; }
+  });
+  const [selectedOrganization, setSelectedOrganization] = useState<Organization | null>(null);
+  const [presenceByUid, setPresenceByUid] = useState<Record<string, SocialPresence>>({});
+
+  const presenceDuration = (value: unknown) => {
+    const ms = timestampToMs(value, 0);
+    if (!ms) return ar ? 'غير معروف' : 'unknown';
+    const elapsed = Math.max(0, Date.now() - ms);
+    const minutes = Math.floor(elapsed / 60_000);
+    if (minutes < 60) return ar ? `منذ ${Math.max(1, minutes)} دقيقة` : `${Math.max(1, minutes)}m`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return ar ? `منذ ${hours} ${hours === 1 ? 'ساعة' : 'ساعات'}` : `${hours}h`;
+    const days = Math.floor(hours / 24);
+    return ar ? (days > 7 ? 'منذ أكثر من 7 أيام' : `منذ ${days} ${days === 1 ? 'يوم' : 'أيام'}`) : (days > 7 ? 'over 7 days ago' : `${days}d`);
+  };
+  const presenceLabel = (uid: string) => {
+    const presence = presenceByUid[uid];
+    if (!presence) return ar ? 'حالة الاتصال غير متاحة' : 'Status unavailable';
+    if (presence.isOnline) return ar ? `متصل ${presenceDuration(presence.onlineSince)}` : `Online ${presenceDuration(presence.onlineSince)}`;
+    return presence.lastSeenAt ? (ar ? `آخر ظهور ${presenceDuration(presence.lastSeenAt)}` : `Last seen ${presenceDuration(presence.lastSeenAt)}`) : (ar ? 'غير متصل' : 'Offline');
+  };
+  const socialErrorMessage = (error: unknown, fallback: string) => {
+    const code = error instanceof Error ? error.message : '';
+    const messages: Record<string, string> = ar ? {
+      CHAT_RATE_LIMIT: 'أرسلت رسالة قبل قليل. انتظر بضع ثوانٍ ثم حاول مجدداً.',
+      INVALID_MESSAGE: 'الرسالة طويلة أكثر من المسموح. اختصرها ثم أعد الإرسال.',
+      EMPTY_MESSAGE: 'اكتب رسالة أولاً قبل الإرسال.',
+      PLAYER_BLOCKED: 'لا يمكن بدء محادثة لأن أحدكما حظر الآخر.',
+      PLAYER_NOT_FOUND: 'هذا اللاعب لم يعد متاحاً.',
+      CONVERSATION_ACCESS_DENIED: 'لا تملك صلاحية فتح هذه المحادثة.',
+      INVITE_PERMISSION_REQUIRED: 'رتبتك الحالية لا تسمح بإرسال دعوات المنظمة.',
+      TARGET_ALREADY_IN_ORG: 'هذا اللاعب عضو في منظمة بالفعل.',
+      INVITE_ALREADY_PENDING: 'أرسلت لهذا اللاعب دعوة وما زالت بانتظار الرد.',
+      INVITE_NOT_AVAILABLE: 'هذه الدعوة لم تعد متاحة.',
+      REPORT_RATE_LIMIT: 'أرسلت بلاغاً قبل قليل. انتظر قليلاً ثم حاول مجدداً.',
+      UNAUTHENTICATED: 'انتهت جلسة الدخول. سجّل الدخول مجدداً.',
+    } : {
+      CHAT_RATE_LIMIT: 'You sent a message recently. Wait a few seconds and try again.',
+      INVALID_MESSAGE: 'The message is longer than allowed. Shorten it and retry.',
+      EMPTY_MESSAGE: 'Write a message before sending.',
+      PLAYER_BLOCKED: 'A conversation cannot be started because one of you blocked the other.',
+      PLAYER_NOT_FOUND: 'This player is no longer available.',
+      CONVERSATION_ACCESS_DENIED: 'You cannot access this conversation.',
+      INVITE_PERMISSION_REQUIRED: 'Your role cannot send organization invites.',
+      TARGET_ALREADY_IN_ORG: 'This player already belongs to an organization.',
+      INVITE_ALREADY_PENDING: 'An invitation to this player is already pending.',
+      INVITE_NOT_AVAILABLE: 'This invitation is no longer available.',
+      REPORT_RATE_LIMIT: 'You submitted a report recently. Wait a little and retry.',
+      UNAUTHENTICATED: 'Your session expired. Please sign in again.',
+    };
+    return messages[code] || fallback;
+  };
 
   const avatarUrl = (avatarId: string | undefined) =>
     AVATARS.find((avatar) => avatar.id === avatarId)?.src || AVATARS[0]?.src || '';
@@ -59,8 +118,8 @@ export function SocialHubView({ profile, myOrgMember, language }: SocialHubViewP
       const result = await getPublicPlayerProfile(targetUid);
       setSelectedPlayer(result);
       setMode('players');
-    } catch {
-      setError(ar ? 'تعذر فتح الملف الشخصي.' : 'Could not open player profile.');
+    } catch (error) {
+      setError(socialErrorMessage(error, ar ? 'تعذر فتح الملف الشخصي الآن.' : 'Could not open player profile right now.'));
     }
   }
 
@@ -71,7 +130,25 @@ export function SocialHubView({ profile, myOrgMember, language }: SocialHubViewP
   ));
 
   const selectedConversationData = conversations.find((item) => item.id === selectedConversation) || null;
+  const unreadConversations = conversations.filter((item) => item.lastSenderUid !== profile.uid && (!dismissedUnread[item.id] || timestampToMs(item.lastMessageAt, 0) > dismissedUnread[item.id]));
+  useEffect(() => { try { window.localStorage.setItem(`nova:dm-read:${profile.uid}`, JSON.stringify(dismissedUnread)); } catch { /* Keep the current-session unread state if storage is unavailable. */ } }, [dismissedUnread, profile.uid]);
+  useEffect(() => { onUnreadCountChange(unreadConversations.length); }, [unreadConversations.length, onUnreadCountChange]);
   const targetUid = selectedConversationData?.participants.find((uid) => uid !== profile.uid) || '';
+
+  useEffect(() => {
+    const ids = [...new Set([...conversations.flatMap((item) => item.participants), ...globalMessages.map((item) => item.senderUid), ...(selectedPlayer ? [selectedPlayer.uid] : [])])].filter(Boolean);
+    if (ids.length === 0) return;
+    let active = true;
+    const refresh = async () => {
+      try {
+        const records = await getPlayersPresence(ids);
+        if (active) setPresenceByUid(Object.fromEntries(records.map((item) => [item.uid, item])));
+      } catch { /* Presence is supplementary; keep the last known status. */ }
+    };
+    void refresh();
+    const timer = window.setInterval(() => { void refresh(); }, 15_000);
+    return () => { active = false; window.clearInterval(timer); };
+  }, [conversations, globalMessages, selectedPlayer?.uid]);
 
   useEffect(() => {
     let active = true;
@@ -88,7 +165,7 @@ export function SocialHubView({ profile, myOrgMember, language }: SocialHubViewP
       return;
     }
     const timer = window.setTimeout(() => {
-      void searchPlayers(prefix).then(setPlayers).catch(() => setError(ar ? 'تعذر البحث عن اللاعبين.' : 'Player search failed.'));
+      void searchPlayers(prefix).then(setPlayers).catch((error) => setError(socialErrorMessage(error, ar ? 'تعذر البحث عن اللاعبين الآن.' : 'Player search failed right now.')));
     }, 300);
     return () => window.clearTimeout(timer);
   }, [search, ar]);
@@ -106,8 +183,8 @@ export function SocialHubView({ profile, myOrgMember, language }: SocialHubViewP
         ));
         setGlobalMessages(nextGlobalMessages);
         setInvites(nextInvites);
-      } catch {
-        if (active) setError(ar ? 'تعذر تحديث بيانات التواصل.' : 'Could not refresh social data.');
+      } catch (error) {
+        if (active) setError(socialErrorMessage(error, ar ? 'تعذر تحديث بيانات التواصل الآن.' : 'Could not refresh social data right now.'));
       }
     };
     void refresh();
@@ -125,8 +202,8 @@ export function SocialHubView({ profile, myOrgMember, language }: SocialHubViewP
       try {
         const messages = await listDirectMessages(selectedConversation);
         if (active) setDirectMessages(messages);
-      } catch {
-        if (active) setError(ar ? 'تعذر تحميل الرسائل.' : 'Could not load messages.');
+      } catch (error) {
+        if (active) setError(socialErrorMessage(error, ar ? 'تعذر تحميل الرسائل الآن.' : 'Could not load messages right now.'));
       }
     };
     void refresh();
@@ -147,9 +224,10 @@ export function SocialHubView({ profile, myOrgMember, language }: SocialHubViewP
       const result = await openDirectConversation(player.uid);
       setSelectedPlayer(player);
       setSelectedConversation(result.conversationId);
+      setDismissedUnread((previous) => ({ ...previous, [result.conversationId]: timestampToMs(conversations.find((item) => item.id === result.conversationId)?.lastMessageAt, Date.now()) }));
       setMode('messages');
-    } catch {
-      setError(ar ? 'تعذر فتح المحادثة.' : 'Could not open conversation.');
+    } catch (error) {
+      setError(socialErrorMessage(error, ar ? 'تعذر فتح المحادثة الآن.' : 'Could not open conversation right now.'));
     } finally {
       setBusy(null);
     }
@@ -167,8 +245,8 @@ export function SocialHubView({ profile, myOrgMember, language }: SocialHubViewP
       ]);
       setDirectMessages(messages);
       setConversations(nextConversations);
-    } catch {
-      setError(ar ? 'تعذر إرسال الرسالة. انتظر قليلاً ثم حاول.' : 'Message could not be sent. Wait a moment and retry.');
+    } catch (error) {
+      setError(socialErrorMessage(error, ar ? 'تعذر إرسال الرسالة الآن. تحقق من الاتصال وحاول مجدداً.' : 'Could not send the message. Check your connection and retry.'));
     } finally {
       setBusy(null);
     }
@@ -182,8 +260,8 @@ export function SocialHubView({ profile, myOrgMember, language }: SocialHubViewP
       await sendGlobalChatMessage(text);
       setDraft('');
       setGlobalMessages(await listGlobalChatMessages());
-    } catch {
-      setError(ar ? 'تعذر إرسال الرسالة. الدردشة تحدّ الإرسال المتكرر.' : 'Message could not be sent. Chat has a short rate limit.');
+    } catch (error) {
+      setError(socialErrorMessage(error, ar ? 'تعذر إرسال الرسالة الآن. تحقق من الاتصال وحاول مجدداً.' : 'Could not send the message. Check your connection and retry.'));
     } finally {
       setBusy(null);
     }
@@ -202,8 +280,8 @@ export function SocialHubView({ profile, myOrgMember, language }: SocialHubViewP
       setError(isBlocked
         ? (ar ? 'تم إلغاء حظر اللاعب.' : 'Player unblocked.')
         : (ar ? 'تم حظر اللاعب ولن يتمكن الطرفان من تبادل الرسائل الخاصة.' : 'Player blocked. Neither player can send the other direct messages.'));
-    } catch {
-      setError(ar ? 'تعذر تحديث الحظر.' : 'Could not update block settings.');
+    } catch (error) {
+      setError(socialErrorMessage(error, ar ? 'تعذر تحديث الحظر الآن.' : 'Could not update block settings right now.'));
     } finally {
       setBusy(null);
     }
@@ -215,8 +293,8 @@ export function SocialHubView({ profile, myOrgMember, language }: SocialHubViewP
     try {
       await submitPlayerReport(player.uid, reportReason);
       setError(ar ? 'تم إرسال البلاغ للمراجعة.' : 'Report submitted for review.');
-    } catch {
-      setError(ar ? 'تعذر إرسال البلاغ. حاول لاحقاً.' : 'Could not submit report. Try again later.');
+    } catch (error) {
+      setError(socialErrorMessage(error, ar ? 'تعذر إرسال البلاغ الآن. حاول لاحقاً.' : 'Could not submit report right now. Try again later.'));
     } finally {
       setBusy(null);
     }
@@ -227,8 +305,8 @@ export function SocialHubView({ profile, myOrgMember, language }: SocialHubViewP
     try {
       await invitePlayerToOrganization(player.uid);
       setError(ar ? 'تم إرسال دعوة المنظمة.' : 'Organization invite sent.');
-    } catch {
-      setError(ar ? 'تعذر إرسال الدعوة. تحقق من صلاحيتك وحالة اللاعب.' : 'Invite failed. Check your permission and player eligibility.');
+    } catch (error) {
+      setError(socialErrorMessage(error, ar ? 'تعذر إرسال الدعوة الآن.' : 'Could not send the invitation right now.'));
     } finally {
       setBusy(null);
     }
@@ -239,8 +317,8 @@ export function SocialHubView({ profile, myOrgMember, language }: SocialHubViewP
     try {
       await respondOrganizationInvite(inviteId, response);
       setInvites((previous) => previous.filter((invite) => invite.id !== inviteId));
-    } catch {
-      setError(ar ? 'تعذر معالجة الدعوة.' : 'Could not process invite.');
+    } catch (error) {
+      setError(socialErrorMessage(error, ar ? 'تعذر معالجة الدعوة الآن.' : 'Could not process the invitation right now.'));
     } finally {
       setBusy(null);
     }
@@ -280,12 +358,13 @@ export function SocialHubView({ profile, myOrgMember, language }: SocialHubViewP
           return (
             <button key={tab.id} type="button" onClick={() => { setMode(tab.id); setError(''); }}
               className={'min-h-[42px] flex items-center justify-center gap-1.5 rounded-lg text-xs font-semibold ' + (mode === tab.id ? 'bg-[#B91C32] text-white' : 'text-[#9299A6]')}>
-              <Icon className="w-4 h-4" />{tab.label}
+              <Icon className="w-4 h-4" />{tab.label}{tab.id === 'messages' && unreadConversations.length > 0 && <span className="ms-1 min-w-5 h-5 px-1 rounded-full bg-red-600 text-white text-[10px] font-bold flex items-center justify-center">{unreadConversations.length}</span>}
             </button>
           );
         })}
       </nav>
 
+      {mode === 'messages' && unreadConversations.length > 0 && <div className="flex items-center justify-between gap-3 rounded-xl border border-red-500/20 bg-red-500/5 px-3 py-2"><p className="text-xs text-[#F4F5F7]">{ar ? `${unreadConversations.length} محادثة فيها رسائل جديدة` : `${unreadConversations.length} conversation(s) with new messages`}</p><button type="button" onClick={() => setDismissedUnread((previous) => ({ ...previous, ...Object.fromEntries(unreadConversations.map((item) => [item.id, timestampToMs(item.lastMessageAt, Date.now())])) }))} className="text-[11px] text-red-300 underline underline-offset-2">{ar ? 'إغلاق الإشعارات' : 'Dismiss notifications'}</button></div>}
       {error && <p className="rounded-xl border border-white/10 bg-[#141821] px-3 py-2 text-xs text-[#F4C66A]">{error}</p>}
 
       {mode === 'players' && (
@@ -318,14 +397,14 @@ export function SocialHubView({ profile, myOrgMember, language }: SocialHubViewP
                   <img src={avatarUrl(selectedPlayer.avatarId)} alt="" className="w-14 h-14 rounded-2xl object-cover bg-[#252B36]" />
                   <div>
                     <h2 className="text-base font-bold text-[#F4F5F7]">{selectedPlayer.username}</h2>
-                    <p className="text-xs text-[#9299A6]">{selectedPlayer.title || (ar ? 'لا يوجد لقب' : 'No title')}</p>
+                    <p className="text-xs text-[#9299A6]">{selectedPlayer.title || (ar ? 'لا يوجد لقب' : 'No title')}</p><p className="mt-1 flex items-center gap-1.5 text-[11px] text-[#9299A6]"><span className={'h-2 w-2 rounded-full ' + (presenceByUid[selectedPlayer.uid]?.isOnline ? 'bg-emerald-400' : 'bg-[#667085]')} />{presenceLabel(selectedPlayer.uid)}</p>
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   <div className="rounded-xl bg-[#0B0D12] p-3"><p className="text-[11px] text-[#9299A6]">{ar ? 'المستوى' : 'Level'}</p><p className="mt-1 text-lg font-bold">{selectedPlayer.level}</p></div>
                   <div className="rounded-xl bg-[#0B0D12] p-3"><p className="text-[11px] text-[#9299A6]">{ar ? 'السمعة' : 'Reputation'}</p><p className="mt-1 text-lg font-bold">{selectedPlayer.reputation}</p></div>
                   <div className="rounded-xl bg-[#0B0D12] p-3"><p className="text-[11px] text-[#9299A6]">{ar ? 'النفوذ' : 'Influence'}</p><p className="mt-1 text-lg font-bold">{selectedPlayer.influence}</p></div>
-                  <div className="rounded-xl bg-[#0B0D12] p-3"><p className="text-[11px] text-[#9299A6]">{ar ? 'المنظمة' : 'Organization'}</p><p className="mt-1 text-sm font-semibold">{selectedPlayer.orgId || (ar ? 'بدون منظمة' : 'None')}</p></div>
+                  <div className="rounded-xl bg-[#0B0D12] p-3"><p className="text-[11px] text-[#9299A6]">{ar ? 'المنظمة' : 'Organization'}</p>{(() => { const org = organizations.find((item) => item.id === selectedPlayer.orgId); return org ? <button type="button" onClick={() => setSelectedOrganization(org)} className="mt-1 text-sm font-semibold text-amber-200 underline underline-offset-2 text-start">[{org.tag}] {org.name}</button> : <p className="mt-1 text-sm font-semibold">{ar ? 'بدون منظمة' : 'None'}</p>; })()}</div>
                 </div>
                 <button type="button" disabled={busy === 'open'} onClick={() => void openConversation(selectedPlayer)}
                   className="w-full min-h-[44px] rounded-xl bg-[#B91C32] text-white text-sm font-semibold flex items-center justify-center gap-2">
@@ -377,13 +456,13 @@ export function SocialHubView({ profile, myOrgMember, language }: SocialHubViewP
               const otherUid = conversation.participants.find((uid) => uid !== profile.uid) || '';
               const name = conversation.participantNames?.[otherUid] || (ar ? 'لاعب' : 'Player');
               return (
-                <button key={conversation.id} type="button" onClick={() => setSelectedConversation(conversation.id)}
-                  className={'w-full rounded-xl p-3 text-start ' + (selectedConversation === conversation.id ? 'bg-[#252B36]' : 'hover:bg-[#1B2230]')}>
+                <button key={conversation.id} type="button" onClick={() => { setSelectedConversation(conversation.id); setDismissedUnread((previous) => ({ ...previous, [conversation.id]: timestampToMs(conversation.lastMessageAt, Date.now()) })); }}
+                  className={'w-full rounded-xl border border-white/8 p-3 text-start transition-colors ' + (selectedConversation === conversation.id ? 'bg-[#252B36] border-white/20' : 'bg-[#0B0D12] hover:bg-[#1B2230]')}>
                   <span className="flex items-center gap-2 text-sm font-semibold text-[#F4F5F7]">
                     <img src={avatarUrl(conversation.participantAvatars?.[otherUid])} alt="" className="h-8 w-8 rounded-lg object-cover bg-[#252B36]" />
                     {name}
                   </span>
-                  <span className="block mt-1 text-[11px] text-[#9299A6] truncate">{conversation.lastMessage || (ar ? 'ابدأ المحادثة' : 'Start conversation')}</span>
+                  <span className="flex items-center justify-between gap-2 mt-1"><span className="text-[11px] text-[#9299A6] truncate">{conversation.lastMessage || (ar ? 'ابدأ المحادثة' : 'Start conversation')}</span>{unreadConversations.some((item) => item.id === conversation.id) && <span className="h-2 w-2 rounded-full bg-red-500 shrink-0" />}</span>
                 </button>
               );
             })}
@@ -394,7 +473,7 @@ export function SocialHubView({ profile, myOrgMember, language }: SocialHubViewP
               <>
                 <div className="flex items-center gap-2 border-b border-white/8 pb-3">
                   <button type="button" onClick={() => setSelectedConversation(null)} className="lg:hidden min-h-[38px] min-w-[38px] rounded-lg bg-[#252B36] flex items-center justify-center"><ArrowLeft className="w-4 h-4" /></button>
-                  <h2 className="text-sm font-semibold flex-1">{selectedConversationData?.participantNames?.[targetUid] || (ar ? 'المحادثة' : 'Conversation')}</h2>
+                  <div className="flex-1 min-w-0"><div className="flex items-center gap-2"><img src={avatarUrl(selectedConversationData?.participantAvatars?.[targetUid])} alt="" className="h-9 w-9 rounded-lg object-cover bg-[#252B36]" /><h2 className="text-sm font-semibold truncate">{selectedConversationData?.participantNames?.[targetUid] || (ar ? 'المحادثة' : 'Conversation')}</h2></div><p className="mt-1 ms-11 flex items-center gap-1.5 text-[10px] text-[#9299A6]"><span className={'h-2 w-2 rounded-full ' + (presenceByUid[targetUid]?.isOnline ? 'bg-emerald-400' : 'bg-[#667085]')} />{presenceLabel(targetUid)}</p></div>
                   <button type="button" onClick={() => void openPlayerProfile(targetUid)} className="min-h-[36px] px-3 rounded-lg bg-[#252B36] text-[11px] text-[#F4F5F7]">
                     {ar ? 'الملف الشخصي' : 'Profile'}
                   </button>
@@ -420,6 +499,8 @@ export function SocialHubView({ profile, myOrgMember, language }: SocialHubViewP
         </section>
       )}
 
+      {selectedOrganization && <div className="fixed inset-0 z-50 bg-black/70 p-4 flex items-center justify-center" role="dialog" aria-modal="true"><div className="w-full max-w-md rounded-2xl border border-white/10 bg-[#141821] p-5 space-y-4"><div className="flex items-start justify-between gap-3"><div><p className="text-xs text-amber-200">[{selectedOrganization.tag}]</p><h2 className="text-lg font-bold text-[#F4F5F7]">{selectedOrganization.name}</h2><p className="text-xs text-[#9299A6] mt-1">{selectedOrganization.description || (ar ? 'لا يوجد وصف' : 'No description')}</p></div><button type="button" onClick={() => setSelectedOrganization(null)} className="rounded-lg bg-[#252B36] px-3 py-2 text-xs">{ar ? 'إغلاق' : 'Close'}</button></div><div className="grid grid-cols-2 gap-2">{[[ar ? 'المستوى' : 'Level', selectedOrganization.level],[ar ? 'الأعضاء' : 'Members', selectedOrganization.memberCount],[ar ? 'السمعة' : 'Reputation', selectedOrganization.reputation],[ar ? 'قائد المنظمة' : 'Leader', selectedOrganization.leaderName],[ar ? 'الخزينة' : 'Treasury', `${selectedOrganization.treasuryBalance.toLocaleString()}`]].map(([label,value]) => <div key={String(label)} className="rounded-xl bg-[#0B0D12] p-3"><p className="text-[11px] text-[#9299A6]">{label}</p><p className="mt-1 text-sm font-semibold text-[#F4F5F7]">{value}</p></div>)}</div></div></div>}
+
       {mode === 'global' && (
         <section className="rounded-2xl border border-white/8 bg-[#141821] p-3 flex flex-col min-h-[520px]">
           <div className="flex items-center gap-2 border-b border-white/8 px-2 pb-3"><Globe2 className="w-4 h-4 text-amber-200" /><h2 className="text-sm font-semibold">{ar ? 'الدردشة العامة' : 'Global chat'}</h2><span className="ms-auto text-[10px] text-[#9299A6]">{ar ? 'حد الإرسال: رسالة كل 3 ثوانٍ' : 'Rate limit: one message every 3 seconds'}</span></div>
@@ -427,9 +508,8 @@ export function SocialHubView({ profile, myOrgMember, language }: SocialHubViewP
             {globalMessages.filter((message) => !blockedUids.includes(message.senderUid)).map((message) => (
               <div key={message.id} className="rounded-xl bg-[#0B0D12] p-3">
                 <div className="flex items-center gap-2 mb-1">
-                  <img src={avatarUrl(message.avatarId)} alt="" className="h-7 w-7 rounded-lg object-cover bg-[#252B36]" />
-                  <span className="text-xs font-semibold text-amber-200 flex-1">{message.senderName}</span>
-                  <span className="text-[10px] text-[#9299A6]">{dateLabel(message.createdAt)}</span>
+                  <button type="button" onClick={() => void openPlayerProfile(message.senderUid)} className="flex items-center gap-2 min-w-0 text-start hover:underline"><img src={avatarUrl(message.avatarId)} alt="" className="h-7 w-7 rounded-lg object-cover bg-[#252B36]" /><span className="text-xs font-semibold text-amber-200 truncate">{message.senderName}</span></button>
+                  <span className="text-[10px] text-[#9299A6]">{presenceLabel(message.senderUid)} · {dateLabel(message.createdAt)}</span>
                 </div>
                 <p className="text-xs whitespace-pre-wrap break-words">{message.text}</p>
               </div>
