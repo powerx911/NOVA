@@ -36,7 +36,7 @@ import {
   LISTING_MAX_QTY,
   timestampToMs as parseTimestampMs,
 } from '../lib/economy';
-import { db, handleFirestoreError, OperationType } from '../lib/firebase';
+import { auth, db, handleFirestoreError, OperationType } from '../lib/firebase';
 import { nexoraApi } from '../lib/nexoraApi';
 import type {
   Company,
