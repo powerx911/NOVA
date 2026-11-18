@@ -352,6 +352,54 @@ export const MANUFACTURING_RECIPES: ManufacturingRecipe[] = [
     xpReward: 140,
     requiredIndustrySkill: 2,
   },
+  {
+    id: 'rec_titanium_frame',
+    outputItemId: 'precision_frame',
+    outputQty: 2,
+    inputs: [
+      { itemId: 'titanium_ore', qty: 2 },
+      { itemId: 'carbon_fiber', qty: 1 },
+    ],
+    processingCost: 80,
+    xpReward: 75,
+    requiredIndustrySkill: 1,
+  },
+  {
+    id: 'rec_polymer_composite',
+    outputItemId: 'synth_polymer',
+    outputQty: 2,
+    inputs: [
+      { itemId: 'polymer_resin', qty: 2 },
+      { itemId: 'energy_cells', qty: 1 },
+    ],
+    processingCost: 90,
+    xpReward: 85,
+    requiredIndustrySkill: 1,
+  },
+  {
+    id: 'rec_biotech_module',
+    outputItemId: 'bio_module',
+    outputQty: 1,
+    inputs: [
+      { itemId: 'biotech_gel', qty: 2 },
+      { itemId: 'rare_minerals', qty: 1 },
+    ],
+    processingCost: 150,
+    xpReward: 155,
+    requiredIndustrySkill: 2,
+  },
+  {
+    id: 'rec_quantum_server_advanced',
+    outputItemId: 'quantum_server',
+    outputQty: 1,
+    inputs: [
+      { itemId: 'quantum_dust', qty: 2 },
+      { itemId: 'microchips', qty: 1 },
+    ],
+    processingCost: 190,
+    xpReward: 180,
+    requiredIndustrySkill: 3,
+  },
 ];
 
 export interface CompanySectorSpec {
