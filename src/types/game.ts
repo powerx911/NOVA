@@ -2,8 +2,8 @@ export type Language = 'ar' | 'en';
 
 export type MainTab = 'home' | 'business' | 'market' | 'organization' | 'social' | 'profile';
 
-export type BusinessSubTab = 'companies' | 'auction' | 'manufacturing' | 'inventory' | 'financials';
-export type MarketSubTab = 'exchange' | 'contracts' | 'bank' | 'ledger';
+export type BusinessSubTab = 'companies' | 'auction' | 'factories' | 'inventory' | 'financials';
+export type MarketSubTab = 'exchange' | 'contracts' | 'bank' | 'manufacturing';
 export type ProfileSubTab = 'overview' | 'skills' | 'missions' | 'rankings' | 'settings' | 'diagnostics';
 
 export type SkillKey =
@@ -74,6 +74,7 @@ export type TransactionType =
   | 'company_auction_refund'
   | 'company_auction_sale'
   | 'manufacturing'
+  | 'skill_reset'
   | 'org_create'
   | 'org_deposit'
   | 'org_withdraw'
