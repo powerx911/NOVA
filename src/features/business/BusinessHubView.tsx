@@ -4,7 +4,6 @@ import {
   Clock,
   Coins,
   Gavel,
-  Factory,
   Package,
   Plus,
   TrendingUp,
@@ -15,13 +14,11 @@ import { useToast } from '../../components/ui/ToastProvider';
 import {
   COMPANY_SECTORS,
   ITEM_MAP,
-  MANUFACTURING_RECIPES,
 } from '../../data/catalog';
 import { useTranslations } from '../../i18n/translations';
 import {
   calculateAccruedPayout,
   calculateCompanyHourlyNet,
-  calculateManufacturingCost,
   COMPANY_MAX_LEVEL,
   COMPANY_VAULT_MAX_LEVEL,
   COMPANY_VAULT_UPGRADES,
@@ -39,7 +36,6 @@ import {
   completeCompanyUpgrade,
   completeCompanyVaultUpgrade,
   foundCompany,
-  manufactureRecipe,
   upgradeCompany,
   upgradeCompanyVault,
 } from '../../services/gameService';
@@ -85,7 +81,6 @@ export function BusinessHubView({
   const [subTab, setSubTab] = useState<BusinessSubTab>('companies');
   const [busyKey, setBusyKey] = useState<string | null>(null);
   const [nowMs, setNowMs] = useState(() => Date.now());
-  const [manufactureQuantity, setManufactureQuantity] = useState(1);
   const [companyView, setCompanyView] = useState<'overview' | 'found' | 'detail'>('overview');
   const [selectedCompanyId, setSelectedCompanyId] = useState('');
   const [deletedCompanyIds, setDeletedCompanyIds] = useState<string[]>([]);
@@ -324,37 +319,10 @@ export function BusinessHubView({
     }
   }
 
-  async function handleManufacture(recipeId: string) {
-    const quantity = Math.max(1, Math.min(999, Math.floor(manufactureQuantity || 1)));
-    setBusyKey(`mfg_${recipeId}`);
-    try {
-      await manufactureRecipe(profile.uid, recipeId, quantity);
-      showToast(language === 'ar' ? 'تم الإنتاج بنجاح!' : 'Production completed!', 'success');
-    } catch (err) {
-      const code = err instanceof Error ? err.message : '';
-      showToast(
-        code === 'MISSING_INPUTS'
-          ? language === 'ar'
-            ? 'المدخلات غير كافية في المخزون.'
-            : 'Insufficient input materials in inventory.'
-          : code === 'INDUSTRY_SKILL_TOO_LOW'
-          ? language === 'ar'
-            ? 'مستوى مهارة الصناعة غير كافٍ لهذه الوصفة.'
-            : 'Industry skill level too low for this recipe.'
-          : language === 'ar'
-          ? 'الرصيد غير كافٍ لتكلفة التشغيل.'
-          : 'Insufficient credits for processing cost.',
-        'error'
-      );
-    } finally {
-      setBusyKey(null);
-    }
-  }
 
   const subTabs: { id: BusinessSubTab; label: string }[] = [
     { id: 'companies', label: t.subCompanies },
     { id: 'auction', label: language === 'ar' ? 'مزاد الشركات' : 'Company Auction' },
-    { id: 'manufacturing', label: t.subManufacturing },
     { id: 'inventory', label: t.subInventory },
     { id: 'financials', label: t.subFinancials },
   ];
@@ -718,98 +686,6 @@ export function BusinessHubView({
               );
             })}
           </section>
-        </div>
-      )}
-
-      {/* 2. MANUFACTURING */}
-      {subTab === 'manufacturing' && (
-        <div className="space-y-4">
-          <div className="bg-[#141821] border border-white/8 rounded-2xl p-4 space-y-3">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <h2 className="text-sm font-bold text-[#F4F5F7]">{language === 'ar' ? 'كمية التصنيع' : 'Batch quantity'}</h2>
-                <p className="text-xs text-[#9299A6] mt-1">{language === 'ar' ? 'اختر عدد الدفعات لكل وصفة' : 'Choose how many batches to run per recipe'}</p>
-              </div>
-              <span className="text-sm font-mono-num font-bold text-[#E04455]">×{manufactureQuantity}</span>
-            </div>
-            <div className="grid grid-cols-3 gap-2">
-              {[1, 5, 10].map((qty) => (
-                <button key={qty} type="button" onClick={() => setManufactureQuantity(qty)}
-                  className={`min-h-[42px] rounded-xl border text-sm font-semibold transition-colors ${manufactureQuantity === qty ? 'bg-[#B91C32] border-[#E04455] text-white' : 'bg-[#0B0D12] border-white/10 text-[#C5CAD3]'}`}>
-                  ×{qty}
-                </button>
-              ))}
-            </div>
-            <label className="block space-y-1.5">
-              <span className="text-xs text-[#9299A6]">{language === 'ar' ? 'أو أدخل كمية مخصصة (1–999)' : 'Or enter a custom quantity (1–999)'}</span>
-              <input type="number" min="1" max="999" step="1" value={manufactureQuantity}
-                onChange={(e) => setManufactureQuantity(Math.max(1, Math.min(999, Number(e.target.value) || 1)))}
-                className="w-full min-h-[44px] px-3.5 rounded-xl bg-[#0B0D12] border border-white/10 text-sm text-[#F4F5F7] focus:outline-none focus:border-[#E04455]" />
-            </label>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {MANUFACTURING_RECIPES.map((rec) => {
-              const outputItem = ITEM_MAP[rec.outputItemId];
-              const costPerBatch = calculateManufacturingCost(rec, profile.skills.industry || 0);
-              const totalCost = costPerBatch * manufactureQuantity;
-              const hasSkill = (profile.skills.industry || 0) >= rec.requiredIndustrySkill;
-              const hasAllInputs = rec.inputs.every((inp) => (invMap.get(inp.itemId) || 0) >= inp.qty * manufactureQuantity);
-              const canAfford = (wallet?.balance ?? 0) >= totalCost;
-              const estOutputValue = outputItem.basePrice * rec.outputQty * manufactureQuantity;
-              const inputIndexCost = rec.inputs.reduce((sum, inp) => sum + (ITEM_MAP[inp.itemId]?.basePrice || 0) * inp.qty * manufactureQuantity, 0);
-              const estNetMargin = estOutputValue - inputIndexCost - totalCost;
-
-              return (
-                <div key={rec.id} className="bg-[#141821] border border-white/8 rounded-2xl p-5 flex flex-col justify-between gap-4">
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <h3 className="text-base font-bold text-[#F4F5F7]">{language === 'ar' ? outputItem.nameAr : outputItem.nameEn} ×{rec.outputQty * manufactureQuantity}</h3>
-                      <p className="text-xs text-[#9299A6] mt-0.5">
-                        {language === 'ar' ? 'مهارة الصناعة المطلوبة:' : 'Required Industry:'} <span className="font-mono-num text-[#F4F5F7]">Lv.{rec.requiredIndustrySkill}</span> · +{rec.xpReward * manufactureQuantity} XP
-                      </p>
-                    </div>
-                    <Factory className="w-5 h-5 text-[#E04455] shrink-0" />
-                  </div>
-                  <div className="space-y-2 bg-[#0B0D12] border border-white/6 rounded-xl p-3.5">
-                    {rec.inputs.map((inp) => {
-                      const inpItem = ITEM_MAP[inp.itemId];
-                      const owned = invMap.get(inp.itemId) || 0;
-                      const required = inp.qty * manufactureQuantity;
-                      const ok = owned >= required;
-                      return (
-                        <div key={inp.itemId} className="flex items-center justify-between text-xs">
-                          <span className="text-[#9299A6]">{language === 'ar' ? inpItem.nameAr : inpItem.nameEn}</span>
-                          <span className={`font-mono-num font-semibold ${ok ? 'text-emerald-400' : 'text-[#E04455]'}`}>{owned} / {required}</span>
-                        </div>
-                      );
-                    })}
-                    <div className="flex items-center justify-between text-xs pt-2 border-t border-white/6">
-                      <span className="text-[#9299A6]">{t.processingCost}</span>
-                      <span className="font-mono-num font-semibold text-[#F4F5F7]">${totalCost.toLocaleString()}</span>
-                    </div>
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="text-[#9299A6]">{t.estMarketValue}</span>
-                      <span className="font-mono-num text-[#F4F5F7]">~${estOutputValue.toLocaleString()}</span>
-                    </div>
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="text-[#9299A6]">{t.estNetMargin}</span>
-                      <span className={`font-mono-num font-semibold ${estNetMargin >= 0 ? 'text-emerald-400' : 'text-[#E04455]'}`}>{estNetMargin >= 0 ? `+${estNetMargin.toLocaleString()}` : estNetMargin.toLocaleString()}</span>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2.5">
-                    <button type="button" disabled={!hasSkill || !hasAllInputs || !canAfford || busyKey === `mfg_${rec.id}`}
-                      onClick={() => handleManufacture(rec.id)}
-                      className="flex-1 min-h-[44px] px-4 rounded-xl bg-[#B91C32] hover:bg-[#E04455] text-white text-xs font-semibold transition-colors disabled:bg-[#1B2230] disabled:text-[#9299A6]">
-                      {busyKey === `mfg_${rec.id}` ? '...' : !hasSkill ? (language === 'ar' ? 'مهارة غير كافية' : 'Skill too low') : !hasAllInputs ? t.missingInputs : !canAfford ? (language === 'ar' ? 'رصيد غير كافٍ' : 'Insufficient balance') : (language === 'ar' ? `تصنيع ×${manufactureQuantity}` : `Produce ×${manufactureQuantity}`)}
-                    </button>
-                    {!hasAllInputs && (
-                      <button type="button" onClick={onGoToMarket} className="min-h-[44px] px-3.5 rounded-xl bg-[#1B2230] hover:bg-[#232C3E] text-[#F4F5F7] text-xs font-medium whitespace-nowrap">{t.navMarket}</button>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
         </div>
       )}
 
