@@ -181,7 +181,7 @@ Do not choose an engine based only on popularity or old projects. No technology 
 4. Compare the client/game engine approaches using a weighted scorecard and a small technical spike only after choosing the interaction model.
 5. Define social safety, moderation, retention, privacy, backup, and anti-abuse policies before enabling open public chat.
 6. Establish the visual identity and navigation in Figma after the product structure is agreed.
-7. Select the final game category/theme/presentation and approve the first vertical slice only after the evidence is available.
+7. Select and document the final game category/theme/presentation after the evidence is available, then proceed with the first vertical slice under the owner's delegated product-development mandate. Seek approval only where a documented approval boundary applies.
 
 ## 13. Open questions (must be answered by research, not pushed onto the owner)
 
