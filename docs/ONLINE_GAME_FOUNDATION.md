@@ -199,3 +199,34 @@ Detailed owner/player feature review, progression and retention horizons, qualit
 - Which client stack provides the best quality/cost trade-off for the validated experience?
 
 These questions are product/engineering research tasks. The owner should not need to resolve implementation details.
+
+## 15. Owner correction: kingdom map versus personal castle
+
+The kingdom is **not** the place where every player builds a city. It is the shared strategic world containing established core cities, villages, regions, neutral land, resource sites, and other world locations. Each player separately owns and develops a **personal castle/city** placed at an eligible location on the kingdom map. That castle is the player's home base and contains their palace, farms, barracks, production buildings, storage, and upgrades. Players do not build their personal city inside the kingdom's capital or within a shared core city.
+
+### Entry and tutorial flow
+1. Player opens the game URL and signs in or creates an account.
+2. Player selects an available kingdom. The first realm is **Kingdom 1**; future realms may be added without changing the core account.
+3. A short story introduces the player's devastated former homeland: invaders destroyed a once-powerful kingdom, and the player returns with advisors after the invaders depart.
+4. The tutorial guides the player through rebuilding their own castle using real actions: build a farm, produce/gather resources, upgrade the palace, establish barracks, and train initial troops.
+5. A visible **Skip tutorial** option is available. Skipping must not grant unfair advantages or remove access to help/tutorial replay.
+
+Tutorial guidance should be objective-based and contextual, with concise advisor dialogue. The narrative should not interrupt play with lengthy exposition. *Al-Fatehoon* is a broad childhood inspiration for the feeling of strategic progression and stronghold development; NOVA must use original maps, systems, terminology, writing, art, and interface rather than copying protected expression or assets.
+
+### Shared kingdom map structure (recommended design)
+- **Core cities:** fixed, named world locations with defined strategic/economic functions. They are part of the kingdom world, not player-owned home cities by default.
+- **Villages:** smaller settlements that can provide quests, trade, recruitment, resources, or regional influence according to game rules.
+- **Player castles:** individually owned city bases placed on valid map sites. Castle placement should consider distance, terrain, resource access, and new-player protection.
+- **Neutral territories and resource locations:** contested or discoverable sites that give players reasons to explore and expand.
+- **Strategic sites:** forts, passes, ruins, or other locations that influence movement and regional control. Introduce only where they create clear strategic decisions.
+- **Regions/provinces:** map groupings used for navigation, events, rankings, and later realm-wide objectives.
+
+The world map and castle city view are separate but connected screens: selecting a player's castle opens its city-building view; selecting a world location opens its map/location panel. A player should always understand whether an object is their own building, another player's castle, a shared city, a village, or a neutral site.
+
+### Initial confirmed rules
+- Initial realm: one kingdom, **Kingdom 1**, with architecture allowing additional separate kingdoms later.
+- Personal development: each player builds and upgrades their own castle/city; they do not build inside a shared kingdom city.
+- Army classes: infantry, cavalry, archers, and chariots (مشاة، فرسان، رماة، عجلات).
+- Alliance-to-alliance diplomatic states: neutral, war, and peace only for the initial design. Do not add non-aggression, trade, mutual-defense, or formal alliance treaties to the initial scope.
+
+The map's exact geometry, plot allocation, protection radius, village interactions, and territory-capture rules remain design tasks. The recommended starting point is a readable region/tile map with fixed shared locations and eligible castle sites, followed by prototype testing for fairness, mobile usability, and strategic depth. No production database schema or game implementation is implied by this design clarification.
