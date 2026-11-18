@@ -101,13 +101,6 @@ export function SocialHubView({ profile, myOrgMember, organizations, language, o
   const targetUid = selectedConversationData?.participants.find((uid) => uid !== profile.uid) || '';
 
   useEffect(() => {
-    const heartbeat = () => { void touchPlayerPresence().catch(() => undefined); };
-    heartbeat();
-    const timer = window.setInterval(heartbeat, 30_000);
-    return () => window.clearInterval(timer);
-  }, [profile.uid]);
-
-  useEffect(() => {
     const ids = [...new Set([...conversations.flatMap((item) => item.participants), ...globalMessages.map((item) => item.senderUid), ...(selectedPlayer ? [selectedPlayer.uid] : [])])].filter(Boolean);
     if (ids.length === 0) return;
     let active = true;
