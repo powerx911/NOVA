@@ -469,7 +469,6 @@ export function calculateCompanyVaultBalance(
 }
 
 export const COMPANY_MAX_LEVEL = 100;
-export const PROPERTY_MAX_LEVEL = 15;
 export const LISTING_MAX_QTY = 10_000;
 export const LISTING_MAX_PRICE = 1_000_000;
 
