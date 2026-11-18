@@ -14,19 +14,22 @@ The mobile-first client includes:
 
 ## Online foundation
 
-The current feature branch now includes:
-- Supabase email/password account registration and login.
-- Player profile initialization and persistent player wallet.
+The current main branch includes:
+- Supabase email/password registration and login client.
+- Persistent competitive player profiles and wallets.
 - Server-authoritative operation simulation and asset upgrades.
 - Idempotent command receipts and an auditable resource ledger.
 - A safe public leaderboard RPC and public activity feed with Realtime inserts.
-- Row Level Security on all new competitive tables. Clients can read their own wallet/assets but cannot directly mutate them.
+- Row Level Security on all competitive tables. Clients cannot directly mutate wallets, assets, or ledgers.
 
-**Deployment status:** The competitive migration is included in the open GitHub pull request and has not yet been applied to the live Supabase database. Until the PR checks pass, the migration is applied after merge, and account/command integration tests pass, do not treat the current Pages deployment as a live multiplayer game. The market, matchmaking/challenges, organizations, and player-versus-player season system are still future implementation phases.
+The competitive migration has been applied to the existing Supabase project. Security advisors report zero findings. However, no real player accounts have been created or integration-tested yet, so do not describe signup, two-player isolation, operation RPCs, or Realtime client delivery as verified. Email confirmation requires the Pages URL `https://powerx911.github.io/NOVA/` to be present in Supabase Auth's redirect allowlist.
+
+The shared market, matchmaking/challenges, organizations, season system, and full PvP loop are still future implementation phases.
 
 ## Infrastructure and safety
 
 - GitHub is the source of truth for code, pull requests, CI, and GitHub Pages deployment.
+- GitHub Pages deployment succeeded for main commit `fc52f0420072d6a6484170a71204b34dd09f0a6a`: https://powerx911.github.io/NOVA/.
 - Existing Supabase project is used; no new project is required.
 - The browser uses only the Supabase publishable key. Never expose a service-role or secret key in client code.
 - Server-side functions own balances, asset upgrades, operation rewards, and ranking calculations.
