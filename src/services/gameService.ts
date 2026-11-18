@@ -346,7 +346,7 @@ export async function claimMissionReward(_uid: string, missionId: string): Promi
   }
 }
 export async function createOrganization(
-  uid: string,
+  _uid: string,
   _username: string,
   name: string,
   tag: string,
@@ -356,35 +356,13 @@ export async function createOrganization(
   const cleanTag = tag.trim().toUpperCase();
   if (cleanName.length < 3 || cleanName.length > 40) throw new Error('INVALID_NAME');
   if (cleanTag.length < 2 || cleanTag.length > 6) throw new Error('INVALID_TAG');
-
-  const currentUser = auth.currentUser;
-  if (!currentUser || currentUser.uid !== uid) throw new Error('AUTH_SESSION_MISMATCH');
-  if (!currentUser.emailVerified) throw new Error('EMAIL_NOT_VERIFIED');
-
-  const idToken = await currentUser.getIdToken(true);
-  const response = await fetch('/api/organization-create', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${idToken}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      name: cleanName,
-      tag: cleanTag,
-      description: description.trim().slice(0, 240),
-    }),
+  const result = await nexoraApi<{ orgId: string }>('create_organization', {
+    name: cleanName,
+    tag: cleanTag,
+    description: description.trim().slice(0, 240),
   });
-  const payload = await response.json().catch(() => ({})) as {
-    error?: unknown;
-    orgId?: unknown;
-  };
-  if (!response.ok) {
-    throw new Error(typeof payload.error === 'string' ? payload.error : 'ORGANIZATION_CREATE_FAILED');
-  }
-  if (typeof payload.orgId !== 'string' || !payload.orgId) {
-    throw new Error('ORGANIZATION_CREATE_FAILED');
-  }
-  return payload.orgId;
+  if (!result.orgId) throw new Error('ORGANIZATION_CREATE_FAILED');
+  return result.orgId;
 }
 
 export async function requestJoinOrganization(
@@ -602,39 +580,28 @@ export async function kickOrgMember(
   }
 }
 
-async function callOrganizationUpgrade(orgId: string, action: 'start' | 'complete' | 'research', researchId?: string) {
-  const user = auth.currentUser;
-  if (!user) throw new Error('UNAUTHENTICATED');
-  const token = await user.getIdToken();
-  const response = await fetch('/api/organization-upgrade', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-    body: JSON.stringify({ orgId, action, researchId }),
-  });
-  const payload = await response.json().catch(() => ({})) as Record<string, unknown>;
-  if (!response.ok) throw new Error(typeof payload.error === 'string' ? payload.error : 'ORGANIZATION_UPGRADE_FAILED');
-  return payload;
-}
-
 export async function upgradeOrganization(
   _uid: string,
   _username: string,
   orgId: string
 ): Promise<{ targetLevel: number; endsAt: number; cost: number }> {
-  const result = await callOrganizationUpgrade(orgId, 'start');
+  const result = await nexoraApi<{ target_level: number; ends_at: string; cost: number }>('organization_upgrade', { orgId });
   return {
-    targetLevel: Number(result.targetLevel),
-    endsAt: Number(result.endsAt),
+    targetLevel: Number(result.target_level),
+    endsAt: new Date(result.ends_at).getTime(),
     cost: Number(result.cost),
   };
 }
 
 export async function completeOrganizationUpgrade(orgId: string): Promise<void> {
-  await callOrganizationUpgrade(orgId, 'complete');
+  await nexoraApi('organization_complete', { orgId });
 }
 
-export async function researchOrganization(orgId: string, researchId: 'commerce' | 'engineering' | 'expansion' | 'finance' | 'diplomacy'): Promise<{ level: number; cost: number }> {
-  const result = await callOrganizationUpgrade(orgId, 'research', researchId);
+export async function researchOrganization(
+  orgId: string,
+  researchId: 'commerce' | 'engineering' | 'expansion' | 'finance' | 'diplomacy'
+): Promise<{ level: number; cost: number }> {
+  const result = await nexoraApi<{ level: number; cost: number }>('organization_research', { orgId, researchId });
   return { level: Number(result.level), cost: Number(result.cost) };
 }
 
