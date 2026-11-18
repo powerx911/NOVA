@@ -118,6 +118,14 @@ begin
         where user_id=v_auction.highest_bidder_uid;
       update nexora.company_auction_escrows set status='refunded',updated_at=now()
         where auction_id=p_auction_id and bidder_uid=v_auction.highest_bidder_uid;
+      v_tx:='tx_'||gen_random_uuid()::text;
+      insert into nexora.transactions(id,from_uid,to_uid,amount,fee,net_amount,type,reference_id,description,status)
+        values(v_tx,'SYSTEM',v_auction.highest_bidder_uid,v_escrow.amount,0,v_escrow.amount,
+          'company_auction_refund',p_auction_id,'Refund after company auction settlement failed','completed');
+      insert into nexora.notifications(id,user_id,title,body,type,is_read)
+      select 'notif_'||gen_random_uuid()::text,v_auction.highest_bidder_uid,
+        'أُعيد مبلغ المزايدة','تعذر إتمام بيع الشركة، وأُعيد مبلغ الضمان إلى رصيدك.','market',false
+      where exists (select 1 from nexora.player_private where user_id=v_auction.highest_bidder_uid and notifications_enabled=true);
     end if;
     update nexora.company_auctions set status='cancelled',settled_at=now(),updated_at=now() where id=p_auction_id;
     update nexora.companies set auction_id=null,auction_ends_at=null,auction_status='cancelled',updated_at=now()
@@ -138,6 +146,10 @@ begin
       where user_id=v_auction.highest_bidder_uid;
     update nexora.company_auction_escrows set status='refunded',updated_at=now()
       where auction_id=p_auction_id and bidder_uid=v_auction.highest_bidder_uid;
+    v_tx:='tx_'||gen_random_uuid()::text;
+    insert into nexora.transactions(id,from_uid,to_uid,amount,fee,net_amount,type,reference_id,description,status)
+      values(v_tx,'SYSTEM',v_auction.highest_bidder_uid,v_escrow.amount,0,v_escrow.amount,
+        'company_auction_refund',p_auction_id,'Refund because seller settlement account is unavailable','completed');
     update nexora.company_auctions set status='cancelled',settled_at=now(),updated_at=now() where id=p_auction_id;
     update nexora.companies set auction_id=null,auction_ends_at=null,auction_status='cancelled',updated_at=now()
       where id=v_auction.company_id;
