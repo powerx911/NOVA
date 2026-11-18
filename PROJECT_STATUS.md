@@ -576,3 +576,12 @@ The user explicitly requires NOVA to be online and socially connected from its f
 - Updated the leaderboard with challenge buttons, added an incoming/outgoing/resolved battle arena, and subscribed to battle Realtime changes.
 - Added migration security-contract tests and a UI check for the battle arena. CI must pass before merging.
 - The duel migration is not applied yet. No test players exist; authenticated two-player invite/accept/decline, scoring, rewards, energy regeneration, and Realtime delivery require post-migration integration tests.
+
+
+## 29. Duel migration repair (2026-11-18)
+
+- PR #24 merged as `6bb699572a188fe8319ba94bbc4e7ffd4a13356b` with both CI checks passing. The Pages client was deployed, but the first attempt to apply `nova_competitive_duels` failed before migration commit because several PL/pgSQL bodies had malformed single-dollar delimiters and escaped newline text.
+- The failed migration was rolled back; the existing competitive and market schemas remain intact. No duel tables, energy timestamp column, or duel functions were created by the failed attempt.
+- Repair branch `fix/nova-duel-migration-dollar-quotes` restores paired `$$` delimiters, replaces literal escaped newline sequences with real line breaks, and adds CI checks for dollar-quote pairing and escaped newline text.
+- This repair must pass CI, merge, and then be applied before the duel UI can load correctly for authenticated players, because the client now calls `nova_competitive_refresh_energy`.
+- No real player accounts exist, so no user progress was affected. Two-account battle testing remains outstanding after the migration succeeds.

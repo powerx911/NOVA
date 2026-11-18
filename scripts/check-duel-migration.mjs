@@ -28,4 +28,6 @@ assert.match(sql,/grant execute on function public\.nova_competitive_refresh_ene
 assert.match(sql,/alter publication supabase_realtime add table public\.nova_competitive_battles/i);
 assert.doesNotMatch(sql,/create policy[^;]+on public\.nova_competitive_battles for (insert|update|delete)/i,"clients must not write battle outcomes");
 assert.match(sql,/status='resolved'[\s\S]*?winner_id=v_winner_id/i,"resolved battles must persist the server winner");
+assert.equal((sql.match(/\$\$/g)||[]).length%2,0,"all dollar-quoted SQL function bodies must be paired");
+assert.ok(!sql.includes("\\n"),"SQL migration must not contain escaped newline text");
 console.log("NOVA competitive duel security-contract checks passed.");
