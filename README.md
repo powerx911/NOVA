@@ -4,7 +4,7 @@
 
 Default UI language is **Arabic (`RTL`)** with instant switching to **English (`LTR`)**.
 
-> **Database isolation notice:** NEXORA data belongs only in the dedicated `nexora` schema of the shared Supabase project `OneState-Trading-DB`. OneState's existing data remains in `public`. Never create, read, update, or delete NEXORA application records in OneState's `public` objects, and never alter those objects. Read [docs/SUPABASE_SHARED_PROJECT.md](docs/SUPABASE_SHARED_PROJECT.md) before any database or Auth changes. PostgreSQL schemas isolate application data; Supabase Auth remains project-wide.
+> **NOVA database isolation:** NEXORA's new database target is the dedicated Supabase project `NOVA` (`hmrprnjhyzyefocdmnxf`) and its isolated `nexora` schema. The old NOVA game tables and their `nova_*` functions have been removed after verifying that the legacy tables contained zero rows. The new schema is provisioned with RLS enabled and no direct `anon`/`authenticated` table access. The live game client still uses the original Firebase Auth/Firestore runtime until the Supabase game API and identity boundary are completed; do not deploy this source snapshot as a live game yet. Read [docs/SUPABASE_SHARED_PROJECT.md](docs/SUPABASE_SHARED_PROJECT.md) before database or Auth changes.
 
 ---
 
