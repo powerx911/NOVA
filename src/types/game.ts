@@ -2,7 +2,7 @@ export type Language = 'ar' | 'en';
 
 export type MainTab = 'home' | 'business' | 'market' | 'organization' | 'social' | 'profile';
 
-export type BusinessSubTab = 'companies' | 'manufacturing' | 'inventory' | 'financials';
+export type BusinessSubTab = 'companies' | 'auction' | 'manufacturing' | 'inventory' | 'financials';
 export type MarketSubTab = 'exchange' | 'contracts' | 'bank' | 'ledger';
 export type ProfileSubTab = 'overview' | 'skills' | 'missions' | 'rankings' | 'settings' | 'diagnostics';
 
@@ -70,6 +70,9 @@ export type TransactionType =
   | 'company_upgrade_refund'
   | 'company_collect'
   | 'company_vault_upgrade'
+  | 'company_auction_escrow'
+  | 'company_auction_refund'
+  | 'company_auction_sale'
   | 'manufacturing'
   | 'org_create'
   | 'org_deposit'
@@ -170,8 +173,30 @@ export interface Company {
   vaultUpgradeEndsAt?: number;
   vaultUpgradeTargetLevel?: number;
   lastCollectedAt: unknown;
+  auctionId?: string | null;
+  auctionEndsAt?: unknown;
+  auctionStatus?: string | null;
   createdAt: unknown;
   updatedAt: unknown;
+}
+
+export interface CompanyAuction {
+  id: string;
+  companyId: string;
+  companyName: string;
+  companySector: CompanySector;
+  companyLevel: number;
+  sellerUid: string;
+  sellerName: string;
+  startingPrice: number;
+  currentPrice: number;
+  highestBidderUid: string | null;
+  highestBidderName: string | null;
+  startsAt: number;
+  endsAt: number;
+  status: 'active' | 'sold' | 'unsold' | 'cancelled';
+  winningBid?: number | null;
+  createdAt: number;
 }
 
 export interface CompanyLog {
