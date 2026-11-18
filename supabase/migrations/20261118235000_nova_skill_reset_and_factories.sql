@@ -275,7 +275,7 @@ begin
 end $$;
 
 create or replace function nexora.set_factory_active(p_uid text,p_factory_id text,p_active boolean)
-returns jsonb language plpgsql security definer set search_path = '' as $
+returns jsonb language plpgsql security definer set search_path = '' as $$
 declare v_factory nexora.factories%rowtype;
 begin
   select * into v_factory from nexora.factories where id=p_factory_id for update;
@@ -283,7 +283,7 @@ begin
   if v_factory.owner_uid<>p_uid then raise exception 'UNAUTHORIZED'; end if;
   update nexora.factories set is_active=coalesce(p_active,false),last_produced_at=now(),updated_at=now() where id=p_factory_id;
   return jsonb_build_object('ok',true,'is_active',coalesce(p_active,false));
-end $;
+end $$;
 
 create or replace function nexora.withdraw_factory_warehouse(p_uid text,p_factory_id text,p_quantity integer)
 returns jsonb language plpgsql security definer set search_path = '' as $$
