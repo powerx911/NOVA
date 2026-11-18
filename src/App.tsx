@@ -76,6 +76,7 @@ function NovaAppContent() {
       notifications={game.notifications}
       language={game.language}
     >
+      <GameMusic />
       <VersionUpdateNotice />
 
       {!game.isOnline && (
@@ -171,7 +172,6 @@ export default function App() {
   return (
     <ToastProvider>
       <GameAudioFeedback />
-      <GameMusic />
       <NovaAppContent />
     </ToastProvider>
   );
