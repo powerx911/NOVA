@@ -43,9 +43,11 @@ export function VersionUpdateNotice() {
 
     void checkVersion();
     const timer = window.setInterval(() => void checkVersion(), CHECK_INTERVAL_MS);
+    window.addEventListener('online', checkVersion);
     return () => {
       active = false;
       window.clearInterval(timer);
+      window.removeEventListener('online', checkVersion);
     };
   }, []);
 
