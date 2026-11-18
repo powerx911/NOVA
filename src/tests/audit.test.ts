@@ -13,7 +13,6 @@ import {
   getMissionProgress,
   LISTING_MAX_PRICE,
   LISTING_MAX_QTY,
-  PROPERTY_MAX_LEVEL,
   sanitizePositiveInt,
 } from '../lib/economy';
 
