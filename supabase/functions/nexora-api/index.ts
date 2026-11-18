@@ -473,6 +473,94 @@ Deno.serve(async (req: Request) => {
       return json({ ok: true, data }, 200, origin);
     }
 
+    if (body.action === "request_join_organization") {
+      const orgId = typeof body.orgId === "string" ? body.orgId : "";
+      const { data, error } = await db.rpc("request_join_organization", { p_uid: identity.uid, p_org_id: orgId });
+      if (error) {
+        const known = ["ACCOUNT_NOT_FOUND","ALREADY_IN_ORG","NOT_FOUND","REQUEST_ALREADY_PENDING"].find((x) => error.message.includes(x));
+        return json({ error: known ?? "JOIN_REQUEST_FAILED" }, 409, origin);
+      }
+      return json({ ok: true, data }, 201, origin);
+    }
+
+    if (body.action === "handle_org_join_request") {
+      const orgId = typeof body.orgId === "string" ? body.orgId : "";
+      const requestId = typeof body.requestId === "string" ? body.requestId : "";
+      const decision = body.decision === "approved" || body.decision === "rejected" ? body.decision : "";
+      const { data, error } = await db.rpc("handle_org_join_request", {
+        p_actor_uid: identity.uid, p_org_id: orgId, p_request_id: requestId, p_decision: decision,
+      });
+      if (error) {
+        const known = ["INVALID_DECISION","NOT_FOUND","UNAUTHORIZED","REQUEST_ALREADY_HANDLED","APPLICANT_IN_OTHER_ORG","ALREADY_ORG_MEMBER","ORG_FULL"].find((x) => error.message.includes(x));
+        return json({ error: known ?? "JOIN_REQUEST_DECISION_FAILED" }, 409, origin);
+      }
+      return json({ ok: true, data }, 200, origin);
+    }
+
+    if (body.action === "update_org_member_role" || body.action === "kick_org_member" || body.action === "leave_organization") {
+      const orgId = typeof body.orgId === "string" ? body.orgId : "";
+      const targetUid = typeof body.targetUid === "string" ? body.targetUid : "";
+      let rpcName = body.action;
+      let args: Record<string, unknown> = { p_uid: identity.uid, p_org_id: orgId };
+      if (body.action === "update_org_member_role") {
+        rpcName = "update_org_member_role";
+        args = { p_actor_uid: identity.uid, p_org_id: orgId, p_target_uid: targetUid, p_role: body.role };
+      } else if (body.action === "kick_org_member") {
+        rpcName = "kick_org_member";
+        args = { p_actor_uid: identity.uid, p_org_id: orgId, p_target_uid: targetUid };
+      } else {
+        rpcName = "leave_organization";
+        args = { p_uid: identity.uid, p_org_id: orgId };
+      }
+      const { data, error } = await db.rpc(rpcName, args);
+      if (error) {
+        const known = ["INVALID_ROLE","NOT_FOUND","UNAUTHORIZED","RANK_TOO_HIGH","LEADER_CANNOT_LEAVE","CANNOT_KICK_SELF"].find((x) => error.message.includes(x));
+        return json({ error: known ?? "ORGANIZATION_MEMBER_ACTION_FAILED" }, 409, origin);
+      }
+      return json({ ok: true, data }, 200, origin);
+    }
+
+    if (body.action === "org_treasury_deposit" || body.action === "org_treasury_withdraw") {
+      const orgId = typeof body.orgId === "string" ? body.orgId : "";
+      const amount = Number(body.amount);
+      const rpcName = body.action === "org_treasury_deposit" ? "deposit_org_treasury" : "withdraw_org_treasury";
+      const { data, error } = await db.rpc(rpcName, { p_uid: identity.uid, p_org_id: orgId, p_amount: Math.floor(amount) });
+      if (error) {
+        const known = ["INVALID_AMOUNT","NOT_FOUND","UNAUTHORIZED","INSUFFICIENT_FUNDS","INSUFFICIENT_TREASURY"].find((x) => error.message.includes(x));
+        return json({ error: known ?? "ORG_TREASURY_ACTION_FAILED" }, 409, origin);
+      }
+      return json({ ok: true, data }, 200, origin);
+    }
+
+    if (body.action === "fetch_org_pending_requests") {
+      const orgId = typeof body.orgId === "string" ? body.orgId : "";
+      const { data, error } = await db.rpc("get_org_pending_requests", { p_org_id: orgId, p_uid: identity.uid });
+      if (error) return json({ error: error.message.includes("UNAUTHORIZED") ? "UNAUTHORIZED" : "ORG_REQUESTS_FETCH_FAILED" }, 403, origin);
+      return json({ ok: true, data }, 200, origin);
+    }
+
+    if (body.action === "unlock_eligible_achievements") {
+      const { data, error } = await db.rpc("unlock_eligible_achievements", { p_uid: identity.uid });
+      if (error) return json({ error: "ACHIEVEMENT_SYNC_FAILED" }, 409, origin);
+      return json({ ok: true, data }, 200, origin);
+    }
+
+    if (body.action === "fetch_leaderboards") {
+      const { data, error } = await db.rpc("fetch_leaderboards");
+      if (error) return json({ error: "LEADERBOARD_FETCH_FAILED" }, 500, origin);
+      return json({ ok: true, data }, 200, origin);
+    }
+
+    if (body.action === "sync_self_org_membership") {
+      const orgId = typeof body.orgId === "string" && body.orgId.length > 0 ? body.orgId : null;
+      const { data, error } = await db.rpc("sync_self_org_membership", { p_uid: identity.uid, p_org_id: orgId });
+      if (error) {
+        const known = ["LEADER_CANNOT_LEAVE","NOT_ORG_MEMBER"].find((x) => error.message.includes(x));
+        return json({ error: known ?? "ORG_MEMBERSHIP_SYNC_FAILED" }, 409, origin);
+      }
+      return json({ ok: true, data }, 200, origin);
+    }
+
     return json({ error: "UNKNOWN_ACTION" }, 400, origin);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
