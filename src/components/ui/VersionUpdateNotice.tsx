@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 
 const STORAGE_KEY = 'nexora-installed-version';
+// Last published static version before automatic per-build versioning was introduced.
+const PRE_UPDATE_NOTICE_VERSION = '2026.11.16.1';
 const CHECK_INTERVAL_MS = 45_000;
 
 /** Detects a newly deployed build without requiring a page refresh. */
@@ -26,6 +28,13 @@ export function VersionUpdateNotice() {
 
         const latest = payload.version.trim();
         if (knownVersion === null) {
+          // Existing players have no marker because this notice did not exist in
+          // the previous build. Compare against that build instead of silently
+          // treating the first check as an already-installed update.
+          if (latest !== PRE_UPDATE_NOTICE_VERSION) {
+            setAvailableVersion(latest);
+            return;
+          }
           knownVersion = latest;
           try {
             window.localStorage.setItem(STORAGE_KEY, latest);
