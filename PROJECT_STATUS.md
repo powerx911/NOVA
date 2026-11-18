@@ -512,3 +512,17 @@ The user explicitly requires NOVA to be online and socially connected from its f
 - Added a lightweight GitHub Actions validation workflow for JavaScript syntax, UI selector wiring, navigation targets, mobile viewport metadata, map-free presentation, and whitespace. Its first PR run is pending.
 
 - Local source validation completed in the development session: JavaScript parsed successfully; HTML IDs are unique; all literal JavaScript ID selectors resolve; all navigation targets have matching screens; no map UI markers remain. These checks were performed against the branch contents. GitHub Actions has not yet reported a run for this PR, so CI is not marked passed.
+
+
+## 24. NOVA competitive online foundation — implementation in progress (2026-11-18)
+
+- Extended PR #20 on branch `feature/nova-mobile-competitive-prototype` from the latest main with the first real online account/gameplay foundation.
+- Added Supabase email/password sign-up and sign-in using the public publishable key and pinned `@supabase/supabase-js@2.119.0` browser import. No service-role or secret key is exposed.
+- Added a competitive core migration proposal: player profiles, server-owned wallets, player assets, idempotent command receipts, resource ledger, and a public activity feed. All tables have RLS enabled; direct client writes to wallets/assets/ledger/commands are not granted.
+- Added private SECURITY DEFINER implementations with public SECURITY INVOKER wrappers for player initialization, operation simulation, asset upgrades, and a safe public leaderboard. Server commands validate auth ownership, use transaction locks and per-user command IDs, update balances atomically, and write audit entries.
+- Enabled Realtime publication for public activity inserts; client subscribes to activity changes and refreshes the activity feed/leaderboard.
+- Connected the client to persistent account, wallet, asset, operation, leaderboard, and activity data. Guest mode remains read-only; market purchases, challenges, organizations, and matchmaking are explicitly not represented as live yet.
+- Added a migration security-contract test and replaced obsolete CI checks that still expected the retired map/castle prototype. The first PR #20 run had failed only because that legacy workflow searched for old `view-world` and map-based IDs; the current branch replaces those checks with current map-free UI and migration checks.
+- Files changed: `index.html`, `styles.css`, `app.js`, `supabase/migrations/20261118170000_nova_competitive_core.sql`, `scripts/check-competitive-migration.mjs`, `.github/workflows/prototype-checks.yml`, `README.md`, and this status log.
+- **Not yet done:** the migration has not been applied to the live Supabase database; email-confirmation redirect configuration is not verified; real account creation, two-player isolation, idempotency, Realtime delivery, Android device behavior, and Pages deployment are not yet verified.
+- Do not merge until CI passes. After merge, apply the migration, verify RLS/advisors and RPCs, run account/command integration tests, and confirm the GitHub Pages deployment.
