@@ -1,9 +1,9 @@
 # NEXORA Supabase Schema Baseline v1
 
-**Applied:** 2026-11-16  
-**Project:** `OneState-Trading-DB` (`dmeupqmhsyojxlgalxrc`)  
+**Applied:** 2026-11-18  
+**Project:** `NOVA` (`hmrprnjhyzyefocdmnxf`)  
 **Schema:** `nexora` only  
-**Migration history entries:** `nexora_core_schema_v1`, `nexora_fk_indexes_v1`
+**Migration history entries:** `nexora_core_schema_v1`, `nexora_username_compatibility`, `nexora_firebase_identity_boundary`
 
 ## Scope
 
@@ -19,7 +19,7 @@ This baseline creates the following 22 domain tables inside `nexora`:
 | Progression and claims | `player_missions`, `daily_claims`, `contract_claims`, `player_achievements` |
 | Platform | `notifications`, `world_events`, `audit_logs`, `diagnostics_admins` |
 
-The baseline includes typed columns, primary/unique keys, non-negative/range checks, selected foreign keys, query indexes, and explicit schema-qualified objects. The financial ledger, organization treasury ledger, mission/daily/contract claims, achievements, and audit logs have database triggers that reject UPDATE and DELETE.
+The baseline includes typed columns, primary/unique keys, non-negative/range checks, selected foreign keys, query indexes, and explicit schema-qualified objects. Firebase UID fields are stored as text so the initial identity provider can remain Firebase Auth while gameplay state moves to Supabase. The financial ledger, company logs, organization treasury ledger, mission/daily/contract claims, achievements, and audit logs have database triggers that reject UPDATE and DELETE.
 
 ## Security posture — intentionally closed
 
@@ -27,7 +27,8 @@ The baseline includes typed columns, primary/unique keys, non-negative/range che
 - No `anon` or `authenticated` table grants exist on any NEXORA table.
 - No NEXORA schema usage grant or Data API exposure has been enabled.
 - No browser RLS policies have been added. With RLS enabled and no grants/policies, client access remains denied.
-- No NEXORA user data has been imported.
+- No NEXORA player data has been imported.
+- The legacy NOVA public game tables and `nova_*` functions were removed after confirming that the legacy tables contained zero rows.
 - Firebase Auth and Firestore remain the active application runtime and source of truth.
 
 The Security Advisor reports `rls_enabled_no_policy` INFO notices for the 22 NEXORA tables. These are expected for this closed bootstrap state; do not add permissive policies just to silence the notices. The Advisor also reports existing notices for OneState's `public` tables; they are outside this project's scope and must not be changed.
