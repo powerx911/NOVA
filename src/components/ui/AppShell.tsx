@@ -134,7 +134,7 @@ export function AppShell({
         aria-label="Primary Navigation"
         className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#0B0D12]/95 backdrop-blur-md border-t border-white/10 pb-safe"
       >
-        <div className="grid grid-cols-5 h-16 max-w-lg mx-auto">
+        <div className="grid w-full max-w-lg mx-auto grid-cols-[repeat(5,minmax(0,1fr))] h-16">
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = activeTab === item.id;
@@ -143,12 +143,12 @@ export function AppShell({
                 key={item.id}
                 type="button"
                 onClick={() => onTabChange(item.id)}
-                className={`flex flex-col items-center justify-center gap-1 min-h-[44px] transition-colors ${
+                className={`min-w-0 flex flex-col items-center justify-center gap-1 min-h-[44px] transition-colors ${
                   isActive ? 'text-[#E04455]' : 'text-[#9299A6] hover:text-[#F4F5F7]'
                 }`}
               >
                 <Icon className="w-5 h-5" strokeWidth={isActive ? 2.3 : 1.8} />
-                <span className="text-[11px] font-medium whitespace-nowrap">{item.label}</span>
+                <span className="block w-full min-w-0 overflow-hidden text-ellipsis whitespace-nowrap px-0.5 text-center text-[10px] sm:text-[11px] font-medium">{item.label}</span>
               </button>
             );
           })}
