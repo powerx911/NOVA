@@ -36,6 +36,27 @@ function NovaAppContent() {
     );
   }
 
+  if (game.authUser && !game.profile && game.profileLoadError) {
+    return (
+      <div className="min-h-screen bg-[#0B0D12] text-[#F4F5F7] flex items-center justify-center p-6">
+        <div className="w-full max-w-md rounded-2xl border border-amber-500/25 bg-[#141821] p-6 space-y-4 text-center">
+          <div className="mx-auto h-12 w-12 rounded-full bg-amber-500/10 flex items-center justify-center text-amber-300 text-xl">!</div>
+          <h1 className="text-lg font-bold">تعذر تحميل بيانات حسابك</h1>
+          <p className="text-sm leading-7 text-[#AAB1BE]">
+            لم نتمكن من الاتصال ببيانات اللعبة. تقدمك لم يُحذف، ولن نطلب منك إنشاء شخصية جديدة قبل التأكد من تحميل حسابك.
+          </p>
+          <button
+            type="button"
+            onClick={game.retryProfileLoad}
+            className="w-full min-h-[46px] rounded-xl bg-[#B91C32] hover:bg-[#E04455] text-white text-sm font-semibold"
+          >
+            إعادة المحاولة
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   if (!game.authUser) {
     return (
       <AuthOnboardingView
