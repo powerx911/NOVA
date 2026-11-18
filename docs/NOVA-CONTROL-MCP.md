@@ -14,7 +14,7 @@ The server is deliberately hard-coded to one repository and one workflow. It doe
 
 ## Runtime
 
-Deployed as a Supabase Edge Function in the existing NOVA Supabase project. MCP transport: stateless Streamable HTTP with JSON responses.
+Deployed as a Supabase Edge Function in the existing NOVA Supabase project by GitHub Actions. MCP transport: stateless Streamable HTTP with JSON responses.
 
 Endpoint:
 `https://hmrprnjhyzyefocdmnxf.supabase.co/functions/v1/nova-control`
@@ -22,27 +22,26 @@ Endpoint:
 Health:
 `https://hmrprnjhyzyefocdmnxf.supabase.co/functions/v1/nova-control/health`
 
-## Required secrets
+## One-time setup
 
-Set these in Supabase Dashboard → Edge Functions → Secrets. Never commit them to Git or paste them into chat.
+In GitHub, open **powerx911/NOVA → Settings → Secrets and variables → Actions** and add:
 
-- `NOVA_GITHUB_TOKEN`: a fine-grained GitHub PAT restricted to `powerx911/NOVA`. Required permissions: Pages (read/write), Administration (write, required by GitHub when creating a Pages site), Actions (read/write). Metadata is granted automatically. Keep an expiry and rotate it periodically.
-- `NOVA_MCP_ACCESS_TOKEN`: a separate high-entropy random bearer token used by MCP clients to authenticate to this endpoint. Do not reuse the GitHub token.
+- `SUPABASE_ACCESS_TOKEN`: a Supabase personal access token allowed to deploy Edge Functions to the existing NOVA project.
+- `NOVA_GITHUB_TOKEN`: a fine-grained GitHub PAT restricted to this repository. Required repository permissions: **Pages: Read and write**, **Administration: Read and write** (GitHub requires this when creating a Pages site), and **Actions: Read and write**. Metadata read is automatic. Keep an expiry and rotate it periodically.
+- `NOVA_MCP_ACCESS_TOKEN`: a separate high-entropy random bearer token for MCP client authentication. Generate one locally, for example with `openssl rand -hex 32`. Do not reuse the GitHub or Supabase token.
+
+Never paste any of these values into chat or commit them to Git.
+
+After these three GitHub Actions secrets are saved, run **Actions → Deploy NOVA Control MCP → Run workflow**, or merge a change to the function files on `main`. The workflow copies the two NOVA runtime secrets into Supabase's Edge Function secret store and deploys the function.
 
 ## Security
 
 - The function performs its own bearer-token authentication; Supabase gateway JWT verification is disabled only for this function.
 - GitHub credentials stay in Supabase Edge Function secrets and are never returned by a tool.
-- Mutating tools require an explicit `confirm: true` argument.
+- Mutating MCP tools require an explicit `confirm: true` argument.
 - Only the Pages settings and the fixed `pages.yml` workflow can be changed/run.
 - Review all new tool capabilities before expanding the allowed repository scope.
 
-## Deploy
+## Deployment
 
-Deploy the function from the repository using Supabase CLI:
-
-```sh
-supabase functions deploy nova-control --project-ref hmrprnjhyzyefocdmnxf --no-verify-jwt
-```
-
-The production secrets are read at runtime and do not need to be committed.
+Deployment is managed by `.github/workflows/deploy-nova-control.yml`. Do not deploy this function manually from another hosting platform.
