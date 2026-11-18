@@ -27,6 +27,7 @@ import {
   completeOrganizationUpgrade,
   researchOrganization,
   withdrawFromOrgTreasury,
+  getOrgDonationRanking,
 } from '../../services/gameService';
 import type {
   Language,
@@ -76,6 +77,7 @@ export function OrganizationHubView({
   const [confirmLeaveOpen, setConfirmLeaveOpen] = useState(false);
   const [kickTarget, setKickTarget] = useState<{ uid: string; username: string } | null>(null);
   const [clockNow, setClockNow] = useState(Date.now());
+  const [donationRanking, setDonationRanking] = useState<Array<{ uid: string; username: string; amount: number }>>([]);
 
   const currentOrg = myOrgMember
     ? organizations.find((o) => o.id === myOrgMember.orgId) || null
@@ -107,14 +109,14 @@ export function OrganizationHubView({
     return () => window.clearTimeout(timer);
   }, [currentOrg?.id, currentOrg?.upgradeEndsAt, language, showToast]);
 
-  const contributionsByUid = new Map<string, number>();
-  for (const otx of orgTransactions) {
-    if (otx.type === 'deposit' || otx.type === 'withdraw') {
-      const direction = otx.type === 'deposit' ? 1 : -1;
-      contributionsByUid.set(otx.uid, (contributionsByUid.get(otx.uid) || 0) + direction * otx.amount);
-    }
-  }
-  const donationRanking = [...contributionsByUid.entries()].filter(([, amount]) => amount > 0).sort((a, b) => b[1] - a[1]);
+  useEffect(() => {
+    if (!currentOrg?.id) { setDonationRanking([]); return; }
+    let active = true;
+    void getOrgDonationRanking(currentOrg.id).then((ranking) => { if (active) setDonationRanking(ranking); }).catch(() => {
+      if (active) setDonationRanking([]);
+    });
+    return () => { active = false; };
+  }, [currentOrg?.id]);
 
   async function handleCreateOrg(e: React.FormEvent) {
     e.preventDefault();
@@ -698,10 +700,9 @@ export function OrganizationHubView({
           {/* Donation leaderboard */}
           <div className="min-w-0 bg-[#141821] border border-white/8 rounded-2xl p-4 sm:p-5 space-y-3">
             <h2 className="text-sm font-semibold text-[#F4F5F7]">{language === 'ar' ? 'ترتيب التبرعات' : 'Donation leaderboard'}</h2>
-            {donationRanking.length === 0 ? <p className="py-4 text-center text-xs text-[#9299A6]">{language === 'ar' ? 'لا توجد تبرعات صافية حتى الآن.' : 'No net donations yet.'}</p> : donationRanking.map(([uid, amount], index) => {
-              const member = orgMembers.find((item) => item.uid === uid);
-              return <div key={uid} className="flex items-center justify-between rounded-xl border border-white/6 bg-[#0B0D12] px-3 py-2.5"><span className="flex items-center gap-3 min-w-0"><span className="w-6 text-center text-xs font-bold text-amber-200">#{index + 1}</span><span className="truncate text-sm text-[#F4F5F7]">{member?.username || orgTransactions.find((item) => item.uid === uid)?.username || (language === 'ar' ? 'لاعب' : 'Player')}</span></span><span className="text-xs font-semibold font-mono-num text-emerald-400">${amount.toLocaleString()}}</span></div>;
-            })}
+            {donationRanking.length === 0 ? <p className="py-4 text-center text-xs text-[#9299A6]">{language === 'ar' ? 'لا توجد تبرعات صافية حتى الآن.' : 'No net donations yet.'}</p> : donationRanking.map((entry, index) => (
+              <div key={entry.uid} className="flex items-center justify-between rounded-xl border border-white/6 bg-[#0B0D12] px-3 py-2.5"><span className="flex items-center gap-3 min-w-0"><span className="w-6 text-center text-xs font-bold text-amber-200">#{index + 1}</span><span className="truncate text-sm text-[#F4F5F7]">{entry.username}</span></span><span className="text-xs font-semibold font-mono-num text-emerald-400">${entry.amount.toLocaleString()}}</span></div>
+            ))}
           </div>
         </div>
 
