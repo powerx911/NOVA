@@ -403,7 +403,7 @@ Deno.serve(async (req: Request) => {
       const sector = typeof body.sector === "string" ? body.sector : "";
       const { data, error } = await db.rpc("found_company", { p_uid: identity.uid, p_name: name, p_sector: sector });
       if (error) {
-        const known = ["INVALID_NAME","INVALID_SECTOR","ACCOUNT_NOT_FOUND","INSUFFICIENT_FUNDS","COMPANY_CAPACITY_REACHED"].find((code) => error.message.includes(code));
+        const known = ["INVALID_NAME","INVALID_SECTOR","ACCOUNT_NOT_FOUND","INSUFFICIENT_FUNDS","COMPANY_CAPACITY_REACHED","COMPANY_AUCTION_PENDING"].find((code) => error.message.includes(code));
         return json({ error: known ?? "COMPANY_FOUNDING_FAILED" }, 409, origin);
       }
       return json({ ok: true, data }, 201, origin);
