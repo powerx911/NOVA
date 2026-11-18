@@ -1,0 +1,18 @@
+import { readFileSync } from "node:fs";
+import assert from "node:assert/strict";
+const html=readFileSync("index.html","utf8");
+const js=readFileSync("app.js","utf8");
+const ids=[...html.matchAll(/\bid=["']([^"']+)["']/g)].map(m=>m[1]);
+const duplicates=ids.filter((id,i)=>ids.indexOf(id)!==i);
+assert.deepEqual(duplicates,[],"HTML contains duplicate IDs");
+const idSet=new Set(ids);
+const selectors=[...js.matchAll(/\$\(["']#([a-zA-Z0-9_-]+)["']\)/g)].map(m=>m[1]);
+const missing=[...new Set(selectors.filter(id=>!idSet.has(id)))];
+assert.deepEqual(missing,[],"JavaScript references missing HTML IDs");
+const screens=[...html.matchAll(/id=["']screen-([^"']+)["']/g)].map(m=>m[1]);
+const nav=[...html.matchAll(/data-screen=["']([^"']+)["']/g)].map(m=>m[1]);
+for(const name of nav) assert.ok(screens.includes(name),`Navigation target screen-${name} is missing`);
+assert.ok(html.includes('name="viewport"'),"Mobile viewport meta tag is required");
+assert.ok(html.includes('aria-label="التنقل الرئيسي"'),"Primary navigation needs an accessible label");
+assert.ok(!html.includes('world-map')&&!html.includes('map-grid-lines'),"This product direction must not include a map UI");
+console.log(`UI validation passed: ${ids.length} unique IDs, ${screens.length} screens, ${nav.length} navigation targets.`);

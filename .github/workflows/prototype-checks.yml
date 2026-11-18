@@ -27,26 +27,14 @@ jobs:
       - name: Validate JavaScript syntax
         run: node --check app.js
 
-      - name: Verify new game experience entry points
-        shell: bash
-        run: |
-          test -s index.html
-          test -s styles.css
-          test -s app.js
-          grep -Fq 'href="./styles.css"' index.html
-          grep -Fq 'src="./app.js"' index.html
-          grep -Fq 'id="view-home"' index.html
-          grep -Fq 'id="view-empire"' index.html
-          grep -Fq 'id="view-world"' index.html
-          grep -Fq 'id="view-market"' index.html
-          grep -Fq 'id="view-conflict"' index.html
-          grep -Fq 'id="view-social"' index.html
-          grep -Fq 'id="simulate-battle"' index.html
-          grep -Fq 'id="business-list"' index.html
-          grep -Fq 'data-view="world"' index.html
+      - name: Validate current map-free mobile UI
+        run: node scripts/validate-ui.mjs
 
-      - name: Validate server-authoritative player migration contract
+      - name: Validate original server-authoritative player foundation
         run: node scripts/check-player-migration.mjs
+
+      - name: Validate competitive backend security contract
+        run: node scripts/check-competitive-migration.mjs
 
       - name: Check patch whitespace
         run: git diff --check origin/main...HEAD

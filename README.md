@@ -1,24 +1,33 @@
 # NOVA
 
-NOVA is an original, Android-first 2D persistent multiplayer world simulation game in development. Its new direction combines player-owned businesses, a living economy, territory competition, organizations, and simulated conflicts — without nation-state management or direct-action combat.
+NOVA is an Android-first, portrait-oriented online competitive simulation game in development. Gameplay is built around player decisions, statistics, economic systems, operations, assets, organizations, and player-versus-player competition — not an open-world character game and not a map-based strategy game.
 
-## Current experience
+## Current client
 
-The first visual foundation is a mobile-first Arabic prototype featuring:
-- A modern world dashboard and illustrated city hero scene.
-- Player wallet, businesses, hourly income, and local business expansion.
-- A stylized interactive sector map.
-- A simulated player market and quick purchase action.
-- Organization membership, social activity, and conflict simulation.
-- Local preview persistence only.
+The mobile-first client includes:
+- A command center with player metrics, event highlights, and activity feed.
+- Competitive operations and challenge surfaces.
+- Asset management and inventory.
+- A market interface.
+- Player rankings, organization entry points, and profile/settings.
+- Thumb-friendly navigation, translucent panels, responsive feedback, and reduced-motion support.
 
-**Important:** This is a front-end preview, not yet an online multiplayer game. Accounts, shared economy, live market orders, organization chat, real-time presence, territory ownership, and authoritative conflict resolution still require backend implementation and integration testing.
+## Online foundation
 
-## Infrastructure
+The current feature branch now includes:
+- Supabase email/password account registration and login.
+- Player profile initialization and persistent player wallet.
+- Server-authoritative operation simulation and asset upgrades.
+- Idempotent command receipts and an auditable resource ledger.
+- A safe public leaderboard RPC and public activity feed with Realtime inserts.
+- Row Level Security on all new competitive tables. Clients can read their own wallet/assets but cannot directly mutate them.
 
-- GitHub repository `powerx911/NOVA` is the source of truth for source control, pull requests, CI, and deployment.
-- GitHub Pages: https://powerx911.github.io/NOVA/
-- Existing Supabase project remains the planned backend for authentication, persistent game state, trusted commands, and authorized realtime features.
+**Deployment status:** The competitive migration is included in the open GitHub pull request and has not yet been applied to the live Supabase database. Until the PR checks pass, the migration is applied after merge, and account/command integration tests pass, do not treat the current Pages deployment as a live multiplayer game. The market, matchmaking/challenges, organizations, and player-versus-player season system are still future implementation phases.
+
+## Infrastructure and safety
+
+- GitHub is the source of truth for code, pull requests, CI, and GitHub Pages deployment.
+- Existing Supabase project is used; no new project is required.
+- The browser uses only the Supabase publishable key. Never expose a service-role or secret key in client code.
+- Server-side functions own balances, asset upgrades, operation rewards, and ranking calculations.
 - Vercel is not used.
-
-Never commit credentials or service-role keys. Client code must not authoritatively decide balances, inventory, market trades, territory ownership, or battle outcomes. Those operations must be validated server-side with authorization, transactions, idempotency, and audit records.
