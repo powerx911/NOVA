@@ -36,7 +36,7 @@ import {
   LISTING_MAX_QTY,
   timestampToMs as parseTimestampMs,
 } from '../lib/economy';
-import { auth, db, handleFirestoreError, OperationType } from '../lib/firebase';
+import { db, handleFirestoreError, OperationType } from '../lib/firebase';
 import { nexoraApi } from '../lib/nexoraApi';
 import type {
   Company,
@@ -283,48 +283,33 @@ export async function foundCompany(
   await nexoraApi('found_company', { name: cleanName, sector });
 }
 
-export async function upgradeCompany(uid: string, companyId: string): Promise<void> {
-  await callCompanyVault<{ ok: boolean }>(uid, 'company_upgrade', companyId);
-}
-
-async function callCompanyVault<T>(
-  uid: string,
-  action: 'upgrade' | 'collect' | 'company_upgrade' | 'company_complete' | 'vault_complete',
-  companyId: string
-): Promise<T> {
-  const currentUser = auth.currentUser;
-  if (!currentUser || currentUser.uid !== uid) throw new Error('UNAUTHORIZED');
-
-  const idToken = await currentUser.getIdToken();
-  const response = await fetch('/api/company-vault', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${idToken}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ action, companyId }),
-  });
-  const payload = await response.json().catch(() => ({})) as { error?: unknown } & Record<string, unknown>;
-  if (!response.ok) {
-    throw new Error(typeof payload.error === 'string' ? payload.error : 'COMPANY_VAULT_OPERATION_FAILED');
+async function callSupabaseCompanyAction<T>(action: string, companyId: string): Promise<T> {
+  try {
+    return await nexoraApi<T>(action, { companyId });
+  } catch (error) {
+    if (error instanceof Error && 'code' in error) throw new Error(String((error as { code?: unknown }).code ?? 'COMPANY_OPERATION_FAILED'));
+    throw error;
   }
-  return payload as T;
 }
 
-export async function upgradeCompanyVault(uid: string, companyId: string): Promise<void> {
-  await callCompanyVault<{ ok: boolean }>(uid, 'upgrade', companyId);
+export async function upgradeCompany(_uid: string, companyId: string): Promise<void> {
+  await callSupabaseCompanyAction('company_upgrade', companyId);
 }
 
-export async function completeCompanyUpgrade(uid: string, companyId: string): Promise<void> {
-  await callCompanyVault<{ ok: boolean }>(uid, 'company_complete', companyId);
+export async function upgradeCompanyVault(_uid: string, companyId: string): Promise<void> {
+  await callSupabaseCompanyAction('vault_upgrade', companyId);
 }
 
-export async function completeCompanyVaultUpgrade(uid: string, companyId: string): Promise<void> {
-  await callCompanyVault<{ ok: boolean }>(uid, 'vault_complete', companyId);
+export async function completeCompanyUpgrade(_uid: string, companyId: string): Promise<void> {
+  await callSupabaseCompanyAction('company_complete', companyId);
 }
 
-export async function collectCompanyRevenue(uid: string, companyId: string): Promise<number> {
-  const result = await callCompanyVault<{ ok: boolean; payout: number }>(uid, 'collect', companyId);
+export async function completeCompanyVaultUpgrade(_uid: string, companyId: string): Promise<void> {
+  await callSupabaseCompanyAction('vault_complete', companyId);
+}
+
+export async function collectCompanyRevenue(_uid: string, companyId: string): Promise<number> {
+  const result = await callSupabaseCompanyAction<{ payout: number }>('company_collect', companyId);
   return result.payout;
 }
 
