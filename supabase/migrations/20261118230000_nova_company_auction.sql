@@ -372,11 +372,11 @@ grant execute on function nexora.delete_company(text,text) to service_role;
 create extension if not exists pg_cron with schema pg_catalog;
 grant usage on schema cron to postgres;
 grant all privileges on all tables in schema cron to postgres;
-do $
+do $cron$
 begin
   if not exists (select 1 from cron.job where jobname='nexora-company-auction-settlement') then
     perform cron.schedule('nexora-company-auction-settlement','* * * * *',
       'select nexora.settle_expired_company_auctions();');
   end if;
 end;
-$$;
+$cron$;
