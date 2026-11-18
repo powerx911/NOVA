@@ -140,7 +140,9 @@ export function useGameData(): GameDataState {
 
   const clearSessionState = useCallback(() => {
     setProfile(null);
-    setProfileLoading(false);
+    // Keep the app behind the loading screen during account switches so an
+    // empty in-memory profile can never flash the new-character onboarding.
+    setProfileLoading(true);
     setProfileLoadError(false);
     setUserPrivate(null);
     setWallet(null);
