@@ -1,12 +1,7 @@
 import { createUserWithEmailAndPassword, getRedirectResult, onAuthStateChanged, sendEmailVerification, signInAnonymously, signInWithEmailAndPassword, signInWithPopup, signInWithRedirect, signOut, type User } from 'firebase/auth';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ACHIEVEMENTS } from '../data/catalog';
-import { timestampToMs } from '../lib/economy';
 import { auth, googleAuthProvider } from '../lib/firebase';
-import {
-  checkAndUnlockAchievements,
-  getUtcDateKey,
-} from '../services/gameService';
+import { getUtcDateKey } from '../services/gameService';
 import { nexoraApi } from '../lib/nexoraApi';
 import type {
   Company,
@@ -97,7 +92,6 @@ export function useGameData(): GameDataState {
     typeof navigator !== 'undefined' ? navigator.onLine : true
   );
   const [language, setLanguage] = useState<Language>('ar');
-  const attemptedAchievementsRef = useRef<Set<string>>(new Set());
   const bootstrappedUidRef = useRef<string | null>(null);
   const activeUidRef = useRef<string | null>(null);
 
@@ -133,7 +127,6 @@ export function useGameData(): GameDataState {
   }, []);
 
   const clearSessionState = useCallback(() => {
-    attemptedAchievementsRef.current.clear();
     setProfile(null);
     setProfileLoading(false);
     setUserPrivate(null);
@@ -244,23 +237,6 @@ export function useGameData(): GameDataState {
       window.clearInterval(refresh);
     };
   }, [authUser, setLanguageLocal, utcDateKey]);
-
-  // Auto-unlock eligible achievements (deduplicated per session)
-  useEffect(() => {
-    if (!authUser || !profile) return;
-    const alreadySkipped = new Set([
-      ...unlockedAchievements,
-      ...attemptedAchievementsRef.current,
-    ]);
-    const pendingToAttempt = ACHIEVEMENTS.filter((a) => !alreadySkipped.has(a.id));
-    if (pendingToAttempt.length === 0) return;
-
-    checkAndUnlockAchievements(authUser.uid, profile, alreadySkipped, pendingToAttempt).then(
-      (unlockedNow) => {
-        unlockedNow.forEach((id) => attemptedAchievementsRef.current.add(id));
-      }
-    );
-  }, [authUser, profile, unlockedAchievements]);
 
   const loginWithGoogle = useCallback(async () => {
     // Prefer popup on every device. On mobile browsers, redirect-based OAuth can
