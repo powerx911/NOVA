@@ -184,8 +184,19 @@ Deno.serve(async (req: Request) => {
     const db = admin.schema("nexora");
 
     if (body.action === "bootstrap") {
-      const { error: achievementError } = await db.rpc("unlock_eligible_achievements", { p_uid: identity.uid });
-      if (achievementError) throw achievementError;
+      // A signed-in Firebase user may not have created a game character yet.
+      // Only unlock achievements after a player profile exists; otherwise the
+      // achievement RPC raises ACCOUNT_NOT_FOUND and blocks onboarding.
+      const { data: existingProfile, error: profileError } = await db
+        .from("player_profiles")
+        .select("user_id")
+        .eq("user_id", identity.uid)
+        .maybeSingle();
+      if (profileError) throw profileError;
+      if (existingProfile) {
+        const { error: achievementError } = await db.rpc("unlock_eligible_achievements", { p_uid: identity.uid });
+        if (achievementError) throw achievementError;
+      }
       return json({ ok: true, data: await bootstrap(admin, identity.uid) }, 200, origin);
     }
 
