@@ -2,7 +2,7 @@ export type Language = 'ar' | 'en';
 
 export type MainTab = 'home' | 'business' | 'market' | 'organization' | 'profile';
 
-export type BusinessSubTab = 'companies' | 'manufacturing' | 'properties' | 'inventory' | 'financials';
+export type BusinessSubTab = 'companies' | 'manufacturing' | 'inventory' | 'financials';
 export type MarketSubTab = 'exchange' | 'contracts' | 'bank' | 'ledger';
 export type ProfileSubTab = 'overview' | 'skills' | 'missions' | 'rankings' | 'settings' | 'diagnostics';
 
@@ -20,7 +20,6 @@ export interface PlayerStats {
   missionsCompleted: number;
   tradesCount: number;
   companiesOwned: number;
-  propertiesOwned: number;
   totalProduced: number;
 }
 
@@ -187,23 +186,6 @@ export interface CompanyLog {
   createdAt: unknown;
 }
 
-export type PropertyType = 'shop' | 'office' | 'facility';
-
-export interface PropertyAsset {
-  id: string;
-  ownerUid: string;
-  name: string;
-  type: PropertyType;
-  level: number;
-  purchasePrice: number;
-  rentPerHour: number;
-  maintenancePerHour: number;
-  isRented: boolean;
-  lastCollectedAt: unknown;
-  createdAt: unknown;
-  updatedAt: unknown;
-}
-
 export type OrgRole = 'leader' | 'deputy' | 'officer' | 'member';
 export type OrgPermission = 'manage_members' | 'manage_roles' | 'manage_treasury' | 'manage_org';
 export type OrganizationResearchId = 'commerce' | 'engineering' | 'expansion' | 'finance' | 'diplomacy';
@@ -270,7 +252,7 @@ export interface MissionDefinition {
   rewardXp: number;
   rewardReputation: number;
   targetCount: number;
-  metric: 'trades' | 'companies' | 'properties' | 'produced' | 'level' | 'org';
+  metric: 'trades' | 'companies' | 'produced' | 'level' | 'org';
 }
 
 export interface PlayerMissionClaim {
@@ -288,7 +270,7 @@ export interface AchievementDefinition {
   titleEn: string;
   descriptionAr: string;
   descriptionEn: string;
-  metric: 'trades' | 'companies' | 'properties' | 'produced' | 'level' | 'reputation';
+  metric: 'trades' | 'companies' | 'produced' | 'level' | 'reputation';
   threshold: number;
 }
 
