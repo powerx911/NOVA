@@ -371,7 +371,7 @@ export function FactoriesPanel({ factories, inventory, profile, wallet, language
             </div>
             <div className="space-y-1.5">
               <div className="flex items-center justify-between text-xs"><span className="text-[#9299A6]">{isAr ? 'المستودع' : 'Warehouse'} · {resourceItem ? (isAr ? resourceItem.nameAr : resourceItem.nameEn) : selected.resourceId}</span><span className="font-mono-num text-[#F4F5F7]">{selected.warehouseQty.toLocaleString()} / {warehouseCapacity.toLocaleString()}</span></div>
-              <div className="h-2 overflow-hidden rounded-full bg-white/8"><div className="h-full rounded-full bg-[#B91C32]" style={{ width: `${selectedWarehousePercent}%` }} /> : `Expand warehouse · ${warehouseUpgradeCost.toLocaleString()} import { ArrowUpCircle, Factory, Package, Pause, Play, Wrench } from 'lucide-react';
+              <div className="h-2 overflow-hidden rounded-full bg-white/8"><div className="h-full rounded-full bg-[#B91C32]" style={{ width: `${selectedWarehousePercent}%` }} : `Expand warehouse · ${warehouseUpgradeCost.toLocaleString()} import { ArrowUpCircle, Factory, Package, Pause, Play, Wrench } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { useToast } from '../../components/ui/ToastProvider';
 import { FACTORY_RESOURCES, ITEM_MAP } from '../../data/catalog';
@@ -554,7 +554,7 @@ export function FactoriesPanel({ factories, inventory, profile, wallet, language
             </div>
             <div className="space-y-1.5">
               <div className="flex items-center justify-between text-xs"><span className="text-[#9299A6]">{isAr ? 'المستودع' : 'Warehouse'} · {resourceItem ? (isAr ? resourceItem.nameAr : resourceItem.nameEn) : selected.resourceId}</span><span className="font-mono-num text-[#F4F5F7]">{selected.warehouseQty.toLocaleString()} / {warehouseCapacity.toLocaleString()}</span></div>
-              <div className="h-2 overflow-hidden rounded-full bg-white/8"><div className="h-full rounded-full bg-[#B91C32]" style={{ width: `${selectedWarehousePercent}%` }} />)}</button>
+              <div className="h-2 overflow-hidden rounded-full bg-white/8"><div className="h-full rounded-full bg-[#B91C32]" style={{ width: `${selectedWarehousePercent}%` }})}</button>
             </div>
             {selectedUpgradeEnd > 0 && <p className="text-xs text-amber-300">{remainingMs > 0 ? (isAr ? `التطوير جارٍ · متبقٍ نحو ${remainingMinutes} دقيقة` : `Upgrade in progress · about ${remainingMinutes} min left`) : (isAr ? 'اكتمل الوقت، جارٍ إنهاء التطوير.' : 'Timer complete; finalizing upgrade.')}</p>}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
