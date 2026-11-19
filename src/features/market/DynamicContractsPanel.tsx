@@ -128,6 +128,16 @@ export function DynamicContractsPanel({ profile, inventory, wallet, language }: 
     };
   }, [refresh]);
 
+  useEffect(() => {
+    const expiries = [...personalCooldowns, ...orgCooldowns]
+      .map((slot) => new Date(slot.cooldown_until).getTime())
+      .filter((value) => Number.isFinite(value) && value > Date.now() + serverOffsetMs);
+    if (expiries.length === 0) return undefined;
+    const nextExpiry = Math.min(...expiries);
+    const timer = window.setTimeout(() => { void refresh(); }, Math.max(0, nextExpiry - (Date.now() + serverOffsetMs) + 250));
+    return () => window.clearTimeout(timer);
+  }, [personalCooldowns, orgCooldowns, serverOffsetMs, refresh]);
+
   async function runAction(contract: DynamicContractOffer, action: 'accept' | 'deliver' | 'abandon' | 'claim' | 'refresh') {
     setBusyId(contract.id);
     try {
