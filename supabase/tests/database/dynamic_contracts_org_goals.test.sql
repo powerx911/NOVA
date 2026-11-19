@@ -439,7 +439,7 @@ select extensions.is(
   'company level upgrades advance the company-upgrade goal'
 );
 insert into nexora.factories(id,owner_uid,owner_name,name,resource_id)
-values ('pgtap_goal_factory','pgtap_goal_user','Goal User','Goal Factory','copper_ore');
+values ('pgtap_goal_factory','pgtap_goal_user','Goal User','Goal Factory','copper_wire');
 select extensions.is(
   (select current_amount from nexora.org_weekly_goals where org_id='pgtap_goal_org' and goal_type='factories_founded' and week_start=date_trunc('week',timezone('UTC',now()))::date),
   1::numeric,
