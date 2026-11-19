@@ -10,6 +10,29 @@ create table if not exists nexora.contract_slot_cooldowns (
   primary key (scope, owner_id, slot_no, board_date)
 );
 
+-- The personal board has five independent offers. Organization capacity scales
+-- by ten slots per level, capped at one hundred.
+update nexora.contract_config
+set config_value = jsonb_set(config_value, '{personal_slots}', '5'::jsonb, true),
+    updated_at = now()
+where config_key = 'progression';
+
+do $
+declare
+  v_definition text;
+  v_old text := 'v_slots:=v_org_slots_base+floor(v_org.level/v_org_slots_divisor)::integer;';
+begin
+  select pg_get_functiondef('nexora.get_dynamic_contract_board(text)'::regprocedure)
+    into v_definition;
+  if position(v_old in v_definition) = 0 then
+    raise exception 'CONTRACT_BOARD_SLOT_FORMULA_NOT_FOUND';
+  end if;
+  v_definition := replace(v_definition, v_old,
+    'v_slots:=least(100,greatest(10,v_org.level*10));');
+  execute v_definition;
+end;
+$;
+
 create index if not exists contract_slot_cooldowns_until_idx
   on nexora.contract_slot_cooldowns (cooldown_until);
 
