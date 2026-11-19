@@ -6,7 +6,7 @@ export async function bootstrap(admin: ReturnType<typeof getAdminClient>, uid: s
   const [
     profile, userPrivate, wallet, inventory, sent, received, marketListings,
     marketOrders, companies, factories, organizations,
-    organizationMembers, organizationRequests, playerMissions, dailyClaims,
+    organizationMembers, organizationRequests, playerMissions, dailyClaims, dailyMarketTrades,
     contractClaims, playerAchievements, notifications, worldEvents,
   ] = await Promise.all([
     queryData(db.from("player_profiles").select("*").eq("user_id", uid).maybeSingle()),
@@ -24,6 +24,7 @@ export async function bootstrap(admin: ReturnType<typeof getAdminClient>, uid: s
     queryData(db.from("organization_requests").select("*").eq("user_id", uid)),
     queryData(db.from("player_missions").select("*").eq("user_id", uid)),
     queryData(db.from("daily_claims").select("*").eq("user_id", uid).eq("date_key", new Date().toISOString().slice(0, 10)).maybeSingle()),
+    queryData(db.from("transactions").select("id").eq("from_uid", uid).eq("type", "market_buy").eq("status", "completed").gte("created_at", new Date().toISOString().slice(0, 10))),
     queryData(db.from("contract_claims").select("*").eq("user_id", uid)),
     queryData(db.from("player_achievements").select("*").eq("user_id", uid)),
     queryData(db.from("notifications").select("*").eq("user_id", uid).order("created_at", { ascending: false }).limit(30)),
@@ -54,7 +55,7 @@ export async function bootstrap(admin: ReturnType<typeof getAdminClient>, uid: s
   ).slice(0, 40);
 
   return {
-    profile: camelRow(profile),
+    profile: { ...(camelRow(profile) as Record<string, unknown>), dailyTradesCount: (dailyMarketTrades as Record<string, unknown>[]).length },
     userPrivate: camelRow(userPrivate),
     wallet: camelRow(wallet),
     inventory: camelRow(inventory),
