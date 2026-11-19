@@ -95,7 +95,7 @@ export function OrganizationHubView({
   const canManageOrg = myOrgMember?.role === 'leader' || myOrgMember?.role === 'deputy' || hasOrgPermission(myOrgMember, 'manage_org');
 
   useEffect(() => {
-    const clock = window.setInterval(() => setClockNow(Date.now()), 15_000);
+    const clock = window.setInterval(() => setClockNow(Date.now()), 1_000);
     return () => window.clearInterval(clock);
   }, []);
 
