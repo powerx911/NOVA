@@ -465,7 +465,7 @@ export function calculateCompanyVaultBalance(
 
 export function getPlayerInventoryCapacity(level: number): number {
   const safeLevel = Number.isFinite(level) ? Math.max(1, Math.min(200, Math.floor(level))) : 1;
-  return 100 + (safeLevel - 1) * 15;
+  return 250 + (safeLevel - 1) * 15;
 }
 
 export const COMPANY_MAX_LEVEL = 100;
