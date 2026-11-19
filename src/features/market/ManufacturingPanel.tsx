@@ -61,7 +61,7 @@ export function ManufacturingPanel({ profile, wallet, inventory, language, onNav
       } else if (code !== 'MANUFACTURING_JOB_NOT_FINISHED') {
         showToast(isAr ? 'تعذر استلام الإنتاج. حاول مجدداً.' : 'Could not collect production. Please try again.', 'error');
       }
-      if (code !== 'INVENTORY_CAPACITY_EXCEEDED') completionAttempted.current = null;
+      if (code !== 'INVENTORY_CAPACITY_EXCEEDED') { completionAttempted.current = null; if (code === 'MANUFACTURING_JOB_NOT_FINISHED') setNowMs(Date.now() + 1000); }
     }
   }, [isAr, showToast]);
 
@@ -136,7 +136,7 @@ export function ManufacturingPanel({ profile, wallet, inventory, language, onNav
             </div>
           </div>
           {jobReady && (
-            <button type="button" onClick={() => void finishJob(activeJob)} className="w-full min-h-[42px] rounded-xl bg-[#397BFF] hover:bg-[#2F6DE0] text-white text-xs font-semibold">
+            <button type="button" onClick={() => { completionAttempted.current = null; void finishJob(activeJob); }} className="w-full min-h-[42px] rounded-xl bg-[#397BFF] hover:bg-[#2F6DE0] text-white text-xs font-semibold">
               {isAr ? 'استلام الإنتاج' : 'Collect production'}
             </button>
           )}
