@@ -20,6 +20,7 @@ where config_key = 'progression';
 do $$
 declare
   v_definition text;
+  v_generator_definition text;
   v_old text := 'v_slots:=v_org_slots_base+floor(v_org.level/v_org_slots_divisor)::integer;';
 begin
   select pg_get_functiondef('nexora.get_dynamic_contract_board(text)'::regprocedure)
@@ -36,24 +37,16 @@ begin
     raise exception 'CONTRACT_BOARD_ORG_SLOT_METADATA_PATCH_FAILED';
   end if;
   execute v_definition;
-end;
-$$;
 
--- A high-level organization can unlock more slots than there are unique
--- catalog entries. Keep the board usable and leave unfillable slots empty
--- instead of failing the entire board RPC.
-do $
-declare v_def text;
-begin
   select pg_get_functiondef('nexora.generate_dynamic_contract(text,text,text,integer,date,text,text,text)'::regprocedure)
-    into v_def;
-  v_def:=replace(v_def,
-    $old$if v_item is null then raise exception 'CONTRACT_CATALOG_EMPTY'; end if;$old$,
-    $new$if v_item is null then return null; end if;$new$);
-  if position('if v_item is null then return null; end if;' in v_def)=0 then
+    into v_generator_definition;
+  v_generator_definition:=replace(v_generator_definition,
+    'if v_item is null then raise exception ''CONTRACT_CATALOG_EMPTY''; end if;',
+    'if v_item is null then return null; end if;');
+  if position('if v_item is null then return null; end if;' in v_generator_definition)=0 then
     raise exception 'CONTRACT_CATALOG_EMPTY_GUARD_PATCH_FAILED';
   end if;
-  execute v_def;
+  execute v_generator_definition;
 end;
 $;
 
