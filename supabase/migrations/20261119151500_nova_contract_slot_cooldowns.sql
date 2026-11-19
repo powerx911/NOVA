@@ -124,13 +124,17 @@ set search_path = ''
 as $$
 declare
   v_org_id text;
+  v_can_refresh_org boolean := false;
 begin
   select org_id into v_org_id
   from nexora.player_profiles where user_id = p_uid;
   if not found then raise exception 'ACCOUNT_NOT_FOUND'; end if;
 
+  select exists(select 1 from nexora.organization_members where org_id=v_org_id and user_id=p_uid and role in ('leader','deputy')) into v_can_refresh_org;
+
   return jsonb_build_object(
     'server_now', now(),
+    'can_refresh_org', v_can_refresh_org,
     'personal', coalesce((
       select jsonb_agg(jsonb_build_object(
         'slot_no', c.slot_no, 'board_date', c.board_date,
