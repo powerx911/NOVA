@@ -174,6 +174,10 @@ export async function transferCredits(
   }
 }
 
+export async function fetchMarketListings(): Promise<MarketListing[]> {
+  return nexoraApi<MarketListing[]>('fetch_market_listings');
+}
+
 export async function createMarketListing(
   _uid: string,
   _username: string,
