@@ -138,6 +138,61 @@ $$;
 revoke all on function nexora.claim_mission_reward(text,text) from public,anon,authenticated;
 grant execute on function nexora.claim_mission_reward(text,text) to service_role;
 
+-- Return exact, uncapped mission counters from the transaction ledger in one query.
+create or replace function nexora.get_mission_progress(p_uid text)
+returns jsonb
+language sql
+security definer
+set search_path = ''
+as $
+  with bounds as (
+    select
+      date_trunc('day',now() at time zone 'UTC') at time zone 'UTC' as day_start,
+      date_trunc('week',now() at time zone 'UTC') at time zone 'UTC' as week_start,
+      date_trunc('quarter',now() at time zone 'UTC') at time zone 'UTC' as quarter_start
+  ),
+  activity as (
+    select
+      count(*) filter(where t.from_uid=p_uid and t.type='market_buy' and t.created_at>=b.day_start) as daily_market_buys,
+      count(*) filter(where t.from_uid=p_uid and t.type='manufacturing' and t.created_at>=b.day_start) as daily_manufacturing,
+      count(*) filter(where t.to_uid=p_uid and t.type='company_collect' and t.created_at>=b.day_start) as daily_company_collections,
+      coalesce(sum(t.amount) filter(where t.from_uid=p_uid and t.type='market_buy' and t.created_at>=b.day_start),0) as daily_market_spend,
+      count(*) filter(where t.from_uid=p_uid and t.type='market_buy' and t.created_at>=b.week_start) as weekly_market_buys,
+      count(*) filter(where t.from_uid=p_uid and t.type='manufacturing' and t.created_at>=b.week_start) as weekly_manufacturing,
+      count(*) filter(where t.to_uid=p_uid and t.type='company_collect' and t.created_at>=b.week_start) as weekly_company_collections,
+      coalesce(sum(t.amount) filter(where t.from_uid=p_uid and t.type='market_buy' and t.created_at>=b.week_start),0) as weekly_market_spend,
+      count(*) filter(where t.from_uid=p_uid and t.type='market_buy' and t.created_at>=b.quarter_start) as seasonal_market_buys,
+      count(*) filter(where t.from_uid=p_uid and t.type='manufacturing' and t.created_at>=b.quarter_start) as seasonal_manufacturing,
+      count(*) filter(where t.to_uid=p_uid and t.type='company_collect' and t.created_at>=b.quarter_start) as seasonal_company_collections,
+      coalesce(sum(t.amount) filter(where t.from_uid=p_uid and t.type='market_buy' and t.created_at>=b.quarter_start),0) as seasonal_market_spend
+    from nexora.transactions t
+    cross join bounds b
+    where t.status='completed'
+      and (
+        (t.from_uid=p_uid and t.type in ('market_buy','manufacturing') and t.created_at>=b.quarter_start)
+        or (t.to_uid=p_uid and t.type='company_collect' and t.created_at>=b.quarter_start)
+      )
+  )
+  select jsonb_build_object(
+    'dailyTradesCount',daily_market_buys,
+    'dailyManufacturingCount',daily_manufacturing,
+    'dailyCompanyCollectionsCount',daily_company_collections,
+    'dailyMarketSpend',daily_market_spend,
+    'weeklyTradesCount',weekly_market_buys,
+    'weeklyManufacturingCount',weekly_manufacturing,
+    'weeklyCompanyCollectionsCount',weekly_company_collections,
+    'weeklyMarketSpend',weekly_market_spend,
+    'seasonalMarketBuys',seasonal_market_buys,
+    'seasonalManufacturingCount',seasonal_manufacturing,
+    'seasonalCompanyCollectionsCount',seasonal_company_collections,
+    'seasonalMarketSpend',seasonal_market_spend,
+    'companyRevenueTotal',(select coalesce(sum(amount),0) from nexora.transactions where to_uid=p_uid and type='company_collect' and status='completed')
+  )
+  from activity;
+$;
+revoke all on function nexora.get_mission_progress(text) from public,anon,authenticated;
+grant execute on function nexora.get_mission_progress(text) to service_role;
+
 create or replace function nexora.unlock_eligible_achievements(p_uid text)
 returns jsonb
 language plpgsql
