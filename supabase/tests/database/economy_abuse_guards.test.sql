@@ -150,10 +150,10 @@ values ('pgtap_auction_seller',1000,1000,0);
 
 insert into nexora.company_auctions(
   id,company_name,company_sector,company_level,seller_uid,seller_name,
-  starting_price,current_price,highest_bidder_uid,highest_bidder_name,ends_at,status
+  starting_price,current_price,highest_bidder_uid,highest_bidder_name,starts_at,ends_at,status
 ) values (
   'pgtap_sale_fee','pgTAP sale fee','test',50,'pgtap_auction_seller','Seller',
-  1000,1000,'pgtap_auction_bidder','Bidder',now()-interval '1 minute','active'
+  1000,1000,'pgtap_auction_bidder','Bidder',now()-interval '2 minutes',now()-interval '1 minute','active'
 );
 
 update nexora.company_auctions set status='sold',winning_bid=1000
