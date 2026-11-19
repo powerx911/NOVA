@@ -17,7 +17,7 @@ set config_value = jsonb_set(config_value, '{personal_slots}', '5'::jsonb, true)
     updated_at = now()
 where config_key = 'progression';
 
-do $
+do $$
 declare
   v_definition text;
   v_old text := 'v_slots:=v_org_slots_base+floor(v_org.level/v_org_slots_divisor)::integer;';
@@ -31,7 +31,7 @@ begin
     'v_slots:=least(100,greatest(10,v_org.level*10));');
   execute v_definition;
 end;
-$;
+$$;
 
 alter table nexora.contract_slot_cooldowns enable row level security;
 revoke all on table nexora.contract_slot_cooldowns from public,anon,authenticated;
