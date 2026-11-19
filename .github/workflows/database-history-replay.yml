@@ -91,7 +91,8 @@ jobs:
             supabase/migrations/20261119112311_nova_recurring_mission_periods.sql \
             supabase/migrations/20261119112320_nova_market_wallet_lock_order.sql \
             supabase/migrations/20261119140000_nova_tiered_medal_rewards.sql \
-            supabase/migrations/20261119143000_nova_weekly_market_mogul.sql
+            supabase/migrations/20261119143000_nova_weekly_market_mogul.sql \
+            supabase/migrations/20261119150000_nova_mission_achievement_rebuild.sql
           do
             psql "$DB_URL" -v ON_ERROR_STOP=1 -f "$migration"
           done
