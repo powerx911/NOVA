@@ -309,9 +309,22 @@ begin
       )
     order by random()/power((item_cfg->>'price')::numeric,-v_item_weight_exponent) limit 1;
     if v_item is null then
-      select item_id into v_item from jsonb_each(v_catalog) c(item_id,item_cfg)
-      where ((v_tier='epic' and item_cfg->>'tier'='rare') or item_cfg->>'tier'=v_tier) and (p_previous_item is null or item_id<>p_previous_item)
-      order by random()/power((item_cfg->>'price')::numeric,-v_item_weight_exponent) limit 1;
+      -- If the weighted tier has no unused item left, fall back to another
+      -- unlocked tier, while still avoiding every active board item.
+      select c.item_id,c.item_cfg->>'tier' into v_item,v_tier
+      from jsonb_each(v_catalog) c(item_id,item_cfg)
+      where (p_previous_item is null or c.item_id<>p_previous_item)
+        and (p_scope='organization' or
+          (c.item_cfg->>'tier'<>'uncommon' or v_level>=coalesce((v_progression->>'uncommon_level')::integer,3)) and
+          (c.item_cfg->>'tier'<>'rare' or v_level>=coalesce((v_progression->>'rare_level')::integer,8)))
+        and not exists (
+          select 1 from nexora.contract_offers o
+          where o.board_date=p_board_date and o.status in ('offered','accepted','processing','ready')
+            and o.item_id=c.item_id and o.tier=c.item_cfg->>'tier'
+            and ((p_scope='personal' and o.scope='personal' and o.user_id=p_uid)
+              or (p_scope='organization' and o.scope='organization' and o.org_id=p_org_id))
+        )
+      order by random()/power((c.item_cfg->>'price')::numeric,-v_item_weight_exponent) limit 1;
     end if;
   end if;
   if v_item is null then raise exception 'CONTRACT_CATALOG_EMPTY'; end if;
