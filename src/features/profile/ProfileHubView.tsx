@@ -1,4 +1,4 @@
-import { Activity, Award, Globe, Lightbulb, LogOut, MessageSquareWarning, ShieldCheck, Sliders, Trash2, Trophy, Volume2, Zap } from 'lucide-react';
+import { Activity, Award, Clock3, Globe, Lightbulb, LogOut, Medal, MessageSquareWarning, ShieldCheck, Sliders, Trash2, Trophy, Volume2, Zap } from 'lucide-react';
 import { lazy, Suspense, useCallback, useEffect, useState } from 'react';
 import { EmailAuthProvider, reauthenticateWithCredential, reauthenticateWithPopup } from 'firebase/auth';
 import { auth, googleAuthProvider } from '../../lib/firebase';
@@ -51,6 +51,7 @@ interface ProfileHubViewProps {
   language: Language;
   onLanguageChange: (lang: Language) => void;
   onLogout: () => Promise<void>;
+  initialSubTab?: ProfileSubTab;
 }
 
 export function ProfileHubView({
@@ -63,6 +64,7 @@ export function ProfileHubView({
   language,
   onLanguageChange,
   onLogout,
+  initialSubTab = 'overview',
 }: ProfileHubViewProps) {
   const t = useTranslations(language);
   const { showToast } = useToast();
@@ -92,6 +94,10 @@ export function ProfileHubView({
   });
 
   useEffect(() => {
+    setSubTab(initialSubTab);
+  }, [initialSubTab]);
+
+  useEffect(() => {
     const timer = window.setInterval(() => setNowMs(Date.now()), 1000);
     return () => window.clearInterval(timer);
   }, []);
@@ -103,9 +109,7 @@ export function ProfileHubView({
   }, [subTab, profile.uid]);
 
   const claimedSet = new Set(claimedMissions.filter((m) => (m.periodKey ?? 'lifetime') === getMissionPeriodKey(m.missionId)).map((m) => m.missionId));
-  const getProgress = (mission: (typeof MISSIONS)[number]) => mission.id === 'daily_active_trader'
-    ? (profile.dailyTradesCount ?? 0)
-    : getMissionProgress(mission.metric, profile);
+  const getProgress = (mission: (typeof MISSIONS)[number]) => getMissionProgress(mission.metric, profile);
   const avatar = AVATARS.find((a) => a.id === profile.avatarId) || AVATARS[0];
 
   useEffect(() => {
@@ -560,7 +564,12 @@ export function ProfileHubView({
             const hours = Math.floor((seconds % 86400) / 3600);
             const minutes = Math.floor((seconds % 3600) / 60);
             const secs = seconds % 60;
-            const countdown = [days ? `${days}d` : '', `${String(hours).padStart(2, '0')}h`, `${String(minutes).padStart(2, '0')}m`, `${String(secs).padStart(2, '0')}s`].filter(Boolean).join(' ');
+            const countdownParts = [
+              ...(days ? [{ value: String(days), label: language === 'ar' ? 'يوم' : 'DAY' }] : []),
+              { value: String(hours).padStart(2, '0'), label: language === 'ar' ? 'ساعة' : 'HR' },
+              { value: String(minutes).padStart(2, '0'), label: language === 'ar' ? 'دقيقة' : 'MIN' },
+              { value: String(secs).padStart(2, '0'), label: language === 'ar' ? 'ثانية' : 'SEC' },
+            ];
             const heading = category === 'daily' ? (language === 'ar' ? 'المهام اليومية' : 'Daily Missions')
               : category === 'weekly' ? (language === 'ar' ? 'المهام الأسبوعية' : 'Weekly Missions')
               : category === 'seasonal' ? (language === 'ar' ? 'المهام الموسمية' : 'Seasonal Missions')
@@ -570,9 +579,18 @@ export function ProfileHubView({
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <h2 className="text-base font-bold text-[#F4F5F7]">{heading}</h2>
                   {(category === 'daily' || category === 'weekly' || category === 'seasonal') && (
-                    <span className="text-xs text-amber-200 font-mono-num">
-                      {language === 'ar' ? 'تجدد المهام بعد: ' : 'Resets in: '}{countdown}
-                    </span>
+                    <div className="flex items-center gap-2 rounded-xl border border-white/8 bg-[#0B0D12] px-3 py-2">
+                      <Clock3 className="w-4 h-4 text-[#63A5FF] shrink-0" />
+                      <span className="text-[10px] text-[#9299A6] whitespace-nowrap">{language === 'ar' ? 'التجديد خلال' : 'RESETS IN'}</span>
+                      <div className="flex items-center gap-1" dir="ltr">
+                        {countdownParts.map((part) => (
+                          <div key={part.label} className="min-w-[35px] rounded-lg bg-[#1B2230] px-1.5 py-1 text-center">
+                            <div className="font-mono-num text-xs font-bold text-[#F4F5F7]">{part.value}</div>
+                            <div className="text-[8px] font-semibold text-[#77808F]">{part.label}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
                   )}
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -595,7 +613,13 @@ export function ProfileHubView({
                           </div>
                         </div>
                         <div className="flex items-center justify-between gap-3 pt-2 border-t border-white/6">
-                          <span className="text-xs font-mono-num text-[#F4F5F7]">+${m.rewardCredits} · +{m.rewardXp} XP · +{m.rewardReputation} {t.reputation}</span>
+                          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs font-semibold text-[#F4F5F7]" dir="ltr">
+                            <span className="font-mono-num">${m.rewardCredits.toLocaleString()}</span>
+                            <span className="text-[#667080]">•</span>
+                            <span className="font-mono-num">+{m.rewardXp} XP</span>
+                            <span className="text-[#667080]">•</span>
+                            <span dir={language === 'ar' ? 'rtl' : 'ltr'}>+{m.rewardReputation} {t.reputation}</span>
+                          </div>
                           <button type="button" disabled={!ready || busyKey === `mis_${m.id}`} onClick={() => handleClaimMission(m.id)} className="min-h-[40px] px-4 rounded-xl bg-[#B91C32] hover:bg-[#E04455] text-white text-xs font-semibold disabled:bg-[#1B2230] disabled:text-[#9299A6]">
                             {isClaimed ? t.claimed : ready ? t.claimReward : t.inProgress}
                           </button>
@@ -612,37 +636,50 @@ export function ProfileHubView({
 
       {/* 4. MEDAL ACHIEVEMENTS */}
       {subTab === 'achievements' && (
-        <div className="space-y-4">
-          <div className="rounded-2xl border border-white/8 bg-[#141821] p-4">
-            <div className="flex items-center gap-2"><Trophy className="w-5 h-5 text-amber-300" /><h2 className="text-base font-bold text-[#F4F5F7]">{t.achievementsTitle}</h2></div>
-            <p className="mt-1 text-xs text-[#9299A6]">{language === 'ar' ? 'كل ميدالية تُمنح مرة واحدة فقط، وتُضاف مكافأتها تلقائياً عند تحقيق الشرط. الميداليات تتدرج من البرونزية حتى البلاتينية.' : 'Each medal and its reward are granted once only when its requirement is reached. Medal tiers progress from Bronze to Platinum.'}</p>
+        <div className="space-y-5">
+          <div className="flex items-center gap-2">
+            <Trophy className="w-5 h-5 text-amber-300" />
+            <h2 className="text-base font-bold text-[#F4F5F7]">{t.achievementsTitle}</h2>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {ACHIEVEMENTS.map((ach) => {
-              const unlocked = unlockedAchievements.has(ach.id);
-              const val = ach.metric === 'spent' ? (wallet?.totalSpent ?? 0) : getAchievementProgress(ach.metric, profile);
-              const pct = Math.min(100, Math.round((Math.min(val, ach.threshold) / ach.threshold) * 100));
-              const medalColor = ach.tier === 'platinum' ? 'text-cyan-200 border-cyan-300/30' : ach.tier === 'gold' ? 'text-amber-300 border-amber-300/30' : ach.tier === 'silver' ? 'text-slate-200 border-slate-300/30' : 'text-orange-300 border-orange-300/30';
-              const rewardText = ach.rewardCredits ? '+' + ach.rewardCredits.toLocaleString() + ' $' : '';
-              return (
-                <article key={ach.id} className={`rounded-2xl border p-4 space-y-3 ${unlocked ? 'bg-[#1B2230] border-emerald-400/30' : 'bg-[#141821] border-white/8'}`}>
-                  <div className="flex items-start gap-3">
-                    <div className={`w-11 h-11 shrink-0 rounded-full border flex items-center justify-center ${unlocked ? medalColor : 'text-[#77808F] border-white/10'}`}><Award className="w-5 h-5" /></div>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center justify-between gap-2"><h3 className="text-sm font-bold text-[#F4F5F7]">{language === 'ar' ? ach.titleAr : ach.titleEn}</h3><span className={`text-[10px] uppercase ${unlocked ? medalColor.split(' ')[0] : 'text-[#77808F]'}`}>{unlocked ? (language === 'ar' ? 'مكتملة' : 'Earned') : (language === 'ar' ? 'قيد التقدم' : 'In progress')}</span></div>
-                      <p className="mt-1 text-xs text-[#9299A6]">{language === 'ar' ? ach.descriptionAr : ach.descriptionEn}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="font-mono-num text-[#C2C8D2]">{Math.min(val, ach.threshold).toLocaleString()} / {ach.threshold.toLocaleString()}</span>
-                    <span className="text-emerald-300">{rewardText}</span>
-                  </div>
-                  <div className="h-1.5 rounded-full bg-[#0B0D12] overflow-hidden"><div className={`h-full rounded-full ${unlocked ? 'bg-emerald-500' : 'bg-[#B91C32]'}`} style={{ width: `${pct}%` }} /></div>
-                  {unlocked && <p className="text-[10px] text-emerald-300">{language === 'ar' ? 'تم استلام المكافأة — مرة واحدة' : 'Reward granted — one time only'}</p>}
-                </article>
-              );
-            })}
-          </div>
+          {([
+            { id: 'whale', titleAr: 'الحوت', titleEn: 'The Whale' },
+            { id: 'market', titleAr: 'قطب السوق', titleEn: 'Market Magnate' },
+            { id: 'industry', titleAr: 'مهندس الصناعة', titleEn: 'Industrial Architect' },
+            { id: 'enterprise', titleAr: 'إمبراطورية الأعمال', titleEn: 'Business Empire' },
+          ] as const).map((group) => (
+            <section key={group.id} className="rounded-2xl border border-white/8 bg-[#141821] p-4 space-y-3">
+              <h3 className="text-sm font-bold text-[#F4F5F7]">{language === 'ar' ? group.titleAr : group.titleEn}</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
+                {ACHIEVEMENTS.filter((achievement) => achievement.group === group.id).map((ach) => {
+                  const unlocked = unlockedAchievements.has(ach.id);
+                  const val = getAchievementProgress(ach.metric, { ...profile, totalSpent: wallet?.totalSpent ?? 0 });
+                  const pct = Math.min(100, Math.round((Math.min(val, ach.threshold) / ach.threshold) * 100));
+                  const medalColor = ach.tier === 'platinum' ? 'text-cyan-200 border-cyan-300/40 bg-cyan-300/10' : ach.tier === 'gold' ? 'text-amber-300 border-amber-300/40 bg-amber-300/10' : ach.tier === 'silver' ? 'text-slate-200 border-slate-300/40 bg-slate-300/10' : 'text-orange-300 border-orange-400/40 bg-orange-500/10';
+                  const roman = ['I', 'II', 'III', 'IV'][ach.tierLevel - 1];
+                  return (
+                    <article key={ach.id} className={`rounded-xl border p-3.5 space-y-3 ${unlocked ? 'bg-[#1B2230] border-emerald-400/30' : 'bg-[#0B0D12] border-white/8'}`}>
+                      <div className="flex items-center gap-3">
+                        <div className={`w-12 h-12 shrink-0 rounded-2xl border flex flex-col items-center justify-center ${medalColor}`}>
+                          <Medal className="w-6 h-6" />
+                          <span className="text-[9px] font-black leading-none">{roman}</span>
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="text-sm font-bold text-[#F4F5F7]">{language === 'ar' ? ach.titleAr : ach.titleEn}</div>
+                          <div className={`text-[10px] mt-0.5 ${unlocked ? 'text-emerald-300' : 'text-[#77808F]'}`}>{unlocked ? (language === 'ar' ? 'مكتملة' : 'Earned') : (language === 'ar' ? 'قيد التقدم' : 'In progress')}</div>
+                        </div>
+                      </div>
+                      <p className="text-xs leading-relaxed text-[#9299A6]">{language === 'ar' ? ach.descriptionAr : ach.descriptionEn}</p>
+                      <div className="flex items-center justify-between gap-2 text-xs">
+                        <span className="font-mono-num text-[#C2C8D2]">{Math.min(val, ach.threshold).toLocaleString()} / {ach.threshold.toLocaleString()}</span>
+                        <span className="font-mono-num text-emerald-300">+${ach.rewardCredits.toLocaleString()}</span>
+                      </div>
+                      <div className="h-1.5 rounded-full bg-[#141821] overflow-hidden"><div className={`h-full rounded-full ${unlocked ? 'bg-emerald-500' : 'bg-[#B91C32]'}`} style={{ width: `${pct}%` }} /></div>
+                    </article>
+                  );
+                })}
+              </div>
+            </section>
+          ))}
         </div>
       )}
 
