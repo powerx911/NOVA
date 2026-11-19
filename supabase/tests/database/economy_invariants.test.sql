@@ -3,7 +3,7 @@
 create extension if not exists pgtap with schema extensions;
 
 begin;
-select extensions.plan(14);
+select extensions.plan(15);
 
 select extensions.ok(
   not exists (select 1 from nexora.wallets where balance < 0),
@@ -116,7 +116,7 @@ select extensions.throws_ok(
 );
 
 select extensions.ok(
-  position('group by value->>''itemid''' in lower(pg_get_functiondef('nexora.manufacture_recipe(text,text,integer)'::regprocedure))) > 0
+  position('group by value->>''item_id''' in lower(pg_get_functiondef('nexora.manufacture_recipe(text,text,integer)'::regprocedure))) > 0
   and position('manufacturing_job_in_progress' in lower(pg_get_functiondef('nexora.manufacture_recipe(text,text,integer)'::regprocedure))) > 0,
   'manufacturing aggregates duplicate recipe inputs and permits only one active job per player'
 );
