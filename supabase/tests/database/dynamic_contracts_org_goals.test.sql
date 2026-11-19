@@ -366,8 +366,8 @@ select extensions.lives_ok($$select nexora.get_org_weekly_goals('pgtap_goal_user
 select extensions.is(
   (select count(*)::integer from nexora.org_weekly_goals
    where org_id='pgtap_goal_org' and week_start=date_trunc('week',timezone('UTC',now()))::date),
-  3,
-  'three distinct goals are generated for the UTC ISO week'
+  10,
+  'ten distinct goals are generated for the UTC ISO week'
 );
 select extensions.lives_ok(
   $query$do $body$
