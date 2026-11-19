@@ -36,6 +36,7 @@ export interface PlayerProfile {
   skillPoints: number;
   skills: SkillsMap;
   stats: PlayerStats;
+  dailyTradesCount?: number;
   orgId?: string | null;
   createdAt: unknown;
   updatedAt: unknown;
@@ -320,6 +321,7 @@ export interface PlayerMissionClaim {
   rewardCredits: number;
   rewardXp: number;
   claimedAt: unknown;
+  periodKey?: string;
 }
 
 export interface AchievementDefinition {
