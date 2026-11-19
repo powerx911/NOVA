@@ -3,7 +3,7 @@
 create extension if not exists pgtap with schema extensions;
 
 begin;
-select extensions.plan(95);
+select extensions.plan(96);
 
 select extensions.ok(
   exists(select 1 from nexora.contract_config where config_key='catalog_prices'),
@@ -549,6 +549,22 @@ select extensions.is(
      and slot_no between 1 and 100 and status='offered'),
   100,
   'level ten organization board fills all one hundred unlocked contract slots'
+);
+
+
+insert into nexora.player_profiles(user_id,username,username_lower,level)
+values ('pgtap_rollover','Rollover Test','pgtap_rollover',1);
+insert into nexora.wallets(user_id,balance) values ('pgtap_rollover',1000);
+insert into nexora.player_private(user_id,language,notifications_enabled)
+values ('pgtap_rollover','en',true);
+select extensions.lives_ok($q$select nexora.get_dynamic_contract_board('pgtap_rollover')$q$,
+  'UTC rollover fixture receives personal contract offers');
+update nexora.contract_offers
+set board_date=(now() at time zone 'UTC')::date-1,status='abandoned',completed_at=now(),updated_at=now()
+where id=(select id from nexora.contract_offers where user_id='pgtap_rollover' and scope='personal' and status='offered' order by slot_no limit 1);
+select extensions.ok(
+  jsonb_array_length(nexora.get_contract_slot_cooldowns('pgtap_rollover')->'personal')=1,
+  'a slot cooldown remains visible when its contract ends across a UTC day boundary'
 );
 
 select * from extensions.finish();
