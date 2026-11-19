@@ -30,7 +30,6 @@ import {
 } from '../../services/gameService';
 import type {
   InventoryItem,
-  ItemTier,
   Language,
   MarketListing,
   MarketSubTab,
@@ -61,7 +60,7 @@ export function MarketHubView({
 
   const [subTab, setSubTab] = useState<MarketSubTab>('exchange');
   const [searchQuery, setSearchQuery] = useState('');
-  const [tierFilter, setTierFilter] = useState<'all' | ItemTier>('all');
+  const [itemFilter, setItemFilter] = useState<string>('all');
   const [buyQuantities, setBuyQuantities] = useState<Record<string, number>>({});
   const [busyKey, setBusyKey] = useState<string | null>(null);
 
@@ -101,7 +100,7 @@ export function MarketHubView({
   const filteredListings = marketListings.filter((l) => {
     const item = ITEM_MAP[l.itemId];
     if (!item || l.status !== 'active' || l.remainingQty <= 0) return false;
-    if (tierFilter !== 'all' && item.tier !== tierFilter) return false;
+    if (itemFilter !== 'all' && l.itemId !== itemFilter) return false;
     if (searchQuery.trim()) {
       const q = searchQuery.trim().toLowerCase();
       return (
@@ -111,7 +110,7 @@ export function MarketHubView({
       );
     }
     return true;
-  });
+  }).sort((a, b) => a.unitPrice - b.unitPrice || a.createdAt - b.createdAt);
 
   async function handleBuy(listing: MarketListing) {
     const qty = Math.min(
@@ -520,25 +519,11 @@ export function MarketHubView({
                     className="w-full min-h-[42px] ps-10 pe-3.5 rounded-xl bg-[#141821] border border-white/8 text-sm text-[#F4F5F7] placeholder:text-[#9299A6]/70 focus:outline-none focus:border-[#E04455]"
                   />
                 </div>
-                <div className="flex items-center gap-1 bg-[#141821] border border-white/8 rounded-xl p-1">
-                  {(['all', 'raw', 'intermediate', 'final'] as const).map((tier) => (
-                    <button
-                      key={tier}
-                      type="button"
-                      onClick={() => setTierFilter(tier)}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-colors ${
-                        tierFilter === tier
-                          ? 'bg-[#1B2230] text-[#F4F5F7]'
-                          : 'text-[#9299A6] hover:text-[#F4F5F7]'
-                      }`}
-                    >
-                      {tier === 'all'
-                        ? t.allTiers
-                        : tier === 'raw'
-                        ? t.tierRaw
-                        : tier === 'intermediate'
-                        ? t.tierIntermediate
-                        : t.tierFinal}
+                <div className="flex max-w-full items-center gap-1 overflow-x-auto bg-[#141821] border border-white/8 rounded-xl p-1">
+                  <button type="button" onClick={() => setItemFilter('all')} className={`shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-colors ${itemFilter === 'all' ? 'bg-[#1B2230] text-[#F4F5F7]' : 'text-[#9299A6] hover:text-[#F4F5F7]'}`}>{t.allTiers}</button>
+                  {CATALOG_ITEMS.filter((item) => getMarketPriceBounds(item.id) !== null).map((item) => (
+                    <button key={item.id} type="button" onClick={() => setItemFilter(item.id)} className={`shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-colors ${itemFilter === item.id ? 'bg-[#1B2230] text-[#F4F5F7]' : 'text-[#9299A6] hover:text-[#F4F5F7]'}`}>
+                      {language === 'ar' ? item.nameAr : item.nameEn}
                     </button>
                   ))}
                 </div>
