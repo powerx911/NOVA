@@ -112,7 +112,8 @@ select extensions.ok(
 );
 
 select extensions.ok(
-  exists(select 1 from pg_trigger where tgname='company_auction_sale_fee' and not tgisinternal),
+  exists(select 1 from pg_trigger where tgname='company_auction_sale_fee' and not tgisinternal)
+  and position('last_tx_id=v_tx' in lower(pg_get_functiondef('nexora.apply_company_auction_sale_fee()'::regprocedure)))>0,
   'company and factory auction sales charge a seller fee'
 );
 
