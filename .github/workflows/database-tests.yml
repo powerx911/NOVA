@@ -40,8 +40,27 @@ jobs:
         with:
           version: latest
 
-      - name: Start disposable local Supabase stack
-        run: supabase start
+      # The repository's historical migration chain is incomplete. Start a
+      # disposable empty Supabase DB first, then restore the CI-only snapshot
+      # and apply only the migrations under test.
+      - name: Start disposable database without replaying historical migrations
+        shell: bash
+        run: |
+          set -euo pipefail
+          migrations_dir="supabase/migrations"
+          parked_dir="supabase/.ci-migrations-parked"
+          test -d "$migrations_dir"
+          test ! -e "$parked_dir"
+          mv "$migrations_dir" "$parked_dir"
+          mkdir -p "$migrations_dir"
+          restore_migrations() {
+            rmdir "$migrations_dir" 2>/dev/null || true
+            if [ -d "$parked_dir" ]; then
+              mv "$parked_dir" "$migrations_dir"
+            fi
+          }
+          trap restore_migrations EXIT
+          supabase start --exclude rest,auth,realtime,storage,functions,studio,mail,analytics,pooler
 
       - name: Restore data-free NOVA schema snapshot
         shell: bash
