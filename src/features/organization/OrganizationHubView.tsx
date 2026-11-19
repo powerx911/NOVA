@@ -1,9 +1,9 @@
-import { ArrowUpCircle, Building2, Check, Plus, Shield, UserMinus, Users, Vault, X } from 'lucide-react';
+import { ArrowUpCircle, Building2, Check, Plus, Shield, Vault, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { useToast } from '../../components/ui/ToastProvider';
-import { ORG_CREATION_COST, ROLE_DEFAULT_PERMISSIONS } from '../../data/catalog';
-import { useTranslations, formatOrgRole } from '../../i18n/translations';
+import { ORG_CREATION_COST } from '../../data/catalog';
+import { useTranslations } from '../../i18n/translations';
 import { searchAndSortOrganizations, type OrganizationSort } from '../../lib/organizationDirectory';
 import { OrganizationMembersPanel } from './OrganizationMembersPanel';
 import {
@@ -11,7 +11,6 @@ import {
   calculateOrgResearchCost,
   getOrgMemberCapacity,
   ORG_RESEARCH_DEFINITIONS,
-  canManageOrgMember,
   hasOrgPermission,
   ORG_MAX_LEVEL,
   sanitizePositiveInt,
