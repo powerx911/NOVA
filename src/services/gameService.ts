@@ -256,6 +256,16 @@ export async function completeManufacturingJob(jobId: string): Promise<void> {
   }
 }
 
+export async function cancelManufacturingJob(jobId: string): Promise<void> {
+  if (!jobId) throw new Error('MANUFACTURING_JOB_NOT_FOUND');
+  try {
+    await nexoraApi('cancel_manufacturing_job', { jobId });
+  } catch (error) {
+    if (error instanceof Error && 'code' in error) throw new Error(String((error as { code?: unknown }).code ?? 'MANUFACTURING_CANCELLATION_FAILED'));
+    throw error;
+  }
+}
+
 export async function getDynamicContractBoard(): Promise<DynamicContractBoard> {
   return nexoraApi<DynamicContractBoard>('get_dynamic_contract_board');
 }
