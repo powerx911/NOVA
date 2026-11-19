@@ -169,8 +169,8 @@ as $
     cross join bounds b
     where t.status='completed'
       and (
-        (t.from_uid=p_uid and t.type in ('market_buy','manufacturing') and t.created_at>=b.quarter_start)
-        or (t.to_uid=p_uid and t.type='company_collect' and t.created_at>=b.quarter_start)
+        (t.from_uid=p_uid and t.type in ('market_buy','manufacturing') and t.created_at>=least(b.week_start,b.quarter_start))
+        or (t.to_uid=p_uid and t.type='company_collect' and t.created_at>=least(b.week_start,b.quarter_start))
       )
   )
   select jsonb_build_object(
