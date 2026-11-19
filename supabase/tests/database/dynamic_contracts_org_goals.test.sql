@@ -3,7 +3,7 @@
 create extension if not exists pgtap with schema extensions;
 
 begin;
-select extensions.plan(94);
+select extensions.plan(95);
 
 select extensions.ok(
   exists(select 1 from nexora.contract_config where config_key='catalog_prices'),
@@ -535,10 +535,20 @@ select extensions.throws_ok(
 
 
 update nexora.organizations set level=10 where id='pgtap_org';
+update nexora.contract_slot_cooldowns set cooldown_until=now()-interval '1 second'
+where scope='organization' and owner_id='pgtap_org';
 select extensions.is(
   (nexora.get_dynamic_contract_board('pgtap_org_user')->>'organization_slots')::integer,
   100,
   'level ten organization board expands to one hundred unlocked slots'
+);
+select extensions.is(
+  (select count(*)::integer from nexora.contract_offers
+   where scope='organization' and org_id='pgtap_org'
+     and board_date=(now() at time zone 'UTC')::date
+     and slot_no between 1 and 100 and status='offered'),
+  100,
+  'level ten organization board fills all one hundred unlocked contract slots'
 );
 
 select * from extensions.finish();
