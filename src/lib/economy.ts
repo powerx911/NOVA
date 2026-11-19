@@ -475,7 +475,7 @@ export interface MarketPriceBounds {
 
 /** Keeps player listings for every tradable catalog item within 50%-200% of its reference price. */
 export function getMarketPriceBounds(itemId: string): MarketPriceBounds | null {
-    const basePrice = ITEM_MAP[itemId]?.basePrice;
+  const basePrice = ITEM_MAP[itemId]?.basePrice;
   if (!Number.isFinite(basePrice) || basePrice <= 0) return null;
   return {
     minPrice: Math.max(1, Math.floor(basePrice * 0.5)),
