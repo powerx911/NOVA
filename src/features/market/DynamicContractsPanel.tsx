@@ -305,7 +305,7 @@ export function DynamicContractsPanel({ profile, inventory, wallet, language }: 
           <section className="space-y-3">
             <div className="flex items-center justify-between gap-2">
               <h3 className="text-base font-bold text-white flex items-center gap-2"><ShieldCheck className="w-4 h-4 text-sky-300" />{t.personalContracts}</h3>
-              <span className="text-[10px] text-[#8192AD]">{contracts.length} / 6</span>
+              <span className="text-[10px] text-[#8192AD]">{contracts.filter((contract) => contract.status === 'offered' && contract.slot_no >= 1 && contract.slot_no <= 6).length} / 6</span>
             </div>
             {personal.length ? <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">{personal}</div> : <p className="rounded-xl border border-white/10 p-5 text-center text-xs text-[#8192AD]">{t.noContracts}</p>}
           </section>
