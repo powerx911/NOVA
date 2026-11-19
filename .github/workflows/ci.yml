@@ -1,19 +1,22 @@
-name: NEXORA CI
+name: NOVA CI
 
 on:
   push:
     branches:
       - main
       - "development/**"
+      - "fix/**"
+      - "feature/**"
   pull_request:
     branches:
       - main
+  workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: nexora-ci-${{ github.workflow }}-${{ github.ref }}
+  group: nova-ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -54,7 +57,7 @@ jobs:
       - name: Typecheck Supabase migration importer
         run: deno check supabase/functions/nexora-migration-import/index.ts
 
-      - name: Typecheck NEXORA Supabase API
+      - name: Typecheck NOVA Supabase API (legacy function name: nexora-api)
         run: deno check supabase/functions/nexora-api/index.ts
 
       - name: Typecheck retired NOVA control endpoint
