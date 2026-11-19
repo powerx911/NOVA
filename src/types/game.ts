@@ -443,8 +443,6 @@ export interface DynamicContractOffer {
   event_premium: number;
   status: DynamicContractStatus;
   offer_expires_at: string;
-  organization_slots?: number;
-  organization_max_slots?: number;
   accepted_at: string | null;
   deadline_at: string | null;
   deadline_remaining_secs: number | null;
@@ -468,6 +466,8 @@ export interface DynamicContractBoard {
   org_daily_used?: number;
   org_daily_limit?: number;
   offer_expires_at: string;
+  organization_slots?: number;
+  organization_max_slots?: number;
   cooldowns?: { server_now: string; can_refresh_org?: boolean; personal_refresh_used?: number; personal_refresh_limit?: number; org_refresh_used?: number; org_refresh_limit?: number; personal: DynamicContractCooldown[]; organization: DynamicContractCooldown[] };
 }
 
