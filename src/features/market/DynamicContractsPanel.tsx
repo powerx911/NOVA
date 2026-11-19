@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  Award, Building2, CheckCircle2, Clock3, Coins, Loader2, RefreshCw,
-  ShieldCheck, Timer, Trophy, XCircle,
+  Award, Building2, CheckCircle2, Loader2, RefreshCw,
+  ShieldCheck, Timer, Trophy,
 } from 'lucide-react';
 import { ResourceIcon } from '../../components/ui/ResourceIcon';
 import { useToast } from '../../components/ui/ToastProvider';
@@ -79,7 +79,7 @@ export function DynamicContractsPanel({ profile, inventory, wallet, language }: 
   const [loading, setLoading] = useState(true);
   const [now, setNow] = useState(Date.now());
   const inventoryMap = useMemo(
-    () => new Map(inventory.map((item) => [item.itemId, item.quantity])),
+    () => new Map<string, number>(inventory.map((item) => [item.itemId, item.quantity] as [string, number])),
     [inventory],
   );
 
