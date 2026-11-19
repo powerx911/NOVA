@@ -63,6 +63,20 @@ end;
 $function$
 ;
 
+-- Remove legacy expiry alerts that can be tied only to unaccepted, expired offers.
+-- Keep any alert that corresponds to a contract with an accepted deadline.
+delete from nexora.notifications n
+where n.title in ('انتهت مهلة العقد','Contract expired')
+  and not exists (
+    select 1
+    from nexora.contract_offers c
+    where c.status='expired'
+      and c.accepted_at is not null
+      and c.deadline_at is not null
+      and c.updated_at=n.created_at
+      and coalesce(c.claimed_by,c.user_id)=n.user_id
+  );
+
 -- Refresh the six system raw resources to exactly 250 available units each day.
 -- Keep the seed listing IDs so historical market orders remain linked.
 create or replace function nexora.restock_system_raw_market()
