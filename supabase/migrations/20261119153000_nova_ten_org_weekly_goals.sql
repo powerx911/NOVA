@@ -79,8 +79,7 @@ begin
   select pg_get_functiondef('nexora.claim_dynamic_contract(text,text)'::regprocedure) into v_def;
   v_def:=replace(v_def,
     $old$perform nexora.record_org_goal_progress(p_uid,'contracts_completed',1);$old$,
-    $new$perform nexora.record_org_goal_progress(p_uid,'contracts_completed',1);
-  if v_contract.scope='personal' then
+    $new$if v_contract.scope='personal' then
     perform nexora.record_org_goal_progress(p_uid,'personal_contracts_completed',1);
   else
     perform nexora.record_org_goal_progress(p_uid,'org_contracts_completed',1);
