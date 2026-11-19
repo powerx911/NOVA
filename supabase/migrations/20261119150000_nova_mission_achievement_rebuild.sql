@@ -144,7 +144,7 @@ returns jsonb
 language sql
 security definer
 set search_path = ''
-as $mission_progress$
+as $
   with bounds as (
     select
       date_trunc('day',now() at time zone 'UTC') at time zone 'UTC' as day_start,
