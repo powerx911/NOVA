@@ -94,7 +94,7 @@ $$;
 
 
 
-do $
+do $$
 declare v_def text;
 begin
   select pg_get_functiondef('nexora.get_org_weekly_goals(text)'::regprocedure) into v_def;
@@ -107,7 +107,7 @@ begin
   end if;
   execute v_def;
 end;
-$;
+$$;
 
 create or replace function nexora.record_org_goal_from_company_revenue()
 returns trigger language plpgsql security definer set search_path = '' as $$
