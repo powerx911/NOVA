@@ -791,7 +791,7 @@ export function MarketHubView({
           <div className="rounded-xl bg-[#0B0D12] border border-white/8 p-3 grid grid-cols-3 gap-2 text-center">
             <div><p className="text-[10px] text-[#9299A6]">{language === 'ar' ? 'الرسوم 3%' : '3% fee'}</p><p className="text-sm font-mono-num text-amber-200">{transferFeePreview.toLocaleString()}</p></div>
             <div><p className="text-[10px] text-[#9299A6]">{language === 'ar' ? 'سيصل للمستلم' : 'Recipient gets'}</p><p className="text-sm font-mono-num text-emerald-300">{transferNetPreview.toLocaleString()}</p></div>
-            <div><p className="text-[10px] text-[#9299A6]">{language === 'ar' ? 'المتبقي من حد اليوم' : 'Daily limit left'}</p><p className="text-sm font-mono-num text-[#F4F5F7]">{Math.max(0, 10000 - transferAmount).toLocaleString()}</p></div>
+            <div><p className="text-[10px] text-[#9299A6]">{language === 'ar' ? 'سقف التحويل اليومي' : 'Daily transfer cap'}</p><p className="text-sm font-mono-num text-[#F4F5F7]">{10000 .toLocaleString()}</p></div>
           </div>
           {recipientCheck === 'invalid' && <p className="text-xs text-rose-300">{language === 'ar' ? 'لم نعثر على لاعب بهذا الاسم. لن يتم إرسال التحويل.' : 'No player matches this username. The transfer will not be sent.'}</p>}
           {recipientCheck === 'self' && <p className="text-xs text-rose-300">{language === 'ar' ? 'هذا اسم حسابك.' : 'This is your own username.'}</p>}
