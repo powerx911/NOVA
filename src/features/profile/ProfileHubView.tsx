@@ -671,7 +671,7 @@ export function ProfileHubView({
                       <p className="text-xs leading-relaxed text-[#9299A6]">{language === 'ar' ? ach.descriptionAr : ach.descriptionEn}</p>
                       <div className="flex items-center justify-between gap-2 text-xs">
                         <span className="font-mono-num text-[#C2C8D2]">{Math.min(val, ach.threshold).toLocaleString()} / {ach.threshold.toLocaleString()}</span>
-                        <span className="font-mono-num text-emerald-300">+${ach.rewardCredits.toLocaleString()}</span>
+                        <span className="font-mono-num text-emerald-300">+${(ach.rewardCredits ?? 0).toLocaleString()}</span>
                       </div>
                       <div className="h-1.5 rounded-full bg-[#141821] overflow-hidden"><div className={`h-full rounded-full ${unlocked ? 'bg-emerald-500' : 'bg-[#B91C32]'}`} style={{ width: `${pct}%` }} /></div>
                     </article>
