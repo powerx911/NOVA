@@ -382,7 +382,7 @@ export const MANUFACTURING_RECIPES: ManufacturingRecipe[] = [
     outputQty: 1,
     inputs: [
       { itemId: 'biotech_gel', qty: 2 },
-      { itemId: 'rare_minerals', qty: 1 },
+      { itemId: 'quantum_dust', qty: 1 },
     ],
     processingCost: 320,
     xpReward: 16,
