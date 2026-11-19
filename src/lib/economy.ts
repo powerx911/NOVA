@@ -474,7 +474,7 @@ export function sanitizePositiveInt(raw: unknown, fallback = 1, max = Number.MAX
 }
 
 export function getMissionProgress(
-  metric: 'trades' | 'companies' | 'produced' | 'level' | 'org' | 'properties' | 'weekly_trades',
+  metric: 'trades' | 'companies' | 'produced' | 'level' | 'org' | 'properties' | 'weekly_trades' | 'daily_market_buys' | 'daily_manufacturing' | 'daily_company_collections' | 'daily_market_spend' | 'weekly_market_buys' | 'weekly_manufacturing' | 'weekly_market_spend' | 'weekly_company_collections' | 'seasonal_market_buys' | 'seasonal_manufacturing' | 'seasonal_market_spend' | 'seasonal_company_collections',
   profile: {
     level: number;
     orgId?: string | null;
@@ -485,6 +485,9 @@ export function getMissionProgress(
       propertiesOwned?: number;
     };
     weeklyTradesCount?: number;
+    dailyTradesCount?: number; dailyManufacturingCount?: number; dailyCompanyCollectionsCount?: number; dailyMarketSpend?: number;
+    weeklyManufacturingCount?: number; weeklyCompanyCollectionsCount?: number; weeklyMarketSpend?: number;
+    seasonalMarketBuys?: number; seasonalManufacturingCount?: number; seasonalCompanyCollectionsCount?: number; seasonalMarketSpend?: number;
   }
 ): number {
   switch (metric) {
@@ -499,7 +502,18 @@ export function getMissionProgress(
     case 'properties':
       return profile.stats.propertiesOwned ?? 0;
     case 'weekly_trades':
-      return profile.weeklyTradesCount ?? 0;
+    case 'weekly_market_buys': return profile.weeklyTradesCount ?? 0;
+    case 'daily_market_buys': return profile.dailyTradesCount ?? 0;
+    case 'daily_manufacturing': return profile.dailyManufacturingCount ?? 0;
+    case 'daily_company_collections': return profile.dailyCompanyCollectionsCount ?? 0;
+    case 'daily_market_spend': return profile.dailyMarketSpend ?? 0;
+    case 'weekly_manufacturing': return profile.weeklyManufacturingCount ?? 0;
+    case 'weekly_company_collections': return profile.weeklyCompanyCollectionsCount ?? 0;
+    case 'weekly_market_spend': return profile.weeklyMarketSpend ?? 0;
+    case 'seasonal_market_buys': return profile.seasonalMarketBuys ?? 0;
+    case 'seasonal_manufacturing': return profile.seasonalManufacturingCount ?? 0;
+    case 'seasonal_company_collections': return profile.seasonalCompanyCollectionsCount ?? 0;
+    case 'seasonal_market_spend': return profile.seasonalMarketSpend ?? 0;
     case 'level':
     default:
       return profile.level;
@@ -507,10 +521,12 @@ export function getMissionProgress(
 }
 
 export function getAchievementProgress(
-  metric: 'trades' | 'companies' | 'produced' | 'level' | 'reputation',
+  metric: 'trades' | 'companies' | 'produced' | 'level' | 'reputation' | 'spent' | 'revenue',
   profile: {
     level: number;
     reputation: number;
+    companyRevenueTotal?: number;
+    totalSpent?: number;
     stats: {
       tradesCount: number;
       companiesOwned: number;
@@ -525,8 +541,9 @@ export function getAchievementProgress(
       return profile.stats.companiesOwned;
     case 'produced':
       return profile.stats.totalProduced;
-    case 'reputation':
-      return profile.reputation;
+    case 'reputation': return profile.reputation;
+    case 'spent': return profile.totalSpent ?? 0;
+    case 'revenue': return profile.companyRevenueTotal ?? 0;
     case 'level':
     default:
       return profile.level;
