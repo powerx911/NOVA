@@ -1,6 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { getAdminClient, authenticate } from "./_shared/auth.ts";
 import { bootstrap } from "./_shared/bootstrap.ts";
+import { getSocialAction } from "./_shared/social.ts";
 
 const ALLOWED_ORIGINS = new Set([
   "https://powerx911.github.io",
@@ -532,29 +533,7 @@ Deno.serve(async (req: Request) => {
       return json({ ok: true, data }, 200, origin);
     }
 
-    const targetUid = typeof body.targetUid === "string" ? body.targetUid : "";
-    const requestId = typeof body.requestId === "string" ? body.requestId : "";
-    const socialActions: Record<string, { rpc: string; args: Record<string, unknown> }> = {
-      get_public_player_profile: { rpc: "get_public_player_profile", args: { p_target_uid: targetUid } },
-      get_org_donation_ranking: { rpc: "get_org_donation_ranking", args: { p_org_id: typeof body.orgId === "string" ? body.orgId : "", p_user_id: identity.uid } },
-      touch_player_presence: { rpc: "touch_player_presence", args: { p_user_id: identity.uid } },
-      get_players_presence: { rpc: "get_players_presence", args: { p_user_ids: Array.isArray(body.userIds) ? body.userIds.filter((id): id is string => typeof id === "string").slice(0, 60) : [] } },
-      search_players: { rpc: "search_players", args: { p_user_id: identity.uid, p_prefix: typeof body.prefix === "string" ? body.prefix : "" } },
-      list_blocked_players: { rpc: "list_blocked_players", args: { p_user_id: identity.uid } },
-      block_player: { rpc: "block_player", args: { p_user_id: identity.uid, p_target_uid: targetUid } },
-      unblock_player: { rpc: "unblock_player", args: { p_user_id: identity.uid, p_target_uid: targetUid } },
-      submit_player_report: { rpc: "submit_player_report", args: { p_user_id: identity.uid, p_target_uid: targetUid, p_reason: body.reason, p_request_id: requestId } },
-      open_direct_conversation: { rpc: "open_direct_conversation", args: { p_user_id: identity.uid, p_target_uid: targetUid } },
-      send_direct_message: { rpc: "send_direct_message", args: { p_user_id: identity.uid, p_target_uid: targetUid, p_text: body.text, p_request_id: requestId } },
-      send_global_chat_message: { rpc: "send_global_chat_message", args: { p_user_id: identity.uid, p_text: body.text, p_request_id: requestId } },
-      list_direct_conversations: { rpc: "list_direct_conversations", args: { p_user_id: identity.uid } },
-      list_direct_messages: { rpc: "list_direct_messages", args: { p_user_id: identity.uid, p_conversation_id: body.conversationId } },
-      list_global_chat_messages: { rpc: "list_global_chat_messages", args: { p_user_id: identity.uid } },
-      list_organization_invites: { rpc: "list_organization_invites", args: { p_user_id: identity.uid } },
-      invite_player_to_organization: { rpc: "invite_player_to_organization", args: { p_user_id: identity.uid, p_target_uid: targetUid } },
-      respond_organization_invite: { rpc: "respond_organization_invite", args: { p_user_id: identity.uid, p_invite_id: body.inviteId, p_response: body.response } },
-    };
-    const socialAction = socialActions[body.action];
+    const socialAction = getSocialAction(body.action as string, body, identity.uid);
     if (socialAction) {
       const { data, error } = await db.rpc(socialAction.rpc, socialAction.args);
       if (error) {
