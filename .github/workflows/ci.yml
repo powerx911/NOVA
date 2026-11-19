@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - "development/**"
+      - "fix/**"
   pull_request:
     branches:
       - main
