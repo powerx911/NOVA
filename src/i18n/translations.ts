@@ -438,6 +438,8 @@ const TX_TYPE_LABELS: Record<Language, Record<string, string>> = {
     org_deposit: 'إيداع خزينة',
     org_withdraw: 'سحب خزينة',
     contract_deal: 'عقد تجاري',
+    contract_fee: 'رسوم معالجة عقد',
+    contract_reward: 'مكافأة عقد',
   },
   en: {
     transfer: 'Transfer',
@@ -457,6 +459,8 @@ const TX_TYPE_LABELS: Record<Language, Record<string, string>> = {
     org_deposit: 'Treasury Deposit',
     org_withdraw: 'Treasury Withdrawal',
     contract_deal: 'Trade Contract',
+    contract_fee: 'Contract Processing Fee',
+    contract_reward: 'Contract Reward',
   },
 };
 
