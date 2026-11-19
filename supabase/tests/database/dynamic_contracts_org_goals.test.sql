@@ -3,11 +3,36 @@
 create extension if not exists pgtap with schema extensions;
 
 begin;
-select extensions.plan(50);
+select extensions.plan(60);
 
 select extensions.ok(
   exists(select 1 from nexora.contract_config where config_key='catalog_prices'),
   'contract prices are stored in editable contract_config'
+);
+select extensions.is(
+  (select (config_value->'copper_wire'->>'price')::integer from nexora.contract_config where config_key='catalog_prices'),
+  28,
+  'copper wire base price matches the approved catalog'
+);
+select extensions.is(
+  (select (config_value->>'uncommon_level')::integer from nexora.contract_config where config_key='progression'),
+  3,
+  'uncommon contracts unlock at level three'
+);
+select extensions.is(
+  (select (config_value->>'rare_level')::integer from nexora.contract_config where config_key='progression'),
+  8,
+  'rare contracts unlock at level eight'
+);
+select extensions.is(
+  (select (config_value->'common'->>'multiplier')::numeric from nexora.contract_config where config_key='tier_rules'),
+  1.12::numeric,
+  'common contract multiplier matches the approved economy'
+);
+select extensions.is(
+  (select (config_value->'6-8'->>'epic')::integer from nexora.contract_config where config_key='org_tier_weights'),
+  10,
+  'organization level six to eight epic weight is ten percent'
 );
 select extensions.ok(
   (select relrowsecurity from pg_class c join pg_namespace n on n.oid=c.relnamespace
@@ -189,6 +214,8 @@ select extensions.is(
 insert into nexora.player_profiles(user_id,username,username_lower,level)
 values ('pgtap_expiry','Expiry Test','pgtap_expiry',1);
 insert into nexora.wallets(user_id,balance) values ('pgtap_expiry',2500);
+insert into nexora.player_private(user_id,language,notifications_enabled)
+values ('pgtap_expiry','en',true);
 select extensions.lives_ok($$select nexora.get_dynamic_contract_board('pgtap_expiry')$$,'expiry fixture receives offers');
 select extensions.lives_ok(
   $$select nexora.accept_dynamic_contract('pgtap_expiry',(select id from nexora.contract_offers where user_id='pgtap_expiry' and status='offered' order by slot_no limit 1))$$,
@@ -205,6 +232,10 @@ select extensions.ok(
       and (fresh.item_id<>old.item_id or fresh.tier<>old.tier)),
   'lazy expiry rotates the expired slot to a different offer'
 );
+select extensions.ok(
+  exists(select 1 from nexora.notifications where user_id='pgtap_expiry' and title='Contract expired'),
+  'expiration notification respects enabled player notifications'
+);
 
 insert into nexora.player_profiles(user_id,username,username_lower,level)
 values ('pgtap_event','Event Test','pgtap_event',1);
@@ -219,7 +250,12 @@ select extensions.ok(
     and status='offered' and event_premium>0),
   'active targeted event produces a premium offer'
 );
-update nexora.world_events set active=false where id='pgtap_event_market';
+select extensions.ok(
+  (select count(*) between 1 and 2 from nexora.contract_offers
+   where user_id='pgtap_event' and event_id='pgtap_event_market' and status='offered'),
+  'each active event creates one or two offers'
+);
+update nexora.world_events set ends_at=now()-interval '1 second' where id='pgtap_event_market';
 select extensions.lives_ok($$select nexora.get_dynamic_contract_board('pgtap_event')$$,'board refresh settles inactive event offers');
 select extensions.is(
   (select count(*)::integer from nexora.contract_offers
@@ -246,6 +282,10 @@ select extensions.throws_ok(
 update nexora.organization_members set joined_at=now()-interval '9 hours'
 where org_id='pgtap_org' and user_id='pgtap_org_user';
 select extensions.lives_ok(
+  $$select nexora.accept_dynamic_contract('pgtap_org_user',(select id from nexora.contract_offers where scope='personal' and user_id='pgtap_org_user' and status='offered' and slot_no=1 order by slot_generation desc limit 1))$$,
+  'organization member can also accept a personal contract'
+);
+select extensions.lives_ok(
   $$select nexora.accept_dynamic_contract('pgtap_org_user',(select id from nexora.contract_offers where scope='organization' and org_id='pgtap_org' and status='offered' order by slot_no limit 1))$$,
   'eligible member can reserve an organization contract'
 );
@@ -253,6 +293,11 @@ select extensions.throws_ok(
   $$select nexora.accept_dynamic_contract('pgtap_org_user',(select id from nexora.contract_offers where scope='organization' and org_id='pgtap_org' and status='offered' order by slot_no limit 1))$$,
   'P0001','ORG_ACTIVE_CONTRACT_LIMIT',
   'one member cannot reserve two active organization contracts'
+);
+select extensions.is(
+  (select used_count from nexora.contract_daily_limits where user_id='pgtap_org_user' and date_key=(now() at time zone 'UTC')::date),
+  2,
+  'personal and organization acceptances consume the same daily allowance'
 );
 insert into nexora.inventory(user_id,item_id,quantity)
 select 'pgtap_org_user',item_id,100 from nexora.contract_offers
@@ -267,6 +312,10 @@ where scope='organization' and org_id='pgtap_org' and status='processing';
 select extensions.lives_ok(
   $$select nexora.claim_dynamic_contract('pgtap_org_user',(select id from nexora.contract_offers where scope='organization' and org_id='pgtap_org' and status='processing' limit 1))$$,
   'organization contract reward can be claimed after processing'
+);
+select extensions.ok(
+  exists(select 1 from nexora.notifications where user_id='pgtap_org_user' and title='Contract ready to claim'),
+  'ready notification respects enabled player notifications'
 );
 select extensions.is(
   (select reputation from nexora.organizations where id='pgtap_org'),
