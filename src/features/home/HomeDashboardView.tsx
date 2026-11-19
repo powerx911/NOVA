@@ -368,14 +368,14 @@ export function HomeDashboardView({
                         <p className="text-sm font-medium text-[#F4F5F7] truncate">
                           {language === 'ar' ? m.titleAr : m.titleEn}
                         </p>
-                        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-[#9299A6] mt-0.5">
+                        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-[#9299A6] mt-0.5" dir="ltr">
                           <span className="font-mono-num">{Math.min(val, m.targetCount)}/{m.targetCount}</span>
                           <span className="text-[#667080]">•</span>
                           <span className="font-mono-num text-[#F4F5F7]">${m.rewardCredits.toLocaleString()}</span>
                           <span className="text-[#667080]">•</span>
                           <span className="font-mono-num text-[#F4F5F7]">+{m.rewardXp} XP</span>
                           <span className="text-[#667080]">•</span>
-                          <span>+{m.rewardReputation} {t.reputation}</span>
+                          <span dir={language === 'ar' ? 'rtl' : 'ltr'}>+{m.rewardReputation} {t.reputation}</span>
                         </div>
                       </div>
                       <button
