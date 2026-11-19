@@ -5,7 +5,7 @@ returns bigint
 language sql immutable
 set search_path = ''
 as $$
-  select 100::bigint + 15::bigint * greatest(0, least(199, coalesce(p_level, 1) - 1));
+  select 250::bigint + 15::bigint * greatest(0, least(199, coalesce(p_level, 1) - 1));
 $$;
 
 create or replace function nexora.enforce_player_inventory_capacity()
