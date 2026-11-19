@@ -3,7 +3,7 @@
 create extension if not exists pgtap with schema extensions;
 
 begin;
-select extensions.plan(85);
+select extensions.plan(90);
 
 select extensions.ok(
   exists(select 1 from nexora.contract_config where config_key='catalog_prices'),
@@ -419,6 +419,37 @@ select extensions.ok(
   exists(select 1 from nexora.org_weekly_goals where org_id='pgtap_goal_org' and goal_type='personal_contracts_completed')
   and exists(select 1 from nexora.org_weekly_goals where org_id='pgtap_goal_org' and goal_type='org_contracts_completed'),
   'weekly goals separately include personal and organization contract completions'
+);
+insert into nexora.companies(id,owner_uid,owner_name,name,sector)
+values ('pgtap_goal_company','pgtap_goal_user','Goal User','Goal Company','tech');
+select extensions.is(
+  (select current_amount from nexora.org_weekly_goals where org_id='pgtap_goal_org' and goal_type='companies_founded' and week_start=date_trunc('week',timezone('UTC',now()))::date),
+  1::numeric,
+  'company creation advances the companies-founded goal'
+);
+update nexora.companies set total_revenue=5000,level=2 where id='pgtap_goal_company';
+select extensions.is(
+  (select current_amount from nexora.org_weekly_goals where org_id='pgtap_goal_org' and goal_type='company_revenue' and week_start=date_trunc('week',timezone('UTC',now()))::date),
+  5000::numeric,
+  'collected company revenue advances the revenue goal'
+);
+select extensions.is(
+  (select current_amount from nexora.org_weekly_goals where org_id='pgtap_goal_org' and goal_type='company_upgrades' and week_start=date_trunc('week',timezone('UTC',now()))::date),
+  1::numeric,
+  'company level upgrades advance the company-upgrade goal'
+);
+insert into nexora.factories(id,owner_uid,owner_name,name,resource_id)
+values ('pgtap_goal_factory','pgtap_goal_user','Goal User','Goal Factory','copper_ore');
+select extensions.is(
+  (select current_amount from nexora.org_weekly_goals where org_id='pgtap_goal_org' and goal_type='factories_founded' and week_start=date_trunc('week',timezone('UTC',now()))::date),
+  1::numeric,
+  'factory creation advances the factories-founded goal'
+);
+update nexora.factories set level=2 where id='pgtap_goal_factory';
+select extensions.is(
+  (select current_amount from nexora.org_weekly_goals where org_id='pgtap_goal_org' and goal_type='factory_upgrades' and week_start=date_trunc('week',timezone('UTC',now()))::date),
+  1::numeric,
+  'factory level upgrades advance the factory-upgrade goal'
 );
 select extensions.lives_ok(
   $query$do $body$
