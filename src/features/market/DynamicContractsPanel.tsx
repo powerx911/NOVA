@@ -81,7 +81,8 @@ export function DynamicContractsPanel({ profile, inventory, wallet, language }: 
   const [now, setNow] = useState(Date.now());
   const [serverOffsetMs, setServerOffsetMs] = useState(0);
   const [personalCooldowns, setPersonalCooldowns] = useState<Array<{ slot_no: number; cooldown_until: string }>>([]);
-  const [orgCooldowns, setOrgCooldowns] = useState<Array<{ slot_no: number; cooldown_until: string }>>([]);\n  const [canRefreshOrgContracts, setCanRefreshOrgContracts] = useState(false);
+  const [orgCooldowns, setOrgCooldowns] = useState<Array<{ slot_no: number; cooldown_until: string }>>([]);
+  const [canRefreshOrgContracts, setCanRefreshOrgContracts] = useState(false);
   const [activeContractTab, setActiveContractTab] = useState<'personal' | 'organization'>('personal');
   const inventoryMap = useMemo(
     () => new Map<string, number>(inventory.map((item) => [item.itemId, item.quantity] as [string, number])),
@@ -93,7 +94,8 @@ export function DynamicContractsPanel({ profile, inventory, wallet, language }: 
       const board = await getDynamicContractBoard();
       setContracts(board.personal ?? []);
       setPersonalCooldowns(board.cooldowns?.personal ?? []);
-      setOrgCooldowns(board.cooldowns?.organization ?? []);\n      setCanRefreshOrgContracts(board.cooldowns?.can_refresh_org === true);
+      setOrgCooldowns(board.cooldowns?.organization ?? []);
+      setCanRefreshOrgContracts(board.cooldowns?.can_refresh_org === true);
       if (board.cooldowns?.server_now) setServerOffsetMs(new Date(board.cooldowns.server_now).getTime() - Date.now());
       setOrgContracts(board.organization ?? []);
       setDailyUsed(board.daily_used ?? 0);
@@ -129,12 +131,14 @@ export function DynamicContractsPanel({ profile, inventory, wallet, language }: 
   async function runAction(contract: DynamicContractOffer, action: 'accept' | 'deliver' | 'abandon' | 'claim' | 'refresh') {
     setBusyId(contract.id);
     try {
-      if (action === 'accept') await acceptDynamicContract(contract.id);\n      if (action === 'refresh') await refreshDynamicContract(contract.id);
+      if (action === 'accept') await acceptDynamicContract(contract.id);
+      if (action === 'refresh') await refreshDynamicContract(contract.id);
       if (action === 'deliver') await deliverDynamicContract(contract.id);
       if (action === 'abandon') await abandonDynamicContract(contract.id);
       if (action === 'claim') await claimDynamicContract(contract.id);
       const messages = {
-        accept: language === 'ar' ? 'تم استلام العقد وبدأت المهلة.' : 'Contract accepted. The deadline has started.',\n        refresh: language === 'ar' ? 'تم تجديد العقد، وستُملأ الخانة بعد 15 دقيقة.' : 'Contract refreshed. The slot will refill in 15 minutes.',
+        accept: language === 'ar' ? 'تم استلام العقد وبدأت المهلة.' : 'Contract accepted. The deadline has started.',
+        refresh: language === 'ar' ? 'تم تجديد العقد، وستُملأ الخانة بعد 15 دقيقة.' : 'Contract refreshed. The slot will refill in 15 minutes.',
         deliver: language === 'ar' ? 'تم تسليم المواد وبدأت المعالجة.' : 'Materials delivered. Processing has started.',
         abandon: language === 'ar' ? 'تم التخلي عن العقد.' : 'Contract abandoned.',
         claim: language === 'ar' ? 'تم استلام مكافأة العقد.' : 'Contract reward claimed.',
@@ -144,7 +148,10 @@ export function DynamicContractsPanel({ profile, inventory, wallet, language }: 
     } catch (error) {
       const code = error instanceof Error ? error.message : '';
       const messages: Record<string, [string, string]> = {
-        DAILY_CONTRACT_LIMIT_REACHED: ['استهلكت فرص العقود الخمس لهذا اليوم.', 'You have used all five contract attempts today.'],\n        CONTRACT_REFRESH_LIMIT_REACHED: ['استهلكت عدد مرات التجديد المسموح لهذا اليوم.', 'You have used all refreshes allowed for today.'],\n        ORG_REFRESH_PERMISSION_REQUIRED: ['تجديد عقود المنظمة متاح للقائد ونائبه فقط.', 'Only the leader and deputy can refresh organization contracts.'],\n        CONTRACT_NOT_REFRESHABLE: ['لا يمكن تجديد هذا العقد الآن.', 'This contract cannot be refreshed now.'],
+        DAILY_CONTRACT_LIMIT_REACHED: ['استهلكت فرص العقود الخمس لهذا اليوم.', 'You have used all five contract attempts today.'],
+        CONTRACT_REFRESH_LIMIT_REACHED: ['استهلكت عدد مرات التجديد المسموح لهذا اليوم.', 'You have used all refreshes allowed for today.'],
+        ORG_REFRESH_PERMISSION_REQUIRED: ['تجديد عقود المنظمة متاح للقائد ونائبه فقط.', 'Only the leader and deputy can refresh organization contracts.'],
+        CONTRACT_NOT_REFRESHABLE: ['لا يمكن تجديد هذا العقد الآن.', 'This contract cannot be refreshed now.'],
         ACTIVE_CONTRACT_LIMIT: ['لديك 3 عقود شخصية نشطة بالفعل.', 'You already have three active personal contracts.'],
         ORG_ACTIVE_CONTRACT_LIMIT: ['لديك عقد منظمة نشط بالفعل.', 'You already have an active organization contract.'],
         ORG_MEMBERSHIP_TOO_NEW: ['يجب أن تمر 8 ساعات على عضويتك في المنظمة.', 'Organization membership must be at least 8 hours old.'],
