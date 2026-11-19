@@ -443,6 +443,8 @@ export interface DynamicContractOffer {
   event_premium: number;
   status: DynamicContractStatus;
   offer_expires_at: string;
+  organization_slots?: number;
+  organization_max_slots?: number;
   accepted_at: string | null;
   deadline_at: string | null;
   deadline_remaining_secs: number | null;
