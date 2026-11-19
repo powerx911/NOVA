@@ -3,7 +3,7 @@
 create extension if not exists pgtap with schema extensions;
 
 begin;
-select extensions.plan(61);
+select extensions.plan(63);
 
 select extensions.ok(
   exists(select 1 from nexora.contract_config where config_key='catalog_prices'),
@@ -234,13 +234,31 @@ select extensions.lives_ok(
 update nexora.contract_offers set deadline_at=now()-interval '1 second'
 where id=(select id from nexora.contract_offers where user_id='pgtap_expiry' and status='accepted' limit 1);
 select extensions.lives_ok($$select nexora.get_dynamic_contract_board('pgtap_expiry')$$,'board RPC lazily settles expired contracts');
+select extensions.is(
+  (select count(*)::integer from nexora.contract_offers old join nexora.contract_offers fresh
+    on fresh.user_id=old.user_id and fresh.scope=old.scope and fresh.slot_no=old.slot_no
+      and fresh.board_date=old.board_date and fresh.slot_generation>old.slot_generation
+    where old.user_id='pgtap_expiry' and old.status='expired' and fresh.status='offered'),
+  0,
+  'expired contract slot stays empty during its server-side cooldown'
+);
+select extensions.ok(
+  exists(select 1 from nexora.contract_slot_cooldowns
+    where scope='personal' and owner_id='pgtap_expiry' and slot_no=(
+      select slot_no from nexora.contract_offers where user_id='pgtap_expiry' and status='expired' order by updated_at desc limit 1
+    ) and cooldown_until>now()),
+  'each expired slot receives its own fifteen-minute cooldown'
+);
+update nexora.contract_slot_cooldowns set cooldown_until=now()-interval '1 second'
+where scope='personal' and owner_id='pgtap_expiry';
+select extensions.lives_ok($select nexora.get_dynamic_contract_board('pgtap_expiry')$,
+  'expired cooldown is cleared on the next board refresh');
 select extensions.ok(
   exists(select 1 from nexora.contract_offers old join nexora.contract_offers fresh
     on fresh.user_id=old.user_id and fresh.scope=old.scope and fresh.slot_no=old.slot_no
       and fresh.board_date=old.board_date and fresh.slot_generation>old.slot_generation
-    where old.user_id='pgtap_expiry' and old.status='expired' and fresh.status='offered'
-      and (fresh.item_id<>old.item_id or fresh.tier<>old.tier)),
-  'lazy expiry rotates the expired slot to a different offer'
+    where old.user_id='pgtap_expiry' and old.status='expired' and fresh.status='offered'),
+  'the same slot is refilled after fifteen minutes elapse'
 );
 select extensions.ok(
   exists(select 1 from nexora.notifications where user_id='pgtap_expiry' and title='Contract expired'),
