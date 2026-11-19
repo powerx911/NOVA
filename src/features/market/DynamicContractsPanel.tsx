@@ -321,8 +321,10 @@ export function DynamicContractsPanel({ profile, inventory, wallet, language }: 
     );
   }
 
-  const personal = contracts.map((contract) => renderContract(contract)).filter(Boolean);
-  const organization = orgContracts.map((contract) => renderContract(contract, true)).filter(Boolean);
+  const contractPriority = (contract: DynamicContractOffer) => contract.status === 'accepted' || contract.status === 'processing' ? 0 : contract.status === 'ready' ? 1 : 2;
+  const byPriority = (a: DynamicContractOffer, b: DynamicContractOffer) => contractPriority(a) - contractPriority(b) || a.slot_no - b.slot_no;
+  const personal = [...contracts].sort(byPriority).map((contract) => renderContract(contract)).filter(Boolean);
+  const organization = [...orgContracts].sort(byPriority).map((contract) => renderContract(contract, true)).filter(Boolean);
   const lockedOrganization = Array.from({ length: Math.max(0, 100 - orgUnlockedSlots) }, (_, index) => {
     const slotNo = orgUnlockedSlots + index + 1;
     const requiredLevel = Math.ceil(slotNo / 10);

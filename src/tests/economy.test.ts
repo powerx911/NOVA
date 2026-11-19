@@ -109,7 +109,8 @@ describe('Market Price Bounds', () => {
     expect(getMarketPriceBounds('microchips')).toEqual({ minPrice: 72, maxPrice: 290 });
     expect(getMarketPriceBounds('copper_wire')).toEqual({ minPrice: 14, maxPrice: 56 });
     expect(getMarketPriceBounds('unknown_item')).toBeNull();
-    expect(getMarketPriceBounds('titanium_ore')).toBeNull();
+    expect(getMarketPriceBounds('titanium_ore')).toEqual({ minPrice: 42, maxPrice: 170 });
+    expect(getMarketPriceBounds('quantum_dust')).toEqual({ minPrice: 80, maxPrice: 320 });
   });
 
   it('offers only one quantum server recipe', () => {

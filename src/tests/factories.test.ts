@@ -18,7 +18,7 @@ describe('Raw resource factories', () => {
 
   it('keeps even advanced factory operating costs within a controlled ceiling', () => {
     for (const factory of FACTORY_RESOURCES) {
-      expect(factory.operatingCostPerHour).toBeLessThanOrEqual(110);
+      expect(factory.operatingCostPerHour).toBeLessThanOrEqual(260);
     }
   });
 

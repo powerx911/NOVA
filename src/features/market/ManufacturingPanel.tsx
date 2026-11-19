@@ -28,7 +28,7 @@ export function ManufacturingPanel({ profile, wallet, inventory, language, onNav
   const t = useTranslations(language);
   const { showToast } = useToast();
   const isAr = language === 'ar';
-  const [quantity, setQuantity] = useState(1);
+  const [recipeQuantities, setRecipeQuantities] = useState<Record<string, number>>({});
   const [busyKey, setBusyKey] = useState<string | null>(null);
   const [activeJob, setActiveJob] = useState<ManufacturingJob | null>(null);
   const [nowMs, setNowMs] = useState(() => Date.now());
@@ -106,8 +106,10 @@ export function ManufacturingPanel({ profile, wallet, inventory, language, onNav
     }
   }
 
+  function getRecipeQuantity(recipeId: string) { return Math.max(1, Math.min(999, Math.floor(recipeQuantities[recipeId] || 1))); }
+
   async function handleManufacture(recipeId: string) {
-    const batches = Math.max(1, Math.min(999, Math.floor(quantity || 1)));
+    const batches = getRecipeQuantity(recipeId);
     setBusyKey(recipeId);
     try {
       const job = await manufactureRecipe(profile.uid, recipeId, batches);
@@ -130,26 +132,6 @@ export function ManufacturingPanel({ profile, wallet, inventory, language, onNav
 
   return (
     <div className="space-y-4">
-      <div className="bg-[#141821] border border-white/8 rounded-2xl p-4 space-y-3">
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <h2 className="text-sm font-bold text-[#F4F5F7]">{isAr ? 'كمية التصنيع' : 'Batch quantity'}</h2>
-            <p className="text-xs text-[#9299A6] mt-1">{isAr ? 'اختر عدد الدفعات. مدة الإنتاج تُحسب لكل وحدة.' : 'Choose batch size. Production time is charged per output unit.'}</p>
-          </div>
-          <span className="text-sm font-mono-num font-bold text-[#E04455]">×{quantity}</span>
-        </div>
-        <div className="grid grid-cols-3 gap-2">
-          {[1, 5, 10].map((value) => (
-            <button key={value} type="button" onClick={() => setQuantity(value)} className={`min-h-[42px] rounded-xl border text-sm font-semibold transition-colors ${quantity === value ? 'bg-[#B91C32] border-[#E04455] text-white' : 'bg-[#0B0D12] border-white/10 text-[#C5CAD3]'}`}>×{value}</button>
-          ))}
-        </div>
-        <label className="block space-y-1.5">
-          <span className="text-xs text-[#9299A6]">{isAr ? 'أو أدخل كمية مخصصة (1–999)' : 'Or enter a custom quantity (1–999)'}</span>
-          <input type="number" min="1" max="999" step="1" value={quantity} onChange={(event) => setQuantity(Math.max(1, Math.min(999, Number(event.target.value) || 1)))} className="w-full min-h-[44px] px-3.5 rounded-xl bg-[#0B0D12] border border-white/10 text-sm text-[#F4F5F7] focus:outline-none focus:border-[#E04455]" />
-        </label>
-        <p className="text-[11px] text-[#9299A6]">{isAr ? 'الشراء من السوق فوري، أما التصنيع فيستهلك وقتاً ومدخلات وتكلفة تشغيل.' : 'Market purchases are instant; manufacturing consumes time, inputs, and processing credits.'}</p>
-      </div>
-
       {activeJob && (
         <div className="rounded-2xl border border-[#397BFF]/40 bg-[#111C2E] p-4 space-y-3">
           <div className="flex items-center justify-between gap-3">
@@ -182,6 +164,7 @@ export function ManufacturingPanel({ profile, wallet, inventory, language, onNav
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {MANUFACTURING_RECIPES.map((recipe) => {
+          const quantity = getRecipeQuantity(recipe.id);
           const output = ITEM_MAP[recipe.outputItemId];
           if (!output) return null;
           const unitCost = calculateManufacturingCost(recipe, profile.skills.industry || 0);
@@ -205,6 +188,13 @@ export function ManufacturingPanel({ profile, wallet, inventory, language, onNav
                   </div>
                 </div>
                 <Factory className="w-5 h-5 text-[#63A5FF] shrink-0" />
+              </div>
+              <div className="rounded-xl border border-white/8 bg-[#0B0D12] p-3 space-y-2">
+                <div className="flex items-center justify-between"><span className="text-xs text-[#9299A6]">{isAr ? 'كمية التصنيع' : 'Batch quantity'}</span><span className="text-sm font-mono-num font-bold text-[#F4F5F7]">×{quantity}</span></div>
+                <div className="grid grid-cols-3 gap-2">
+                  {[1, 5, 10].map((value) => <button key={value} type="button" onClick={() => setRecipeQuantities((previous) => ({ ...previous, [recipe.id]: value }))} className={`min-h-[36px] rounded-lg border text-xs font-semibold ${quantity === value ? 'bg-[#B91C32] border-[#E04455] text-white' : 'bg-[#141821] border-white/10 text-[#C5CAD3]'}`}>×{value}</button>)}
+                </div>
+                <input aria-label={isAr ? 'كمية هذه الوصفة' : 'Quantity for this recipe'} type="number" min="1" max="999" step="1" value={quantity} onChange={(event) => setRecipeQuantities((previous) => ({ ...previous, [recipe.id]: Math.max(1, Math.min(999, Number(event.target.value) || 1)) }))} className="w-full min-h-[40px] rounded-lg border border-white/10 bg-[#141821] px-3 text-sm text-[#F4F5F7]" />
               </div>
               <div className="space-y-2 bg-[#0B0D12] border border-white/6 rounded-xl p-3.5">
                 {recipe.inputs.map((input) => {
