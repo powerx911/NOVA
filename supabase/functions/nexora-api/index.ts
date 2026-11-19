@@ -229,6 +229,7 @@ Deno.serve(async (req: Request) => {
       return json({ ok: true, data }, 200, origin);
     }
 
+    // @deprecated Retained for legacy clients only; the NOVA UI no longer calls this route.
     if (body.action === "fulfill_trade_contract") {
       const contractId = typeof body.contractId === "string" ? body.contractId : "";
       const { data, error } = await db.rpc("fulfill_trade_contract", {
