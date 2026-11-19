@@ -12,8 +12,12 @@
 - `docs/SUPABASE_SCHEMA_V1.md` documents the 2026-11-18 NEXORA baseline. It says the baseline created 22 domain tables and records these three baseline-era history names: `nexora_core_schema_v1`, `nexora_username_compatibility`, and `nexora_firebase_identity_boundary`.
 - That document is descriptive documentation, not executable SQL. It does not contain the original baseline DDL.
 - Historical branches contain source files for the earlier NOVA player/competitive migrations, including `20261118151416_nova_player_core.sql`, `20261118151500_harden_player_rpc_schema.sql`, `20261118170000_nova_competitive_core.sql`, `20261118172000_nova_shared_market.sql`, `20261118173000_nova_market_fk_indexes.sql`, and `20261118174000_nova_competitive_duels.sql`.
-- The original SQL source for `nexora_core_schema_v1` was not found in the current NOVA repository, its inspected historical branches, or the legacy `luffyk124-del/nexora-game` repository tree.
+- The original SQL source for `nexora_core_schema_v1` was not located in the current NOVA repository, the inspected historical branches, or the inspected `luffyk124-del/nexora-game` tree. This is a bounded repository search, not proof that no external SQL export or backup exists.
 - The remote history includes additional records whose exact source/version mapping still needs a complete reconciliation. Do not treat the 31-file count or the schema documentation as proof that every historical migration is recovered.
+
+## Additional source-history evidence
+
+The source-replacement commit `1686aa3995561560cd52eee798401507ba2c8c9e` (“Replace NOVA with NEXORA source”) added six player/competitive migration files to the NOVA repository. Its change set did not include the `nexora_core_schema_v1` baseline SQL. This supports the possibility that the baseline was applied separately through the SQL editor or another external workflow, but does not establish exactly how it was applied.
 
 ## CI snapshot is not historical source
 
@@ -47,18 +51,18 @@ The following is the exact 42-row remote ledger returned by the Supabase migrati
 | 20261118161142 | `nova_shared_market` | Historical branch source: `20261118172000_nova_shared_market.sql`; remote version differs |
 | 20261118161319 | `nova_market_fk_indexes` | Historical branch source: `20261118173000_nova_market_fk_indexes.sql`; remote version differs |
 | 20261118162050 | `nova_competitive_duels` | Historical branch source: `20261118174000_nova_competitive_duels.sql`; remote version differs |
-| 20261118170627 | `nexora_core_schema_v1` | **Original SQL not found** |
-| 20261118170652 | `nexora_username_compatibility` | Original SQL not found |
-| 20261118170811 | `remove_legacy_nova_functions` | Original SQL not found |
-| 20261118170819 | `remove_legacy_nova_game_tables` | Original SQL not found |
-| 20261118170850 | `nexora_firebase_identity_boundary` | Original SQL not found |
-| 20261118171625 | `nexora_character_creation_rpc` | Original SQL not found |
+| 20261118170627 | `nexora_core_schema_v1` | **Not located in inspected repository refs** |
+| 20261118170652 | `nexora_username_compatibility` | Not located in inspected repository refs |
+| 20261118170811 | `remove_legacy_nova_functions` | Not located in inspected repository refs |
+| 20261118170819 | `remove_legacy_nova_game_tables` | Not located in inspected repository refs |
+| 20261118170850 | `nexora_firebase_identity_boundary` | Not located in inspected repository refs |
+| 20261118171625 | `nexora_character_creation_rpc` | Not located in inspected repository refs |
 | 20261118181814 | `nexora_server_operations` | Local filename matches remote version/name |
 | 20261118181827 | `nexora_org_request_pending_unique` | Local filename matches remote version/name |
 | 20261118190004 | `nova_character_welcome_branding` | Local filename matches remote version/name |
 | 20261118192232 | `nova_remove_properties_and_skill_point_progression` | Local filename matches remote version/name |
 | 20261118192618 | `nova_remove_property_mission_path` | Local filename matches remote version/name |
-| 20261118192658 | `nova_remove_property_achievement_path` | Original SQL not found |
+| 20261118192658 | `nova_remove_property_achievement_path` | Not located in inspected repository refs |
 | 20261118193136 | `nova_reconcile_skill_points_to_one_per_level` | Candidate local file has same name but different timestamp; verify content |
 | 20261118194258 | `nova_fix_company_upgrade_guard_and_indexes` | Candidate local file has same name but different timestamp; verify content |
 | 20261118201649 | `nova_social_hub` | Candidate local file has same name but different timestamp; verify content |
@@ -74,15 +78,15 @@ The following is the exact 42-row remote ledger returned by the Supabase migrati
 | 20261118225603 | `nova_factory_warehouse_and_level_100` | No same-named local file; nearby warehouse candidate is not assumed equivalent |
 | 20261118225737 | `nova_factory_auction_support` | No same-named local file; nearby auction candidate is not assumed equivalent |
 | 20261118230011 | `nova_factory_warehouse_capacity_balance` | Candidate local file has same name but different timestamp; verify content |
-| 20261118230131 | `nova_factory_auction_capacity_reservations` | Original SQL not found |
+| 20261118230131 | `nova_factory_auction_capacity_reservations` | Not located in inspected repository refs |
 | 20261118230414 | `nova_factory_base_profit_curve` | Candidate local file has same name but different timestamp; verify content |
 | 20261118230515 | `nova_add_advanced_factory_resources` | Candidate local file has same name but different timestamp; verify content |
-| 20261118232146 | `nova_factory_profit_margin_v2` | Original SQL not found |
+| 20261118232146 | `nova_factory_profit_margin_v2` | Not located in inspected repository refs |
 | 20261118233048 | `nova_remove_market_purchase_xp` | Candidate local file has same name but different timestamp; verify content |
-| 20261118233344 | `remove_market_purchase_reputation_influence` | Original SQL not found |
-| 20261118233403 | `correct_market_purchase_rewards` | Original SQL not found |
+| 20261118233344 | `remove_market_purchase_reputation_influence` | Not located in inspected repository refs |
+| 20261118233403 | `correct_market_purchase_rewards` | Not located in inspected repository refs |
 | 20261118233646 | `add_advanced_resource_manufacturing_recipes` | Candidate local file has a different name; content equivalence unverified |
-| 20261118233707 | `balance_advanced_resource_recipe_costs` | Original SQL not found |
+| 20261118233707 | `balance_advanced_resource_recipe_costs` | Not located in inspected repository refs |
 
 ## Local-only migration filenames
 
