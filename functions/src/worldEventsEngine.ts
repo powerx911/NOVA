@@ -4,7 +4,10 @@ export type ServerWorldEventEffectType =
   | 'tax_cut'
   | 'industrial_boom'
   | 'service_crisis'
-  | 'logistics_boom'\n  | 'economic_recession'\n  | 'supply_glut'\n  | 'logistics_disruption';
+  | 'logistics_boom'
+  | 'economic_recession'
+  | 'supply_glut'
+  | 'logistics_disruption';
 
 export type ServerCompanySector = 'trade' | 'manufacturing' | 'services' | 'tech' | 'logistics';
 
@@ -264,7 +267,8 @@ export function buildWorldEventRotationPlan(
 
     for (const tpl of prioritized) {
       if (toActivate.length >= slotsNeeded) break;
-      if (keptActiveIds.has(tpl.id) || usedGroups.has(tpl.stackGroup)) continue;\n      if (tpl.eventClass === 'negative' && toActivate.some((entry) => entry.template.eventClass === 'negative')) continue;
+      if (keptActiveIds.has(tpl.id) || usedGroups.has(tpl.stackGroup)) continue;
+      if (tpl.eventClass === 'negative' && toActivate.some((entry) => entry.template.eventClass === 'negative')) continue;
       usedGroups.add(tpl.stackGroup);
       keptActiveIds.add(tpl.id);
       toActivate.push({
