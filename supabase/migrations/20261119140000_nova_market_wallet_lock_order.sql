@@ -15,7 +15,6 @@ declare
   v_event_delta numeric;
   v_tx text := 'tx_' || gen_random_uuid()::text;
   v_order text;
-  v_leadership numeric;
   v_stats jsonb;
   v_expected_seller text;
 begin
@@ -82,14 +81,10 @@ begin
       where user_id=p_uid and item_id=v_listing.item_id;
   end if;
 
-  v_leadership:=1+coalesce((v_profile.skills->>'leadership')::numeric,0)*0.1;
   v_stats:=jsonb_set(coalesce(v_profile.stats,'{}'::jsonb),'{tradesCount}',
     to_jsonb(coalesce((v_profile.stats->>'tradesCount')::integer,0)+1),true);
-  update nexora.player_profiles set
-    reputation=reputation+round(2*v_leadership)::bigint,
-    influence=influence+round(1*v_leadership)::bigint,
-    stats=v_stats,updated_at=now()
-    where user_id=p_uid;
+  -- Market purchases count toward trade statistics only; they grant no XP, reputation, or influence.
+  update nexora.player_profiles set stats=v_stats,updated_at=now() where user_id=p_uid;
   return jsonb_build_object('ok',true,'order_id',v_order,'transaction_id',v_tx,'total',v_total,'tax',v_fee);
 end;
 $$;
