@@ -251,7 +251,7 @@ async function runDynamicContractAction<T = Record<string, unknown>>(action: str
   }
 }
 
-export async function acceptDynamicContract(contractId: string): Promise<void> {
+export async function refreshDynamicContract(contractId: string): Promise<void> {\n  await runDynamicContractAction("refresh_dynamic_contract", contractId);\n}\n\nexport async function acceptDynamicContract(contractId: string): Promise<void> {
   await runDynamicContractAction('accept_dynamic_contract', contractId);
 }
 
