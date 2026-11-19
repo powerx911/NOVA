@@ -134,28 +134,33 @@ select extensions.lives_ok(
   'five daily acceptances remain consumed even after abandonment'
 );
 select extensions.is(
-  (select used_count from nexora.contract_daily_limits
+  (select personal_used_count from nexora.contract_daily_limits
    where user_id='pgtap_daily' and date_key=(now() at time zone 'UTC')::date),
   5,
-  'personal and organization contract attempts share a five-per-day counter'
+  'personal acceptance quota is consumed after five attempts, including abandoned contracts'
 );
-select extensions.throws_ok(
-  $$select nexora.accept_dynamic_contract('pgtap_daily',(select id from nexora.contract_offers where user_id='pgtap_daily' and status='offered' order by slot_no limit 1))$$,
-  'P0001','DAILY_CONTRACT_LIMIT_REACHED',
-  'a sixth daily contract acceptance is rejected'
+select extensions.is(
+  (select org_used_count from nexora.contract_daily_limits
+   where user_id='pgtap_daily' and date_key=(now() at time zone 'UTC')::date),
+  0,
+  'personal acceptances do not consume the separate organization quota'
 );
 select extensions.ok(
-  exists(
-    select 1 from nexora.contract_offers old
-    join nexora.contract_offers replacement
-      on replacement.scope=old.scope and replacement.user_id=old.user_id
-      and replacement.board_date=old.board_date and replacement.slot_no=old.slot_no
-      and replacement.slot_generation>old.slot_generation
-    where old.user_id='pgtap_daily' and old.status='abandoned'
-      and replacement.status='offered'
-      and (replacement.item_id<>old.item_id or replacement.tier<>old.tier)
-  ),
-  'a replacement offer differs by item or tier'
+  exists(select 1 from nexora.contract_slot_cooldowns c
+    join nexora.contract_offers o on o.user_id=c.owner_id and o.slot_no=c.slot_no
+      and o.board_date=c.board_date and o.scope=c.scope
+    where c.scope='personal' and c.owner_id='pgtap_daily'
+      and o.status='abandoned' and c.cooldown_until>now()),
+  'abandoning a contract leaves its slot in an independent fifteen-minute cooldown'
+);
+update nexora.contract_slot_cooldowns set cooldown_until=now()-interval '1 second'
+where scope='personal' and owner_id='pgtap_daily';
+select extensions.lives_ok($select nexora.get_dynamic_contract_board('pgtap_daily')$,
+  'personal offers refill after their cooldown elapses');
+select extensions.throws_ok(
+  $select nexora.accept_dynamic_contract('pgtap_daily',(select id from nexora.contract_offers where user_id='pgtap_daily' and scope='personal' and status='offered' order by slot_no limit 1))$,
+  'P0001','DAILY_CONTRACT_LIMIT_REACHED',
+  'a sixth personal contract acceptance is rejected independently'
 );
 
 insert into nexora.player_profiles(user_id,username,username_lower,level)
