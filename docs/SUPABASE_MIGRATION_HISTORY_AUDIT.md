@@ -262,3 +262,17 @@ This is strong evidence that the recovered applied history and the new PR change
 - The 34-file inventory and the exact CI replay scope were checked on branch head `7118ec2f0c74d39275f252ab433c02393ff65257`. All three workflows succeeded on that exact commit: App CI [44511078361](https://github.com/powerx911/NOVA/actions/runs/44511078361), historical replay [44511078310](https://github.com/powerx911/NOVA/actions/runs/44511078310), and isolated database tests [44511078178](https://github.com/powerx911/NOVA/actions/runs/44511078178).
 
 No production writes, migration pushes, or ledger repairs were performed.
+## Read-only production function-state check
+
+On 2026-11-19, the active healthy production project was queried using catalog metadata only (`pg_get_functiondef`/string markers); no player rows or business data were read and no writes were issued. The observed live definitions confirm that PR #83 has **not** been deployed:
+
+| Production function | Live marker result | Meaning for pending PR |
+|---|---|---|
+| `collect_company_revenue` | Still contains reputation and influence reward references; 30-second cooldown and cumulative-revenue XP logic are present | The PR's reward removal is not live yet |
+| `transfer_credits` | Sorted wallet lock is present; level-10 gate, 3% fee, and daily 10,000 cap markers are absent | The PR's transfer limits are not live yet |
+| `buy_market_listing` | No reputation/influence reward references; sorted wallet lock marker was not detected by the simple marker check | Its current live body is not the PR version; review lock ordering from the exact function body before release |
+| `place_factory_auction_bid` / `settle_factory_auction` | 4% fee and 5-minute extension markers are absent | The PR auction fee/extension changes are not live yet |
+
+This check is a marker-based read of current function definitions, not a full semantic proof of every branch. It establishes the deployment boundary: the hardening changes remain pending in Draft PR #83. Do not tell players or operators that the new economy/transfer/auction rules are active until a separately reviewed deployment has actually succeeded.
+
+Production ledger still reports 42 migration records. No production function was replaced, no migration was pushed or repaired, and no player/business data was accessed.
