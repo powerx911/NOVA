@@ -105,12 +105,12 @@ describe('Company Profit Vault', () => {
 
 describe('Player Inventory Capacity', () => {
   it('grows smoothly with player level and clamps invalid levels', () => {
-    expect(getPlayerInventoryCapacity(1)).toBe(100);
-    expect(getPlayerInventoryCapacity(2)).toBe(115);
-    expect(getPlayerInventoryCapacity(10)).toBe(235);
-    expect(getPlayerInventoryCapacity(200)).toBe(3085);
-    expect(getPlayerInventoryCapacity(0)).toBe(100);
-    expect(getPlayerInventoryCapacity(Number.NaN)).toBe(100);
+    expect(getPlayerInventoryCapacity(1)).toBe(250);
+    expect(getPlayerInventoryCapacity(2)).toBe(265);
+    expect(getPlayerInventoryCapacity(10)).toBe(385);
+    expect(getPlayerInventoryCapacity(200)).toBe(3235);
+    expect(getPlayerInventoryCapacity(0)).toBe(250);
+    expect(getPlayerInventoryCapacity(Number.NaN)).toBe(250);
   });
 });
 
