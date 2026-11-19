@@ -9,9 +9,12 @@ interface InventoryPanelProps {
   title: string;
   marketLabel: string;
   onGoToMarket: () => void;
+  capacity: number;
 }
 
-export function InventoryPanel({ inventory, language, title, marketLabel, onGoToMarket }: InventoryPanelProps) {
+export function InventoryPanel({ inventory, language, title, marketLabel, onGoToMarket, capacity }: InventoryPanelProps) {
+  const totalQuantity = inventory.reduce((sum, item) => sum + Math.max(0, item.quantity), 0);
+  const capacityPercent = capacity > 0 ? Math.min(100, (totalQuantity / capacity) * 100) : 0;
   const availableItems = inventory.filter((item) => item.quantity > 0);
 
   return (
