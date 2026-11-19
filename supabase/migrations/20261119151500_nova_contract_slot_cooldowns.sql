@@ -42,6 +42,15 @@ $$;
 alter table nexora.contract_slot_cooldowns enable row level security;
 revoke all on table nexora.contract_slot_cooldowns from public,anon,authenticated;
 
+create table if not exists nexora.contract_slot_refresh_usage (
+  scope text not null check (scope in ('personal','organization')),
+  owner_id text not null,
+  date_key date not null,
+  used_count integer not null default 0 check (used_count >= 0),
+  updated_at timestamptz not null default now(),
+  primary key(scope,owner_id,date_key)
+);
+
 create index if not exists contract_slot_cooldowns_until_idx
   on nexora.contract_slot_cooldowns (cooldown_until);
 
