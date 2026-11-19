@@ -488,12 +488,15 @@ begin
   if not found then raise exception 'ACCOUNT_NOT_FOUND'; end if;
   select * into v_contract from nexora.contract_offers where id=p_contract_id;
   if not found then raise exception 'CONTRACT_NOT_FOUND'; end if;
-  if v_contract.scope='organization' then
-    select * into v_org from nexora.organizations where id=v_contract.org_id for update;
-    if not found then raise exception 'ORG_NOT_FOUND'; end if;
+  if coalesce(v_contract.org_id,v_profile.org_id) is not null then
+    select * into v_org from nexora.organizations
+      where id=coalesce(v_contract.org_id,v_profile.org_id) for update;
   end if;
+  perform nexora.settle_dynamic_contracts(p_uid);
   select * into v_contract from nexora.contract_offers where id=p_contract_id for update;
-  if not found or v_contract.status<>'offered' then raise exception 'CONTRACT_NOT_AVAILABLE'; end if;
+  if not found then raise exception 'CONTRACT_NOT_FOUND'; end if;
+  if v_contract.status='expired' then return jsonb_build_object('ok',false,'error','CONTRACT_EXPIRED'); end if;
+  if v_contract.status<>'offered' then raise exception 'CONTRACT_NOT_AVAILABLE'; end if;
   if v_contract.offer_expires_at<=v_now then
     update nexora.contract_offers set status='expired',updated_at=v_now where id=p_contract_id;
     if v_contract.board_date=(v_now at time zone 'UTC')::date and
