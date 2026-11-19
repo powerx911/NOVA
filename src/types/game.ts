@@ -362,7 +362,10 @@ export type WorldEventEffectType =
   | 'tax_cut'
   | 'industrial_boom'
   | 'service_crisis'
-  | 'logistics_boom'\n  | 'economic_recession'\n  | 'supply_glut'\n  | 'logistics_disruption';
+  | 'logistics_boom'
+  | 'economic_recession'
+  | 'supply_glut'
+  | 'logistics_disruption';
 
 export interface WorldEvent {
   id: string;
