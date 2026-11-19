@@ -674,13 +674,27 @@ export function OrganizationHubView({
               produce_units: ['إنتاج الموارد', 'Produce resources'],
               trade_volume: ['حجم التداول', 'Trading volume'],
               contracts_completed: ['إكمال العقود', 'Complete contracts'],
-              treasury_donations: ['دعم خزينة المنظمة', 'Fund the organization treasury'],\n              personal_contracts_completed: ['عقود شخصية مكتملة', 'Personal contracts completed'],\n              org_contracts_completed: ['عقود المنظمة المكتملة', 'Organization contracts completed'],\n              company_revenue: ['تحصيل إيرادات الشركات', 'Collect company revenue'],\n              factory_upgrades: ['تطوير المصانع', 'Upgrade factories'],\n              company_upgrades: ['تطوير الشركات', 'Upgrade companies'],\n              companies_founded: ['تأسيس شركات', 'Found companies'],\n              factories_founded: ['إنشاء مصانع', 'Found factories'],
+              treasury_donations: ['دعم خزينة المنظمة', 'Fund the organization treasury'],
+              personal_contracts_completed: ['عقود شخصية مكتملة', 'Personal contracts completed'],
+              org_contracts_completed: ['عقود المنظمة المكتملة', 'Organization contracts completed'],
+              company_revenue: ['تحصيل إيرادات الشركات', 'Collect company revenue'],
+              factory_upgrades: ['تطوير المصانع', 'Upgrade factories'],
+              company_upgrades: ['تطوير الشركات', 'Upgrade companies'],
+              companies_founded: ['تأسيس شركات', 'Found companies'],
+              factories_founded: ['إنشاء مصانع', 'Found factories'],
             };
             const descriptions: Record<OrgWeeklyGoal['type'], [string, string]> = {
               produce_units: ['أنتج الموارد في مصانعك. تُحتسب وحدات الإنتاج المكتملة التي تسجلها اللعبة.', 'Produce resources in your factories. Completed production units recorded by the game count.'],
               trade_volume: ['نفّذ صفقات شراء أو بيع في السوق. تُجمع القيمة الفعلية للصفقات المنفذة، وليس قيمة العروض المنشورة.', 'Complete market purchases or sales. The actual value of executed trades counts, not listing prices.'],
               contracts_completed: ['أكمل عقودك الشخصية وعقود المنظمة حتى تستلم مكافآتها. كل عقد يُحتسب مرة واحدة بعد الاستلام.', 'Finish personal and organization contracts and claim their rewards. Each contract counts once after claiming.'],
-              treasury_donations: ['حوّل أموالًا من رصيدك إلى خزينة المنظمة عبر زر التبرع. تُحتسب قيمة الإيداع الناجح.', 'Transfer credits from your wallet to the organization treasury using Donate. Successful deposits count.'],\n              personal_contracts_completed: ['أكمل العقود الشخصية واستلم مكافآتها. يُحتسب العقد بعد استلام المكافأة فقط.', 'Complete personal contracts and claim their rewards. A contract counts only after its reward is claimed.'],\n              org_contracts_completed: ['احجز عقدًا مشتركًا للمنظمة وأكمله واستلم مكافأته. يُحتسب عند الاستلام.', 'Reserve a shared organization contract, complete it, and claim its reward.'],\n              company_revenue: ['حصّل الإيرادات المتراكمة من شركاتك. تُحتسب الإيرادات عند تحصيلها فعليًا.', 'Collect accumulated revenue from your companies. Only collected revenue counts.'],\n              factory_upgrades: ['ارفع مستوى مصانعك. كل ترقية مستوى ناجحة تُحتسب مرة واحدة.', 'Upgrade your factories. Each successful level upgrade counts once.'],\n              company_upgrades: ['ارفع مستوى شركاتك. كل ترقية مستوى ناجحة تُحتسب مرة واحدة.', 'Upgrade your companies. Each successful level upgrade counts once.'],\n              companies_founded: ['أسّس شركات جديدة. تُحتسب الشركة عند إنشائها بنجاح.', 'Found new companies. A company counts when it is successfully created.'],\n              factories_founded: ['أنشئ مصانع جديدة. يُحتسب المصنع عند تأسيسه بنجاح.', 'Found new factories. A factory counts when it is successfully created.'],
+              treasury_donations: ['حوّل أموالًا من رصيدك إلى خزينة المنظمة عبر زر التبرع. تُحتسب قيمة الإيداع الناجح.', 'Transfer credits from your wallet to the organization treasury using Donate. Successful deposits count.'],
+              personal_contracts_completed: ['أكمل العقود الشخصية واستلم مكافآتها. يُحتسب العقد بعد استلام المكافأة فقط.', 'Complete personal contracts and claim their rewards. A contract counts only after its reward is claimed.'],
+              org_contracts_completed: ['احجز عقدًا مشتركًا للمنظمة وأكمله واستلم مكافأته. يُحتسب عند الاستلام.', 'Reserve a shared organization contract, complete it, and claim its reward.'],
+              company_revenue: ['حصّل الإيرادات المتراكمة من شركاتك. تُحتسب الإيرادات عند تحصيلها فعليًا.', 'Collect accumulated revenue from your companies. Only collected revenue counts.'],
+              factory_upgrades: ['ارفع مستوى مصانعك. كل ترقية مستوى ناجحة تُحتسب مرة واحدة.', 'Upgrade your factories. Each successful level upgrade counts once.'],
+              company_upgrades: ['ارفع مستوى شركاتك. كل ترقية مستوى ناجحة تُحتسب مرة واحدة.', 'Upgrade your companies. Each successful level upgrade counts once.'],
+              companies_founded: ['أسّس شركات جديدة. تُحتسب الشركة عند إنشائها بنجاح.', 'Found new companies. A company counts when it is successfully created.'],
+              factories_founded: ['أنشئ مصانع جديدة. يُحتسب المصنع عند تأسيسه بنجاح.', 'Found new factories. A factory counts when it is successfully created.'],
             };
             const difficulty = goal.difficulty === 'easy' ? (language === 'ar' ? 'سهل' : 'Easy') : goal.difficulty === 'medium' ? (language === 'ar' ? 'متوسط' : 'Medium') : (language === 'ar' ? 'صعب' : 'Hard');
             return (
