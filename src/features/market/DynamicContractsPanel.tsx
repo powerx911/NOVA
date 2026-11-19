@@ -12,7 +12,7 @@ import {
   deliverDynamicContract, getDynamicContractBoard,
 } from '../../services/gameService';
 import type {
-  DynamicContractOffer, Language, OrgWeeklyGoal, PlayerProfile, InventoryItem, Wallet,
+  DynamicContractOffer, Language, PlayerProfile, InventoryItem, Wallet,
 } from '../../types/game';
 
 interface DynamicContractsPanelProps {
