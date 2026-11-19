@@ -66,8 +66,8 @@ export function MarketHubView({
   const [busyKey, setBusyKey] = useState<string | null>(null);
 
   // Create Sell Listing form
-  const ownedStacks = inventory.filter((i) => i.quantity > 0);
-  const initialSellId = ownedStacks[0]?.itemId || 'silicon_ore';
+  const ownedStacks = inventory.filter((i) => i.quantity > 0 && getMarketPriceBounds(i.itemId) !== null);
+  const initialSellId = ownedStacks[0]?.itemId || CATALOG_ITEMS.find((item) => getMarketPriceBounds(item.id) !== null)?.id || 'silicon_ore';
   const [sellItemId, setSellItemId] = useState(initialSellId);
   const [sellQty, setSellQty] = useState(1);
   const [sellPrice, setSellPrice] = useState(ITEM_MAP[initialSellId]?.basePrice || 40);
@@ -437,7 +437,7 @@ export function MarketHubView({
                   }}
                   className="w-full min-h-[44px] px-3 rounded-xl bg-[#0B0D12] border border-white/10 text-sm text-[#F4F5F7] focus:outline-none focus:border-[#E04455]"
                 >
-                  {CATALOG_ITEMS.map((item) => {
+                  {CATALOG_ITEMS.filter((item) => getMarketPriceBounds(item.id) !== null).map((item) => {
                     const owned = invMap.get(item.id) || 0;
                     return (
                       <option key={item.id} value={item.id}>
