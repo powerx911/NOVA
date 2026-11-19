@@ -26,3 +26,27 @@ button:active:not(:disabled),[role="button"]:active,a[href]:active,input[type="b
 button:disabled,input:disabled{cursor:not-allowed}
 button:focus-visible,[role="button"]:focus-visible,a[href]:focus-visible,input:focus-visible{outline:2px solid rgba(99,165,255,.9);outline-offset:3px}
 @media(prefers-reduced-motion:reduce){button,[role="button"],a[href],input[type="button"],input[type="submit"]{transition-duration:.01ms}button:active:not(:disabled),[role="button"]:active,a[href]:active,input[type="button"]:active:not(:disabled),input[type="submit"]:active:not(:disabled){transform:none}}
+
+/* NOVA visual identity — phase 2: unify legacy screen surfaces and controls */
+[class*="bg-[#141821]"] { background-color:var(--nova-surface) !important; }
+[class*="bg-[#0B0D12]"] { background-color:#0B1426 !important; }
+[class*="bg-[#1B2230]"] { background-color:var(--nova-surface-raised) !important; }
+[class*="bg-[#263247]"] { background-color:#20385F !important; }
+[class*="bg-[#B91C32]"] { background-color:var(--nova-accent) !important; }
+[class*="hover:bg-[#E04455]"]:hover { background-color:var(--nova-accent-bright) !important; }
+[class*="text-[#F4F5F7]"] { color:var(--nova-text) !important; }
+[class*="text-[#9299A6]"] { color:var(--nova-muted) !important; }
+[class*="text-[#E04455]"], [class*="text-[#E5A0A8]"] { color:var(--nova-accent-bright) !important; }
+[class*="border-[#E04455]"] { border-color:rgba(99,165,255,.72) !important; }
+[class*="border-white/8"], [class*="border-white/10"], [class*="border-white/6"] { border-color:var(--nova-border) !important; }
+[class*="shadow"] { --tw-shadow-color:rgba(0,0,0,.22); }
+input:not([type="checkbox"]):not([type="radio"]), select, textarea {
+  color:var(--nova-text);
+  background-color:rgba(8,14,28,.72);
+  border-color:var(--nova-border);
+}
+input::placeholder, textarea::placeholder { color:#7183A5; opacity:1; }
+:where(button,a,[role="button"]):not(:disabled):focus-visible { border-radius:12px; }
+@media (hover:hover) {
+  [class*="rounded-2xl"][class*="border"]:hover { border-color:rgba(99,165,255,.22); }
+}
