@@ -12,7 +12,7 @@
 - `docs/SUPABASE_SCHEMA_V1.md` documents the 2026-11-18 NEXORA baseline. It says the baseline created 22 domain tables and records these three baseline-era history names: `nexora_core_schema_v1`, `nexora_username_compatibility`, and `nexora_firebase_identity_boundary`.
 - That document is descriptive documentation, not executable SQL. It does not contain the original baseline DDL.
 - Historical branches contain source files for the earlier NOVA player/competitive migrations, including `20261118151416_nova_player_core.sql`, `20261118151500_harden_player_rpc_schema.sql`, `20261118170000_nova_competitive_core.sql`, `20261118172000_nova_shared_market.sql`, `20261118173000_nova_market_fk_indexes.sql`, and `20261118174000_nova_competitive_duels.sql`.
-- The original SQL source for `nexora_core_schema_v1` was not located in the current NOVA repository, the inspected historical branches, or the inspected `luffyk124-del/nexora-game` tree. This is a bounded repository search, not proof that no external SQL export or backup exists.
+- The original SQL source for `nexora_core_schema_v1` was absent from the inspected Git trees, but was subsequently recovered from the production PostgreSQL statement log; see the recovery update below.
 - The remote history includes additional records whose exact source/version mapping still needs a complete reconciliation. Do not treat the 31-file count or the schema documentation as proof that every historical migration is recovered.
 
 ## Additional source-history evidence
@@ -41,7 +41,7 @@ The source-replacement commit `1686aa3995561560cd52eee798401507ba2c8c9e` (“Rep
 
 ## Exact ledger inventory (2026-11-19 read-only capture)
 
-The following is the exact 42-row remote ledger returned by the Supabase migration-list operation. “Candidate” means a similarly named local file exists; it is **not** proof that the SQL contents equal the applied remote migration.
+The following is the exact 42-row remote ledger returned by the Supabase migration-list operation. The source-finding column records the initial Git-only search and is superseded by the recovery update below. “Candidate” means a similarly named local file exists; it is **not** proof that the SQL contents equal the applied remote migration.
 
 | Remote version | Remote name | Repository source finding |
 |---|---|---|
@@ -109,3 +109,75 @@ These 10 files exist on `main` but have no same-named remote ledger entry in the
 - Several later remote entries have same-named local candidates under different timestamps. Those must be content-compared before they can be treated as the applied source.
 - The 10 local-only names and the missing remote sources show why a blind timestamp rename, bulk migration repair, or replay of all local SQL would be unsafe.
 - The 42-row ledger is a history of what Supabase records as applied; it does not contain the SQL bodies. A schema snapshot is insufficient to infer every historical change or its exact ordering.
+
+
+## Recovery update — all 42 SQL sources recovered
+
+**The original-source blocker is resolved.** The remote ledger has 42 records, and an exact SQL body is now archived for every one:
+
+- 41 bodies were recovered from PostgreSQL `postgres_logs` statement events. Their event timestamps map to the remote migration versions.
+- The remaining body, `20261118193136_nova_reconcile_skill_points_to_one_per_level`, was recovered read-only from `supabase_migrations.schema_migrations.statements`.
+- Two extra statement events were present in the logs but had no matching version in the current 42-row remote ledger; they were not included as applied migrations.
+- The migration metadata table reports **zero rollback arrays** across the 42 rows.
+- The archive contains 42 SQL files plus a README under `supabase/recovered-history/`. Every file is outside `supabase/migrations/`; none is pending CLI migration input.
+
+Archive index: [Recovered migration sources](https://github.com/powerx911/NOVA/tree/fix/nova-economy-abuse-guards-20261119/supabase/recovered-history).
+
+## Full-history replay verification
+
+Added `.github/workflows/database-history-replay.yml`. It starts a disposable local Supabase stack, replays all 42 recovered sources in remote-version order, applies the three PR migrations, runs pgTAP, and stops the disposable stack.
+
+<badge color="success">Passed</badge> Run [44507739506 — historical migration replay](https://github.com/powerx911/NOVA/actions/runs/44507739506).
+
+- All 42 recovered SQL files replayed successfully.
+- All three NOVA economy-hardening migrations applied successfully after the historical chain.
+- pgTAP passed: 29 tests across 2 suites.
+- The disposable Supabase stack stopped successfully.
+- App CI also passed: [44507739198](https://github.com/powerx911/NOVA/actions/runs/44507739198).
+- The existing current-schema snapshot test passed: [44507739566](https://github.com/powerx911/NOVA/actions/runs/44507739566).
+
+## Local-versus-remote content reconciliation
+
+The recovered SQL now allows direct comparison against the 31 SQL files currently on `main`.
+
+### 21 same-name candidates
+
+For the 21 local files whose normalized names match remote ledger names:
+
+- **14** are identical to the applied SQL after trimming outer whitespace.
+- **2** become identical after ignoring comments and whitespace:
+  - `nova_fix_company_upgrade_guard_and_indexes`
+  - `nova_factory_warehouse_capacity_balance`
+- **2** have a punctuation discrepancy in the local copy: the local function body omits a semicolon immediately before the closing `$$` delimiter:
+  - `nova_player_presence`
+  - `nova_org_donation_ranking`
+- **3** contain substantive differences from the applied SQL:
+  - `nova_factory_economy_rebalance`: local operating-cost values differ from the applied source.
+  - `nova_factory_base_profit_curve`: local production-rate values differ from the applied source.
+  - `nova_add_advanced_factory_resources`: local production-rate/config values differ from the applied source.
+
+These are source discrepancies, not proof that production is broken. Do not overwrite them blindly; review whether the local versions represent intended future balance changes or accidental drift.
+
+### 10 local filenames without a same-name remote ledger record
+
+The local file `20261119011000_nova_advanced_resource_recipes.sql` is content-equivalent to remote migration `20261118233707_balance_advanced_resource_recipe_costs` after comment/whitespace normalization, despite the filename mismatch.
+
+The other nine files still need explicit classification as pending work, superseded/consolidated SQL, or redundant source:
+
+- `20261118180000_nexora_economy_rpcs.sql`
+- `20261118183000_nexora_market_rpcs.sql`
+- `20261118190000_nexora_manufacturing_rpc.sql`
+- `20261118193000_nexora_contract_rpc.sql`
+- `20261118200000_nexora_player_settings_notifications.sql`
+- `20261118201000_nexora_seed_world.sql`
+- `20261118203000_nexora_companies_properties.sql`
+- `20261118210000_nexora_company_vault_rpcs.sql`
+- `20261119003000_nova_factory_business_auctions.sql`
+
+## Current safe conclusion
+
+- The full applied migration source sequence is recovered and has replayed successfully in isolation.
+- The original `nexora_core_schema_v1` source is no longer missing.
+- The remaining reconciliation work is limited to classifying the nine local-only files and resolving the seven same-name local/source discrepancies described above.
+- No production DDL, migration repair, or production data change was performed.
+- Keep PR #83 Draft and do not run `supabase db push` until those remaining local-vs-remote differences are reviewed and a final active migration directory is prepared.
