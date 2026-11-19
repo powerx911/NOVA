@@ -789,9 +789,9 @@ export function MarketHubView({
           </div>
 
           <div className="rounded-xl bg-[#0B0D12] border border-white/8 p-3 grid grid-cols-3 gap-2 text-center">
-            <div><p className="text-[10px] text-[#9299A6]">{language === 'ar' ? 'الرسوم 3%' : '3% fee'}</p><p className="text-sm font-mono-num text-amber-200">{transferFeePreview.toLocaleString(){'}'}</p></div>
-            <div><p className="text-[10px] text-[#9299A6]">{language === 'ar' ? 'سيصل للمستلم' : 'Recipient gets'}</p><p className="text-sm font-mono-num text-emerald-300">{transferNetPreview.toLocaleString(){'}'}</p></div>
-            <div><p className="text-[10px] text-[#9299A6]">{language === 'ar' ? 'المتبقي من حد اليوم' : 'Daily limit left'}</p><p className="text-sm font-mono-num text-[#F4F5F7]">{Math.max(0, 10000 - transferAmount).toLocaleString(){'}'}</p></div>
+            <div><p className="text-[10px] text-[#9299A6]">{language === 'ar' ? 'الرسوم 3%' : '3% fee'}</p><p className="text-sm font-mono-num text-amber-200">{transferFeePreview.toLocaleString()}</p></div>
+            <div><p className="text-[10px] text-[#9299A6]">{language === 'ar' ? 'سيصل للمستلم' : 'Recipient gets'}</p><p className="text-sm font-mono-num text-emerald-300">{transferNetPreview.toLocaleString()}</p></div>
+            <div><p className="text-[10px] text-[#9299A6]">{language === 'ar' ? 'المتبقي من حد اليوم' : 'Daily limit left'}</p><p className="text-sm font-mono-num text-[#F4F5F7]">{Math.max(0, 10000 - transferAmount).toLocaleString()}</p></div>
           </div>
           {recipientCheck === 'invalid' && <p className="text-xs text-rose-300">{language === 'ar' ? 'لم نعثر على لاعب بهذا الاسم. لن يتم إرسال التحويل.' : 'No player matches this username. The transfer will not be sent.'}</p>}
           {recipientCheck === 'self' && <p className="text-xs text-rose-300">{language === 'ar' ? 'هذا اسم حسابك.' : 'This is your own username.'}</p>}
@@ -811,7 +811,7 @@ export function MarketHubView({
 
           <button
             type="button"
-            disabled={!recipientName.trim() || transferAmount <= 0 || transferAmount > (wallet?.balance ?? 0)}
+            disabled={!recipientName.trim() || transferAmount <= 0 || transferAmount > 10000 || transferAmount > (wallet?.balance ?? 0) || recipientCheck === 'checking'}
             onClick={() => void prepareTransfer()}
             className="w-full min-h-[46px] px-4 rounded-xl bg-[#B91C32] hover:bg-[#E04455] text-white text-sm font-semibold transition-colors disabled:bg-[#1B2230] disabled:text-[#9299A6]"
           >
