@@ -2,6 +2,7 @@ import { Factory } from 'lucide-react';
 import { useState } from 'react';
 import { useToast } from '../../components/ui/ToastProvider';
 import { ITEM_MAP, MANUFACTURING_RECIPES } from '../../data/catalog';
+import { ResourceIcon } from '../../components/ui/ResourceIcon';
 import { useTranslations } from '../../i18n/translations';
 import { calculateManufacturingCost } from '../../lib/economy';
 import { manufactureRecipe } from '../../services/gameService';
@@ -79,9 +80,11 @@ export function ManufacturingPanel({ profile, wallet, inventory, language, onNav
           return (
             <article key={recipe.id} className="bg-[#141821] border border-white/8 rounded-2xl p-5 flex flex-col justify-between gap-4">
               <div className="flex items-start justify-between gap-3">
-                <div>
-                  <h3 className="text-base font-bold text-[#F4F5F7]">{language === 'ar' ? output.nameAr : output.nameEn} ×{recipe.outputQty * quantity}</h3>
-                  <p className="text-xs text-[#9299A6] mt-0.5">{language === 'ar' ? 'مهارة الصناعة المطلوبة:' : 'Required Industry:'} <span className="font-mono-num text-[#F4F5F7]">Lv.{recipe.requiredIndustrySkill}</span> · +{recipe.xpReward * quantity} XP</p>
+                <div className="flex min-w-0 items-center gap-3">
+                  <ResourceIcon itemId={recipe.outputItemId} size="lg" />
+                  <div className="min-w-0">
+                    <h3 className="text-base font-bold text-[#EAF1FF]">{language === 'ar' ? output.nameAr : output.nameEn} ×{recipe.outputQty * quantity}</h3>
+                    <p className="text-xs text-[#9AAAC7] mt-0.5">{language === 'ar' ? 'مهارة الصناعة المطلوبة:' : 'Required Industry:'} <span className="font-mono-num text-[#F4F5F7]">Lv.{recipe.requiredIndustrySkill}</span> · +{recipe.xpReward * quantity} XP</p>
                 </div>
                 <Factory className="w-5 h-5 text-[#E04455] shrink-0" />
               </div>
@@ -91,14 +94,14 @@ export function ManufacturingPanel({ profile, wallet, inventory, language, onNav
                   const owned = inventoryMap.get(input.itemId) || 0;
                   const required = input.qty * quantity;
                   const enough = owned >= required;
-                  return <div key={input.itemId} className="flex items-center justify-between text-xs"><span className="text-[#9299A6]">{item ? (language === 'ar' ? item.nameAr : item.nameEn) : input.itemId}</span><span className={`font-mono-num font-semibold ${enough ? 'text-emerald-400' : 'text-[#E04455]'}`}>{owned} / {required}</span></div>;
+                  return <div key={input.itemId} className="flex items-center justify-between text-xs"><span className="flex min-w-0 items-center gap-2 text-[#9AAAC7]">{item && <ResourceIcon itemId={input.itemId} size="sm" />}{item ? (language === 'ar' ? item.nameAr : item.nameEn) : input.itemId}</span><span className={`font-mono-num font-semibold ${enough ? 'text-emerald-400' : 'text-rose-300'}`}>{owned} / {required}</span></div>;
                 })}
                 <div className="flex items-center justify-between text-xs pt-2 border-t border-white/6"><span className="text-[#9299A6]">{t.processingCost}</span><span className="font-mono-num font-semibold text-[#F4F5F7]">${totalCost.toLocaleString()}</span></div>
                 <div className="flex items-center justify-between text-xs"><span className="text-[#9299A6]">{t.estMarketValue}</span><span className="font-mono-num text-[#F4F5F7]">~${outputValue.toLocaleString()}</span></div>
                 <div className="flex items-center justify-between text-xs"><span className="text-[#9299A6]">{t.estNetMargin}</span><span className={`font-mono-num font-semibold ${margin >= 0 ? 'text-emerald-400' : 'text-[#E04455]'}`}>{margin >= 0 ? '+' : ''}{margin.toLocaleString()}</span></div>
               </div>
               <div className="flex items-center gap-2.5">
-                <button type="button" disabled={!hasSkill || !hasInputs || !canAfford || busyKey === recipe.id} onClick={() => void handleManufacture(recipe.id)} className="flex-1 min-h-[44px] px-4 rounded-xl bg-[#B91C32] hover:bg-[#E04455] text-white text-xs font-semibold transition-colors disabled:bg-[#1B2230] disabled:text-[#9299A6]">
+                <button type="button" disabled={!hasSkill || !hasInputs || !canAfford || busyKey === recipe.id} onClick={() => void handleManufacture(recipe.id)} className="flex-1 min-h-[44px] px-4 rounded-xl bg-[#397BFF] hover:bg-[#63A5FF] text-white text-xs font-semibold transition-colors disabled:bg-[#162642] disabled:text-[#9AAAC7]">
                   {busyKey === recipe.id ? '...' : !hasSkill ? (language === 'ar' ? 'مهارة غير كافية' : 'Skill too low') : !hasInputs ? t.missingInputs : !canAfford ? (language === 'ar' ? 'رصيد غير كافٍ' : 'Insufficient balance') : (language === 'ar' ? `تصنيع ×${quantity}` : `Produce ×${quantity}`)}
                 </button>
                 {!hasInputs && <button type="button" onClick={onNavigateToExchange} className="min-h-[44px] px-3.5 rounded-xl bg-[#1B2230] hover:bg-[#232C3E] text-[#F4F5F7] text-xs font-medium whitespace-nowrap">{language === 'ar' ? 'شراء المواد' : 'Buy materials'}</button>}

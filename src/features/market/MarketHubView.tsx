@@ -10,6 +10,7 @@ import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { ManufacturingPanel } from './ManufacturingPanel';
 import { useToast } from '../../components/ui/ToastProvider';
 import { BRAND_ASSETS, CATALOG_ITEMS, ITEM_MAP, TRADE_CONTRACTS } from '../../data/catalog';
+import { ResourceIcon } from '../../components/ui/ResourceIcon';
 import { useTranslations } from '../../i18n/translations';
 import {
   calculateContractPayout,
@@ -361,9 +362,12 @@ export function MarketHubView({
                     className="p-3 rounded-xl bg-[#0B0D12] border border-white/6 space-y-1"
                   >
                     <div className="flex items-center justify-between gap-2">
-                      <span className="text-xs font-semibold text-[#F4F5F7] truncate">
-                        {language === 'ar' ? item.nameAr : item.nameEn}
-                      </span>
+                      <div className="flex min-w-0 items-center gap-2">
+                        <ResourceIcon itemId={ana.itemId} size="sm" />
+                        <span className="text-xs font-semibold text-[#EAF1FF] truncate">
+                          {language === 'ar' ? item.nameAr : item.nameEn}
+                        </span>
+                      </div>
                       <span className={`text-[11px] font-medium ${statusColor}`}>
                         {statusLabel}
                       </span>
@@ -539,13 +543,12 @@ export function MarketHubView({
                         key={listing.id}
                         className="bg-[#141821] border border-white/8 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4"
                       >
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-2">
-                            <ShoppingBag className="w-4 h-4 text-[#E04455] shrink-0" />
-                            <h3 className="text-sm font-bold text-[#F4F5F7]">
+                        <div className="flex min-w-0 items-center gap-3">
+                          <ResourceIcon itemId={listing.itemId} size="md" />
+                          <div className="min-w-0 space-y-1">
+                            <h3 className="text-sm font-bold text-[#EAF1FF]">
                               {language === 'ar' ? item.nameAr : item.nameEn}
                             </h3>
-                          </div>
                           <p className="text-xs text-[#9299A6]">
                             {listing.sellerName} ·{' '}
                             <span className="font-mono-num text-[#F4F5F7]">
@@ -564,6 +567,7 @@ export function MarketHubView({
                               </span>
                             )}
                           </p>
+                          </div>
                         </div>
 
                         <div className="flex items-center gap-2.5 shrink-0">
