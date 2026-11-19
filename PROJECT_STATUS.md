@@ -15,7 +15,7 @@ NOVA is the player-facing game and brand name. The current database schema remai
 - Frontend: React, TypeScript and Vite, published through GitHub Pages and GitHub Actions.
 - Game data and economy: Supabase project `hmrprnjhyzyefocdmnxf`, schema `nexora`.
 - API boundary: Supabase Edge Function `nexora-api`; it verifies Firebase ID tokens and uses the service-role key server-side only.
-- Identity: Firebase Authentication. Firebase is not the game database; Firestore is not used by the current game-data path.
+- Identity: Firebase Authentication. Game state/economy use Supabase; Firestore remains only for the owner-only legacy diagnostics screen and is not the gameplay data store.
 - Database snapshot: 34 tables in `nexora`, all with RLS enabled; no direct table grants to `anon` or `authenticated` were found in the latest read-only audit.
 
 ## Latest verified production deployment

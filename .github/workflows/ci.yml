@@ -1,4 +1,4 @@
-name: NEXORA CI
+name: NOVA CI
 
 on:
   push:
@@ -14,12 +14,12 @@ permissions:
   contents: read
 
 concurrency:
-  group: nexora-ci-${{ github.workflow }}-${{ github.ref }}
+  group: nova-ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
   validate:
-    name: Typecheck, rules, tests and builds
+    name: Typecheck, security rules, tests and builds
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -46,16 +46,13 @@ jobs:
       - name: TypeScript typecheck
         run: npx tsc --noEmit
 
-      - name: Check Firestore migration exporter script
-        run: node --check scripts/nexora-firestore-export.mjs
-
       - name: Setup Deno
         uses: denoland/setup-deno@v2
 
       - name: Typecheck Supabase migration importer
         run: deno check supabase/functions/nexora-migration-import/index.ts
 
-      - name: Typecheck NEXORA Supabase API
+      - name: Typecheck NOVA Supabase API (legacy function name: nexora-api)
         run: deno check supabase/functions/nexora-api/index.ts
 
       - name: Typecheck retired NOVA control endpoint

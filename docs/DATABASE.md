@@ -9,7 +9,7 @@
 - Active application schema: `nexora` (legacy internal namespace retained for compatibility)
 - Server API: Supabase Edge Function `nexora-api`
 - Identity provider: Firebase Authentication. Firebase is used for identity only; game state and economy are stored in Supabase.
-- Runtime data is not stored in Cloud Firestore.
+- Authoritative gameplay data and the economy are not stored in Cloud Firestore. The current owner-only diagnostics screen still reads a small legacy Firestore diagnostics surface; that dependency must be migrated before deleting the Firestore rules/config.
 
 The brand is NOVA. The `nexora` schema and `nexora-api` function names are legacy technical identifiers. They are intentionally not renamed in-place because changing the schema requires a coordinated compatibility migration across every RPC, edge-function query, grant and migration. Do not rename them with a blind search/replace.
 

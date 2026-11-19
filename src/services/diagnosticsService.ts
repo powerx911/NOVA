@@ -40,7 +40,7 @@ interface CollectionCatalogEntry {
 }
 
 /**
- * Exact 21 gameplay collections + diagnostics_admins extracted from firebase-blueprint.json & firestore.rules.
+ * Legacy owner-only Firestore diagnostics allow-list. Gameplay data and economic operations use the Supabase API; this diagnostics-only Firestore dependency is scheduled for migration before its rules/config are removed.
  */
 export const NEXORA_COLLECTION_CATALOG: readonly CollectionCatalogEntry[] = [
   { name: 'profiles', category: 'identity', piiRestricted: false, clientCountMode: 'global_filtered' },

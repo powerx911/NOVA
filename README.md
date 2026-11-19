@@ -1,54 +1,57 @@
 # NOVA
 
-**NOVA** is a portrait-first (Mobile-First) economic, corporate management, and social strategy simulation browser game built with **React 19**, **TypeScript**, **Tailwind CSS v4**, **Firebase Authentication** for identity, and **Supabase Postgres + Edge Functions** for live game data and trusted operations.
+NOVA is a mobile-first online economic and corporate strategy game. The player-facing brand and product name is **NOVA**.
 
-Default UI language is **Arabic (`RTL`)** with instant switching to **English (`LTR`)**.
+## Production architecture
 
-> **NOVA database isolation:** NOVA's new database target is the dedicated Supabase project `NOVA` (`hmrprnjhyzyefocdmnxf`) and its isolated `nexora` schema. The old NOVA game tables and their `nova_*` functions have been removed after verifying that the legacy tables contained zero rows. The new schema is provisioned with RLS enabled and no direct `anon`/`authenticated` table access. The live game client still uses the original Firebase Auth/Firestore runtime until the Supabase game API and identity boundary are completed; do not deploy this source snapshot as a live game yet. Read [docs/SUPABASE_SHARED_PROJECT.md](docs/SUPABASE_SHARED_PROJECT.md) before database or Auth changes.
+- Frontend: React 19, TypeScript, Vite and Tailwind CSS v4.
+- Hosting: GitHub Pages at https://powerx911.github.io/NOVA/, deployed by GitHub Actions from `main`.
+- Game database: Supabase project `hmrprnjhyzyefocdmnxf`, application schema `nexora`.
+- Trusted game API: Supabase Edge Function `nexora-api`.
+- Identity: Firebase Authentication. The browser sends its Firebase ID token to the Edge Function; the service-role credential stays server-side.
+- Authoritative game state, wallets, transactions, inventory, market, companies, factories and organizations are stored in Supabase/Postgres.
 
----
+The schema name `nexora` and Edge Function name `nexora-api` are legacy internal identifiers retained for compatibility. Do not rename them by bulk replacement; use a coordinated compatibility migration.
 
-## Core Systems Implemented
-- **Authentication & Onboarding**: Google Sign-In through the current Firebase Auth implementation, verified-email enforcement, unique username reservation, avatar selection, and `2,500 $` starting capital.
-- **Ambient Soundtrack & UI Audio**: Original adaptive synth ambience and per-control synthesized feedback using one shared Web Audio context; no MP3/WAV files, and audio unlock is tied to the first trusted user gesture.
-- **Tactile Interaction**: Responsive pressed states, keyboard-visible focus, and reduced-motion-aware transitions.
-- **5-Tab Mobile-First Portrait Shell**: Home, Business, Market, Organization, and Profile, with sticky header and notifications.
-- **Character & Skill Tree**: Level/XP progression and six functionally bound skills.
-- **Interconnected Economy**: Atomic `$` wallets, append-only ledger, player transfers, market listings/orders, dynamic pricing, tax rates, and world events.
-- **Manufacturing Chains**: Three-tier industrial chains and daily trade contracts.
-- **Companies & Real Estate**: Five business sectors, staffing, upgrades, independent profit vaults, properties, leases, and hourly revenue. Vault upgrades and collection are handled by the authenticated Supabase Edge API and atomic Postgres RPCs in the NOVA `nexora` schema.
-- **Organizations & RBAC**: Organization membership, role permissions, join requests, and shared treasury.
-- **NOVA Diagnostics**: Owner-restricted, read-only diagnostics with sanitization and JSON export.
+## Legacy Firebase diagnostics
 
-## Current Runtime — Supabase gameplay backend
+Firestore is **not** the gameplay database. A small owner-only diagnostics screen still reads a legacy Firestore diagnostics surface and Firebase Cloud Functions. Its rules/configuration are intentionally retained until that diagnostics path is migrated to Supabase. The obsolete `firebase-blueprint.json` and one-time Firestore export workflow/script have been removed from this repository.
 
-- Firebase Auth remains the identity provider during this staged cutover. The browser sends its Firebase ID token to the NOVA Edge Function; the function validates the token and derives the UID server-side.
-- Supabase project `NOVA` (`hmrprnjhyzyefocdmnxf`), schema `nexora`, is the live source of truth for core gameplay data.
-- All core gameplay reads are loaded through the authenticated `bootstrap` Edge Function. Mutations for wallets, market, manufacturing, companies, properties, organizations, missions, achievements, notifications and leaderboards run through trusted Edge Function handlers and server-side Postgres RPCs.
-- `service_role` is only used inside the Edge Function. It is never included in the browser bundle. Direct table access for `anon` and `authenticated` remains closed; RLS stays enabled.
-- The legacy owner diagnostics screen still contains Firestore/Vercel-only health probes. Those probes are not part of gameplay or economy operations and must be migrated or disabled before claiming that all Firebase/Vercel dependencies are removed.
-- No Firestore player data has been imported. Existing accounts remain authenticated by the original Firebase Auth project; a separate identity migration is not part of this staged gameplay cutover.
+## Main systems
 
-## Supabase Target — NOVA isolated namespace
+- Arabic-first RTL interface with English LTR switching.
+- Shared player world, profile progression and skill tree.
+- Wallets and transaction ledger with server-authoritative operations.
+- Player market, supply/demand reference prices, contracts and manufacturing.
+- Companies, profit vaults, factories, warehouses and auctions.
+- Organizations, permissions, shared treasury, chat and notifications.
+- Version-update notice and mobile-first navigation.
 
-- **Project**: `NOVA` (`hmrprnjhyzyefocdmnxf`, `eu-west-1`).
-- **NOVA schema**: `nexora`; 23 tables with RLS enabled.
-- **Security**: no direct `anon` or `authenticated` table grants. The trusted Edge Function validates Firebase identity and invokes the database with service privileges.
-- **Legacy cleanup**: the 17 old `public.nova_*` game tables and old `nova_*` functions were removed only after verifying the legacy game tables were empty. Supabase Auth and platform-managed schemas were not modified.
-- **Runtime status**: core gameplay uses Supabase. The GitHub Pages workflow is configured with base path `/NOVA/` and deploys automatically on pushes to `main`. The latest build and deployment completed successfully; an interactive sign-in smoke test has not yet been performed.
+## Development
 
-## Documentation
-- `PROJECT_STATUS.md` — Living project status and verification record.
-- `docs/ARCHITECTURE.md` — Technical architecture and atomic workflows.
-- `docs/DATABASE.md` — Current Firestore collections and security invariants.
-- `docs/SUPABASE_SHARED_PROJECT.md` — Mandatory isolation contract.
-- `docs/SUPABASE_SCHEMA_V1.md` — Supabase baseline tables and security state.
-- `docs/DIAGNOSTICS.md` — Diagnostics security model.
-- `CHANGELOG.md` — Version history.
+```bash
+npm install
+npm run dev
+npm test
+npm run build
+```
 
-## Scripts
-- `npm run dev` — Start Vite development server on port `3000`.
-- `npm run build` — Production build.
-- `npm run lint` — TypeScript type checking.
-- `npm run lint:rules` — Validate Firestore security rules.
-- `npm run test` — Run Vitest suite.
+Playwright end-to-end smoke test:
+
+```bash
+npm run test:e2e
+```
+
+The E2E test requires `NOVA_E2E_BASE_URL`, `NOVA_E2E_EMAIL` and `NOVA_E2E_PASSWORD` to point to a dedicated isolated test environment and disposable test account. Do not point it at a real player's account.
+
+## Database safety
+
+Read [docs/DATABASE.md](docs/DATABASE.md) before changing database code. The live migration history and local migration filenames are currently inconsistent; **do not run `supabase db push` or migration repair** until the complete mapping has been reconciled and tested on an isolated branch.
+
+## Release process
+
+1. Work on a feature branch.
+2. Pass GitHub Actions CI.
+3. Validate SQL/pgTAP changes on an isolated Supabase branch.
+4. Merge to `main` only after checks pass.
+5. Confirm the GitHub Pages workflow succeeds before describing a change as deployed.

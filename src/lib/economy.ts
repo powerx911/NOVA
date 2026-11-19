@@ -18,7 +18,7 @@ import type {
 } from '../types/game';
 
 /**
- * Safely converts Firestore Timestamp, plain { seconds } object, number, or ISO string to epoch ms.
+ * Safely converts timestamp-like values, plain { seconds } objects, numbers, or ISO strings to epoch milliseconds.
  */
 export function timestampToMs(ts: unknown, fallback = 0): number {
   if (ts === null || ts === undefined) return fallback;
