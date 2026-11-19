@@ -148,9 +148,7 @@ For the 21 local files whose normalized names match remote ledger names:
 - **2** become identical after ignoring comments and whitespace:
   - `nova_fix_company_upgrade_guard_and_indexes`
   - `nova_factory_warehouse_capacity_balance`
-- **2** have a punctuation discrepancy in the local copy: the local function body omits a semicolon immediately before the closing `$$` delimiter:
-  - `nova_player_presence`
-  - `nova_org_donation_ranking`
+- **2** had a punctuation discrepancy in the original local copy: the function body omitted a semicolon immediately before the closing `$` delimiter. This was corrected on the PR branch for `nova_player_presence` and `nova_org_donation_ranking`; the historical replay workflow now reapplies both local files after the recovered chain, which compiles the PL/pgSQL definitions in PostgreSQL.
 - **3** contain substantive differences from the applied SQL:
   - `nova_factory_economy_rebalance`: local operating-cost values differ from the applied source.
   - `nova_factory_base_profit_curve`: local production-rate values differ from the applied source.
@@ -234,3 +232,14 @@ The branch head before this documentation-only follow-up was `f0f4709584249aff8c
 - Full historical replay: [44509621481](https://github.com/powerx911/NOVA/actions/runs/44509621481)
 
 The PR remains Draft and unmerged. These checks ran on the code/workflow tree immediately before this audit-document update; no application or SQL behavior was changed by this addendum.
+## Follow-up: local PL/pgSQL syntax repair and verification
+
+The local `nova_player_presence` and `nova_org_donation_ranking` files were found to omit the required semicolon before the PL/pgSQL dollar-quote terminator. Both local definitions were corrected without changing their logic. The historical replay workflow now compiles these two local files against the fully replayed disposable database before applying the three economy-hardening migrations.
+
+Verification on code/workflow commit `096fc4d6c99e2789cc59578eba4e22ac08edcef2`: SQL validation passed; the 55-source historical replay passed; both corrected local files compiled successfully; pgTAP passed 29 tests across 2 suites; and the disposable Supabase stack stopped successfully.
+
+- App CI: https://github.com/powerx911/NOVA/actions/runs/44510761805
+- Isolated PostgreSQL/pgTAP: https://github.com/powerx911/NOVA/actions/runs/44510752960
+- Historical replay + local PL/pgSQL compile + pgTAP: https://github.com/powerx911/NOVA/actions/runs/44510752943
+
+The two duplicate in-progress workflow attempts on the same commit are not used as evidence; the links above are completed successful runs.
