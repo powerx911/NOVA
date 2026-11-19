@@ -107,3 +107,37 @@ $$;
 
 revoke all on function nexora.claim_mission_reward(text,text) from public,anon,authenticated;
 grant execute on function nexora.claim_mission_reward(text,text) to service_role;
+
+-- The progression trigger is the single source of truth for skill points.
+-- Strip legacy no-op assignments without changing the surrounding RPC behavior.
+do $cleanup$
+declare
+  v_proc record;
+  v_definition text;
+  v_updated text;
+begin
+  for v_proc in
+    select p.oid
+    from pg_proc p
+    join pg_namespace n on n.oid=p.pronamespace
+    where n.nspname='nexora' and p.prokind='f'
+      and p.proname in (
+        'claim_daily_stipend',
+        'complete_company_upgrade',
+        'create_organization',
+        'found_company',
+        'fulfill_trade_contract',
+        'manufacture_recipe'
+      )
+  loop
+    v_definition:=pg_get_functiondef(v_proc.oid);
+    v_updated:=regexp_replace(
+      v_definition,
+      'skill_points[[:space:]]*=[[:space:]]*skill_points[[:space:]]*\+[[:space:]]*[^,;]+,[[:space:]]*',
+      '',
+      'gi'
+    );
+    if v_updated<>v_definition then execute v_updated; end if;
+  end loop;
+end;
+$cleanup$;
