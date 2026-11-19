@@ -92,6 +92,22 @@ end;
 $$;
 
 
+
+do $
+declare v_def text;
+begin
+  select pg_get_functiondef('nexora.get_org_weekly_goals(text)'::regprocedure) into v_def;
+  v_def:=replace(v_def,
+    $old$where g.org_id=v_org_id and g.week_start=date_trunc('week',timezone('UTC',now()))::date;$old$,
+    $new$where g.org_id=v_org_id and g.week_start=date_trunc('week',timezone('UTC',now()))::date
+    and g.goal_type<>'contracts_completed';$new$);
+  if position("g.goal_type<>'contracts_completed'" in v_def)=0 then
+    raise exception 'LEGACY_WEEKLY_GOAL_FILTER_PATCH_FAILED';
+  end if;
+  execute v_def;
+end;
+$;
+
 create or replace function nexora.record_org_goal_from_company_revenue()
 returns trigger language plpgsql security definer set search_path = '' as $$
 declare v_delta numeric;
