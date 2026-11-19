@@ -199,7 +199,7 @@ export function DynamicContractsPanel({ profile, inventory, wallet, language }: 
         ? t.readyIn
         : t.offerEndsIn;
     const canAccept = contract.status === 'offered' && !isReservedByOther
-      && dailyUsed < dailyLimit && (organization || activePersonal < 3);
+      && (organization ? orgDailyUsed < orgDailyLimit : dailyUsed < dailyLimit) && (organization || activePersonal < 3);
     const canDeliver = contract.status === 'accepted' && isOwnedContract && owned >= contract.quantity && (wallet?.balance ?? 0) >= fee;
     const isBusy = busyId === contract.id;
     const tierColor: Record<DynamicContractOffer['tier'], string> = {
