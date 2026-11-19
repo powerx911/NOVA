@@ -30,9 +30,11 @@ begin
     raise exception 'NOTHING_TO_COLLECT';
   end if;
 
-  select * into v_wallet from nexora.wallets where user_id=p_uid for update;
+  -- Match the profile-before-wallet lock order used by other player economy RPCs.
   select * into v_profile from nexora.player_profiles where user_id=p_uid for update;
-  if not found or v_wallet.user_id is null then raise exception 'ACCOUNT_NOT_FOUND'; end if;
+  if not found then raise exception 'ACCOUNT_NOT_FOUND'; end if;
+  select * into v_wallet from nexora.wallets where user_id=p_uid for update;
+  if not found then raise exception 'ACCOUNT_NOT_FOUND'; end if;
 
   v_net:=nexora.company_net_hourly(p_company_id);
   v_vault_level:=greatest(1,least(5,v_company.vault_level));
