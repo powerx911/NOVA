@@ -162,7 +162,7 @@ These are source discrepancies, not proof that production is broken. Do not over
 
 The local file `20261119011000_nova_advanced_resource_recipes.sql` is content-equivalent to remote migration `20261118233707_balance_advanced_resource_recipe_costs` after comment/whitespace normalization, despite the filename mismatch.
 
-The other nine files still need explicit classification as pending work, superseded/consolidated SQL, or redundant source:
+The other nine files were subsequently classified in the follow-up reconciliation section below; their correspondence to historical events does not make them interchangeable with applied migrations:
 
 - `20261118180000_nexora_economy_rpcs.sql`
 - `20261118183000_nexora_market_rpcs.sql`
@@ -178,7 +178,7 @@ The other nine files still need explicit classification as pending work, superse
 
 - The full applied migration source sequence is recovered and has replayed successfully in isolation.
 - The original `nexora_core_schema_v1` source is no longer missing.
-- The remaining reconciliation work is limited to classifying the nine local-only files and resolving the seven same-name local/source discrepancies described above.
+- The nine local-only candidates now have a documented classification, and the three factory-economy intermediate differences have later-history context. Remaining work is a source-by-source final-definition review before any deployment plan; the active migration directory is still not certified for production push.
 - No production DDL, migration repair, or production data change was performed.
 - Keep PR #83 Draft and do not run `supabase db push` until those remaining local-vs-remote differences are reviewed and a final active migration directory is prepared.
 
@@ -189,7 +189,7 @@ The initial 42-entry archive was extended after a second pass through the Postgr
 
 - 13 additional direct `POST /mcp` SQL statement events were recovered. They are **not** migration-ledger rows, so they remain separate under `supabase/recovered-history/untracked/`.
 - These statements include core RPC definitions and follow-up functions for companies/properties, market, contracts, organizations, leaderboards, and mission/achievement behavior.
-- The original nine local-only migration candidates were not automatically promoted into the 42-entry applied migration history. Seven of their SQL bodies are represented by the recovered direct-execution events, not by tracked migration records. The seed-world file has no matching statement event in the inspected log window; the factory-business-auction file still needs content-level classification.
+- The original nine local-only migration candidates were not promoted into the 42-entry applied migration history. Seven RPC candidates correspond by function signatures to recovered direct-execution events: two match after comment/whitespace normalization and five have SQL-body differences. The seed-world file has no matching statement event in the inspected log window and its applied status is unknown. The factory-business-auction file is a composite overlapping multiple tracked auction sources, not a one-to-one missing migration; see the detailed follow-up section below.
 - The replay workflow now orders all recovered files by the timestamp prefix in the filename (rather than by directory path), which is required because tracked and untracked events are stored in separate directories.
 - **The expanded 55-source replay passed** on commit `17f9b86b8b98ce6192bfd975f638ce4a5e554c80`: all 42 tracked migration bodies and all 13 untracked SQL events replayed in timestamp order; all three NOVA hardening migrations then applied; pgTAP passed 29 tests across 2 suites; and the disposable Supabase stack stopped successfully. Run: https://github.com/powerx911/NOVA/actions/runs/44509292564.
 - App CI also passed on that commit: https://github.com/powerx911/NOVA/actions/runs/44509292659.
