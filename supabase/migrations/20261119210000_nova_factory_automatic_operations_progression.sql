@@ -1,6 +1,28 @@
 -- Factories run automatically. Insufficient operating funds pause them; funding resumes them on the next sync.
--- Production starts at the resource-specific catalog rate (~2.1–2.75 units/hour) and grows
+-- Production starts at a resource-specific rate (20 down to 3 units/hour) and grows
 -- with a smooth convex curve whose level-100 multiplier is capped below 4x before skill bonuses.
+
+-- Keep server-side founding, production, and operating values aligned with the client catalog.
+create or replace function nexora.factory_resource_config(p_resource_id text)
+returns table(founding_cost bigint, production_rate numeric, operating_cost numeric, rarity_factor numeric)
+language sql immutable
+set search_path = ''
+as $config$
+  select cfg.founding_cost,cfg.production_rate,cfg.operating_cost,cfg.rarity_factor
+  from (values
+    ('copper_wire'::text,1800::bigint,20.000::numeric,60.00::numeric,1.00::numeric),
+    ('silicon_ore',2400,18.000,70.00,1.20),
+    ('energy_cells',3200,16.000,80.00,1.40),
+    ('crude_alloy',4200,14.000,69.00,1.65),
+    ('carbon_fiber',6000,11.000,94.00,2.10),
+    ('rare_minerals',9000,8.000,118.00,3.60),
+    ('titanium_ore',12000,7.000,141.00,4.00),
+    ('polymer_resin',15000,6.000,156.00,4.50),
+    ('biotech_gel',22000,4.000,194.00,5.00),
+    ('quantum_dust',30000,3.000,256.00,6.00)
+  ) as cfg(resource_id,founding_cost,production_rate,operating_cost,rarity_factor)
+  where cfg.resource_id=p_resource_id
+$config$;
 
 create or replace function nexora.sync_factory_production(p_uid text, p_factory_id text)
 returns jsonb
