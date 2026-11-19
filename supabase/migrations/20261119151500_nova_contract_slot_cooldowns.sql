@@ -125,16 +125,26 @@ as $$
 declare
   v_org_id text;
   v_can_refresh_org boolean := false;
+  v_personal_refresh_used integer := 0;
+  v_org_refresh_used integer := 0;
 begin
   select org_id into v_org_id
   from nexora.player_profiles where user_id = p_uid;
   if not found then raise exception 'ACCOUNT_NOT_FOUND'; end if;
 
   select exists(select 1 from nexora.organization_members where org_id=v_org_id and user_id=p_uid and role in ('leader','deputy')) into v_can_refresh_org;
+  select coalesce(used_count,0) into v_personal_refresh_used from nexora.contract_slot_refresh_usage
+    where scope='personal' and owner_id=p_uid and date_key=(now() at time zone 'UTC')::date;
+  select coalesce(used_count,0) into v_org_refresh_used from nexora.contract_slot_refresh_usage
+    where scope='organization' and owner_id=v_org_id and date_key=(now() at time zone 'UTC')::date;
 
   return jsonb_build_object(
     'server_now', now(),
     'can_refresh_org', v_can_refresh_org,
+    'personal_refresh_used', v_personal_refresh_used,
+    'personal_refresh_limit', 3,
+    'org_refresh_used', v_org_refresh_used,
+    'org_refresh_limit', 5,
     'personal', coalesce((
       select jsonb_agg(jsonb_build_object(
         'slot_no', c.slot_no, 'board_date', c.board_date,
