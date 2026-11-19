@@ -2,6 +2,7 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { getAdminClient, authenticate } from "./_shared/auth.ts";
 import { bootstrap } from "./_shared/bootstrap.ts";
 import { getSocialAction } from "./_shared/social.ts";
+import { camelRow } from "./_shared/serialization.ts";
 
 const ALLOWED_ORIGINS = new Set([
   "https://powerx911.github.io",
@@ -50,6 +51,14 @@ Deno.serve(async (req: Request) => {
     if (!body || typeof body.action !== "string") return json({ error: "INVALID_REQUEST" }, 400, origin);
     const admin = getAdminClient();
     const db = admin.schema("nexora");
+
+    if (body.action === "fetch_market_listings") {
+      const { data, error } = await db.from("market_listings").select("*")
+        .eq("status", "active").gt("remaining_qty", 0)
+        .order("unit_price", { ascending: true }).order("created_at", { ascending: true }).limit(500);
+      if (error) throw error;
+      return json({ ok: true, data: camelRow(data ?? []) }, 200, origin);
+    }
 
     if (body.action === "bootstrap") {
       // A signed-in Firebase user may not have created a game character yet.
