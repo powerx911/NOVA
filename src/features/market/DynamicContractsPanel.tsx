@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  Award, Building2, CheckCircle2, Loader2, RefreshCw,
-  ShieldCheck, Timer, Trophy,
+  Building2, Loader2, RefreshCw,
+  ShieldCheck, Timer,
 } from 'lucide-react';
 import { ResourceIcon } from '../../components/ui/ResourceIcon';
 import { useToast } from '../../components/ui/ToastProvider';
@@ -9,7 +9,7 @@ import { ITEM_MAP } from '../../data/catalog';
 import { useTranslations } from '../../i18n/translations';
 import {
   acceptDynamicContract, abandonDynamicContract, claimDynamicContract,
-  deliverDynamicContract, getDynamicContractBoard, getOrgWeeklyGoals,
+  deliverDynamicContract, getDynamicContractBoard,
 } from '../../services/gameService';
 import type {
   DynamicContractOffer, Language, OrgWeeklyGoal, PlayerProfile, InventoryItem, Wallet,
@@ -66,32 +66,11 @@ function tierText(tier: DynamicContractOffer['tier'], t: ReturnType<typeof useTr
   return map[tier];
 }
 
-function goalTitle(goal: OrgWeeklyGoal, t: ReturnType<typeof useTranslations>) {
-  const map: Record<OrgWeeklyGoal['type'], string> = {
-    produce_units: t.goalProduceUnits,
-    trade_volume: t.goalTradeVolume,
-    contracts_completed: t.goalContractsCompleted,
-    treasury_donations: t.goalTreasuryDonations,
-  };
-  return map[goal.type];
-}
-
-function goalDescription(type: OrgWeeklyGoal['type'], language: Language): string {
-  const descriptions: Record<OrgWeeklyGoal['type'], [string, string]> = {
-    produce_units: ['أنتج الكميات المطلوبة في مصانعك؛ تُحتسب وحدات الإنتاج المكتملة فقط.', 'Produce the required quantities in your factories; only completed production is counted.'],
-    trade_volume: ['نفّذ عمليات شراء وبيع في السوق حتى يصل إجمالي قيمة الصفقات إلى الهدف.', 'Complete market buy and sell transactions until their combined value reaches the target.'],
-    contracts_completed: ['أكمل العقود الشخصية وعقود المنظمة واستلم مكافآتها؛ كل عقد مكتمل يُحتسب مرة واحدة.', 'Complete personal and organization contracts and claim their rewards; each completed contract counts once.'],
-    treasury_donations: ['تبرّع بالأموال إلى خزينة المنظمة؛ تُحتسب قيمة الإيداعات الفعلية فقط.', 'Donate credits to the organization treasury; only completed deposits count.'],
-  };
-  return descriptions[type][language === 'ar' ? 0 : 1];
-}
-
 export function DynamicContractsPanel({ profile, inventory, wallet, language }: DynamicContractsPanelProps) {
   const t = useTranslations(language);
   const { showToast } = useToast();
   const [contracts, setContracts] = useState<DynamicContractOffer[]>([]);
   const [orgContracts, setOrgContracts] = useState<DynamicContractOffer[]>([]);
-  const [goals, setGoals] = useState<OrgWeeklyGoal[]>([]);
   const [dailyUsed, setDailyUsed] = useState(0);
   const [dailyLimit, setDailyLimit] = useState(5);
   const [activePersonal, setActivePersonal] = useState(0);
@@ -112,12 +91,6 @@ export function DynamicContractsPanel({ profile, inventory, wallet, language }: 
       setDailyUsed(board.daily_used ?? 0);
       setDailyLimit(board.daily_limit ?? 5);
       setActivePersonal(board.active_personal ?? 0);
-      if (profile.orgId) {
-        const weekly = await getOrgWeeklyGoals();
-        setGoals(weekly.goals ?? []);
-      } else {
-        setGoals([]);
-      }
     } catch (error) {
       const code = error instanceof Error ? error.message : '';
       if (code !== 'NOT_IN_ORG') {
@@ -307,8 +280,6 @@ export function DynamicContractsPanel({ profile, inventory, wallet, language }: 
   const personal = contracts.map((contract) => renderContract(contract)).filter(Boolean);
   const organization = orgContracts.map((contract) => renderContract(contract, true)).filter(Boolean);
 
-  const difficultyText = (difficulty: OrgWeeklyGoal['difficulty']) => difficulty === 'easy'
-    ? t.goalDifficultyEasy : difficulty === 'medium' ? t.goalDifficultyMedium : t.goalDifficultyHard;
 
   return (
     <div className="space-y-6">
@@ -353,44 +324,6 @@ export function DynamicContractsPanel({ profile, inventory, wallet, language }: 
                 {organization.length ? <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">{organization}</div> : <p className="rounded-xl border border-white/10 p-5 text-center text-xs text-[#8192AD]">{t.noContracts}</p>}
               </section>
 
-              <section className="rounded-2xl border border-white/10 bg-[#111A2C] p-4 sm:p-5 space-y-4">
-                <div className="flex items-center justify-between gap-2">
-                  <h3 className="text-base font-bold text-white flex items-center gap-2"><Trophy className="w-4 h-4 text-amber-300" />{t.orgWeeklyGoals}</h3>
-                  <span className="text-[10px] text-[#8192AD]">{t.weeklyReset}</span>
-                </div>
-                {goals.length === 0 ? <p className="text-xs text-[#8192AD]">{t.noContracts}</p> : goals.map((goal) => {
-                  const progress = Math.min(100, goal.current / Math.max(1, goal.target) * 100);
-                  return (
-                    <div key={goal.id} className="rounded-xl border border-white/8 bg-[#0B1425] p-3.5 space-y-3">
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <p className="text-sm font-semibold text-white">{goalTitle(goal, t)}</p>
-                          <p className="mt-1 max-w-xl text-[11px] leading-relaxed text-[#9AAEC9]">{goalDescription(goal.type, language)}</p>
-                          <span className="text-[10px] text-[#91A4C3]">{difficultyText(goal.difficulty)}</span>
-                        </div>
-                        <span className="flex items-center gap-1 text-xs font-semibold text-amber-300"><Award className="w-3.5 h-3.5" />+{goal.rewardReputation}</span>
-                      </div>
-                      <div className="flex items-center justify-between text-[11px] text-[#9AAEC9]">
-                        <span>{t.goalProgress}</span>
-                        <span className="font-mono-num text-white">{Math.floor(goal.current).toLocaleString()} / {Math.floor(goal.target).toLocaleString()}</span>
-                      </div>
-                      <div className="h-2 rounded-full bg-white/8 overflow-hidden"><div className={`h-full rounded-full ${goal.status === 'completed' ? 'bg-emerald-400' : 'bg-sky-400'}`} style={{ width: `${progress}%` }} /></div>
-                      {goal.contributions?.length > 0 && (
-                        <div className="space-y-1.5">
-                          <p className="text-[10px] text-[#8192AD]">{t.topContributors}</p>
-                          {goal.contributions.slice(0, 3).map((entry, index) => (
-                            <div key={entry.uid} className="flex items-center justify-between text-[11px]">
-                              <span className="text-[#C8D5EA]">{index + 1}. {entry.username ?? entry.uid.slice(0, 8)}</span>
-                              <span className="font-mono-num text-[#A9C9FF]">{Math.floor(entry.amount).toLocaleString()}</span>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                      {goal.status === 'completed' && <p className="text-[10px] text-emerald-300 flex items-center gap-1"><CheckCircle2 className="w-3.5 h-3.5" />{t.contractCompleted}</p>}
-                    </div>
-                  );
-                })}
-              </section>
             </>
           )}
         </>
