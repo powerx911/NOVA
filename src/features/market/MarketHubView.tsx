@@ -110,7 +110,7 @@ export function MarketHubView({
       );
     }
     return true;
-  }).sort((a, b) => a.unitPrice - b.unitPrice || a.createdAt - b.createdAt);
+  }).sort((a, b) => a.unitPrice - b.unitPrice || a.id.localeCompare(b.id));
 
   async function handleBuy(listing: MarketListing) {
     const qty = Math.min(
