@@ -4,7 +4,6 @@ import {
   Clock,
   Coins,
   Gavel,
-  Package,
   Plus,
   TrendingUp,
   Trash2,
@@ -12,6 +11,7 @@ import {
 import { useEffect, useState } from 'react';
 import { useToast } from '../../components/ui/ToastProvider';
 import { FactoriesPanel } from './FactoriesPanel';
+import { InventoryPanel } from './InventoryPanel';
 import {
   COMPANY_SECTORS,
   ITEM_MAP,
@@ -742,60 +742,14 @@ export function BusinessHubView({
         />
       )}
 
-      {/* 4. INVENTORY */}
       {subTab === 'inventory' && (
-        <div className="bg-[#141821] border border-white/8 rounded-2xl p-5 space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-base font-semibold text-[#F4F5F7]">{t.subInventory}</h2>
-            <Package className="w-4 h-4 text-[#63A5FF]" />
-          </div>
-          {inventory.filter((i) => i.quantity > 0).length === 0 ? (
-            <div className="py-10 text-center space-y-3">
-              <p className="text-sm text-[#9299A6]">
-                {language === 'ar'
-                  ? 'مخزونك فارغ حالياً. اشترِ موارد أولية من السوق للبدء.'
-                  : 'Your inventory is empty. Purchase raw resources from the Market.'}
-              </p>
-              <button
-                type="button"
-                onClick={onGoToMarket}
-                className="min-h-[42px] px-5 rounded-xl bg-[#397BFF] hover:bg-[#2F6DE0] text-white text-xs font-semibold"
-              >
-                {t.navMarket}
-              </button>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              {inventory
-                .filter((i) => i.quantity > 0)
-                .map((inv) => {
-                  const item = ITEM_MAP[inv.itemId];
-                  if (!item) return null;
-                  return (
-                    <div
-                      key={inv.itemId}
-                      className="p-4 rounded-xl bg-[#0B0D12] border border-white/6 flex items-center justify-between gap-3"
-                    >
-                      <div className="flex min-w-0 items-center gap-3">
-                        <ResourceIcon itemId={inv.itemId} size="lg" />
-                        <div className="min-w-0">
-                          <p className="truncate text-sm font-semibold text-[#F4F5F7]">
-                          {language === 'ar' ? item.nameAr : item.nameEn}
-                        </p>
-                          <p className="text-xs text-[#9299A6] mt-0.5">
-                            ~{'$'}{item.basePrice}
-                          </p>
-                        </div>
-                      </div>
-                      <span className="shrink-0 text-lg font-mono-num font-bold text-[#63A5FF]">
-                        ×{inv.quantity}
-                      </span>
-                    </div>
-                  );
-                })}
-            </div>
-          )}
-        </div>
+        <InventoryPanel
+          inventory={inventory}
+          language={language}
+          title={t.subInventory}
+          marketLabel={t.navMarket}
+          onGoToMarket={onGoToMarket}
+        />
       )}
 
       </div>
