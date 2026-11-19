@@ -50,7 +50,7 @@ begin
     set total_revenue=total_revenue+v_payout,vault_balance=0,last_collected_at=v_now,updated_at=now()
     where id=p_company_id;
 
-  -- 1 XP per 25 credits actually collected: no minimum reward for tiny API calls,
+  -- 1 XP per 15 credits actually collected: no minimum reward for tiny API calls,
   -- and no reputation/influence for withdrawing money already earned by the company.
   v_xp_gain:=floor((v_company.total_revenue+v_payout)::numeric/15)::bigint
     - floor(v_company.total_revenue::numeric/15)::bigint;
