@@ -290,7 +290,7 @@ begin
     v_tier:=coalesce(v_tier,'common');
     select item_id into v_item
     from jsonb_each(v_catalog) c(item_id,item_cfg)
-    where item_cfg->>'tier'=v_tier
+    where ((v_tier='epic' and item_cfg->>'tier'='rare') or item_cfg->>'tier'=v_tier)
       and (p_previous_item is null or item_id<>p_previous_item or v_tier<>coalesce(p_previous_tier,''))
       and not exists (
         select 1 from nexora.contract_offers o
@@ -302,7 +302,7 @@ begin
     order by random() limit 1;
     if v_item is null then
       select item_id into v_item from jsonb_each(v_catalog) c(item_id,item_cfg)
-      where item_cfg->>'tier'=v_tier and (p_previous_item is null or item_id<>p_previous_item)
+      where ((v_tier='epic' and item_cfg->>'tier'='rare') or item_cfg->>'tier'=v_tier) and (p_previous_item is null or item_id<>p_previous_item)
       order by random() limit 1;
     end if;
   end if;
@@ -415,6 +415,9 @@ begin
   if not found then raise exception 'ACCOUNT_NOT_FOUND'; end if;
   select * into v_wallet from nexora.wallets where user_id=p_uid for update;
   if not found then raise exception 'ACCOUNT_NOT_FOUND'; end if;
+  if v_profile.org_id is not null then
+    select * into v_org from nexora.organizations where id=v_profile.org_id for update;
+  end if;
   perform nexora.settle_dynamic_contracts(p_uid);
   for v_slot in 1..6 loop
     if not exists(select 1 from nexora.contract_offers where scope='personal' and user_id=p_uid
@@ -553,17 +556,24 @@ begin
   insert into nexora.inventory(user_id,item_id,quantity) values(p_uid,v_contract.item_id,0)
     on conflict(user_id,item_id) do nothing;
   select * into v_inventory from nexora.inventory where user_id=p_uid and item_id=v_contract.item_id for update;
-  if v_contract.scope='organization' then
-    select * into v_org from nexora.organizations where id=v_contract.org_id for update;
+  if coalesce(v_contract.org_id,v_profile.org_id) is not null then
+    select * into v_org from nexora.organizations
+      where id=coalesce(v_contract.org_id,v_profile.org_id) for update;
   end if;
+  perform nexora.settle_dynamic_contracts(p_uid);
   select * into v_contract from nexora.contract_offers where id=p_contract_id for update;
+  if v_contract.status='expired' then return jsonb_build_object('ok',false,'error','CONTRACT_EXPIRED'); end if;
   if v_contract.scope='personal' and v_contract.user_id<>p_uid then raise exception 'UNAUTHORIZED'; end if;
   if v_contract.scope='organization' and v_contract.claimed_by<>p_uid then raise exception 'UNAUTHORIZED'; end if;
   if v_contract.status<>'accepted' then raise exception 'CONTRACT_NOT_ACCEPTED'; end if;
   if v_contract.deadline_at<=v_now then
     update nexora.contract_offers set status='expired',updated_at=v_now where id=p_contract_id;
-    perform nexora.generate_dynamic_contract(v_contract.scope,v_contract.user_id,v_contract.org_id,
-      v_contract.slot_no,(v_now at time zone 'UTC')::date,v_contract.item_id,v_contract.tier,null);
+    if v_contract.board_date=(v_now at time zone 'UTC')::date and
+      (v_contract.event_id is null or exists(select 1 from nexora.world_events e where e.id=v_contract.event_id
+        and e.active=true and e.starts_at<=v_now and e.ends_at>v_now)) then
+      perform nexora.generate_dynamic_contract(v_contract.scope,v_contract.user_id,v_contract.org_id,
+        v_contract.slot_no,(v_now at time zone 'UTC')::date,v_contract.item_id,v_contract.tier,v_contract.event_id);
+    end if;
     insert into nexora.notifications(id,user_id,title,body,type,is_read)
     select 'ntf_'||gen_random_uuid()::text,p_uid,'CONTRACT_EXPIRED','Contract deadline expired','economy',false
     where exists(select 1 from nexora.player_private pp where pp.user_id=p_uid and pp.notifications_enabled=true);
@@ -602,10 +612,13 @@ begin
   if not found then raise exception 'ACCOUNT_NOT_FOUND'; end if;
   select * into v_contract from nexora.contract_offers where id=p_contract_id;
   if not found then raise exception 'CONTRACT_NOT_FOUND'; end if;
-  if v_contract.scope='organization' then
-    select * into v_org from nexora.organizations where id=v_contract.org_id for update;
+  if coalesce(v_contract.org_id,v_profile.org_id) is not null then
+    select * into v_org from nexora.organizations
+      where id=coalesce(v_contract.org_id,v_profile.org_id) for update;
   end if;
+  perform nexora.settle_dynamic_contracts(p_uid);
   select * into v_contract from nexora.contract_offers where id=p_contract_id for update;
+  if v_contract.status='expired' then return jsonb_build_object('ok',false,'error','CONTRACT_EXPIRED'); end if;
   if v_contract.scope='personal' and v_contract.user_id<>p_uid then raise exception 'UNAUTHORIZED'; end if;
   if v_contract.scope='organization' and v_contract.claimed_by<>p_uid then raise exception 'UNAUTHORIZED'; end if;
   if v_contract.status<>'accepted' then raise exception 'CONTRACT_CANNOT_BE_ABANDONED'; end if;
@@ -626,8 +639,11 @@ begin
   update nexora.contract_daily_limits set used_count=used_count+1,updated_at=now()
     where user_id=p_uid and date_key=v_today;
   update nexora.contract_offers set status='abandoned',completed_at=now(),updated_at=now() where id=p_contract_id;
-  perform nexora.generate_dynamic_contract(v_contract.scope,v_contract.user_id,v_contract.org_id,
-    v_contract.slot_no,v_today,v_contract.item_id,v_contract.tier,null);
+  if v_contract.event_id is null or exists(select 1 from nexora.world_events e where e.id=v_contract.event_id
+    and e.active=true and e.starts_at<=now() and e.ends_at>now()) then
+    perform nexora.generate_dynamic_contract(v_contract.scope,v_contract.user_id,v_contract.org_id,
+      v_contract.slot_no,v_today,v_contract.item_id,v_contract.tier,v_contract.event_id);
+  end if;
   return jsonb_build_object('ok',true,'daily_used',v_used+1);
 end;
 $$;
@@ -655,10 +671,13 @@ begin
   if not found then raise exception 'ACCOUNT_NOT_FOUND'; end if;
   select * into v_contract from nexora.contract_offers where id=p_contract_id;
   if not found then raise exception 'CONTRACT_NOT_FOUND'; end if;
-  if v_contract.scope='organization' then
-    select * into v_org from nexora.organizations where id=v_contract.org_id for update;
+  if coalesce(v_contract.org_id,v_profile.org_id) is not null then
+    select * into v_org from nexora.organizations
+      where id=coalesce(v_contract.org_id,v_profile.org_id) for update;
   end if;
+  perform nexora.settle_dynamic_contracts(p_uid);
   select * into v_contract from nexora.contract_offers where id=p_contract_id for update;
+  if v_contract.status='expired' then return jsonb_build_object('ok',false,'error','CONTRACT_EXPIRED'); end if;
   if v_contract.scope='personal' and v_contract.user_id<>p_uid then raise exception 'UNAUTHORIZED'; end if;
   if v_contract.scope='organization' and v_contract.claimed_by<>p_uid then raise exception 'UNAUTHORIZED'; end if;
   if v_contract.status='processing' and v_contract.ready_at<=now() then
