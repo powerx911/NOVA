@@ -1,5 +1,5 @@
 import { Factory, Timer } from 'lucide-react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useToast } from '../../components/ui/ToastProvider';
 import { ITEM_MAP, MANUFACTURING_RECIPES } from '../../data/catalog';
 import { ResourceIcon } from '../../components/ui/ResourceIcon';
@@ -45,7 +45,7 @@ export function ManufacturingPanel({ profile, wallet, inventory, language, onNav
     return () => { mounted = false; window.clearInterval(timer); };
   }, [isAr, showToast]);
 
-  async function finishJob(job: ManufacturingJob, silent = false) {
+  const finishJob = useCallback(async (job: ManufacturingJob, silent = false) => {
     if (completionAttempted.current === job.id) return;
     completionAttempted.current = job.id;
     try {
@@ -63,7 +63,7 @@ export function ManufacturingPanel({ profile, wallet, inventory, language, onNav
       }
       if (code !== 'INVENTORY_CAPACITY_EXCEEDED') completionAttempted.current = null;
     }
-  }
+  }, [isAr, showToast]);
 
   const jobEndsAt = activeJob ? Date.parse(activeJob.ends_at) : 0;
   const jobRemainingSeconds = activeJob ? Math.max(0, Math.ceil((jobEndsAt - nowMs) / 1000)) : 0;
@@ -73,7 +73,7 @@ export function ManufacturingPanel({ profile, wallet, inventory, language, onNav
     if (activeJob && jobReady && completionAttempted.current !== activeJob.id) {
       void finishJob(activeJob, true);
     }
-  }, [activeJob, jobReady]);
+  }, [activeJob, jobReady, finishJob]);
 
   async function handleManufacture(recipeId: string) {
     const batches = Math.max(1, Math.min(999, Math.floor(quantity || 1)));
