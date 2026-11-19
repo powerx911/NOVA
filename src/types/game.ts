@@ -448,6 +448,12 @@ export interface DynamicContractOffer {
   fee_paid: number;
 }
 
+export interface DynamicContractCooldown {
+  slot_no: number;
+  board_date: string;
+  cooldown_until: string;
+}
+
 export interface DynamicContractBoard {
   personal: DynamicContractOffer[];
   organization: DynamicContractOffer[];
@@ -455,6 +461,7 @@ export interface DynamicContractBoard {
   daily_used: number;
   daily_limit: number;
   offer_expires_at: string;
+  cooldowns?: { server_now: string; personal: DynamicContractCooldown[]; organization: DynamicContractCooldown[] };
 }
 
 export interface OrgGoalContribution {
