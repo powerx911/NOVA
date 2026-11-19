@@ -3,7 +3,7 @@
 create extension if not exists pgtap with schema extensions;
 
 begin;
-select extensions.plan(79);
+select extensions.plan(83);
 
 select extensions.ok(
   exists(select 1 from nexora.contract_config where config_key='catalog_prices'),
@@ -356,6 +356,30 @@ select extensions.lives_ok(
 select extensions.ok(
   exists(select 1 from nexora.notifications where user_id='pgtap_org_user' and title='Contract ready to claim'),
   'ready notification respects enabled player notifications'
+);
+insert into nexora.inventory(user_id,item_id,quantity)
+select 'pgtap_org_user',item_id,100 from nexora.contract_offers
+where id=(select id from nexora.contract_offers where scope='personal' and user_id='pgtap_org_user' and status='accepted' limit 1)
+on conflict(user_id,item_id) do update set quantity=100;
+select extensions.lives_ok(
+  $select nexora.deliver_dynamic_contract('pgtap_org_user',(select id from nexora.contract_offers where scope='personal' and user_id='pgtap_org_user' and status='accepted' limit 1))$,
+  'personal contract can be delivered independently of the organization contract'
+);
+update nexora.contract_offers set ready_at=now()-interval '1 second'
+where scope='personal' and user_id='pgtap_org_user' and status='processing';
+select extensions.lives_ok(
+  $select nexora.claim_dynamic_contract('pgtap_org_user',(select id from nexora.contract_offers where scope='personal' and user_id='pgtap_org_user' and status='processing' limit 1))$,
+  'personal contract reward can be claimed after processing'
+);
+select extensions.is(
+  (select current_amount from nexora.org_weekly_goals where org_id='pgtap_org' and goal_type='org_contracts_completed' and week_start=date_trunc('week',timezone('UTC',now()))::date),
+  1::numeric,
+  'organization contract claim advances the organization contract goal'
+);
+select extensions.is(
+  (select current_amount from nexora.org_weekly_goals where org_id='pgtap_org' and goal_type='personal_contracts_completed' and week_start=date_trunc('week',timezone('UTC',now()))::date),
+  1::numeric,
+  'personal contract claim advances the personal contract goal'
 );
 select extensions.is(
   (select reputation from nexora.organizations where id='pgtap_org'),
