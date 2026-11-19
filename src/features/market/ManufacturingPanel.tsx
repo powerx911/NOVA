@@ -91,6 +91,7 @@ export function ManufacturingPanel({ profile, wallet, inventory, language, onNav
     } catch (error) {
       const code = error instanceof Error ? error.message : '';
       if (code === 'MANUFACTURING_JOB_ALREADY_FINISHED') {
+        setCancelDialogOpen(false);
         setNowMs(Date.now() + 1000);
         showToast(isAr ? 'انتهى وقت التصنيع بالفعل؛ جارٍ استلام الإنتاج.' : 'The production timer has ended; collecting the output now.', 'info');
       } else if (code === 'MANUFACTURING_JOB_ALREADY_COMPLETED' || code === 'MANUFACTURING_JOB_CANCELLED') {
