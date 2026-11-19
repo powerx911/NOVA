@@ -32,7 +32,7 @@ begin
 
   if v_total > v_capacity and (tg_op = 'INSERT' or new.quantity > old.quantity) then
     raise exception 'INVENTORY_CAPACITY_EXCEEDED'
-      using detail = 'Inventory capacity is % units; attempted total is % units.', hint = v_capacity::text;
+      using detail = format('Inventory capacity is %s units; attempted total is %s units.', v_capacity, v_total);
   end if;
   return null;
 end;
@@ -138,7 +138,6 @@ begin
   if exists (
     select 1 from nexora.manufacturing_jobs
     where user_id = p_uid and status = 'running'
-    for update
   ) then raise exception 'MANUFACTURING_JOB_IN_PROGRESS'; end if;
 
   select * into v_wallet from nexora.wallets where user_id = p_uid for update;
