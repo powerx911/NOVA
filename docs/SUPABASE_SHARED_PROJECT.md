@@ -1,49 +1,41 @@
-# NEXORA / NOVA — Supabase isolation contract
+# NOVA — Supabase project contract
 
-**Status (2026-11-18):** The NOVA Supabase project `hmrprnjhyzyefocdmnxf` now contains an isolated `nexora` schema with 23 empty tables. RLS is enabled on all 23 tables. The `anon` and `authenticated` roles have no table privileges; `service_role` is reserved for trusted server operations. No NEXORA player data has been imported.
+**Verified:** 2026-11-19
 
-## Project boundary
+## Current source of truth
 
-- **Supabase project:** `NOVA` (`hmrprnjhyzyefocdmnxf`, region `eu-west-1`).
-- **NEXORA application schema:** `nexora`.
-- **Legacy NOVA:** all 17 old `public.nova_*` game tables and old `nova_*` functions were removed after verifying that every legacy game table contained zero rows.
-- **Platform schemas:** do not modify `auth`, `storage`, `realtime`, `vault`, `extensions`, or Supabase-managed objects as part of game work.
+- Product and brand: **NOVA**.
+- GitHub repository: `powerx911/NOVA`.
+- Production branch: `main`.
+- Production URL: https://powerx911.github.io/NOVA/.
+- Supabase project reference: `hmrprnjhyzyefocdmnxf`.
+- Application schema: `nexora` (legacy internal name retained for compatibility).
+- Server API: `nexora-api` (legacy function name retained for compatibility).
 
-## Mandatory isolation rules
+## Runtime boundary
 
-1. Create all NEXORA application objects in `nexora`, never in `public`.
-2. Fully qualify every database object (for example, `nexora.player_profiles`).
-3. Keep RLS enabled on every NEXORA table.
-4. Do not grant direct `anon` or `authenticated` access until a reviewed policy model and security tests exist.
-5. Use `service_role` only inside trusted server-side Edge Functions. Never expose it in browser code, public environment variables, GitHub, or chat.
-6. Do not change project-wide Auth providers, redirect URLs, API exposure settings, Storage, Realtime, extensions, or global database roles without reviewing the effect on the entire NOVA Supabase project.
-7. Do not add permissive RLS policies merely to silence the expected `rls_enabled_no_policy` INFO notices.
+- Supabase/Postgres is the authoritative store for gameplay state and all economic operations.
+- The browser authenticates through Firebase Authentication and sends a signed Firebase ID token to the Supabase Edge Function.
+- The Edge Function verifies the token, derives the player UID from the verified identity, and uses the service-role credential server-side only.
+- Firestore is not the gameplay database. It remains in use only for a small owner-only legacy diagnostics screen and Firebase Functions diagnostics. Do not delete `firestore.rules`, `firebase.json` Firestore configuration, or the Firebase app config until that diagnostics path has been migrated.
+- The unused `firebase-blueprint.json` and old one-time exporter workflow/script are not part of the active runtime and have been removed.
 
-## Identity and runtime boundary
+## Current schema and security
 
-The copied NEXORA client currently uses the original Firebase Auth and Firestore implementation. The NOVA Supabase schema is provisioned but is **not yet the live gameplay backend**.
+The production schema currently contains 34 tables, all with RLS enabled. The latest read-only audit found no direct table grants to `anon` or `authenticated`. The service-role key must never be placed in browser code, public environment variables, repository files, or chat.
 
-The intended transition is:
-- Keep Firebase Auth as the identity provider initially, so existing NEXORA sign-in behavior can be preserved.
-- Use Firebase UID strings as the application identity in the `nexora` schema.
-- Verify Firebase ID tokens inside trusted Supabase Edge Functions.
-- Move game state and authoritative transactions to Supabase/Postgres.
-- Do not connect the browser directly to privileged tables or allow client-side wallet, inventory, XP, market escrow, company revenue, or organization treasury mutations.
+Core tables include `player_profiles`, `player_private`, `wallets`, `transactions`, `inventory`, `market_listings`, `market_orders`, `companies`, `factories`, `organizations`, `world_events`, `notifications`, and social/community tables. See [DATABASE.md](DATABASE.md) for the complete current list and invariants.
 
-Do not deploy the copied client as the NOVA production game until the Firebase-to-Supabase data API, security model, and parity tests are complete. Do not import original Firestore player data unless a separate explicit migration plan, counts, integrity checks, and rollback plan have been approved.
+## Compatibility rules
 
-## Current schema
+1. Keep application objects in the existing `nexora` schema until a dedicated rename migration is designed.
+2. Fully qualify schema objects in SQL and Edge Function queries.
+3. Keep RLS enabled on every application table.
+4. Do not grant direct Data API access to `anon` or `authenticated` without a reviewed policy model.
+5. Keep privileged wallet, inventory, market escrow, factory, company and organization mutations inside trusted server-side operations.
+6. Do not modify Supabase-managed schemas or project-wide Auth, Storage, Realtime, API exposure or role settings as part of ordinary game work.
+7. Never alter the original `luffyk124-del/nexora-game` repository or its Supabase project while working on NOVA.
 
-The `nexora` schema contains:
-`player_profiles`, `player_private`, `wallets`, `transactions`, `inventory`, `market_listings`, `market_orders`, `companies`, `company_logs`, `properties`, `organizations`, `organization_members`, `organization_requests`, `organization_transactions`, `player_missions`, `daily_claims`, `contract_claims`, `player_achievements`, `notifications`, `world_events`, `audit_logs`, `diagnostics_admins`, and `usernames`.
+## Migration release blocker
 
-All tables are empty. All have RLS enabled. No client policies or grants have been added.
-
-## Verification checklist before cutover
-
-- Confirm the application uses the NOVA Supabase project only.
-- Implement and test trusted operations for character creation, wallet ledger, inventory, market escrow, XP/skills, company/property revenue, organization membership/treasury, claims, and diagnostics.
-- Verify authorization, idempotency, concurrency, replay protection, non-negative balances, and immutable records.
-- Confirm no privileged key is present in the built frontend bundle.
-- Verify the original NEXORA Firebase project is not modified by NOVA workflows.
-- Complete a documented rollback and production smoke test before enabling GitHub Pages deployment.
+The live Supabase migration history contains 42 applied records while the repository currently has 31 migration SQL files. Several filenames do not match their recorded remote versions, and some remote records have no corresponding local file. Do not run `supabase db push`, `migration repair`, or production DDL until all records are reconciled and the exact sequence is tested on the isolated `nova-quality-check` branch.

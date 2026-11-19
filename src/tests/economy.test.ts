@@ -102,7 +102,7 @@ describe('Company Profit Vault', () => {
   });
 });
 
-describe('NEXORA Core Economy & Security Invariants', () => {
+describe('NOVA Core Economy & Security Invariants', () => {
   it('validates usernames strictly (3-24 chars, alphanumeric + underscore)', () => {
     expect(isValidUsername('Khalid_01')).toBe(true);
     expect(isValidUsername('ab')).toBe(false);
@@ -157,6 +157,23 @@ describe('NEXORA Core Economy & Security Invariants', () => {
     const scarcePrice = calculateDynamicItemPrice('microchips', 10, sampleEvents);
     const abundantPrice = calculateDynamicItemPrice('microchips', 500, sampleEvents);
     expect(scarcePrice).toBeGreaterThan(abundantPrice);
+  });
+
+  it('moves the supply price index smoothly across former threshold boundaries', () => {
+    const boundaryPairs = [[19, 20], [20, 21], [99, 100], [100, 101], [399, 400], [400, 401]];
+    const boundaryPrices = boundaryPairs.map(([quantity]) =>
+      calculateDynamicItemPrice('microchips', quantity, [], 1_000)
+    );
+    const adjacentPrices = boundaryPairs.map(([, quantity]) =>
+      calculateDynamicItemPrice('microchips', quantity, [], 1_000)
+    );
+
+    expect(calculateDynamicItemPrice('microchips', 0, [], 1_000))
+      .toBeGreaterThan(calculateDynamicItemPrice('microchips', 800, [], 1_000));
+    const maxRoundedStep = Math.ceil(ITEM_MAP.microchips.basePrice * 0.0015) + 1;
+    for (let index = 0; index < boundaryPairs.length; index += 1) {
+      expect(Math.abs(adjacentPrices[index] - boundaryPrices[index])).toBeLessThanOrEqual(maxRoundedStep);
+    }
   });
 
   it('calculates company hourly net profit with Management and Finance skills', () => {

@@ -146,6 +146,7 @@ export function AppShell({
               <button
                 key={item.id}
                 type="button"
+                data-testid={`nav-tab-${item.id}`}
                 onClick={() => onTabChange(item.id)}
                 className={`relative min-w-0 flex flex-col items-center justify-center gap-1 min-h-[44px] transition-colors ${
                   isActive ? 'text-[#63A5FF]' : 'text-[#9AAAC7] hover:text-[#EAF1FF]'

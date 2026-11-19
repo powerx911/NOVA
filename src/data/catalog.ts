@@ -16,10 +16,10 @@ import type {
 // Import images as build assets so every deployment contains the exact
 // image files for its own commit (no dependency on GitHub's mutable branch URL).
 const emblemImage = new URL('../../nova-icon.svg', import.meta.url).href;
-const marketBannerImage = new URL('../assets/images/world_market_banner_1794737994643.jpg', import.meta.url).href;
-const strategistAvatar = new URL('../assets/images/avatar_strategist_1794737993416.jpg', import.meta.url).href;
-const industrialistAvatar = new URL('../assets/images/avatar_industrialist_1794737993767.jpg', import.meta.url).href;
-const financierAvatar = new URL('../assets/images/avatar_financier_1794737994701.jpg', import.meta.url).href;
+const marketBannerImage = new URL('../assets/images/world_market_banner_1794737994643.webp', import.meta.url).href;
+const strategistAvatar = new URL('../assets/images/avatar_strategist_1794737993416.webp', import.meta.url).href;
+const industrialistAvatar = new URL('../assets/images/avatar_industrialist_1794737993767.webp', import.meta.url).href;
+const financierAvatar = new URL('../assets/images/avatar_financier_1794737994701.webp', import.meta.url).href;
 
 export const BRAND_ASSETS = {
   emblem: emblemImage,

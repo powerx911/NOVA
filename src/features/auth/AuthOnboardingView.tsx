@@ -271,6 +271,7 @@ export function AuthOnboardingView({
 
             <form onSubmit={handleEmailAuth} className="space-y-3">
               <input
+                data-testid="auth-email"
                 type="email"
                 value={emailAddress}
                 onChange={(event) => setEmailAddress(event.target.value)}
@@ -280,6 +281,7 @@ export function AuthOnboardingView({
                 className="w-full min-h-[44px] px-4 rounded-xl bg-[#0B0D12] border border-white/10 text-sm text-[#F4F5F7] placeholder:text-[#9299A6]/60"
               />
               <input
+                data-testid="auth-password"
                 type="password"
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
@@ -289,7 +291,7 @@ export function AuthOnboardingView({
                 required
                 className="w-full min-h-[44px] px-4 rounded-xl bg-[#0B0D12] border border-white/10 text-sm text-[#F4F5F7] placeholder:text-[#9299A6]/60"
               />
-              <button type="submit" disabled={busy} className="w-full min-h-[44px] rounded-xl bg-[#1B2230] hover:bg-[#232C3E] text-sm font-semibold text-[#F4F5F7] disabled:opacity-50">
+              <button type="submit" data-testid="auth-email-submit" disabled={busy} className="w-full min-h-[44px] rounded-xl bg-[#1B2230] hover:bg-[#232C3E] text-sm font-semibold text-[#F4F5F7] disabled:opacity-50">
                 {busy ? t.loading : isRegistering ? (language === 'ar' ? 'إنشاء حساب بالبريد' : 'Create email account') : (language === 'ar' ? 'تسجيل الدخول بالبريد' : 'Sign in with email')}
               </button>
               <button type="button" onClick={() => setIsRegistering((value) => !value)} className="w-full text-xs text-[#E5A0A8] underline">
@@ -356,6 +358,8 @@ export function AuthOnboardingView({
                     >
                       <img
                         src={av.src}
+                        loading="lazy"
+                        decoding="async"
                         alt={language === 'ar' ? av.labelAr : av.labelEn}
                         referrerPolicy="no-referrer"
                         className="w-full aspect-square rounded-lg object-cover mb-2"
@@ -371,6 +375,7 @@ export function AuthOnboardingView({
 
             <button
               type="submit"
+              data-testid="create-character-submit"
               disabled={busy}
               className="w-full min-h-[48px] px-5 py-3 rounded-xl bg-[#B91C32] hover:bg-[#E04455] text-white font-semibold text-sm transition-colors disabled:opacity-60"
             >
