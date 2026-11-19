@@ -329,3 +329,14 @@ This was metadata/function-definition verification only. No player rows or busin
 - The local active migration directory still contains inherited historical files with unresolved differences; this release did not run a wholesale `supabase db push`, bulk repair, or replay of those files.
 - The three deployed migration filenames now match the exact remote versions. Isolated CI workflows were updated accordingly and must be green again on the new branch head before merging.
 - Do not change or deploy the separate agent branch `fix/nova-urgent-economy-quality`.
+
+
+### Final release verification on branch head `fa44255b97921d4f11b5b3108e3931ad97a86464`
+
+After aligning the three active migration filenames to the exact versions recorded by production, both isolated database workflows were rerun successfully against this branch head:
+
+- App CI: [44514497268](https://github.com/powerx911/NOVA/actions/runs/44514497268) — success.
+- Isolated PostgreSQL 17 + pgTAP: [44514506215](https://github.com/powerx911/NOVA/actions/runs/44514506215) — success; logs report `Files=2, Tests=33`, `Result: PASS`, including all 23 economy-abuse assertions.
+- Full historical replay: [44514511180](https://github.com/powerx911/NOVA/actions/runs/44514511180) — success; 42 tracked sources + 13 untracked events replayed, both local PL/pgSQL definitions compiled, the three version-aligned PR migrations applied, pgTAP passed, and the disposable stack stopped successfully.
+
+The production ledger and local migration filenames now agree for all three newly applied changes. The PR's app changes remain unpublished until merge; the main-branch GitHub Pages workflow is the repository's configured website deployment path.
