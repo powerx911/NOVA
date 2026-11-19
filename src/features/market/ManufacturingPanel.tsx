@@ -1,11 +1,12 @@
 import { Factory, Timer } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useToast } from '../../components/ui/ToastProvider';
+import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { ITEM_MAP, MANUFACTURING_RECIPES } from '../../data/catalog';
 import { ResourceIcon } from '../../components/ui/ResourceIcon';
 import { useTranslations } from '../../i18n/translations';
 import { calculateManufacturingCost } from '../../lib/economy';
-import { completeManufacturingJob, getManufacturingJob, manufactureRecipe, type ManufacturingJob } from '../../services/gameService';
+import { cancelManufacturingJob, completeManufacturingJob, getManufacturingJob, manufactureRecipe, type ManufacturingJob } from '../../services/gameService';
 import type { InventoryItem, Language, PlayerProfile, Wallet } from '../../types/game';
 
 interface ManufacturingPanelProps {
@@ -32,6 +33,8 @@ export function ManufacturingPanel({ profile, wallet, inventory, language, onNav
   const [activeJob, setActiveJob] = useState<ManufacturingJob | null>(null);
   const [nowMs, setNowMs] = useState(() => Date.now());
   const [jobLoading, setJobLoading] = useState(true);
+  const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
+  const [cancelBusy, setCancelBusy] = useState(false);
   const completionAttempted = useRef<string | null>(null);
   const inventoryMap = useMemo(() => new Map<string, number>(inventory.map((item) => [item.itemId, item.quantity] as [string, number])), [inventory]);
 
@@ -74,6 +77,33 @@ export function ManufacturingPanel({ profile, wallet, inventory, language, onNav
       void finishJob(activeJob, true);
     }
   }, [activeJob, jobReady, finishJob]);
+
+  async function handleCancelJob() {
+    if (!activeJob || jobReady || cancelBusy) return;
+    setCancelBusy(true);
+    try {
+      await cancelManufacturingJob(activeJob.id);
+      setCancelDialogOpen(false);
+      setActiveJob(null);
+      completionAttempted.current = null;
+      window.dispatchEvent(new Event('nova:refresh-game'));
+      showToast(isAr ? 'تم إلغاء التصنيع وإرجاع جميع المواد إلى مخزونك.' : 'Manufacturing cancelled and all input materials returned to inventory.', 'success');
+    } catch (error) {
+      const code = error instanceof Error ? error.message : '';
+      if (code === 'MANUFACTURING_JOB_ALREADY_FINISHED') {
+        setNowMs(Date.now());
+        showToast(isAr ? 'انتهى وقت التصنيع بالفعل؛ جارٍ استلام الإنتاج.' : 'The production timer has ended; collecting the output now.', 'info');
+      } else if (code !== 'MANUFACTURING_JOB_ALREADY_COMPLETED' && code !== 'MANUFACTURING_JOB_CANCELLED') {
+        showToast(isAr ? 'تعذر إلغاء التصنيع. لم تُخصم مواد إضافية.' : 'Could not cancel manufacturing. No additional materials were consumed.', 'error');
+      }
+      if (code === 'MANUFACTURING_JOB_ALREADY_CANCELLED') {
+        setActiveJob(null);
+        window.dispatchEvent(new Event('nova:refresh-game'));
+      }
+    } finally {
+      setCancelBusy(false);
+    }
+  }
 
   async function handleManufacture(recipeId: string) {
     const batches = Math.max(1, Math.min(999, Math.floor(quantity || 1)));
@@ -135,9 +165,13 @@ export function ManufacturingPanel({ profile, wallet, inventory, language, onNav
               <p className="text-xs text-[#9AAAC7]">{isAr ? 'تُضاف المنتجات بعد الاستلام، حتى لو أغلقت اللعبة.' : 'Output is credited on collection, even if you close the game.'}</p>
             </div>
           </div>
-          {jobReady && (
+          {jobReady ? (
             <button type="button" onClick={() => { completionAttempted.current = null; void finishJob(activeJob); }} className="w-full min-h-[42px] rounded-xl bg-[#397BFF] hover:bg-[#2F6DE0] text-white text-xs font-semibold">
               {isAr ? 'استلام الإنتاج' : 'Collect production'}
+            </button>
+          ) : (
+            <button type="button" onClick={() => setCancelDialogOpen(true)} disabled={cancelBusy} className="w-full min-h-[42px] rounded-xl border border-rose-500/40 bg-rose-950/30 hover:bg-rose-900/50 text-rose-200 text-xs font-semibold disabled:opacity-50">
+              {isAr ? 'إلغاء التصنيع وإرجاع المواد' : 'Cancel manufacturing and return materials'}
             </button>
           )}
         </div>
@@ -194,6 +228,19 @@ export function ManufacturingPanel({ profile, wallet, inventory, language, onNav
           );
         })}
       </div>
+      <ConfirmDialog
+        open={cancelDialogOpen}
+        title={isAr ? 'إلغاء عملية التصنيع؟' : 'Cancel manufacturing?'}
+        description={isAr
+          ? 'ستُعاد جميع المواد التي استُخدمت في هذه العملية إلى مخزونك. تكلفة التشغيل لا تُسترد، ولا يمكن إلغاء العملية بعد انتهاء المؤقت.'
+          : 'All materials used by this job will be returned to your inventory. Processing credits are not refunded, and the job cannot be cancelled after its timer ends.'}
+        confirmLabel={isAr ? 'تأكيد الإلغاء' : 'Confirm cancellation'}
+        cancelLabel={isAr ? 'متابعة التصنيع' : 'Keep manufacturing'}
+        onConfirm={() => void handleCancelJob()}
+        onCancel={() => setCancelDialogOpen(false)}
+        busy={cancelBusy}
+        destructive
+      />
     </div>
   );
 }
