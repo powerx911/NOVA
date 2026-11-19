@@ -1,6 +1,6 @@
 export function getMissionPeriodKey(missionId: string, date = new Date()): string {
   if (missionId === 'daily_active_trader') return date.toISOString().slice(0, 10);
-  if (missionId === 'weekly_real_estate') {
+  if (missionId === 'weekly_real_estate' || missionId === 'weekly_market_mogul') {
     const utc = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
     const day = utc.getUTCDay() || 7;
     utc.setUTCDate(utc.getUTCDate() + 4 - day);
