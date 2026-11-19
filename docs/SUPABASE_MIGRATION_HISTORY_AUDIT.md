@@ -355,3 +355,21 @@ A final UX review found that the new transfer guard errors were being collapsed 
 - The market transfer form now explains the exact 3% fee and recipient net amount before confirmation, and displays clear Arabic/English messages for the level-10 gate and daily cap.
 - Redeployed `nexora-api`; Supabase reports **ACTIVE version 32**, preserving `verify_jwt=false`.
 - These last UI/API changes are included in the current PR branch and are subject to the final App CI run before merge.
+
+
+## Final publication confirmation — 2026-11-19
+
+PR #83 was merged into `main` as commit `3a729a3950c7d49aac0d59c87667adf19a89c599`.
+
+The GitHub Pages deployment completed successfully for that exact commit:
+- Workflow: [NEXORA GitHub Pages #44515590989](https://github.com/powerx911/NOVA/actions/runs/44515590989)
+- Published URL: https://powerx911.github.io/NOVA/
+
+Main-branch verification for the merged commit:
+- App CI [44515590782](https://github.com/powerx911/NOVA/actions/runs/44515590782) — success.
+- Isolated PostgreSQL + pgTAP [44515590868](https://github.com/powerx911/NOVA/actions/runs/44515590868) — success.
+- Full historical replay [44515590726](https://github.com/powerx911/NOVA/actions/runs/44515590726) — success.
+
+Production database migrations are live at versions `20261119112257`, `20261119112311`, and `20261119112320`. The `nexora-api` Edge Function is ACTIVE at version 32. The main-branch website build and deployment succeeded.
+
+This confirms the PR #83 release is published. The unrelated inherited migration-history discrepancies remain a separate maintenance item; they do not require a wholesale migration push for this release, and no such push or migration repair was performed.
