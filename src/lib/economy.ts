@@ -474,7 +474,14 @@ export interface MarketPriceBounds {
 }
 
 /** Keeps player listings within 50%-200% of the catalog reference price. */
+const MARKET_LISTABLE_ITEM_IDS = new Set([
+  'silicon_ore', 'copper_wire', 'energy_cells', 'crude_alloy', 'carbon_fiber',
+  'rare_minerals', 'microchips', 'precision_frame', 'synth_polymer',
+  'quantum_server', 'logistics_drone', 'bio_module',
+]);
+
 export function getMarketPriceBounds(itemId: string): MarketPriceBounds | null {
+  if (!MARKET_LISTABLE_ITEM_IDS.has(itemId)) return null;
   const basePrice = ITEM_MAP[itemId]?.basePrice;
   if (!Number.isFinite(basePrice) || basePrice <= 0) return null;
   return {
