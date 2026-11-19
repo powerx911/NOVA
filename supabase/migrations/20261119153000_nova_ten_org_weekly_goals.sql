@@ -33,10 +33,21 @@ do $$
 declare v_def text;
 begin
   select pg_get_functiondef('nexora.ensure_org_weekly_goals(text)'::regprocedure) into v_def;
+  v_def:=replace(v_def,$old$v_count integer;$old$,$new$v_count integer;\n  v_existing text[];$new$);
   v_def:=replace(v_def,
     $old$v_types text[] := array['produce_units','trade_volume','contracts_completed','treasury_donations'];$old$,
-    $new$v_types text[] := array['produce_units','trade_volume','contracts_completed','treasury_donations','personal_contracts_completed','org_contracts_completed','company_revenue','factory_upgrades','company_upgrades','companies_founded','factories_founded'];$new$);
+    $new$v_types text[] := array['produce_units','trade_volume','treasury_donations','personal_contracts_completed','org_contracts_completed','company_revenue','factory_upgrades','company_upgrades','companies_founded','factories_founded'];$new$);
+  v_def:=replace(v_def,
+    $old$if exists(select 1 from nexora.org_weekly_goals where org_id=p_org_id and week_start=v_week) then return; end if;$old$,
+    $new$select coalesce(array_agg(goal_type),array[]::text[]) into v_existing from nexora.org_weekly_goals where org_id=p_org_id and week_start=v_week;
+  foreach v_type in array v_existing loop
+    v_types:=array_remove(v_types,v_type);
+  end loop;
+  if cardinality(v_types)=0 then return; end if;$new$);
   v_def:=replace(v_def,$old$coalesce((v_scaling->>'goal_count')::integer,3)$old$,$new$coalesce((v_scaling->>'goal_count')::integer,10)$new$);
+  v_def:=replace(v_def,
+    $old$for v_count in 1..coalesce((v_scaling->>'goal_count')::integer,10) loop$old$,
+    $new$for v_count in 1..least(coalesce((v_scaling->>'goal_count')::integer,10),cardinality(v_types)) loop$new$);
   v_def:=replace(v_def,
     $old$v_difficulty:=case v_type when 'produce_units' then 'easy' when 'trade_volume' then 'medium' when 'contracts_completed' then 'hard' else 'medium' end;$old$,
     $new$v_difficulty:=case when v_type in ('produce_units','companies_founded','factories_founded') then 'easy' when v_type in ('trade_volume','treasury_donations','company_revenue') then 'medium' else 'hard' end;$new$);
