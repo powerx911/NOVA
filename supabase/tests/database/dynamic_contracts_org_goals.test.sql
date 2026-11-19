@@ -3,7 +3,7 @@
 create extension if not exists pgtap with schema extensions;
 
 begin;
-select extensions.plan(64);
+select extensions.plan(75);
 
 select extensions.ok(
   exists(select 1 from nexora.contract_config where config_key='catalog_prices'),
@@ -393,6 +393,56 @@ select extensions.ok(
     join nexora.org_weekly_goals g on g.id=c.goal_id
     where c.org_id='pgtap_goal_org' and c.user_id='pgtap_goal_user' and g.status='completed'),
   'completed goals retain per-member contribution records'
+);
+
+
+select extensions.lives_ok(
+  $select nexora.refresh_dynamic_contract('pgtap_expiry',(select id from nexora.contract_offers where user_id='pgtap_expiry' and scope='personal' and status='offered' order by slot_no limit 1))$,
+  'a player can refresh a personal offer'
+);
+select extensions.lives_ok(
+  $select nexora.refresh_dynamic_contract('pgtap_expiry',(select id from nexora.contract_offers where user_id='pgtap_expiry' and scope='personal' and status='offered' order by slot_no limit 1))$,
+  'a second independent personal slot can be refreshed'
+);
+select extensions.lives_ok(
+  $select nexora.refresh_dynamic_contract('pgtap_expiry',(select id from nexora.contract_offers where user_id='pgtap_expiry' and scope='personal' and status='offered' order by slot_no limit 1))$,
+  'a third personal refresh is allowed in the UTC day'
+);
+select extensions.throws_ok(
+  $select nexora.refresh_dynamic_contract('pgtap_expiry',(select id from nexora.contract_offers where user_id='pgtap_expiry' and scope='personal' and status='offered' order by slot_no limit 1))$,
+  'P0001','CONTRACT_REFRESH_LIMIT_REACHED',
+  'personal refresh allowance stops at three per UTC day'
+);
+select extensions.is(
+  (select used_count from nexora.contract_slot_refresh_usage where scope='personal' and owner_id='pgtap_expiry' and date_key=(now() at time zone 'UTC')::date),
+  3,
+  'personal refresh usage is tracked independently'
+);
+
+select extensions.lives_ok(
+  $select nexora.refresh_dynamic_contract('pgtap_org_user',(select id from nexora.contract_offers where scope='organization' and org_id='pgtap_org' and status='offered' order by slot_no limit 1))$,
+  'organization leader can refresh a shared organization offer'
+);
+select extensions.lives_ok(
+  $select nexora.refresh_dynamic_contract('pgtap_org_user',(select id from nexora.contract_offers where scope='organization' and org_id='pgtap_org' and status='offered' order by slot_no limit 1))$,
+  'organization refresh allowance permits a second refresh'
+);
+select extensions.lives_ok(
+  $select nexora.refresh_dynamic_contract('pgtap_org_user',(select id from nexora.contract_offers where scope='organization' and org_id='pgtap_org' and status='offered' order by slot_no limit 1))$,
+  'organization refresh allowance permits a third refresh'
+);
+select extensions.lives_ok(
+  $select nexora.refresh_dynamic_contract('pgtap_org_user',(select id from nexora.contract_offers where scope='organization' and org_id='pgtap_org' and status='offered' order by slot_no limit 1))$,
+  'organization refresh allowance permits a fourth refresh'
+);
+select extensions.lives_ok(
+  $select nexora.refresh_dynamic_contract('pgtap_org_user',(select id from nexora.contract_offers where scope='organization' and org_id='pgtap_org' and status='offered' order by slot_no limit 1))$,
+  'organization refresh allowance permits five refreshes per UTC day'
+);
+select extensions.throws_ok(
+  $select nexora.refresh_dynamic_contract('pgtap_org_user',(select id from nexora.contract_offers where scope='organization' and org_id='pgtap_org' and status='offered' order by slot_no limit 1))$,
+  'P0001','CONTRACT_REFRESH_LIMIT_REACHED',
+  'organization refresh allowance stops at five per UTC day'
 );
 
 select * from extensions.finish();
