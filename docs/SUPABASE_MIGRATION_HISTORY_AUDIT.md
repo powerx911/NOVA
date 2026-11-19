@@ -345,3 +345,13 @@ The production ledger and local migration filenames now agree for all three newl
 ### Edge API release update
 
 The `nexora-api` Supabase Edge Function was also deployed from this PR branch after the database migrations. Supabase reports the function as `ACTIVE`, version **31**, with its existing `verify_jwt=false` setting preserved. The deployed source was read back with the Supabase function inspection operation and includes the updated bootstrap payload (recurring mission rows and current-day completed market-purchase count). The unrelated `nova-control` function was not changed.
+
+
+### Transfer UX/API error follow-up
+
+A final UX review found that the new transfer guard errors were being collapsed to a generic API error, and the confirmation dialog did not preview the 3% fee. Corrected both before publishing the frontend:
+
+- The `nexora-api` transfer handler now preserves `TRANSFER_LEVEL_REQUIRED` and `TRANSFER_DAILY_LIMIT` error codes.
+- The market transfer form now explains the exact 3% fee and recipient net amount before confirmation, and displays clear Arabic/English messages for the level-10 gate and daily cap.
+- Redeployed `nexora-api`; Supabase reports **ACTIVE version 32**, preserving `verify_jwt=false`.
+- These last UI/API changes are included in the current PR branch and are subject to the final App CI run before merge.
