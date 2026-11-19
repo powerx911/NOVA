@@ -245,7 +245,7 @@ Deno.serve(async (req: Request) => {
     const dynamicContractActions: Record<string, { rpc: string; args: Record<string, unknown>; status: number }> = {
       get_dynamic_contract_board: { rpc: "get_dynamic_contract_board", args: { p_uid: identity.uid }, status: 200 },
       get_contract_slot_cooldowns: { rpc: "get_contract_slot_cooldowns", args: { p_uid: identity.uid }, status: 200 },
-      accept_dynamic_contract: {
+      refresh_dynamic_contract: {\n        rpc: "refresh_dynamic_contract",\n        args: { p_uid: identity.uid, p_contract_id: typeof body.contractId === "string" ? body.contractId : "" },\n        status: 200,\n      },\n      accept_dynamic_contract: {
         rpc: "accept_dynamic_contract",
         args: { p_uid: identity.uid, p_contract_id: typeof body.contractId === "string" ? body.contractId : "" },
         status: 200,
@@ -282,7 +282,7 @@ Deno.serve(async (req: Request) => {
           "UNAUTHORIZED", "ORG_NOT_FOUND", "ORG_MEMBERSHIP_TOO_NEW", "CONTRACT_ALREADY_CLAIMED",
           "ORG_ACTIVE_CONTRACT_LIMIT", "ACTIVE_CONTRACT_LIMIT", "CONTRACT_NOT_ACCEPTED",
           "CONTRACT_CANNOT_BE_ABANDONED", "MISSING_INPUTS", "INSUFFICIENT_FUNDS",
-          "CONTRACT_NOT_READY", "CONTRACT_NOT_CLAIMABLE", "DAILY_CONTRACT_LIMIT_REACHED",
+          "CONTRACT_NOT_READY", "CONTRACT_NOT_CLAIMABLE", "DAILY_CONTRACT_LIMIT_REACHED", "CONTRACT_NOT_REFRESHABLE", "ORG_REFRESH_PERMISSION_REQUIRED", "CONTRACT_REFRESH_LIMIT_REACHED",
           "NOT_IN_ORG",
         ].find((code) => error.message.includes(code));
         return json({ error: known ?? "DYNAMIC_CONTRACT_FAILED" }, 409, origin);
