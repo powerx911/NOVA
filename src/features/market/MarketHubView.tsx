@@ -130,7 +130,11 @@ export function MarketHubView({
     } catch (err) {
       const code = err instanceof Error ? err.message : '';
       showToast(
-        code === 'INSUFFICIENT_FUNDS'
+        code === 'PRICE_BELOW_MINIMUM' || code === 'PRICE_ABOVE_MAXIMUM'
+          ? language === 'ar'
+            ? 'هذا العرض خارج حدود الأسعار المعتمدة. على البائع إعادة نشره بسعر ضمن الحدود.'
+            : 'This listing is outside the allowed price range. The seller must relist it within the limits.'
+          : code === 'INSUFFICIENT_FUNDS'
           ? language === 'ar'
             ? 'رصيدك غير كافٍ.'
             : 'Insufficient balance.'
