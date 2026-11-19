@@ -109,7 +109,7 @@ insert into nexora.inventory(user_id, item_id, quantity)
 values ('pgtap_inventory_capacity', 'capacity_test_item', 100);
 
 select extensions.throws_ok(
-  $insert into nexora.inventory(user_id, item_id, quantity) values ('pgtap_inventory_capacity', 'capacity_overflow_item', 1)$,
+  $$insert into nexora.inventory(user_id, item_id, quantity) values ('pgtap_inventory_capacity', 'capacity_overflow_item', 1)$$,
   'P0001',
   'INVENTORY_CAPACITY_EXCEEDED',
   'the inventory trigger rejects additions above the player capacity'
