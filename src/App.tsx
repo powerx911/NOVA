@@ -17,11 +17,12 @@ import { OrganizationHubView } from './features/organization/OrganizationHubView
 import { ProfileHubView } from './features/profile/ProfileHubView';
 import { SocialHubView } from './features/social/SocialHubView';
 import { useGameData } from './hooks/useGameData';
-import type { MainTab } from './types/game';
+import type { MainTab, ProfileSubTab } from './types/game';
 
 function NovaAppContent() {
   const game = useGameData();
   const [activeTab, setActiveTab] = useState<MainTab>('home');
+  const [profileInitialSubTab, setProfileInitialSubTab] = useState<ProfileSubTab>('overview');
   const [socialUnreadCount, setSocialUnreadCount] = useState(0);
 
   if (!game.authReady || (game.authUser && game.profileLoading)) {
@@ -122,6 +123,7 @@ function NovaAppContent() {
           marketListings={game.marketListings}
           language={game.language}
           onNavigate={setActiveTab}
+          onOpenMissions={() => { setProfileInitialSubTab('missions'); setActiveTab('profile'); }}
         />
       )}
 
@@ -190,6 +192,7 @@ function NovaAppContent() {
           language={game.language}
           onLanguageChange={game.setLanguageLocal}
           onLogout={game.logout}
+          initialSubTab={profileInitialSubTab}
         />
       )}
     </AppShell>
