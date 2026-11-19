@@ -39,6 +39,24 @@ begin
 end;
 $$;
 
+-- A high-level organization can unlock more slots than there are unique
+-- catalog entries. Keep the board usable and leave unfillable slots empty
+-- instead of failing the entire board RPC.
+do $
+declare v_def text;
+begin
+  select pg_get_functiondef('nexora.generate_dynamic_contract(text,text,text,integer,date,text,text,text)'::regprocedure)
+    into v_def;
+  v_def:=replace(v_def,
+    $old$if v_item is null then raise exception 'CONTRACT_CATALOG_EMPTY'; end if;$old$,
+    $new$if v_item is null then return null; end if;$new$);
+  if position('if v_item is null then return null; end if;' in v_def)=0 then
+    raise exception 'CONTRACT_CATALOG_EMPTY_GUARD_PATCH_FAILED';
+  end if;
+  execute v_def;
+end;
+$;
+
 alter table nexora.contract_slot_cooldowns enable row level security;
 revoke all on table nexora.contract_slot_cooldowns from public,anon,authenticated;
 
