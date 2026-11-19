@@ -19,7 +19,6 @@ import {
   getMarketPriceBounds,
   LISTING_MAX_PRICE,
   LISTING_MAX_QTY,
-  MARKET_RAW_ITEM_IDS,
   sanitizePositiveInt,
 } from '../../lib/economy';
 import {
@@ -463,7 +462,7 @@ export function MarketHubView({
                   }}
                   className="w-full min-h-[44px] px-3 rounded-xl bg-[#0B0D12] border border-white/10 text-sm text-[#F4F5F7] focus:outline-none focus:border-[#E04455]"
                 >
-                  {CATALOG_ITEMS.filter((item) => MARKET_RAW_ITEM_IDS.includes(item.id as (typeof MARKET_RAW_ITEM_IDS)[number])).map((item) => {
+                  {CATALOG_ITEMS.filter((item) => getMarketPriceBounds(item.id) !== null).map((item) => {
                     const owned = invMap.get(item.id) || 0;
                     return (
                       <option key={item.id} value={item.id}>
