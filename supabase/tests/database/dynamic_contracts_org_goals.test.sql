@@ -130,7 +130,7 @@ select extensions.lives_ok(
         perform nexora.abandon_dynamic_contract('pgtap_daily',v_id);
       end loop;
     end;
-  $body$$,
+  $body$$$,
   'five daily acceptances remain consumed even after abandonment'
 );
 select extensions.is(
@@ -361,7 +361,7 @@ select extensions.lives_ok(
       perform nexora.record_org_goal_progress('pgtap_goal_user',v_goal.goal_type,v_goal.target_amount+1);
       perform nexora.record_org_goal_progress('pgtap_goal_user',v_goal.goal_type,v_goal.target_amount+1);
     end;
-  $body$$,
+  $body$$$,
   'goal progress is recorded and repeated completion remains idempotent'
 );
 select extensions.is(
