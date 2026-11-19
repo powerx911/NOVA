@@ -16,6 +16,7 @@ import {
   COMPANY_SECTORS,
   ITEM_MAP,
 } from '../../data/catalog';
+import { ResourceIcon } from '../../components/ui/ResourceIcon';
 import { useTranslations } from '../../i18n/translations';
 import {
   calculateAccruedPayout,
@@ -743,7 +744,7 @@ export function BusinessHubView({
         <div className="bg-[#141821] border border-white/8 rounded-2xl p-5 space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-base font-semibold text-[#F4F5F7]">{t.subInventory}</h2>
-            <Package className="w-4 h-4 text-[#E04455]" />
+            <Package className="w-4 h-4 text-[#63A5FF]" />
           </div>
           {inventory.filter((i) => i.quantity > 0).length === 0 ? (
             <div className="py-10 text-center space-y-3">
@@ -755,7 +756,7 @@ export function BusinessHubView({
               <button
                 type="button"
                 onClick={onGoToMarket}
-                className="min-h-[42px] px-5 rounded-xl bg-[#B91C32] hover:bg-[#E04455] text-white text-xs font-semibold"
+                className="min-h-[42px] px-5 rounded-xl bg-[#397BFF] hover:bg-[#2F6DE0] text-white text-xs font-semibold"
               >
                 {t.navMarket}
               </button>
@@ -772,15 +773,18 @@ export function BusinessHubView({
                       key={inv.itemId}
                       className="p-4 rounded-xl bg-[#0B0D12] border border-white/6 flex items-center justify-between gap-3"
                     >
-                      <div>
-                        <p className="text-sm font-semibold text-[#F4F5F7]">
+                      <div className="flex min-w-0 items-center gap-3">
+                        <ResourceIcon itemId={inv.itemId} size="lg" />
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-semibold text-[#F4F5F7]">
                           {language === 'ar' ? item.nameAr : item.nameEn}
                         </p>
-                        <p className="text-xs text-[#9299A6] mt-0.5">
-                          ~{'$'}{item.basePrice}
-                        </p>
+                          <p className="text-xs text-[#9299A6] mt-0.5">
+                            ~{'$'}{item.basePrice}
+                          </p>
+                        </div>
                       </div>
-                      <span className="text-lg font-mono-num font-bold text-[#E04455]">
+                      <span className="shrink-0 text-lg font-mono-num font-bold text-[#63A5FF]">
                         ×{inv.quantity}
                       </span>
                     </div>
