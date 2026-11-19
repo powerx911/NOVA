@@ -285,7 +285,8 @@ begin
       and starts_at<=now() and ends_at>now() and target_item_id is not null and price_multiplier>1;
     if v_item is null then raise exception 'EVENT_NOT_ACTIVE'; end if;
     v_tier:=coalesce(v_catalog->v_item->>'tier','common');
-    v_premium:=least(0.10,greatest(0,(v_event_multiplier-1)*0.5));
+    v_premium:=least(coalesce((v_progression->>'event_premium_cap')::numeric,0.10),
+      greatest(0,(v_event_multiplier-1)*coalesce((v_progression->>'event_premium_slope')::numeric,0.5)));
   else
     for v_key,v_value in select key,value from jsonb_each(v_weights) loop
       if v_key='uncommon' and p_scope='personal' and v_level<coalesce((v_progression->>'uncommon_level')::integer,3) then continue; end if;
@@ -318,14 +319,18 @@ begin
   select value into v_value from jsonb_each(v_rules) where key=v_tier;
   v_qty:=coalesce((v_value->>'min_qty')::integer,1)
     +floor(random()*(coalesce((v_value->>'max_qty')::integer,1)-coalesce((v_value->>'min_qty')::integer,1)+1))::integer;
-  if p_scope='organization' then v_qty:=ceil(v_qty*1.5)::integer; end if;
+  if p_scope='organization' then v_qty:=ceil(v_qty*coalesce((v_progression->>'org_quantity_multiplier')::numeric,1.5))::integer; end if;
   v_multiplier:=(v_value->>'multiplier')::numeric;
   v_min_hours:=(v_value->>'min_hours')::integer;
   v_max_hours:=(v_value->>'max_hours')::integer;
   v_rep:=(v_value->>'reputation')::integer;
   v_org_rep:=(v_value->>'org_reputation')::integer;
   v_payout:=least(coalesce((v_progression->>'payout_cap')::bigint,2500),
-    round(v_qty*v_base*v_multiplier*(0.95+random()*0.10)*(1+v_premium))::bigint);
+    round(v_qty*v_base*v_multiplier*(
+      coalesce((v_progression->>'payout_random_min')::numeric,0.95)
+      +random()*(coalesce((v_progression->>'payout_random_max')::numeric,1.05)
+        -coalesce((v_progression->>'payout_random_min')::numeric,0.95))
+      )*(1+v_premium))::bigint);
   v_processing:=greatest(coalesce((v_progression->>'processing_min_minutes')::integer,10),
     least(coalesce((v_progression->>'processing_max_minutes')::integer,120),
       round(v_payout/coalesce((v_progression->>'processing_divisor')::numeric,12))::integer));
