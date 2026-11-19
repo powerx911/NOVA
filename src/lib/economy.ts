@@ -171,7 +171,7 @@ export function calculateDynamicItemPrice(
       eventMultiplier *= evt.priceMultiplier || 1.0;
     }
   }
-  const boundedMultiplier = Math.max(0.7, Math.min(1.45, eventMultiplier));
+  const boundedMultiplier = Math.max(0.6, Math.min(1.45, eventMultiplier));
   return Math.max(1, Math.round(item.basePrice * supplyFactor * boundedMultiplier));
 }
 
