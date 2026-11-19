@@ -397,7 +397,7 @@ values ('pgtap_org_member','Org Member','pgtap_org_member',1,'pgtap_org');
 insert into nexora.organization_members(org_id,user_id,username,role,joined_at)
 values ('pgtap_org','pgtap_org_member','Org Member','member',now()-interval '30 days');
 select extensions.throws_ok(
-  $$select nexora.refresh_dynamic_contract('pgtap_org_member',(select id from nexora.contract_offers where scope='organization' and org_id='pgtap_org' and status='offered' order by slot_no limit 1))$$$,
+  $$select nexora.refresh_dynamic_contract('pgtap_org_member',(select id from nexora.contract_offers where scope='organization' and org_id='pgtap_org' and status='offered' order by slot_no limit 1))$$,
   'P0001','ORG_REFRESH_PERMISSION_REQUIRED',
   'regular organization members cannot refresh shared organization contracts'
 );
