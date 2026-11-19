@@ -56,4 +56,4 @@ The production migration history is not yet reconciled with the repository. Do n
 
 ## CI workflow
 
-Pull requests targeting `main` run the validation workflow. Feature branches also match the workflow's `feature/**` push filter so validation can be run before merge. The Playwright job is intentionally gated: without all three isolated-test secrets above, it reports a notice and skips browser mutations rather than touching production.
+Pull requests targeting `main` run the validation workflow. Feature branches match the `feature/**` push filter, and fix branches match `fix/**`, so validation can run before merge. A zero-job run is not a successful validation; confirm that the `validate` job actually starts and completes. The Playwright job is intentionally gated: without all three isolated-test secrets above, it reports a notice and skips browser mutations rather than touching production.
