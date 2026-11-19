@@ -73,6 +73,9 @@ jobs:
       - name: Unit tests
         run: npm test
 
+      - name: Simulate 10,000 dynamic contract offers
+        run: npm run test:contract-economy
+
       - name: Build web application
         run: npm run build
 
