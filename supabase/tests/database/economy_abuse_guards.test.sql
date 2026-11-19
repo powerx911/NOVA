@@ -152,7 +152,7 @@ insert into nexora.company_auctions(
   id,company_name,company_sector,company_level,seller_uid,seller_name,
   starting_price,current_price,highest_bidder_uid,highest_bidder_name,ends_at,status
 ) values (
-  'pgtap_sale_fee','pgTAP sale fee','test',1,'pgtap_auction_seller','Seller',
+  'pgtap_sale_fee','pgTAP sale fee','test',50,'pgtap_auction_seller','Seller',
   1000,1000,'pgtap_auction_bidder','Bidder',now()-interval '1 minute','active'
 );
 
@@ -180,7 +180,7 @@ insert into nexora.company_auctions(
   id,company_name,company_sector,company_level,seller_uid,seller_name,
   starting_price,current_price,ends_at,status
 ) values (
-  'pgtap_anti_sniping','pgTAP anti-sniping','test',1,'pgtap_auction_seller','Seller',
+  'pgtap_anti_sniping','pgTAP anti-sniping','test',50,'pgtap_auction_seller','Seller',
   100,100,now()+interval '2 minutes','active'
 );
 
