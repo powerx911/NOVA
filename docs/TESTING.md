@@ -53,3 +53,7 @@ The current Supabase branch lookup has returned the production project reference
 ## Migration safety
 
 The production migration history is not yet reconciled with the repository. Do not run `supabase db push` or `migration repair` until the documented local/remote migration mapping has been resolved.
+
+## CI workflow
+
+Pull requests targeting `main` run the validation workflow. Feature branches also match the workflow's `feature/**` push filter so validation can be run before merge. The Playwright job is intentionally gated: without all three isolated-test secrets above, it reports a notice and skips browser mutations rather than touching production.
