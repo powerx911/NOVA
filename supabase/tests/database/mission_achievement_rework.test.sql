@@ -1,7 +1,7 @@
 -- Regression coverage for the redesigned recurring missions and long-term medal tracks.
 create extension if not exists pgtap with schema extensions;
 begin;
-select extensions.plan(10);
+select extensions.plan(14);
 
 insert into nexora.player_profiles(user_id,username,username_lower,stats)
 values('pgtap_rework_owner','pgTAP_Rework','pgtap_rework',
@@ -27,6 +27,27 @@ select 'pgtap_rework_company_'||n::text,'SYSTEM','pgtap_rework_owner',1000,0,100
   'pgtap_rework_company_ref_'||n::text,'mission fixture','completed',
   date_trunc('day',now() at time zone 'UTC') at time zone 'UTC'+interval '1 hour'
 from generate_series(1,100) n;
+
+select extensions.is(
+  (nexora.get_mission_progress('pgtap_rework_owner')->>'dailyTradesCount')::bigint,
+  250::bigint,
+  'bootstrap progress RPC returns exact daily purchase count without client-side caps'
+);
+select extensions.is(
+  (nexora.get_mission_progress('pgtap_rework_owner')->>'weeklyManufacturingCount')::bigint,
+  180::bigint,
+  'bootstrap progress RPC returns exact weekly manufacturing count'
+);
+select extensions.is(
+  (nexora.get_mission_progress('pgtap_rework_owner')->>'seasonalCompanyCollectionsCount')::bigint,
+  100::bigint,
+  'bootstrap progress RPC returns exact seasonal company collection count'
+);
+select extensions.is(
+  (nexora.get_mission_progress('pgtap_rework_owner')->>'companyRevenueTotal')::bigint,
+  100000::bigint,
+  'achievement revenue progress aggregates the complete company collection ledger'
+);
 
 select nexora.claim_mission_reward('pgtap_rework_owner','daily_market_orders');
 select extensions.ok(
