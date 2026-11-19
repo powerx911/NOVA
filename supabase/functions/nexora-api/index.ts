@@ -244,6 +244,7 @@ Deno.serve(async (req: Request) => {
 
     const dynamicContractActions: Record<string, { rpc: string; args: Record<string, unknown>; status: number }> = {
       get_dynamic_contract_board: { rpc: "get_dynamic_contract_board", args: { p_uid: identity.uid }, status: 200 },
+      get_contract_slot_cooldowns: { rpc: "get_contract_slot_cooldowns", args: { p_uid: identity.uid }, status: 200 },
       accept_dynamic_contract: {
         rpc: "accept_dynamic_contract",
         args: { p_uid: identity.uid, p_contract_id: typeof body.contractId === "string" ? body.contractId : "" },
@@ -268,7 +269,7 @@ Deno.serve(async (req: Request) => {
     };
     const dynamicContractAction = dynamicContractActions[body.action];
     if (dynamicContractAction) {
-      if (body.action !== "get_dynamic_contract_board" && body.action !== "get_org_weekly_goals") {
+      if (body.action !== "get_dynamic_contract_board" && body.action !== "get_org_weekly_goals" && body.action !== "get_contract_slot_cooldowns") {
         const contractId = dynamicContractAction.args.p_contract_id;
         if (typeof contractId !== "string" || !contractId || contractId.length > 128) {
           return json({ error: "INVALID_ARGUMENT" }, 400, origin);
@@ -288,6 +289,11 @@ Deno.serve(async (req: Request) => {
       }
       if (data && typeof data === "object" && "error" in data && (data as { error?: unknown }).error) {
         return json({ error: String((data as { error: unknown }).error) }, 409, origin);
+      }
+      if (body.action === "get_dynamic_contract_board") {
+        const { data: cooldowns, error: cooldownError } = await db.rpc("get_contract_slot_cooldowns", { p_uid: identity.uid });
+        if (cooldownError) return json({ error: "CONTRACT_COOLDOWN_FETCH_FAILED" }, 500, origin);
+        return json({ ok: true, data: { ...(data as Record<string, unknown>), cooldowns } }, dynamicContractAction.status, origin);
       }
       return json({ ok: true, data }, dynamicContractAction.status, origin);
     }
