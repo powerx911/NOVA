@@ -130,7 +130,7 @@ select extensions.ok(
 );
 
 select extensions.ok(
-  position('daily_trades' in lower(pg_get_functiondef('nexora.claim_mission_reward(text,text)'::regprocedure)))>0
+  position('daily_market_buys' in lower(pg_get_functiondef('nexora.claim_mission_reward(text,text)'::regprocedure)))>0
   and position('market_buy' in lower(pg_get_functiondef('nexora.claim_mission_reward(text,text)'::regprocedure)))>0,
   'daily trader progress counts completed market buys in the current period'
 );
@@ -198,30 +198,30 @@ select extensions.ok(
 -- Tiered medal rewards are granted once, atomically with the medal record.
 insert into nexora.player_profiles(user_id, username, username_lower, stats)
 values ('pgtap_medal_owner', 'pgTAP_Medal', 'pgtap_medal',
-  '{"tradesCount":25,"companiesOwned":0,"totalProduced":0}'::jsonb);
+  '{"tradesCount":250,"companiesOwned":0,"totalProduced":0}'::jsonb);
 insert into nexora.wallets(user_id, balance, total_earned, total_spent)
-values ('pgtap_medal_owner', 2500, 2500, 10000);
+values ('pgtap_medal_owner', 2500, 2500, 50000);
 
 select nexora.unlock_eligible_achievements('pgtap_medal_owner');
 
 select extensions.ok(
-  exists(select 1 from nexora.player_achievements where user_id='pgtap_medal_owner' and achievement_id='medal_whale_bronze')
-  and exists(select 1 from nexora.player_achievements where user_id='pgtap_medal_owner' and achievement_id='medal_trader_bronze')
-  and not exists(select 1 from nexora.player_achievements where user_id='pgtap_medal_owner' and achievement_id='medal_whale_silver'),
-  'achievement sync awards eligible bronze medals without skipping unearned silver tiers'
+  exists(select 1 from nexora.player_achievements where user_id='pgtap_medal_owner' and achievement_id='nova_whale_i')
+  and exists(select 1 from nexora.player_achievements where user_id='pgtap_medal_owner' and achievement_id='nova_market_i')
+  and not exists(select 1 from nexora.player_achievements where user_id='pgtap_medal_owner' and achievement_id='nova_whale_ii'),
+  'achievement sync awards eligible first-rank medals without skipping unearned higher ranks'
 );
 
 select extensions.is(
   (select balance from nexora.wallets where user_id='pgtap_medal_owner'),
-  3250::bigint,
-  'new whale and trader medals grant their combined one-time 750 credit reward'
+  6000::bigint,
+  'new whale and market medals grant their combined 3,500 credit reward'
 );
 
 select nexora.unlock_eligible_achievements('pgtap_medal_owner');
 
 select extensions.ok(
-  (select balance=3250 from nexora.wallets where user_id='pgtap_medal_owner')
-  and (select count(*)=2 from nexora.transactions where to_uid='pgtap_medal_owner' and reference_id in ('medal_whale_bronze','medal_trader_bronze')),
+  (select balance=6000 from nexora.wallets where user_id='pgtap_medal_owner')
+  and (select count(*)=2 from nexora.transactions where to_uid='pgtap_medal_owner' and reference_id in ('nova_whale_i','nova_market_i')),
   'rechecking achievements never duplicates medal rewards or ledger entries'
 );
 

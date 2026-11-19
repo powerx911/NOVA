@@ -90,6 +90,7 @@ export async function validateTransferRecipient(username: string): Promise<{ exi
 
 export async function refreshPlayerAchievements(): Promise<void> {
   await nexoraApi('refresh_achievements');
+  if (typeof window !== 'undefined') window.dispatchEvent(new Event('nova:refresh-game'));
 }
 
 export async function createPlayerCharacter(
