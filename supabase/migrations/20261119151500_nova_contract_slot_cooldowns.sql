@@ -33,6 +33,9 @@ begin
 end;
 $;
 
+alter table nexora.contract_slot_cooldowns enable row level security;
+revoke all on table nexora.contract_slot_cooldowns from public,anon,authenticated;
+
 create index if not exists contract_slot_cooldowns_until_idx
   on nexora.contract_slot_cooldowns (cooldown_until);
 
