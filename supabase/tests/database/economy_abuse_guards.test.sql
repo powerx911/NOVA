@@ -266,7 +266,7 @@ select extensions.is(
 );
 
 select extensions.throws_ok(
-  $select nexora.claim_mission_reward('pgtap_weekly_owner', 'weekly_market_mogul')$,
+  'select nexora.claim_mission_reward(''pgtap_weekly_owner'', ''weekly_market_mogul'')',
   'P0001',
   'MISSION_ALREADY_CLAIMED',
   'weekly market mission cannot be claimed twice in the same week'
