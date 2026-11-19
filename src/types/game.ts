@@ -466,7 +466,7 @@ export interface DynamicContractBoard {
   org_daily_used?: number;
   org_daily_limit?: number;
   offer_expires_at: string;
-  cooldowns?: { server_now: string; can_refresh_org?: boolean; personal: DynamicContractCooldown[]; organization: DynamicContractCooldown[] };
+  cooldowns?: { server_now: string; can_refresh_org?: boolean; personal_refresh_used?: number; personal_refresh_limit?: number; org_refresh_used?: number; org_refresh_limit?: number; personal: DynamicContractCooldown[]; organization: DynamicContractCooldown[] };
 }
 
 export interface OrgGoalContribution {
