@@ -185,7 +185,7 @@ Deno.serve(async (req: Request) => {
         p_uid: identity.uid, p_item_id: itemId, p_qty: quantity, p_unit_price: unitPrice,
       });
       if (error) {
-        const known = ["INVALID_ITEM","INVALID_LISTING_PARAMS","INSUFFICIENT_INVENTORY","ACCOUNT_NOT_FOUND"].find((code) => error.message.includes(code));
+        const known = ["INVALID_ITEM","INVALID_LISTING_PARAMS","INSUFFICIENT_INVENTORY","ACCOUNT_NOT_FOUND","PRICE_BELOW_MINIMUM","PRICE_ABOVE_MAXIMUM"].find((code) => error.message.includes(code));
         return json({ error: known ?? "CREATE_LISTING_FAILED" }, 409, origin);
       }
       return json({ ok: true, data }, 201, origin);
@@ -244,6 +244,19 @@ Deno.serve(async (req: Request) => {
       if (error) {
         const known = ["MANUFACTURING_JOB_NOT_FOUND","MANUFACTURING_JOB_NOT_FINISHED","INVENTORY_CAPACITY_EXCEEDED","ACCOUNT_NOT_FOUND"].find((code) => error.message.includes(code));
         return json({ error: known ?? "MANUFACTURING_COMPLETION_FAILED" }, 409, origin);
+      }
+      return json({ ok: true, data }, 200, origin);
+    }
+
+    if (body.action === "cancel_manufacturing_job") {
+      const jobId = typeof body.jobId === "string" ? body.jobId : "";
+      if (!jobId || jobId.length > 128) return json({ error: "INVALID_ARGUMENT" }, 400, origin);
+      const { data, error } = await db.rpc("cancel_manufacturing_job", {
+        p_uid: identity.uid, p_job_id: jobId,
+      });
+      if (error) {
+        const known = ["MANUFACTURING_JOB_NOT_FOUND","MANUFACTURING_JOB_ALREADY_FINISHED","MANUFACTURING_JOB_ALREADY_COMPLETED","MANUFACTURING_JOB_CANCELLED","ACCOUNT_NOT_FOUND"].find((code) => error.message.includes(code));
+        return json({ error: known ?? "MANUFACTURING_CANCELLATION_FAILED" }, 409, origin);
       }
       return json({ ok: true, data }, 200, origin);
     }
