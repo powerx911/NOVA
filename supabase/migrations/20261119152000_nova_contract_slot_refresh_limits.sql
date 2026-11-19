@@ -7,6 +7,9 @@ create table if not exists nexora.contract_slot_refresh_usage (
   primary key(scope,owner_id,date_key)
 );
 
+alter table nexora.contract_slot_refresh_usage enable row level security;
+revoke all on table nexora.contract_slot_refresh_usage from public,anon,authenticated;
+
 create or replace function nexora.refresh_dynamic_contract(p_uid text,p_contract_id text)
 returns jsonb
 language plpgsql
