@@ -81,7 +81,7 @@ jobs:
           psql "$DB_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20261118223000_nova_player_presence.sql
           psql "$DB_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20261118224000_nova_org_donation_ranking.sql
 
-      - name: Apply the three NOVA economy hardening migrations
+      - name: Apply NOVA economy hardening and medal migrations
         shell: bash
         run: |
           set -euo pipefail
@@ -89,7 +89,8 @@ jobs:
           for migration in \
             supabase/migrations/20261119112257_nova_economy_abuse_guards.sql \
             supabase/migrations/20261119112311_nova_recurring_mission_periods.sql \
-            supabase/migrations/20261119112320_nova_market_wallet_lock_order.sql
+            supabase/migrations/20261119112320_nova_market_wallet_lock_order.sql \
+            supabase/migrations/20261119140000_nova_tiered_medal_rewards.sql
           do
             psql "$DB_URL" -v ON_ERROR_STOP=1 -f "$migration"
           done
