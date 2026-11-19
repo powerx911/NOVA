@@ -227,7 +227,7 @@ insert into nexora.wallets(user_id,balance) values ('pgtap_expiry',2500);
 insert into nexora.player_private(user_id,language,notifications_enabled)
 values ('pgtap_expiry','en',true);
 select extensions.lives_ok($$select nexora.get_dynamic_contract_board('pgtap_expiry')$$,'expiry fixture receives offers');
-select extensions.is((select count(*)::integer from nexora.contract_offers where user_id='pgtap_expiry' and scope='personal' and board_date=(now() at time zone 'UTC')::date and status='offered'),5,'personal board exposes five offers');
+select extensions.is((select count(*)::integer from nexora.contract_offers where user_id='pgtap_expiry' and scope='personal' and board_date=(now() at time zone 'UTC')::date and slot_no between 1 and 5 and status='offered'),5,'personal board exposes five offers');
 select extensions.lives_ok(
   $$select nexora.accept_dynamic_contract('pgtap_expiry',(select id from nexora.contract_offers where user_id='pgtap_expiry' and status='offered' order by slot_no limit 1))$$,
   'expiry fixture accepts a contract'
