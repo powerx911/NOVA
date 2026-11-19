@@ -35,7 +35,8 @@ insert into nexora.contract_config(config_key, config_value) values
 ('personal_tier_weights', '{"common":90,"uncommon":9,"rare":1}'::jsonb),
 ('item_selection', '{"price_exponent":0.30}'::jsonb),
 ('org_tier_weights', '{"1-2":{"common":80,"uncommon":20,"rare":0,"epic":0},"3-5":{"common":50,"uncommon":35,"rare":15,"epic":0},"6-8":{"common":25,"uncommon":35,"rare":30,"epic":10},"9-10":{"common":10,"uncommon":30,"rare":35,"epic":25}}'::jsonb),
-('progression', '{"uncommon_level":3,"rare_level":8,"personal_slots":6,"daily_claim_limit":5,"active_personal_limit":3,"org_join_hours":8,"fee_rate":0.04,"xp_rate":0.17,"xp_cap":400,"payout_cap":2500,"processing_divisor":12,"processing_min_minutes":10,"processing_max_minutes":120}'::jsonb),
+('progression', '{"uncommon_level":3,"rare_level":8,"personal_slots":6,"daily_claim_limit":5,"active_personal_limit":3,"org_join_hours":8,"org_slots_base":2,"org_slots_level_divisor":2,"org_quantity_multiplier":1.5,"fee_rate":0.04,"xp_rate":0.17,"xp_cap":400,"payout_cap":2500,"processing_divisor":12,"processing_min_minutes":10,"processing_max_minutes":120,"payout_random_min":0.95,"payout_random_max":1.05,"event_premium_cap":0.10,"event_premium_slope":0.5}'::jsonb),
+('weekly_goal_scaling', '{"level_rate":0.15,"member_exponent":0.7,"goal_count":3}'::jsonb),
 ('weekly_goal_bases', '{"produce_units":250,"trade_volume":5000,"contracts_completed":8,"treasury_donations":2500}'::jsonb),
 ('weekly_goal_rewards', '{"easy":50,"medium":100,"hard":200}'::jsonb)
 on conflict (config_key) do nothing;
@@ -96,7 +97,7 @@ create unique index if not exists contract_one_active_org_per_member_uq
 create table if not exists nexora.contract_daily_limits (
   user_id text not null,
   date_key date not null,
-  used_count integer not null default 0 check (used_count between 0 and 5),
+  used_count integer not null default 0 check (used_count >= 0),
   updated_at timestamptz not null default now(),
   primary key (user_id,date_key)
 );
@@ -146,6 +147,7 @@ declare
   v_week date := date_trunc('week',timezone('UTC',now()))::date;
   v_bases jsonb;
   v_rewards jsonb;
+  v_scaling jsonb;
   v_types text[] := array['produce_units','trade_volume','contracts_completed','treasury_donations'];
   v_type text;
   v_difficulty text;
@@ -159,15 +161,16 @@ begin
   if exists(select 1 from nexora.org_weekly_goals where org_id=p_org_id and week_start=v_week) then return; end if;
   select config_value into v_bases from nexora.contract_config where config_key='weekly_goal_bases';
   select config_value into v_rewards from nexora.contract_config where config_key='weekly_goal_rewards';
+  select config_value into v_scaling from nexora.contract_config where config_key='weekly_goal_scaling';
   -- Three distinct goals are generated for each ISO week in UTC.
-  for v_count in 1..3 loop
+  for v_count in 1..coalesce((v_scaling->>'goal_count')::integer,3) loop
     v_type:=v_types[1+floor(random()*cardinality(v_types))::integer];
     v_types:=array_remove(v_types,v_type);
     v_difficulty:=case v_type when 'produce_units' then 'easy' when 'trade_volume' then 'medium'
       when 'contracts_completed' then 'hard' else 'medium' end;
     v_target:=round((coalesce((v_bases->>v_type)::numeric,100)
-      * (1+0.15*greatest(1,v_org.level))
-      * power(greatest(1,v_org.member_count)::numeric,0.7))::numeric,0);
+      * (1+coalesce((v_scaling->>'level_rate')::numeric,0.15)*greatest(1,v_org.level))
+      * power(greatest(1,v_org.member_count)::numeric,coalesce((v_scaling->>'member_exponent')::numeric,0.7)))::numeric,0);
     v_reward:=coalesce((v_rewards->>v_difficulty)::bigint,100);
     v_id:='og_'||gen_random_uuid()::text;
     insert into nexora.org_weekly_goals(id,org_id,week_start,goal_type,difficulty,target_amount,reward_reputation)
