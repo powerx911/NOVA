@@ -81,7 +81,7 @@ export function DynamicContractsPanel({ profile, inventory, wallet, language }: 
   const [now, setNow] = useState(Date.now());
   const [serverOffsetMs, setServerOffsetMs] = useState(0);
   const [personalCooldowns, setPersonalCooldowns] = useState<Array<{ slot_no: number; cooldown_until: string }>>([]);
-  const [orgCooldowns, setOrgCooldowns] = useState<Array<{ slot_no: number; cooldown_until: string }>>([]);
+  const [orgCooldowns, setOrgCooldowns] = useState<Array<{ slot_no: number; cooldown_until: string }>>([]);\n  const [canRefreshOrgContracts, setCanRefreshOrgContracts] = useState(false);
   const [activeContractTab, setActiveContractTab] = useState<'personal' | 'organization'>('personal');
   const inventoryMap = useMemo(
     () => new Map<string, number>(inventory.map((item) => [item.itemId, item.quantity] as [string, number])),
@@ -93,7 +93,7 @@ export function DynamicContractsPanel({ profile, inventory, wallet, language }: 
       const board = await getDynamicContractBoard();
       setContracts(board.personal ?? []);
       setPersonalCooldowns(board.cooldowns?.personal ?? []);
-      setOrgCooldowns(board.cooldowns?.organization ?? []);
+      setOrgCooldowns(board.cooldowns?.organization ?? []);\n      setCanRefreshOrgContracts(board.cooldowns?.can_refresh_org === true);
       if (board.cooldowns?.server_now) setServerOffsetMs(new Date(board.cooldowns.server_now).getTime() - Date.now());
       setOrgContracts(board.organization ?? []);
       setDailyUsed(board.daily_used ?? 0);
