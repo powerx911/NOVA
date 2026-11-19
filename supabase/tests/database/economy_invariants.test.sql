@@ -3,7 +3,7 @@
 create extension if not exists pgtap with schema extensions;
 
 begin;
-select extensions.plan(15);
+select extensions.plan(22);
 
 select extensions.ok(
   not exists (select 1 from nexora.wallets where balance < 0),
@@ -125,6 +125,70 @@ select extensions.ok(
   exists(select 1 from pg_indexes where schemaname='nexora' and indexname='manufacturing_jobs_one_running_per_player')
   and position('v_output_qty * p_batches' in lower(pg_get_functiondef('nexora.manufacture_recipe(text,text,integer)'::regprocedure))) > 0,
   'manufacturing time scales with each produced unit and a unique running-job guard exists'
+);
+
+select extensions.is(
+  (select min_price from nexora.market_price_bounds('microchips')),
+  72::bigint,
+  'market listings have a minimum price at half the catalog reference value'
+);
+
+select extensions.is(
+  (select max_price from nexora.market_price_bounds('microchips')),
+  290::bigint,
+  'market listings have a maximum price at twice the catalog reference value'
+);
+
+insert into nexora.player_profiles(user_id, username, username_lower, skills, stats)
+values ('pgtap_mfg_cancel_owner', 'pgTAP_MfgCancel', 'pgtap_mfgcancel',
+  '{"industry":3}'::jsonb,
+  '{"tradesCount":0,"companiesOwned":0,"totalProduced":0}'::jsonb);
+
+insert into nexora.manufacturing_jobs(
+  id, user_id, recipe_id, output_item_id, output_qty, xp_reward, started_at, ends_at, status
+)
+values (
+  'pgtap_mfg_cancel_job', 'pgtap_mfg_cancel_owner', 'rec_microchips',
+  'microchips', 2, 8, now(), now() + interval '1 hour', 'running'
+);
+
+select extensions.lives_ok(
+  $$select nexora.cancel_manufacturing_job('pgtap_mfg_cancel_owner', 'pgtap_mfg_cancel_job')$$,
+  'a running manufacturing job can be cancelled and its inputs refunded'
+);
+
+select extensions.lives_ok(
+  $$select nexora.cancel_manufacturing_job('pgtap_mfg_cancel_owner', 'pgtap_mfg_cancel_job')$$,
+  'repeating cancellation is idempotent'
+);
+
+select extensions.is(
+  (
+    select string_agg(item_id || ':' || quantity::text, ',' order by item_id)
+    from nexora.inventory
+    where user_id = 'pgtap_mfg_cancel_owner'
+  ),
+  'copper_wire:2,silicon_ore:2',
+  'cancellation returns each input exactly once'
+);
+
+select extensions.throws_ok(
+  $$select nexora.complete_manufacturing_job('pgtap_mfg_cancel_owner', 'pgtap_mfg_cancel_job')$$,
+  'P0001',
+  'MANUFACTURING_JOB_CANCELLED',
+  'a cancelled manufacturing job can never be completed later'
+);
+
+select extensions.throws_ok(
+  $$insert into nexora.manufacturing_jobs(
+      id, user_id, recipe_id, output_item_id, output_qty, xp_reward, ends_at
+    ) values (
+      'pgtap_duplicate_quantum_recipe', 'pgtap_mfg_cancel_owner',
+      'rec_quantum_server_advanced', 'quantum_server', 1, 18, now() + interval '1 hour'
+    )$$,
+  'P0001',
+  'INVALID_RECIPE',
+  'the duplicate advanced quantum server recipe is rejected server-side'
 );
 
 select * from extensions.finish();
