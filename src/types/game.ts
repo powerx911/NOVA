@@ -412,3 +412,69 @@ export interface TradeContract {
   xpReward: number;
   reputationReward: number;
 }
+
+
+export type DynamicContractScope = 'personal' | 'organization';
+export type DynamicContractTier = 'common' | 'uncommon' | 'rare' | 'epic';
+export type DynamicContractStatus = 'offered' | 'accepted' | 'processing' | 'ready' | 'completed' | 'expired' | 'abandoned';
+
+export interface DynamicContractOffer {
+  id: string;
+  scope: DynamicContractScope;
+  user_id: string | null;
+  org_id: string | null;
+  slot_no: number;
+  slot_generation: number;
+  board_date: string;
+  event_id: string | null;
+  item_id: string;
+  tier: DynamicContractTier;
+  quantity: number;
+  base_price: number;
+  payout: number;
+  reputation_reward: number;
+  org_reputation_reward: number;
+  processing_minutes: number;
+  event_premium: number;
+  status: DynamicContractStatus;
+  offer_expires_at: string;
+  accepted_at: string | null;
+  deadline_at: string | null;
+  deadline_remaining_secs: number | null;
+  ready_at: string | null;
+  claimed_by: string | null;
+  fee_paid: number;
+}
+
+export interface DynamicContractBoard {
+  personal: DynamicContractOffer[];
+  organization: DynamicContractOffer[];
+  active_personal: number;
+  daily_used: number;
+  daily_limit: number;
+  offer_expires_at: string;
+}
+
+export interface OrgGoalContribution {
+  uid: string;
+  username: string | null;
+  amount: number;
+}
+
+export interface OrgWeeklyGoal {
+  id: string;
+  type: 'produce_units' | 'trade_volume' | 'contracts_completed' | 'treasury_donations';
+  difficulty: 'easy' | 'medium' | 'hard';
+  target: number;
+  current: number;
+  rewardReputation: number;
+  status: 'active' | 'completed';
+  weekStart: string;
+  completedAt: string | null;
+  contributions: OrgGoalContribution[];
+}
+
+export interface OrgWeeklyGoals {
+  weekStart: string;
+  goals: OrgWeeklyGoal[];
+}
