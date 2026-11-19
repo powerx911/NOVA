@@ -10,6 +10,7 @@ import { OrganizationResearchPanel } from './OrganizationResearchPanel';
 import {
   calculateOrgUpgradeCost,
   getOrgMemberCapacity,
+  ORG_RESEARCH_DEFINITIONS,
   hasOrgPermission,
   ORG_MAX_LEVEL,
   sanitizePositiveInt,
