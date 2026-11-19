@@ -1,6 +1,7 @@
 import { ArrowDownLeft, ArrowUpRight, Award, CalendarCheck, Flame, TrendingUp } from 'lucide-react';
 import { useState } from 'react';
 import { EconomicChart } from '../../components/ui/EconomicChart';
+import { ResourceIcon } from '../../components/ui/ResourceIcon';
 import { useToast } from '../../components/ui/ToastProvider';
 import { AVATARS, CATALOG_ITEMS, ITEM_MAP, MISSIONS } from '../../data/catalog';
 import { useTranslations, formatTxType } from '../../i18n/translations';
@@ -164,13 +165,13 @@ export function HomeDashboardView({
               <span className="text-[#9299A6]">
                 {t.xp}: <span className="font-mono-num text-[#F4F5F7]">{xpProg.currentLevelXp} / {xpProg.nextLevelXp}</span>
               </span>
-              <span className="font-mono-num text-[#E04455] font-medium">
+              <span className="font-mono-num text-[#63A5FF] font-medium">
                 {xpProg.progressPercent}%
               </span>
             </div>
             <div className="h-2 rounded-full bg-[#0B0D12] overflow-hidden border border-white/6">
               <div
-                className="h-full bg-[#B91C32] rounded-full transition-all duration-300"
+                className="h-full bg-[#397BFF] rounded-full transition-all duration-300"
                 style={{ width: `${xpProg.progressPercent}%` }}
               />
             </div>
@@ -183,7 +184,7 @@ export function HomeDashboardView({
               <p className="text-base font-semibold font-mono-num text-[#F4F5F7] mt-0.5">
                 {profile.reputation.toLocaleString()}
               </p>
-              <p className="text-[11px] text-[#E04455] truncate mt-0.5">
+              <p className="text-[11px] text-[#63A5FF] truncate mt-0.5">
                 {language === 'ar' ? repTier.titleAr : repTier.titleEn}
               </p>
             </div>
@@ -195,7 +196,7 @@ export function HomeDashboardView({
             </div>
             <div>
               <p className="text-xs text-[#9299A6]">{t.skillPoints}</p>
-              <p className="text-base font-semibold font-mono-num text-[#E04455] mt-0.5">
+              <p className="text-base font-semibold font-mono-num text-[#63A5FF] mt-0.5">
                 {profile.skillPoints}
               </p>
             </div>
@@ -207,7 +208,7 @@ export function HomeDashboardView({
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
               <h2 className="text-base font-semibold text-[#F4F5F7]">{t.dailyOperation}</h2>
-              <CalendarCheck className="w-4 h-4 text-[#E04455]" />
+              <CalendarCheck className="w-4 h-4 text-[#63A5FF]" />
             </div>
             <p className="text-xs text-[#9299A6] leading-relaxed">
               {language === 'ar'
@@ -227,7 +228,7 @@ export function HomeDashboardView({
             type="button"
             disabled={claimedDailyToday || busyId === 'daily'}
             onClick={handleDailyClaim}
-            className="w-full min-h-[44px] px-4 py-2.5 rounded-xl bg-[#B91C32] hover:bg-[#E04455] text-white text-sm font-semibold transition-colors disabled:bg-[#1B2230] disabled:text-[#9299A6]"
+            className="w-full min-h-[44px] px-4 py-2.5 rounded-xl bg-[#397BFF] hover:bg-[#2F6DE0] text-white text-sm font-semibold transition-colors disabled:bg-[#1B2230] disabled:text-[#9299A6]"
           >
             {claimedDailyToday ? t.dailyClaimed : busyId === 'daily' ? '...' : t.dailyClaimBtn}
           </button>
@@ -247,7 +248,7 @@ export function HomeDashboardView({
             <button
               type="button"
               onClick={() => onNavigate('market')}
-              className="text-xs font-medium text-[#E04455] hover:underline whitespace-nowrap"
+              className="text-xs font-medium text-[#63A5FF] hover:underline whitespace-nowrap"
             >
               {t.navMarket}
             </button>
@@ -258,7 +259,7 @@ export function HomeDashboardView({
         <div className="bg-[#141821] border border-white/8 rounded-2xl p-5 space-y-3.5">
           <div className="flex items-center justify-between">
             <h2 className="text-base font-semibold text-[#F4F5F7]">{t.worldEvents}</h2>
-            <Flame className="w-4 h-4 text-[#E04455]" />
+            <Flame className="w-4 h-4 text-[#63A5FF]" />
           </div>
           {activeEvents.length === 0 ? (
             <p className="text-sm text-[#9299A6] py-6 text-center">
@@ -282,7 +283,7 @@ export function HomeDashboardView({
                       <p className="text-sm font-medium text-[#F4F5F7]">
                         {language === 'ar' ? evt.titleAr : evt.titleEn}
                       </p>
-                      <span className="text-xs font-mono-num text-[#E04455] shrink-0">
+                      <span className="text-xs font-mono-num text-[#63A5FF] shrink-0">
                         {evt.priceMultiplier !== 1
                           ? `×${evt.priceMultiplier.toFixed(2)}`
                           : `${evt.taxDelta > 0 ? '+' : ''}${(evt.taxDelta * 100).toFixed(0)}% ${t.marketTax}`}
@@ -293,7 +294,8 @@ export function HomeDashboardView({
                     </p>
                     <div className="flex flex-wrap items-center gap-3 text-[11px] text-[#9299A6] pt-0.5">
                       {targetItem && (
-                        <span>
+                        <span className="inline-flex items-center gap-1.5">
+                          <ResourceIcon itemId={evt.targetItemId!} size="sm" />
                           {language === 'ar' ? targetItem.nameAr : targetItem.nameEn}
                         </span>
                       )}
@@ -321,13 +323,13 @@ export function HomeDashboardView({
         <div className="bg-[#141821] border border-white/8 rounded-2xl p-5 space-y-3.5">
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2">
-              <Award className="w-4 h-4 text-[#E04455]" />
+              <Award className="w-4 h-4 text-[#63A5FF]" />
               <h2 className="text-base font-semibold text-[#F4F5F7]">{t.activeMissions}</h2>
             </div>
             <button
               type="button"
               onClick={() => onNavigate('profile')}
-              className="text-xs font-medium text-[#E04455] hover:underline whitespace-nowrap"
+              className="text-xs font-medium text-[#63A5FF] hover:underline whitespace-nowrap"
             >
               {t.allMissions}
             </button>
@@ -374,7 +376,7 @@ export function HomeDashboardView({
                           isClaimed
                             ? 'bg-[#1B2230] text-[#9299A6]'
                             : ready
-                            ? 'bg-[#B91C32] hover:bg-[#E04455] text-white'
+                            ? 'bg-[#397BFF] hover:bg-[#2F6DE0] text-white'
                             : 'bg-[#1B2230] text-[#9299A6]/70'
                         }`}
                       >
@@ -384,7 +386,7 @@ export function HomeDashboardView({
                     <div className="h-1.5 rounded-full bg-[#141821] overflow-hidden">
                       <div
                         className={`h-full rounded-full transition-all duration-300 ${
-                          isClaimed || ready ? 'bg-emerald-500' : 'bg-[#B91C32]'
+                          isClaimed || ready ? 'bg-emerald-500' : 'bg-[#397BFF]'
                         }`}
                         style={{ width: `${pct}%` }}
                       />
@@ -417,7 +419,7 @@ export function HomeDashboardView({
                         {isCredit ? (
                           <ArrowDownLeft className="w-4 h-4 text-emerald-400" />
                         ) : (
-                          <ArrowUpRight className="w-4 h-4 text-[#E04455]" />
+                          <ArrowUpRight className="w-4 h-4 text-[#63A5FF]" />
                         )}
                       </div>
                       <div className="min-w-0">
