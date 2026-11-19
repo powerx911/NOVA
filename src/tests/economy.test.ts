@@ -111,6 +111,9 @@ describe('Market Price Bounds', () => {
     expect(getMarketPriceBounds('unknown_item')).toBeNull();
     expect(getMarketPriceBounds('titanium_ore')).toEqual({ minPrice: 42, maxPrice: 170 });
     expect(getMarketPriceBounds('quantum_dust')).toEqual({ minPrice: 80, maxPrice: 320 });
+    expect(getMarketPriceBounds('precision_frame')).not.toBeNull();
+    expect(getMarketPriceBounds('synth_polymer')).not.toBeNull();
+    expect(getMarketPriceBounds('bio_module')).not.toBeNull();
   });
 
   it('offers only one quantum server recipe', () => {
