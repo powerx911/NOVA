@@ -579,16 +579,23 @@ export function ProfileHubView({
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <h2 className="text-base font-bold text-[#F4F5F7]">{heading}</h2>
                   {(category === 'daily' || category === 'weekly' || category === 'seasonal') && (
-                    <div className="flex items-center gap-2 rounded-xl border border-white/8 bg-[#0B0D12] px-3 py-2">
-                      <Clock3 className="w-4 h-4 text-[#63A5FF] shrink-0" />
-                      <span className="text-[10px] text-[#9299A6] whitespace-nowrap">{language === 'ar' ? 'التجديد خلال' : 'RESETS IN'}</span>
-                      <div className="flex items-center gap-1" dir="ltr">
-                        {countdownParts.map((part) => (
-                          <div key={part.label} className="min-w-[35px] rounded-lg bg-[#1B2230] px-1.5 py-1 text-center">
-                            <div className="font-mono-num text-xs font-bold text-[#F4F5F7]">{part.value}</div>
-                            <div className="text-[8px] font-semibold text-[#77808F]">{part.label}</div>
-                          </div>
-                        ))}
+                    <div className="flex items-center gap-2.5 rounded-2xl border border-[#397BFF]/20 bg-gradient-to-br from-[#142039] via-[#101827] to-[#0B0D12] px-3 py-2 shadow-[0_8px_28px_rgba(57,123,255,0.08)]">
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-[#397BFF]/25 bg-[#397BFF]/10">
+                        <Clock3 className="h-4 w-4 text-[#79B2FF]" />
+                      </div>
+                      <div className="min-w-0">
+                        <span className="mb-1 block text-[9px] font-bold tracking-[0.12em] text-[#8FA9CC]">{language === 'ar' ? 'التجديد خلال' : 'NEXT RESET'}</span>
+                        <div className="flex items-center gap-1" dir="ltr">
+                          {countdownParts.map((part, index) => (
+                            <div key={part.label} className="flex items-center gap-1">
+                              {index > 0 && <span className="text-[11px] font-bold text-[#5275A5]">:</span>}
+                              <div className="min-w-[34px] rounded-lg border border-white/[0.07] bg-white/[0.045] px-1.5 py-1 text-center">
+                                <div className="font-mono-num text-[13px] font-bold leading-none text-[#F4F7FF]">{part.value}</div>
+                                <div className="mt-1 text-[8px] font-semibold leading-none text-[#8294B0]">{part.label}</div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     </div>
                   )}
