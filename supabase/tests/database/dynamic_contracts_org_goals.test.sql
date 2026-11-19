@@ -252,7 +252,7 @@ select extensions.ok(
 );
 update nexora.contract_slot_cooldowns set cooldown_until=now()-interval '1 second'
 where scope='personal' and owner_id='pgtap_expiry';
-select extensions.lives_ok($$select nexora.get_dynamic_contract_board('pgtap_expiry')$,
+select extensions.lives_ok($$select nexora.get_dynamic_contract_board('pgtap_expiry')$$,
   'expired cooldown is cleared on the next board refresh');
 select extensions.ok(
   exists(select 1 from nexora.contract_offers old join nexora.contract_offers fresh
