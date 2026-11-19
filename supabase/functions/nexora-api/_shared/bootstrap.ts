@@ -3,21 +3,10 @@ import { camelRow, queryData } from "./serialization.ts";
 
 export async function bootstrap(admin: ReturnType<typeof getAdminClient>, uid: string) {
   const db = admin.schema("nexora");
-  const utcNow = new Date();
-  const utcDayStart = new Date(Date.UTC(utcNow.getUTCFullYear(), utcNow.getUTCMonth(), utcNow.getUTCDate()));
-  const utcWeekStart = new Date(utcDayStart);
-  const utcDay = utcWeekStart.getUTCDay() || 7;
-  utcWeekStart.setUTCDate(utcWeekStart.getUTCDate() - utcDay + 1);
-  utcWeekStart.setUTCHours(0, 0, 0, 0);
-  const utcQuarterStart = new Date(Date.UTC(utcNow.getUTCFullYear(), Math.floor(utcNow.getUTCMonth() / 3) * 3, 1));
-  const [
-    profile, userPrivate, wallet, inventory, sent, received, marketListings,
+  const [profile, userPrivate, wallet, inventory, sent, received, marketListings,
     marketOrders, companies, factories, organizations,
-    organizationMembers, organizationRequests, playerMissions, dailyClaims, dailyMarketTrades, weeklyMarketTrades,
-    dailyManufacturing, dailyCompanyCollections, dailyMarketBuys, weeklyManufacturing, weeklyCompanyCollections,
-    weeklyMarketBuys, seasonalMarketBuys, seasonalManufacturing, seasonalCompanyCollections, seasonalMarketBuysSpend, companyRevenue,
-    contractClaims, playerAchievements, notifications, worldEvents,
-  ] = await Promise.all([
+    organizationMembers, organizationRequests, playerMissions, dailyClaims, missionProgress,
+    contractClaims, playerAchievements, notifications, worldEvents] = await Promise.all([
     queryData(db.from("player_profiles").select("*").eq("user_id", uid).maybeSingle()),
     queryData(db.from("player_private").select("*").eq("user_id", uid).maybeSingle()),
     queryData(db.from("wallets").select("*").eq("user_id", uid).maybeSingle()),
@@ -33,19 +22,7 @@ export async function bootstrap(admin: ReturnType<typeof getAdminClient>, uid: s
     queryData(db.from("organization_requests").select("*").eq("user_id", uid)),
     queryData(db.from("player_missions").select("*").eq("user_id", uid)),
     queryData(db.from("daily_claims").select("*").eq("user_id", uid).eq("date_key", new Date().toISOString().slice(0, 10)).maybeSingle()),
-    queryData(db.from("transactions").select("id").eq("from_uid", uid).eq("type", "market_buy").eq("status", "completed").gte("created_at", new Date().toISOString().slice(0, 10))),
-    queryData(db.from("transactions").select("id").eq("from_uid", uid).eq("type", "market_buy").eq("status", "completed").gte("created_at", utcWeekStart.toISOString())),
-    queryData(db.from("transactions").select("id").eq("from_uid", uid).eq("type", "manufacturing").eq("status", "completed").gte("created_at", utcDayStart.toISOString())),
-    queryData(db.from("transactions").select("amount").eq("to_uid", uid).eq("type", "company_collect").eq("status", "completed").gte("created_at", utcDayStart.toISOString())),
-    queryData(db.from("transactions").select("amount").eq("from_uid", uid).eq("type", "market_buy").eq("status", "completed").gte("created_at", utcDayStart.toISOString())),
-    queryData(db.from("transactions").select("id").eq("from_uid", uid).eq("type", "manufacturing").eq("status", "completed").gte("created_at", utcWeekStart.toISOString())),
-    queryData(db.from("transactions").select("amount").eq("to_uid", uid).eq("type", "company_collect").eq("status", "completed").gte("created_at", utcWeekStart.toISOString())),
-    queryData(db.from("transactions").select("amount").eq("from_uid", uid).eq("type", "market_buy").eq("status", "completed").gte("created_at", utcWeekStart.toISOString())),
-    queryData(db.from("transactions").select("id").eq("from_uid", uid).eq("type", "market_buy").eq("status", "completed").gte("created_at", utcQuarterStart.toISOString())),
-    queryData(db.from("transactions").select("id").eq("from_uid", uid).eq("type", "manufacturing").eq("status", "completed").gte("created_at", utcQuarterStart.toISOString())),
-    queryData(db.from("transactions").select("amount").eq("to_uid", uid).eq("type", "company_collect").eq("status", "completed").gte("created_at", utcQuarterStart.toISOString())),
-    queryData(db.from("transactions").select("amount").eq("from_uid", uid).eq("type", "market_buy").eq("status", "completed").gte("created_at", utcQuarterStart.toISOString())),
-    queryData(db.from("transactions").select("amount").eq("to_uid", uid).eq("type", "company_collect").eq("status", "completed").limit(10000)),
+    queryData(db.rpc("get_mission_progress", { p_uid: uid })),
     queryData(db.from("contract_claims").select("*").eq("user_id", uid)),
     queryData(db.from("player_achievements").select("*").eq("user_id", uid)),
     queryData(db.from("notifications").select("*").eq("user_id", uid).order("created_at", { ascending: false }).limit(30)),
@@ -78,19 +55,7 @@ export async function bootstrap(admin: ReturnType<typeof getAdminClient>, uid: s
   return {
     profile: {
       ...(camelRow(profile) as Record<string, unknown>),
-      dailyTradesCount: (dailyMarketTrades as Record<string, unknown>[]).length,
-      weeklyTradesCount: (weeklyMarketTrades as Record<string, unknown>[]).length,
-      dailyManufacturingCount: (dailyManufacturing as Record<string, unknown>[]).length,
-      dailyCompanyCollectionsCount: (dailyCompanyCollections as Record<string, unknown>[]).length,
-      dailyMarketSpend: (dailyMarketBuys as Record<string, unknown>[]).reduce((sum, row) => sum + Number(row.amount ?? 0), 0),
-      weeklyManufacturingCount: (weeklyManufacturing as Record<string, unknown>[]).length,
-      weeklyCompanyCollectionsCount: (weeklyCompanyCollections as Record<string, unknown>[]).length,
-      weeklyMarketSpend: (weeklyMarketBuys as Record<string, unknown>[]).reduce((sum, row) => sum + Number(row.amount ?? 0), 0),
-      seasonalMarketBuys: (seasonalMarketBuys as Record<string, unknown>[]).length,
-      seasonalManufacturingCount: (seasonalManufacturing as Record<string, unknown>[]).length,
-      seasonalCompanyCollectionsCount: (seasonalCompanyCollections as Record<string, unknown>[]).length,
-      seasonalMarketSpend: (seasonalMarketBuysSpend as Record<string, unknown>[]).reduce((sum, row) => sum + Number(row.amount ?? 0), 0),
-      companyRevenueTotal: (companyRevenue as Record<string, unknown>[]).reduce((sum, row) => sum + Number(row.amount ?? 0), 0),
+      ...((missionProgress ?? {}) as Record<string, unknown>),
     },
     userPrivate: camelRow(userPrivate),
     wallet: camelRow(wallet),
