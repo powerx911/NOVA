@@ -173,6 +173,7 @@ function NovaAppContent() {
       {activeTab === 'profile' && (
         <ProfileHubView
           profile={game.profile}
+          wallet={game.wallet}
           userPrivate={game.userPrivate}
           claimedMissions={game.claimedMissions}
           unlockedAchievements={game.unlockedAchievements}
