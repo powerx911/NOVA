@@ -181,3 +181,17 @@ The other nine files still need explicit classification as pending work, superse
 - The remaining reconciliation work is limited to classifying the nine local-only files and resolving the seven same-name local/source discrepancies described above.
 - No production DDL, migration repair, or production data change was performed.
 - Keep PR #83 Draft and do not run `supabase db push` until those remaining local-vs-remote differences are reviewed and a final active migration directory is prepared.
+
+
+## Follow-up: untracked SQL executions and replay ordering
+
+The initial 42-entry archive was extended after a second pass through the PostgreSQL statement logs.
+
+- 13 additional direct `POST /mcp` SQL statement events were recovered. They are **not** migration-ledger rows, so they remain separate under `supabase/recovered-history/untracked/`.
+- These statements include core RPC definitions and follow-up functions for companies/properties, market, contracts, organizations, leaderboards, and mission/achievement behavior.
+- The original nine local-only migration candidates were not automatically promoted into the 42-entry applied migration history. Seven of their SQL bodies are represented by the recovered direct-execution events, not by tracked migration records. The seed-world file has no matching statement event in the inspected log window; the factory-business-auction file still needs content-level classification.
+- The replay workflow now orders all recovered files by the timestamp prefix in the filename (rather than by directory path), which is required because tracked and untracked events are stored in separate directories.
+- The full replay workflow for 42 tracked plus 13 untracked SQL sources is running on commit `17f9b86b8b98ce6192bfd975f638ce4a5e554c80`. Its result is not yet confirmed; the earlier 42-only replay passed, but it is not evidence that the expanded 55-source chain passes.
+- The current 55-source replay is strictly disposable/local. No production SQL has been executed.
+
+**Do not infer that untracked direct SQL events are safe to apply to production.** They are forensic evidence of SQL statements sent through the management API, and may depend on earlier state or have since been replaced.
