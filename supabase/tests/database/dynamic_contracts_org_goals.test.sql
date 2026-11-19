@@ -173,7 +173,7 @@ select 'pgtap_deliver',item_id,100 from nexora.contract_offers
 where id=(select id from nexora.contract_offers where user_id='pgtap_deliver' and status='accepted' limit 1)
 on conflict(user_id,item_id) do update set quantity=100;
 select extensions.lives_ok(
-  $$$select nexora.deliver_dynamic_contract('pgtap_deliver',(select id from nexora.contract_offers where user_id='pgtap_deliver' and status='accepted' limit 1))$$$
+  $$select nexora.deliver_dynamic_contract('pgtap_deliver',(select id from nexora.contract_offers where user_id='pgtap_deliver' and status='accepted' limit 1))$$
   'delivery consumes materials and starts processing'
 );
 select extensions.ok(
@@ -188,7 +188,7 @@ select extensions.is(
   'delivery fee is written to the immutable transaction ledger'
 );
 select extensions.throws_ok(
-  $$$select nexora.claim_dynamic_contract('pgtap_deliver',(select id from nexora.contract_offers where user_id='pgtap_deliver' and status='processing' limit 1))$$$
+  $$select nexora.claim_dynamic_contract('pgtap_deliver',(select id from nexora.contract_offers where user_id='pgtap_deliver' and status='processing' limit 1))$$
   'P0001','CONTRACT_NOT_READY',
   'reward cannot be claimed before ready_at'
 );
@@ -211,7 +211,7 @@ select 'pgtap_no_funds',item_id,100 from nexora.contract_offers
 where id=(select id from nexora.contract_offers where user_id='pgtap_no_funds' and status='accepted' limit 1)
 on conflict(user_id,item_id) do update set quantity=100;
 select extensions.throws_ok(
-  $$$select nexora.deliver_dynamic_contract('pgtap_no_funds',(select id from nexora.contract_offers where user_id='pgtap_no_funds' and status='accepted' limit 1))$$$
+  $$select nexora.deliver_dynamic_contract('pgtap_no_funds',(select id from nexora.contract_offers where user_id='pgtap_no_funds' and status='accepted' limit 1))$$
   'P0001','INSUFFICIENT_FUNDS',
   'delivery is rejected when the fee cannot be paid'
 );
@@ -344,13 +344,13 @@ select 'pgtap_org_user',item_id,100 from nexora.contract_offers
 where id=(select id from nexora.contract_offers where scope='organization' and org_id='pgtap_org' and status='accepted' limit 1)
 on conflict(user_id,item_id) do update set quantity=100;
 select extensions.lives_ok(
-  $$$select nexora.deliver_dynamic_contract('pgtap_org_user',(select id from nexora.contract_offers where scope='organization' and org_id='pgtap_org' and status='accepted' limit 1))$$$,
+  $$select nexora.deliver_dynamic_contract('pgtap_org_user',(select id from nexora.contract_offers where scope='organization' and org_id='pgtap_org' and status='accepted' limit 1))$$,
   'reserved organization contract can be delivered'
 );
 update nexora.contract_offers set ready_at=now()-interval '1 second'
 where scope='organization' and org_id='pgtap_org' and status='processing';
 select extensions.lives_ok(
-  $$$select nexora.claim_dynamic_contract('pgtap_org_user',(select id from nexora.contract_offers where scope='organization' and org_id='pgtap_org' and status='processing' limit 1))$$$,
+  $$select nexora.claim_dynamic_contract('pgtap_org_user',(select id from nexora.contract_offers where scope='organization' and org_id='pgtap_org' and status='processing' limit 1))$$,
   'organization contract reward can be claimed after processing'
 );
 select extensions.ok(
@@ -387,7 +387,7 @@ select extensions.is(
   'organization reputation is granted from the contract tier once'
 );
 select extensions.throws_ok(
-  $$$select nexora.claim_dynamic_contract('pgtap_org_user',(select id from nexora.contract_offers where scope='organization' and org_id='pgtap_org' and status='completed' order by completed_at desc limit 1))$$$,
+  $$select nexora.claim_dynamic_contract('pgtap_org_user',(select id from nexora.contract_offers where scope='organization' and org_id='pgtap_org' and status='completed' order by completed_at desc limit 1))$$,
   'P0001','CONTRACT_NOT_CLAIMABLE',
   'the same organization contract cannot be claimed twice'
 );
