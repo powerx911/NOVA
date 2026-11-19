@@ -80,6 +80,17 @@ begin
         excluded.cooldown_until
       ), updated_at = now();
     end if;
+    -- A personal offer is generated immediately after acceptance. When the
+    -- accepted contract later ends, expire any still-offered replacement in
+    -- the same slot so the full cooldown is visible and enforceable.
+    if pg_trigger_depth()=1 then
+      update nexora.contract_offers
+      set status='expired',updated_at=now()
+      where scope=new.scope and slot_no=new.slot_no and board_date=new.board_date
+        and id<>new.id and status='offered'
+        and ((new.scope='personal' and user_id=v_owner_id)
+          or (new.scope='organization' and org_id=v_owner_id));
+    end if;
   end if;
   return new;
 end;
