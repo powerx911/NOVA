@@ -239,6 +239,10 @@ export function MarketHubView({
     setRecipientCheck('checking');
     try {
       const result = await validateTransferRecipient(clean);
+      if (recipientName.trim() !== clean) {
+        setRecipientCheck('idle');
+        return false;
+      }
       const status = !result.exists ? 'invalid' : result.isSelf ? 'self' : 'valid';
       setRecipientCheck(status);
       if (status === 'invalid') showToast(language === 'ar' ? 'اسم اللاعب غير موجود. تحقق من كتابة اسم المستخدم.' : 'Player not found. Check the username.', 'error');
