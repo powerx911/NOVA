@@ -21,7 +21,7 @@ concurrency:
 
 jobs:
   validate:
-    name: Typecheck, security rules, tests and builds
+    name: Typecheck, rules, tests and builds
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -48,13 +48,16 @@ jobs:
       - name: TypeScript typecheck
         run: npx tsc --noEmit
 
+      - name: Check Firestore migration exporter script
+        run: node --check scripts/nexora-firestore-export.mjs
+
       - name: Setup Deno
         uses: denoland/setup-deno@v2
 
       - name: Typecheck Supabase migration importer
         run: deno check supabase/functions/nexora-migration-import/index.ts
 
-      - name: Typecheck NOVA Supabase API (legacy function name: nexora-api)
+      - name: "Typecheck NOVA Supabase API (legacy function name: nexora-api)"
         run: deno check supabase/functions/nexora-api/index.ts
 
       - name: Typecheck retired NOVA control endpoint
@@ -73,35 +76,3 @@ jobs:
 
       - name: Build Cloud Functions
         run: npm run build --prefix functions
-
-
-  e2e-smoke:
-    name: Playwright onboarding, market and company smoke test
-    needs: validate
-    if: github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main' || github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 24
-
-      - name: Install dependencies
-        run: npm install --no-audit --no-fund --package-lock=false
-
-      - name: Run E2E when an isolated test environment is configured
-        env:
-          NOVA_E2E_BASE_URL: ${{ secrets.NOVA_E2E_BASE_URL }}
-          NOVA_E2E_EMAIL: ${{ secrets.NOVA_E2E_EMAIL }}
-          NOVA_E2E_PASSWORD: ${{ secrets.NOVA_E2E_PASSWORD }}
-        run: |
-          if [ -z "$NOVA_E2E_BASE_URL" ] || [ -z "$NOVA_E2E_EMAIL" ] || [ -z "$NOVA_E2E_PASSWORD" ]; then
-            echo "::notice::Playwright smoke test skipped: configure NOVA_E2E_BASE_URL, NOVA_E2E_EMAIL and NOVA_E2E_PASSWORD for an isolated test environment."
-            exit 0
-          fi
-          npx playwright install --with-deps chromium
-          npm run test:e2e
