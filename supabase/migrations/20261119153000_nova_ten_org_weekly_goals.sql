@@ -101,7 +101,7 @@ begin
     $old$where g.org_id=v_org_id and g.week_start=date_trunc('week',timezone('UTC',now()))::date;$old$,
     $new$where g.org_id=v_org_id and g.week_start=date_trunc('week',timezone('UTC',now()))::date
     and g.goal_type<>'contracts_completed';$new$);
-  if position("g.goal_type<>'contracts_completed'" in v_def)=0 then
+  if position('g.goal_type<>''contracts_completed''' in v_def)=0 then
     raise exception 'LEGACY_WEEKLY_GOAL_FILTER_PATCH_FAILED';
   end if;
   execute v_def;
