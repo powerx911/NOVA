@@ -622,7 +622,6 @@ declare
   v_contract nexora.contract_offers%rowtype;
   v_org nexora.organizations%rowtype;
   v_today date:=(now() at time zone 'UTC')::date;
-  v_used integer;
 begin
   select * into v_profile from nexora.player_profiles where user_id=p_uid for update;
   if not found then raise exception 'ACCOUNT_NOT_FOUND'; end if;
