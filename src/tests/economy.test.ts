@@ -7,6 +7,7 @@ import {
   getCompanyVaultCapacity,
   getCompanyVaultLevel,
   getPlayerInventoryCapacity,
+  getMarketPriceBounds,
   calculateDailyStipend,
   calculateDynamicItemPrice,
   calculateLevelProgress,
@@ -100,6 +101,19 @@ describe('Company Profit Vault', () => {
     expect(getCompanyVaultLevel({ vaultLevel: 99 })).toBe(5);
     expect(getCompanyVaultCapacity(-3)).toBe(3500);
     expect(getCompanyVaultCapacity(Number.NaN)).toBe(3500);
+  });
+});
+
+describe('Market Price Bounds', () => {
+  it('sets minimum and maximum listing prices at 50%-200% of catalog value', () => {
+    expect(getMarketPriceBounds('microchips')).toEqual({ minPrice: 72, maxPrice: 290 });
+    expect(getMarketPriceBounds('copper_wire')).toEqual({ minPrice: 14, maxPrice: 56 });
+    expect(getMarketPriceBounds('unknown_item')).toBeNull();
+    expect(getMarketPriceBounds('titanium_ore')).toBeNull();
+  });
+
+  it('offers only one quantum server recipe', () => {
+    expect(MANUFACTURING_RECIPES.filter((recipe) => recipe.outputItemId === 'quantum_server')).toHaveLength(1);
   });
 });
 

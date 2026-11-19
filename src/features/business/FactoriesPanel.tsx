@@ -1,5 +1,5 @@
 import { ArrowUpCircle, Factory, Package, Pause, Play, Wrench } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useToast } from '../../components/ui/ToastProvider';
 import { FACTORY_RESOURCES, ITEM_MAP } from '../../data/catalog';
 import { ResourceIcon } from '../../components/ui/ResourceIcon';
@@ -24,6 +24,7 @@ export function FactoriesPanel({ factories, inventory, profile, wallet, language
   const [withdrawAmount, setWithdrawAmount] = useState(1);
   const [busyKey, setBusyKey] = useState<string | null>(null);
   const [now, setNow] = useState(Date.now());
+  const completionAttempts = useRef(new Set<string>());
   const inventoryMap = useMemo(() => new Map<string, number>(inventory.map((item) => [item.itemId, item.quantity] as [string, number])), [inventory]);
   const selected = factories.find((factory) => factory.id === selectedId) ?? factories[0] ?? null;
   const selectedResource = selected ? FACTORY_RESOURCES.find((item) => item.resourceId === selected.resourceId) : null;
@@ -72,32 +73,53 @@ export function FactoriesPanel({ factories, inventory, profile, wallet, language
   useEffect(() => {
     for (const factory of factories) {
       const endsAt = factory.upgradeEndsAt ? timestampToMs(factory.upgradeEndsAt) : 0;
-      if (endsAt > 0 && endsAt <= now && busyKey !== `complete_${factory.id}`) {
-        setBusyKey(`complete_${factory.id}`);
-        void completeFactoryUpgrade(factory.id)
-          .then(() => showToast(isAr ? 'اكتمل تطوير المصنع!' : 'Factory upgrade completed!', 'success'))
-          .catch((error) => {
-            const message = error instanceof Error ? error.message : '';
-            if (message !== 'UPGRADE_NOT_FINISHED') showToast(isAr ? 'تعذر إكمال تطوير المصنع.' : 'Could not complete factory upgrade.', 'error');
-          })
-          .finally(() => setBusyKey((current) => current === `complete_${factory.id}` ? null : current));
-      }
+      const attemptKey = `factory-upgrade:${factory.id}:${endsAt}`;
+      if (endsAt <= 0 || endsAt > now || completionAttempts.current.has(attemptKey)) continue;
+      completionAttempts.current.add(attemptKey);
+      setBusyKey(`complete_${factory.id}`);
+      void completeFactoryUpgrade(factory.id)
+        .then(() => {
+          window.dispatchEvent(new Event('nova:refresh-game'));
+          showToast(isAr ? 'اكتمل تطوير المصنع!' : 'Factory upgrade completed!', 'success');
+        })
+        .catch((error) => {
+          const message = error instanceof Error ? error.message : '';
+          if (message === 'UPGRADE_NOT_FINISHED') {
+            completionAttempts.current.delete(attemptKey);
+          } else if (message === 'NO_UPGRADE_IN_PROGRESS') {
+            // Another request already completed the upgrade; refresh instead of showing a false failure.
+            window.dispatchEvent(new Event('nova:refresh-game'));
+          } else {
+            showToast(isAr ? 'تعذر إكمال تطوير المصنع. حاول التحديث.' : 'Could not complete factory upgrade. Please refresh.', 'error');
+          }
+        })
+        .finally(() => setBusyKey((current) => current === `complete_${factory.id}` ? null : current));
     }
   }, [factories, now, busyKey, isAr, showToast]);
 
   useEffect(() => {
     for (const factory of factories) {
       const endsAt = factory.warehouseUpgradeEndsAt ? timestampToMs(factory.warehouseUpgradeEndsAt) : 0;
-      if (endsAt > 0 && endsAt <= now && busyKey !== `warehouse_complete_${factory.id}`) {
-        setBusyKey(`warehouse_complete_${factory.id}`);
-        void completeFactoryWarehouseUpgrade(factory.id)
-          .then(() => showToast(isAr ? 'اكتمل توسيع مستودع المصنع!' : 'Factory warehouse expansion completed!', 'success'))
-          .catch((error) => {
-            const message = error instanceof Error ? error.message : '';
-            if (message !== 'UPGRADE_NOT_FINISHED') showToast(isAr ? 'تعذر إكمال توسيع المستودع.' : 'Could not complete warehouse expansion.', 'error');
-          })
-          .finally(() => setBusyKey((current) => current === `warehouse_complete_${factory.id}` ? null : current));
-      }
+      const attemptKey = `factory-warehouse-upgrade:${factory.id}:${endsAt}`;
+      if (endsAt <= 0 || endsAt > now || completionAttempts.current.has(attemptKey)) continue;
+      completionAttempts.current.add(attemptKey);
+      setBusyKey(`warehouse_complete_${factory.id}`);
+      void completeFactoryWarehouseUpgrade(factory.id)
+        .then(() => {
+          window.dispatchEvent(new Event('nova:refresh-game'));
+          showToast(isAr ? 'اكتمل توسيع مستودع المصنع!' : 'Factory warehouse expansion completed!', 'success');
+        })
+        .catch((error) => {
+          const message = error instanceof Error ? error.message : '';
+          if (message === 'UPGRADE_NOT_FINISHED') {
+            completionAttempts.current.delete(attemptKey);
+          } else if (message === 'NO_UPGRADE_IN_PROGRESS') {
+            window.dispatchEvent(new Event('nova:refresh-game'));
+          } else {
+            showToast(isAr ? 'تعذر إكمال توسيع المستودع. حاول التحديث.' : 'Could not complete warehouse expansion. Please refresh.', 'error');
+          }
+        })
+        .finally(() => setBusyKey((current) => current === `warehouse_complete_${factory.id}` ? null : current));
     }
   }, [factories, now, busyKey, isAr, showToast]);
 

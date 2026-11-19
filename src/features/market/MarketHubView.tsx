@@ -16,6 +16,7 @@ import {
   calculateDynamicItemPrice,
   calculateMarketItemAnalytics,
   calculateMarketTaxRate,
+  getMarketPriceBounds,
   LISTING_MAX_PRICE,
   LISTING_MAX_QTY,
   sanitizePositiveInt,
@@ -65,11 +66,12 @@ export function MarketHubView({
   const [busyKey, setBusyKey] = useState<string | null>(null);
 
   // Create Sell Listing form
-  const ownedStacks = inventory.filter((i) => i.quantity > 0);
-  const initialSellId = ownedStacks[0]?.itemId || 'silicon_ore';
+  const ownedStacks = inventory.filter((i) => i.quantity > 0 && getMarketPriceBounds(i.itemId) !== null);
+  const initialSellId = ownedStacks[0]?.itemId || CATALOG_ITEMS.find((item) => getMarketPriceBounds(item.id) !== null)?.id || 'silicon_ore';
   const [sellItemId, setSellItemId] = useState(initialSellId);
   const [sellQty, setSellQty] = useState(1);
   const [sellPrice, setSellPrice] = useState(ITEM_MAP[initialSellId]?.basePrice || 40);
+  const sellPriceBounds = getMarketPriceBounds(sellItemId);
 
   // Bank Transfer form
   const [recipientName, setRecipientName] = useState('');
@@ -128,7 +130,11 @@ export function MarketHubView({
     } catch (err) {
       const code = err instanceof Error ? err.message : '';
       showToast(
-        code === 'INSUFFICIENT_FUNDS'
+        code === 'PRICE_BELOW_MINIMUM' || code === 'PRICE_ABOVE_MAXIMUM'
+          ? language === 'ar'
+            ? 'هذا العرض خارج حدود الأسعار المعتمدة. على البائع إعادة نشره بسعر ضمن الحدود.'
+            : 'This listing is outside the allowed price range. The seller must relist it within the limits.'
+          : code === 'INSUFFICIENT_FUNDS'
           ? language === 'ar'
             ? 'رصيدك غير كافٍ.'
             : 'Insufficient balance.'
@@ -157,7 +163,7 @@ export function MarketHubView({
   async function handleCreateListing(e: React.FormEvent) {
     e.preventDefault();
     const cleanQty = sanitizePositiveInt(sellQty, 1, LISTING_MAX_QTY);
-    const cleanPrice = sanitizePositiveInt(sellPrice, 1, LISTING_MAX_PRICE);
+    const cleanPrice = sanitizePositiveInt(sellPrice, sellPriceBounds?.minPrice ?? 1, sellPriceBounds?.maxPrice ?? LISTING_MAX_PRICE);
     setBusyKey('sell_create');
     try {
       await createMarketListing(profile.uid, profile.username, sellItemId, cleanQty, cleanPrice);
@@ -168,7 +174,15 @@ export function MarketHubView({
     } catch (err) {
       const code = err instanceof Error ? err.message : '';
       showToast(
-        code === 'INVALID_LISTING_PARAMS'
+        code === 'PRICE_BELOW_MINIMUM'
+          ? language === 'ar'
+            ? `السعر أقل من الحد الأدنى المسموح: ${sellPriceBounds?.minPrice ?? 1}.`
+            : `Price is below the minimum allowed: ${sellPriceBounds?.minPrice ?? 1}.`
+          : code === 'PRICE_ABOVE_MAXIMUM'
+          ? language === 'ar'
+            ? `السعر أعلى من الحد الأقصى المسموح: ${sellPriceBounds?.maxPrice ?? LISTING_MAX_PRICE}.`
+            : `Price exceeds the maximum allowed: ${sellPriceBounds?.maxPrice ?? LISTING_MAX_PRICE}.`
+          : code === 'INVALID_LISTING_PARAMS'
           ? language === 'ar'
             ? 'تأكد من إدخال كمية وسعر صالحين ضمن الحدود المسموحة.'
             : 'Enter a valid quantity and unit price within market limits.'
@@ -427,7 +441,7 @@ export function MarketHubView({
                   }}
                   className="w-full min-h-[44px] px-3 rounded-xl bg-[#0B0D12] border border-white/10 text-sm text-[#F4F5F7] focus:outline-none focus:border-[#E04455]"
                 >
-                  {CATALOG_ITEMS.map((item) => {
+                  {CATALOG_ITEMS.filter((item) => getMarketPriceBounds(item.id) !== null).map((item) => {
                     const owned = invMap.get(item.id) || 0;
                     return (
                       <option key={item.id} value={item.id}>
@@ -458,25 +472,32 @@ export function MarketHubView({
                   <label className="text-xs text-[#9299A6]">{t.unitPrice}</label>
                   <input
                     type="number"
-                    min={1}
-                    max={LISTING_MAX_PRICE}
+                    min={sellPriceBounds?.minPrice ?? 1}
+                    max={sellPriceBounds?.maxPrice ?? LISTING_MAX_PRICE}
                     value={sellPrice || ''}
                     onChange={(e) => {
                       const v = e.target.value;
-                      setSellPrice(v === '' ? 0 : sanitizePositiveInt(v, 1, LISTING_MAX_PRICE));
+                      setSellPrice(v === '' ? 0 : sanitizePositiveInt(v, sellPriceBounds?.minPrice ?? 1, sellPriceBounds?.maxPrice ?? LISTING_MAX_PRICE));
                     }}
-                    onBlur={() => setSellPrice((v) => sanitizePositiveInt(v, 1, LISTING_MAX_PRICE))}
+                    onBlur={() => setSellPrice((v) => sanitizePositiveInt(v, sellPriceBounds?.minPrice ?? 1, sellPriceBounds?.maxPrice ?? LISTING_MAX_PRICE))}
                     className="w-full min-h-[44px] px-3 rounded-xl bg-[#0B0D12] border border-white/10 text-sm font-mono-num text-[#F4F5F7] focus:outline-none focus:border-[#E04455]"
                   />
                 </div>
               </div>
+              <p className="text-[11px] text-[#9299A6]">
+                {language === 'ar'
+                  ? `حد السعر للوحدة: ${sellPriceBounds?.minPrice ?? '—'} إلى ${sellPriceBounds?.maxPrice ?? '—'} (50%–200% من السعر المرجعي).`
+                  : `Allowed unit price: ${sellPriceBounds?.minPrice ?? '—'} to ${sellPriceBounds?.maxPrice ?? '—'} (50%–200% of reference value).`}
+              </p>
 
               <button
                 type="submit"
                 disabled={
                   busyKey === 'sell_create' ||
+                  !sellPriceBounds ||
                   sellQty < 1 ||
-                  sellPrice < 1 ||
+                  sellPrice < (sellPriceBounds?.minPrice ?? 1) ||
+                  sellPrice > (sellPriceBounds?.maxPrice ?? LISTING_MAX_PRICE) ||
                   (invMap.get(sellItemId) || 0) < sellQty
                 }
                 className="w-full min-h-[44px] px-4 rounded-xl bg-[#B91C32] hover:bg-[#E04455] text-white text-sm font-semibold transition-colors disabled:bg-[#1B2230] disabled:text-[#9299A6]"

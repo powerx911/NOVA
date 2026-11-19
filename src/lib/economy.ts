@@ -468,6 +468,28 @@ export function getPlayerInventoryCapacity(level: number): number {
   return 250 + (safeLevel - 1) * 15;
 }
 
+export interface MarketPriceBounds {
+  minPrice: number;
+  maxPrice: number;
+}
+
+/** Keeps player listings within 50%-200% of the catalog reference price. */
+const MARKET_LISTABLE_ITEM_IDS = new Set([
+  'silicon_ore', 'copper_wire', 'energy_cells', 'crude_alloy', 'carbon_fiber',
+  'rare_minerals', 'microchips', 'precision_frame', 'synth_polymer',
+  'quantum_server', 'logistics_drone', 'bio_module',
+]);
+
+export function getMarketPriceBounds(itemId: string): MarketPriceBounds | null {
+  if (!MARKET_LISTABLE_ITEM_IDS.has(itemId)) return null;
+  const basePrice = ITEM_MAP[itemId]?.basePrice;
+  if (!Number.isFinite(basePrice) || basePrice <= 0) return null;
+  return {
+    minPrice: Math.max(1, Math.floor(basePrice * 0.5)),
+    maxPrice: Math.max(1, Math.ceil(basePrice * 2)),
+  };
+}
+
 export const COMPANY_MAX_LEVEL = 100;
 export const LISTING_MAX_QTY = 10_000;
 export const LISTING_MAX_PRICE = 1_000_000;
