@@ -36,6 +36,7 @@ export interface PlayerProfile {
   skillPoints: number;
   skills: SkillsMap;
   stats: PlayerStats;
+  dailyTradesCount?: number;
   orgId?: string | null;
   createdAt: unknown;
   updatedAt: unknown;
@@ -73,6 +74,8 @@ export type TransactionType =
   | 'company_auction_escrow'
   | 'company_auction_refund'
   | 'company_auction_sale'
+  | 'factory_auction_sale'
+  | 'auction_fee'
   | 'manufacturing'
   | 'skill_reset'
   | 'factory_create'
@@ -320,6 +323,7 @@ export interface PlayerMissionClaim {
   rewardCredits: number;
   rewardXp: number;
   claimedAt: unknown;
+  periodKey?: string;
 }
 
 export interface AchievementDefinition {

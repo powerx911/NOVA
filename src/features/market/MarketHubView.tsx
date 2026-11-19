@@ -80,6 +80,8 @@ export function MarketHubView({
   const [transferAmount, setTransferAmount] = useState(100);
   const [transferNote, setTransferNote] = useState('');
   const [confirmTransferOpen, setConfirmTransferOpen] = useState(false);
+  const transferFeePreview = Math.round(transferAmount * 0.03);
+  const transferNetPreview = Math.max(0, transferAmount - transferFeePreview);
 
   const taxRate = calculateMarketTaxRate(profile.skills.trade || 0, worldEvents);
   const invMap = new Map<string, number>();
@@ -249,7 +251,7 @@ export function MarketHubView({
       );
     } catch (err) {
       const code = err instanceof Error ? err.message : '';
-      if (code === 'SELF_OR_MISSING_RECIPIENT' || code === 'INVALID_AMOUNT') {
+      if (['SELF_OR_MISSING_RECIPIENT', 'INVALID_AMOUNT', 'TRANSFER_LEVEL_REQUIRED', 'TRANSFER_DAILY_LIMIT'].includes(code)) {
         setConfirmTransferOpen(false);
       }
       showToast(
@@ -265,6 +267,14 @@ export function MarketHubView({
           ? language === 'ar'
             ? 'الرصيد غير كافٍ.'
             : 'Insufficient funds.'
+          : code === 'TRANSFER_LEVEL_REQUIRED'
+          ? language === 'ar'
+            ? 'يجب أن يصل مستواك إلى 10 على الأقل قبل التحويل.'
+            : 'Reach level 10 before sending transfers.'
+          : code === 'TRANSFER_DAILY_LIMIT'
+          ? language === 'ar'
+            ? 'وصلت إلى الحد اليومي للتحويلات البالغ 10,000.'
+            : 'You have reached the 10,000-credit daily transfer limit.'
           : language === 'ar'
           ? 'بيانات التحويل غير صالحة.'
           : 'Invalid transfer details.',
@@ -781,8 +791,8 @@ export function MarketHubView({
         title={t.confirmTitle}
         description={
           language === 'ar'
-            ? `سيتم تحويل ${transferAmount.toLocaleString()} $ بشكل فوري وغير قابل للاسترجاع إلى ${recipientName}.`
-            : `Transfer ${transferAmount.toLocaleString()} $ immediately to ${recipientName}?`
+            ? `سيتم خصم ${transferAmount.toLocaleString()} $ من رصيدك، ويصل إلى ${recipientName} مبلغ ${transferNetPreview.toLocaleString()} $ بعد رسوم 3% (${transferFeePreview.toLocaleString()} $). لا يمكن استرجاع التحويل.`
+            : `Send ${transferAmount.toLocaleString()} credits to ${recipientName}? A 3% fee (${transferFeePreview.toLocaleString()}) applies, so they receive ${transferNetPreview.toLocaleString()} credits.`
         }
         confirmLabel={t.confirmBtn}
         cancelLabel={t.cancelBtn}

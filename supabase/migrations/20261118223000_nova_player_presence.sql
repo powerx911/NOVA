@@ -19,7 +19,7 @@ begin
     last_seen_at=now()
   returning * into v_presence;
   return jsonb_build_object('uid',v_presence.user_id,'onlineSince',v_presence.online_since,'lastSeenAt',v_presence.last_seen_at);
-end $$;
+end; $$;
 
 create or replace function nexora.get_players_presence(p_user_ids text[])
 returns jsonb language sql security definer set search_path=nexora,pg_temp as $$

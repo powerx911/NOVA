@@ -5,6 +5,7 @@ import { auth, googleAuthProvider } from '../../lib/firebase';
 import { useToast } from '../../components/ui/ToastProvider';
 import { ACHIEVEMENTS, AVATARS, MISSIONS, SKILL_DEFINITIONS } from '../../data/catalog';
 import { formatMissionCategory, useTranslations } from '../../i18n/translations';
+import { getMissionPeriodKey } from '../../lib/missionPeriods';
 import {
   getAchievementProgress,
   getMissionProgress,
@@ -85,7 +86,10 @@ export function ProfileHubView({
     try { return window.localStorage.getItem('nexora-button-sound') !== 'off'; } catch { return true; }
   });
 
-  const claimedSet = new Set(claimedMissions.map((m) => m.missionId));
+  const claimedSet = new Set(claimedMissions.filter((m) => (m.periodKey ?? 'lifetime') === getMissionPeriodKey(m.missionId)).map((m) => m.missionId));
+  const getProgress = (mission: (typeof MISSIONS)[number]) => mission.id === 'daily_active_trader'
+    ? (profile.dailyTradesCount ?? 0)
+    : getMissionProgress(mission.metric, profile);
   const avatar = AVATARS.find((a) => a.id === profile.avatarId) || AVATARS[0];
 
   useEffect(() => {
@@ -567,7 +571,7 @@ export function ProfileHubView({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {MISSIONS.map((m) => {
             const isClaimed = claimedSet.has(m.id);
-            const val = getMissionProgress(m.metric, profile);
+            const val = getProgress(m);
             const pct = Math.min(100, Math.round((Math.min(val, m.targetCount) / m.targetCount) * 100));
             const ready = val >= m.targetCount && !isClaimed;
 

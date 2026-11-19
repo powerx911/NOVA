@@ -2,6 +2,7 @@ import { ArrowDownLeft, ArrowUpRight, Award, CalendarCheck, Flame, TrendingUp } 
 import { useState } from 'react';
 import { EconomicChart } from '../../components/ui/EconomicChart';
 import { ResourceIcon } from '../../components/ui/ResourceIcon';
+import { getMissionPeriodKey } from '../../lib/missionPeriods';
 import { useToast } from '../../components/ui/ToastProvider';
 import { AVATARS, CATALOG_ITEMS, ITEM_MAP, MISSIONS } from '../../data/catalog';
 import { useTranslations, formatTxType } from '../../i18n/translations';
@@ -61,7 +62,10 @@ export function HomeDashboardView({
   const taxRate = calculateMarketTaxRate(profile.skills.trade || 0, activeEvents);
   const repTier = getReputationTier(profile.reputation);
 
-  const claimedSet = new Set(claimedMissions.map((m) => m.missionId));
+  const claimedSet = new Set(claimedMissions.filter((m) => (m.periodKey ?? 'lifetime') === getMissionPeriodKey(m.missionId)).map((m) => m.missionId));
+  const getProgress = (mission: (typeof MISSIONS)[number]) => mission.id === 'daily_active_trader'
+    ? (profile.dailyTradesCount ?? 0)
+    : getMissionProgress(mission.metric, profile);
 
   // Compute dynamic market index across 5 benchmark commodities
   const chartData = CATALOG_ITEMS.slice(0, 5).map((item) => {
@@ -340,14 +344,14 @@ export function HomeDashboardView({
                 const aClaimed = claimedSet.has(a.id) ? 1 : 0;
                 const bClaimed = claimedSet.has(b.id) ? 1 : 0;
                 if (aClaimed !== bClaimed) return aClaimed - bClaimed;
-                const aReady = getMissionProgress(a.metric, profile) >= a.targetCount ? 0 : 1;
-                const bReady = getMissionProgress(b.metric, profile) >= b.targetCount ? 0 : 1;
+                const aReady = getProgress(a) >= a.targetCount ? 0 : 1;
+                const bReady = getProgress(b) >= b.targetCount ? 0 : 1;
                 return aReady - bReady;
               })
               .slice(0, 4)
               .map((m) => {
                 const isClaimed = claimedSet.has(m.id);
-                const val = getMissionProgress(m.metric, profile);
+                const val = getProgress(m);
                 const pct = Math.min(100, Math.round((Math.min(val, m.targetCount) / m.targetCount) * 100));
                 const ready = val >= m.targetCount && !isClaimed;
 

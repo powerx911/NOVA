@@ -1,0 +1,107 @@
+name: NOVA historical migration replay
+
+on:
+  push:
+    branches:
+      - main
+      - "fix/**"
+    paths:
+      - "supabase/recovered-history/**"
+      - "supabase/migrations/**"
+      - ".github/workflows/database-history-replay.yml"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "supabase/recovered-history/**"
+      - "supabase/migrations/**"
+      - ".github/workflows/database-history-replay.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nova-history-replay-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  replay-history:
+    name: Replay tracked and untracked SQL on disposable PostgreSQL
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v3
+        with:
+          version: v2.stable
+
+      - name: Start disposable Supabase without auto-applying repository migrations
+        shell: bash
+        run: |
+          set -euo pipefail
+          migrations_dir="supabase/migrations"
+          parked_dir="supabase/.history-replay-migrations-parked"
+          test -d "$migrations_dir"
+          test ! -e "$parked_dir"
+          mv "$migrations_dir" "$parked_dir"
+          mkdir -p "$migrations_dir"
+          restore_migrations() {
+            rmdir "$migrations_dir" 2>/dev/null || true
+            if [ -d "$parked_dir" ]; then
+              mv "$parked_dir" "$migrations_dir"
+            fi
+          }
+          trap restore_migrations EXIT
+          supabase start --exclude edge-runtime,gotrue,imgproxy,kong,logflare,mailpit,postgres-meta,postgrest,realtime,storage-api,studio,supavisor,vector
+
+      - name: Replay 42 tracked migrations and 13 untracked SQL events in timestamp order
+        shell: bash
+        run: |
+          set -euo pipefail
+          eval "$(supabase status -o env)"
+          mapfile -t statements < <(find supabase/recovered-history -type f -name '2026*.sql' -printf '%f\t%p\n' | sort -k1,1 | cut -f2-)
+          if [ "${#statements[@]}" -ne 55 ]; then
+            echo "::error::Expected 55 recovered SQL sources; found ${#statements[@]}."
+            exit 1
+          fi
+          for statement in "${statements[@]}"; do
+            echo "::group::Replay ${statement}"
+            psql "$DB_URL" -v ON_ERROR_STOP=1 -f "$statement"
+            echo "::endgroup::"
+          done
+
+      - name: Compile local presence and organization-ranking SQL against recovered history
+        shell: bash
+        run: |
+          set -euo pipefail
+          eval "$(supabase status -o env)"
+          psql "$DB_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20261118223000_nova_player_presence.sql
+          psql "$DB_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20261118224000_nova_org_donation_ranking.sql
+
+      - name: Apply the three NOVA economy hardening migrations
+        shell: bash
+        run: |
+          set -euo pipefail
+          eval "$(supabase status -o env)"
+          for migration in \
+            supabase/migrations/20261119112257_nova_economy_abuse_guards.sql \
+            supabase/migrations/20261119112311_nova_recurring_mission_periods.sql \
+            supabase/migrations/20261119112320_nova_market_wallet_lock_order.sql
+          do
+            psql "$DB_URL" -v ON_ERROR_STOP=1 -f "$migration"
+          done
+
+      - name: Run pgTAP regression suites
+        run: supabase test db
+
+      - name: Stop disposable Supabase stack
+        if: always()
+        run: |
+          if command -v supabase >/dev/null 2>&1; then
+            supabase stop
+          else
+            echo 'Supabase CLI was not installed; no local stack was started.'
+          fi

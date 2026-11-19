@@ -192,6 +192,7 @@ export async function buyMarketListing(
   if (quantity < 1) throw new Error('INVALID_QUANTITY');
   try {
     await nexoraApi('buy_market_listing', { listingId, quantity });
+    if (typeof window !== 'undefined') window.dispatchEvent(new Event('nova:refresh-game'));
   } catch (error) {
     if (error instanceof Error && 'code' in error) throw new Error(String((error as { code?: unknown }).code ?? 'MARKET_PURCHASE_FAILED'));
     throw error;
@@ -382,6 +383,7 @@ export async function claimMissionReward(_uid: string, missionId: string): Promi
   if (!MISSIONS.some((mission) => mission.id === missionId)) throw new Error('INVALID_MISSION');
   try {
     await nexoraApi('claim_mission_reward', { missionId });
+    if (typeof window !== 'undefined') window.dispatchEvent(new Event('nova:refresh-game'));
   } catch (error) {
     if (error instanceof Error && 'code' in error) throw new Error(String((error as { code?: unknown }).code ?? 'MISSION_CLAIM_FAILED'));
     throw error;
