@@ -480,7 +480,7 @@ begin
   select coalesce(used_count,0) into v_claims from nexora.contract_daily_limits
     where user_id=p_uid and date_key=v_today;
   if v_profile.org_id is not null then
-    select * into v_org from nexora.organizations where id=v_profile.org_id for update;
+    select * into v_org from nexora.organizations where id=v_profile.org_id;
     if found then
       perform nexora.ensure_org_weekly_goals(v_org.id);
       v_slots:=v_org_slots_base+floor(v_org.level/v_org_slots_divisor)::integer;
