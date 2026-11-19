@@ -279,6 +279,7 @@ export function MarketHubView({
       await transferCredits(profile.uid, recipientName, cleanAmount, transferNote);
       setConfirmTransferOpen(false);
       setRecipientName('');
+      setRecipientCheck('idle');
       setTransferNote('');
       showToast(
         language === 'ar' ? 'تم تنفيذ التحويل المالي بنجاح.' : 'Transfer completed.',
@@ -781,7 +782,7 @@ export function MarketHubView({
             <input
               type="number"
               min={1}
-              max={wallet?.balance ?? 0}
+              max={Math.min(wallet?.balance ?? 0, 10000)}
               value={transferAmount || ''}
               onChange={(e) => {
                 const v = e.target.value;
