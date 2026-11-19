@@ -26,7 +26,7 @@ concurrency:
 
 jobs:
   replay-history:
-    name: Replay 42 recovered migrations on disposable PostgreSQL
+    name: Replay tracked and untracked SQL on disposable PostgreSQL
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
@@ -57,20 +57,19 @@ jobs:
           trap restore_migrations EXIT
           supabase start --exclude edge-runtime,gotrue,imgproxy,kong,logflare,mailpit,postgres-meta,postgrest,realtime,storage-api,studio,supavisor,vector
 
-      - name: Replay the exact 42 applied migration sources in remote version order
+      - name: Replay 42 tracked migrations and 13 untracked SQL events in timestamp order
         shell: bash
         run: |
           set -euo pipefail
           eval "$(supabase status -o env)"
-          shopt -s nullglob
-          migrations=(supabase/recovered-history/2026*.sql)
-          if [ "${#migrations[@]}" -ne 42 ]; then
-            echo "::error::Expected exactly 42 recovered SQL sources; found ${#migrations[@]}."
+          mapfile -t statements < <(find supabase/recovered-history -type f -name '2026*.sql' -print | sort)
+          if [ "${#statements[@]}" -ne 55 ]; then
+            echo "::error::Expected 55 recovered SQL sources; found ${#statements[@]}."
             exit 1
           fi
-          for migration in "${migrations[@]}"; do
-            echo "::group::Replay ${migration}"
-            psql "$DB_URL" -v ON_ERROR_STOP=1 -f "$migration"
+          for statement in "${statements[@]}"; do
+            echo "::group::Replay ${statement}"
+            psql "$DB_URL" -v ON_ERROR_STOP=1 -f "$statement"
             echo "::endgroup::"
           done
 

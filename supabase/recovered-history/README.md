@@ -1,62 +1,50 @@
-# Recovered Supabase migration sources
+# Recovered Supabase SQL source archive
 
-**42 / 42 remote migration history entries have a recovered SQL body.**
+**42 / 42 tracked remote migration entries recovered, plus 13 untracked SQL statement events.**
 
 Project: `hmrprnjhyzyefocdmnxf`  
 Recovery date: 2026-11-19.
 
-## Provenance
-- 41 migration SQL bodies were extracted from Supabase `postgres_logs` statement records; each log timestamp maps to its remote migration version.
+## Tracked migration sources
+
+- 41 SQL bodies were recovered from Supabase `postgres_logs` statement events; their timestamps map to remote migration versions.
 - The remaining source, `20261118193136_nova_reconcile_skill_points_to_one_per_level`, was recovered read-only from `supabase_migrations.schema_migrations.statements`.
-- The SQL bodies are preserved; the Supabase API wrapper that inserts migration metadata is intentionally excluded.
-- Two extra logged statement attempts had no corresponding version in the current remote ledger and were excluded.
-- Every archive file is stored outside `supabase/migrations/`, so Supabase CLI will not treat it as pending migration work.
+- The migration metadata table contains 42 rows and no rollback arrays.
+- Two additional tracked-style statement events had no matching version in the current remote ledger and were excluded from the 42 applied migration sources.
+
+## Untracked direct SQL events
+
+- 13 additional client-backend SQL statements were logged as direct `POST /mcp` executions, but do not appear as entries in `supabase_migrations.schema_migrations`.
+- Their SQL bodies were recovered from PostgreSQL logs and stored under `untracked/`.
+- Request metadata and user identifiers were deliberately stripped.
+- Several statements define functions that are present in the production catalog but are absent from the 42 tracked migration bodies. Some are later replaced by tracked migrations; the replay workflow preserves their chronological order.
+
+## Isolated replay
+
+The historical replay workflow combines the 42 tracked migration sources and 13 untracked SQL events by their timestamp-prefixed filenames, then applies the three NOVA hardening migrations and runs pgTAP. It runs only on a disposable GitHub Actions Supabase stack.
 
 ## Safety
-**Do not execute this directory wholesale, move these files into `supabase/migrations/`, or run `supabase db push` based only on this recovery.**
 
-This restores the historical SQL source bodies. It does not yet prove the current 31 local migration files match those bodies or establish a safe production deployment sequence. Content-level comparison and a separate reviewed reconciliation plan remain necessary.
+**Do not execute this directory wholesale outside the isolated replay workflow. Do not move these files into `supabase/migrations/` or run `supabase db push` based only on this recovery.**
 
-## Recovered files
-- `20261118151416_nova_player_core.sql`
-- `20261118151655_harden_player_rpc_schema.sql`
-- `20261118160528_nova_competitive_core.sql`
-- `20261118161142_nova_shared_market.sql`
-- `20261118161319_nova_market_fk_indexes.sql`
-- `20261118162050_nova_competitive_duels.sql`
-- `20261118170627_nexora_core_schema_v1.sql`
-- `20261118170652_nexora_username_compatibility.sql`
-- `20261118170811_remove_legacy_nova_functions.sql`
-- `20261118170819_remove_legacy_nova_game_tables.sql`
-- `20261118170850_nexora_firebase_identity_boundary.sql`
-- `20261118171625_nexora_character_creation_rpc.sql`
-- `20261118181814_nexora_server_operations.sql`
-- `20261118181827_nexora_org_request_pending_unique.sql`
-- `20261118190004_nova_character_welcome_branding.sql`
-- `20261118192232_nova_remove_properties_and_skill_point_progression.sql`
-- `20261118192618_nova_remove_property_mission_path.sql`
-- `20261118192658_nova_remove_property_achievement_path.sql`
-- `20261118193136_nova_reconcile_skill_points_to_one_per_level.sql`
-- `20261118194258_nova_fix_company_upgrade_guard_and_indexes.sql`
-- `20261118201649_nova_social_hub.sql`
-- `20261118201750_nova_social_conversation_shape.sql`
-- `20261118205113_nova_player_presence.sql`
-- `20261118205409_nova_org_donation_ranking.sql`
-- `20261118212342_nova_company_auction.sql`
-- `20261118212718_nova_company_auction_immutable_history.sql`
-- `20261118212846_nova_company_bid_found_guard.sql`
-- `20261118222122_nova_skill_reset_and_factories.sql`
-- `20261118222810_nova_factory_pause_sync_fix.sql`
-- `20261118225248_nova_factory_economy_rebalance.sql`
-- `20261118225603_nova_factory_warehouse_and_level_100.sql`
-- `20261118225737_nova_factory_auction_support.sql`
-- `20261118230011_nova_factory_warehouse_capacity_balance.sql`
-- `20261118230131_nova_factory_auction_capacity_reservations.sql`
-- `20261118230414_nova_factory_base_profit_curve.sql`
-- `20261118230515_nova_add_advanced_factory_resources.sql`
-- `20261118232146_nova_factory_profit_margin_v2.sql`
-- `20261118233048_nova_remove_market_purchase_xp.sql`
-- `20261118233344_remove_market_purchase_reputation_influence.sql`
-- `20261118233403_correct_market_purchase_rewards.sql`
-- `20261118233646_add_advanced_resource_manufacturing_recipes.sql`
-- `20261118233707_balance_advanced_resource_recipe_costs.sql`
+The archive restores logged SQL bodies, but the current 31 local migration files still contain differences and candidates that need classification. The archive is forensic evidence for reconciliation, not a deployment plan.
+
+## Tracked source files
+
+55 total SQL files are archived: 42 tracked sources in this directory and 13 untracked events in `untracked/`. See the parent folder listing for the full tracked-source inventory.
+
+## Untracked source files
+
+- `untracked/20261118172839_untracked_nexora_economy_rpcs.sql`
+- `untracked/20261118173226_untracked_nexora_market_rpcs.sql`
+- `untracked/20261118173428_untracked_nexora_manufacturing_rpc.sql`
+- `untracked/20261118173620_untracked_nexora_contract_rpc.sql`
+- `untracked/20261118173755_untracked_nexora_player_settings_notifications.sql`
+- `untracked/20261118174139_untracked_nexora_companies_properties.sql`
+- `untracked/20261118174450_untracked_nexora_company_vault_rpcs.sql`
+- `untracked/20261118174935_untracked_nexora_mission_achievement_rpcs.sql`
+- `untracked/20261118175142_untracked_nexora_organization_rpcs.sql`
+- `untracked/20261118175749_untracked_nexora_org_join_request.sql`
+- `untracked/20261118175939_untracked_nexora_leaderboards.sql`
+- `untracked/20261118180144_untracked_nexora_org_membership_sync.sql`
+- `untracked/20261118233352_untracked_nexora_market_purchase_update.sql`
