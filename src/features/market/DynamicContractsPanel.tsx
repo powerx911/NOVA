@@ -369,6 +369,7 @@ export function DynamicContractsPanel({ profile, inventory, wallet, language }: 
             <>
               <section className="space-y-3">
                 <h3 className="text-base font-bold text-white flex items-center gap-2"><Building2 className="w-4 h-4 text-amber-300" />{t.organizationContracts}</h3>
+                <p className="text-[11px] text-[#8192AD]">{language === "ar" ? "الخانات المفتوحة حسب مستوى المنظمة: " : "Slots unlocked by organization level: "}<b className="font-mono-num text-white">{orgUnlockedSlots} / 100</b></p>
                 <p className="text-[11px] text-[#A9B9D4]">{language === "ar" ? "فرص استلام عقود المنظمة المتبقية اليوم: " : "Organization contract claims remaining today: "}<b className="font-mono-num text-white">{Math.max(0, orgDailyLimit - orgDailyUsed)} / {orgDailyLimit}</b></p>
                 {canRefreshOrgContracts && <p className="text-[11px] text-[#8FA1BF]">{language === "ar" ? "تجديدات المنظمة المتبقية اليوم: " : "Organization refreshes left today: "}<b className="font-mono-num text-white">{Math.max(0, orgRefreshLimit - orgRefreshUsed)} / {orgRefreshLimit}</b></p>}
                 <p className="text-[11px] text-[#8192AD]">{language === 'ar' ? 'اللوحة مشتركة، وأول عضو يستلم العقد يحجزه حتى ينتهي.' : 'Shared board: the first member to accept reserves a contract until it ends.'}</p>
