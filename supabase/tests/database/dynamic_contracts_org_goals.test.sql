@@ -3,7 +3,7 @@
 create extension if not exists pgtap with schema extensions;
 
 begin;
-select extensions.plan(97);
+select extensions.plan(103);
 
 select extensions.ok(
   exists(select 1 from nexora.contract_config where config_key='catalog_prices'),
@@ -549,6 +549,40 @@ select extensions.is(
      and slot_no between 1 and 100 and status='offered'),
   100,
   'level ten organization board fills all one hundred unlocked contract slots'
+);
+
+
+update nexora.world_events set active=false;
+select extensions.lives_ok(
+  $q$select nexora.rotate_world_events(to_timestamp(4*6*60*60+1))$q$,
+  'the Supabase world event scheduler activates the negative rotation window'
+);
+select extensions.is(
+  (select count(*)::integer from nexora.world_events where active=true),
+  3,
+  'the Supabase world event scheduler maintains a maximum of three active events'
+);
+select extensions.is(
+  (select count(*)::integer from nexora.world_events
+   where active=true and effect_type in ('service_crisis','economic_recession','supply_glut','logistics_disruption')),
+  1,
+  'only one negative event is activated during a negative rotation window'
+);
+select extensions.is(
+  (select count(distinct stack_group)::integer from nexora.world_events where active=true),
+  3,
+  'active Supabase world events never share a stack group'
+);
+update nexora.world_events set active=false;
+select extensions.lives_ok(
+  $q$select nexora.rotate_world_events(to_timestamp(5*6*60*60+1))$q$,
+  'the Supabase world event scheduler activates a regular positive rotation'
+);
+select extensions.is(
+  (select count(*)::integer from nexora.world_events
+   where active=true and effect_type in ('service_crisis','economic_recession','supply_glut','logistics_disruption')),
+  0,
+  'regular rotation windows activate positive events only'
 );
 
 
