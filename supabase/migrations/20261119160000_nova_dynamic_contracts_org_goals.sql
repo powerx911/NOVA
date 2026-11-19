@@ -354,23 +354,40 @@ declare
 begin
   for v_row in
     select * from nexora.contract_offers
+  -- Ready transitions are persisted on every contract RPC, not inferred by the client.
+  for v_row in
+    select * from nexora.contract_offers
+    where ((scope='personal' and user_id=p_uid) or (scope='organization' and claimed_by=p_uid))
+      and status='processing' and ready_at<=now()
+    order by id for update
+  loop
+    update nexora.contract_offers set status='ready',updated_at=now() where id=v_row.id and status='processing';
+    insert into nexora.notifications(id,user_id,title,body,type,is_read)
+    select 'ntf_'||gen_random_uuid()::text,p_uid,'CONTRACT_READY','Your contract is ready to claim','economy',false
+    where exists(select 1 from nexora.player_private pp where pp.user_id=p_uid and pp.notifications_enabled=true);
+  end loop;
+  for v_row in
+    select * from nexora.contract_offers
     where ((scope='personal' and user_id=p_uid) or
-      (scope='organization' and claimed_by=p_uid))
+      (scope='organization' and (claimed_by=p_uid or org_id=(select org_id from nexora.player_profiles where user_id=p_uid))))
       and ((status='offered' and offer_expires_at<=now())
         or (status='accepted' and deadline_at<=now()))
     order by id for update
   loop
     update nexora.contract_offers set status='expired',updated_at=now() where id=v_row.id;
     v_count:=v_count+1;
-    if v_row.board_date=v_today then
+    if v_row.board_date=v_today and
+      (v_row.event_id is null or exists(select 1 from nexora.world_events e where e.id=v_row.event_id
+        and e.active=true and e.starts_at<=now() and e.ends_at>now())) then
       perform nexora.generate_dynamic_contract(v_row.scope,v_row.user_id,v_row.org_id,
-        v_row.slot_no,v_today,v_row.item_id,v_row.tier,null);
+        v_row.slot_no,v_today,v_row.item_id,v_row.tier,v_row.event_id);
     end if;
-    if v_row.claimed_by is not null then
+    if coalesce(v_row.claimed_by,v_row.user_id) is not null then
       insert into nexora.notifications(id,user_id,title,body,type,is_read)
-      select 'ntf_'||gen_random_uuid()::text,v_row.claimed_by,
+      select 'ntf_'||gen_random_uuid()::text,coalesce(v_row.claimed_by,v_row.user_id),
         'CONTRACT_EXPIRED','Contract deadline expired','economy',false
-      where exists(select 1 from nexora.player_private pp where pp.user_id=v_row.claimed_by and pp.notifications_enabled=true);
+      where exists(select 1 from nexora.player_private pp
+        where pp.user_id=coalesce(v_row.claimed_by,v_row.user_id) and pp.notifications_enabled=true);
     end if;
   end loop;
   return v_count;
@@ -476,9 +493,13 @@ begin
   if not found or v_contract.status<>'offered' then raise exception 'CONTRACT_NOT_AVAILABLE'; end if;
   if v_contract.offer_expires_at<=v_now then
     update nexora.contract_offers set status='expired',updated_at=v_now where id=p_contract_id;
-    perform nexora.generate_dynamic_contract(v_contract.scope,v_contract.user_id,v_contract.org_id,
-      v_contract.slot_no,(v_now at time zone 'UTC')::date,v_contract.item_id,v_contract.tier,null);
-    raise exception 'CONTRACT_EXPIRED';
+    if v_contract.board_date=(v_now at time zone 'UTC')::date and
+      (v_contract.event_id is null or exists(select 1 from nexora.world_events e where e.id=v_contract.event_id
+        and e.active=true and e.starts_at<=v_now and e.ends_at>v_now)) then
+      perform nexora.generate_dynamic_contract(v_contract.scope,v_contract.user_id,v_contract.org_id,
+        v_contract.slot_no,(v_now at time zone 'UTC')::date,v_contract.item_id,v_contract.tier,v_contract.event_id);
+    end if;
+    return jsonb_build_object('ok',false,'error','CONTRACT_EXPIRED');
   end if;
   if v_contract.scope='personal' and v_contract.user_id<>p_uid then raise exception 'UNAUTHORIZED'; end if;
   if v_contract.scope='organization' then
@@ -546,7 +567,7 @@ begin
     insert into nexora.notifications(id,user_id,title,body,type,is_read)
     select 'ntf_'||gen_random_uuid()::text,p_uid,'CONTRACT_EXPIRED','Contract deadline expired','economy',false
     where exists(select 1 from nexora.player_private pp where pp.user_id=p_uid and pp.notifications_enabled=true);
-    raise exception 'CONTRACT_EXPIRED';
+    return jsonb_build_object('ok',false,'error','CONTRACT_EXPIRED');
   end if;
   if v_inventory.quantity<v_contract.quantity then raise exception 'MISSING_INPUTS'; end if;
   v_fee:=round(v_contract.payout*0.04)::bigint;
@@ -588,6 +609,16 @@ begin
   if v_contract.scope='personal' and v_contract.user_id<>p_uid then raise exception 'UNAUTHORIZED'; end if;
   if v_contract.scope='organization' and v_contract.claimed_by<>p_uid then raise exception 'UNAUTHORIZED'; end if;
   if v_contract.status<>'accepted' then raise exception 'CONTRACT_CANNOT_BE_ABANDONED'; end if;
+  if v_contract.deadline_at<=now() then
+    update nexora.contract_offers set status='expired',updated_at=now() where id=p_contract_id;
+    if v_contract.board_date=v_today and
+      (v_contract.event_id is null or exists(select 1 from nexora.world_events e where e.id=v_contract.event_id
+        and e.active=true and e.starts_at<=now() and e.ends_at>now())) then
+      perform nexora.generate_dynamic_contract(v_contract.scope,v_contract.user_id,v_contract.org_id,
+        v_contract.slot_no,v_today,v_contract.item_id,v_contract.tier,v_contract.event_id);
+    end if;
+    return jsonb_build_object('ok',false,'error','CONTRACT_EXPIRED');
+  end if;
   insert into nexora.contract_daily_limits(user_id,date_key,used_count) values(p_uid,v_today,0)
     on conflict(user_id,date_key) do nothing;
   select used_count into v_used from nexora.contract_daily_limits where user_id=p_uid and date_key=v_today for update;
@@ -671,11 +702,12 @@ begin
       where id=v_contract.org_id;
   end if;
   update nexora.contract_offers set status='completed',completed_at=now(),updated_at=now() where id=p_contract_id;
-  if v_contract.scope='organization' then
-    perform nexora.record_org_goal_progress(p_uid,'contracts_completed',1);
+  perform nexora.record_org_goal_progress(p_uid,'contracts_completed',1);
+  if v_contract.event_id is null or exists(select 1 from nexora.world_events e where e.id=v_contract.event_id
+    and e.active=true and e.starts_at<=now() and e.ends_at>now()) then
+    perform nexora.generate_dynamic_contract(v_contract.scope,v_contract.user_id,v_contract.org_id,
+      v_contract.slot_no,v_today,v_contract.item_id,v_contract.tier,v_contract.event_id);
   end if;
-  perform nexora.generate_dynamic_contract(v_contract.scope,v_contract.user_id,v_contract.org_id,
-    v_contract.slot_no,v_today,v_contract.item_id,v_contract.tier,null);
   return jsonb_build_object('ok',true,'payout',v_contract.payout,'xp',v_xp,
     'reputation',round(v_contract.reputation_reward*v_leadership),'daily_used',v_used+1);
 end;
