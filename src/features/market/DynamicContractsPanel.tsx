@@ -352,7 +352,7 @@ export function DynamicContractsPanel({ profile, inventory, wallet, language }: 
           <section className="space-y-3">
             <div className="flex items-center justify-between gap-2">
               <h3 className="text-base font-bold text-white flex items-center gap-2"><ShieldCheck className="w-4 h-4 text-sky-300" />{t.personalContracts}</h3>
-              <span className="text-[10px] text-[#8192AD]">{contracts.filter((contract) => contract.slot_no >= 1 && contract.slot_no <= 5).length + personalCooldowns.length} / 5</span>
+              <span className="text-[10px] text-[#8192AD]">{contracts.filter((contract) => contract.status === 'offered' && contract.slot_no >= 1 && contract.slot_no <= 5).length + personalCooldowns.length} / 5</span>
             </div>
             {personal.length || personalCooldowns.length ? <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">{personal}{personalCooldowns.map((slot) => <article key={"personal-cooldown-" + slot.slot_no} className="min-h-36 rounded-2xl border border-dashed border-sky-400/25 bg-[#0D192B] p-4 flex flex-col items-center justify-center gap-2 text-center"><Timer className="w-5 h-5 text-sky-300" /><p className="text-xs font-semibold text-sky-200">{language === "ar" ? "جاري التجديد" : "Refreshing"}</p><p className="font-mono-num text-lg text-white">{remainingLabel(slot.cooldown_until, now + serverOffsetMs)}</p><p className="text-[10px] text-[#8192AD]">{language === "ar" ? "الخانة " + slot.slot_no : "Slot " + slot.slot_no}</p></article>)}</div> : <p className="rounded-xl border border-white/10 p-5 text-center text-xs text-[#8192AD]">{t.noContracts}</p>}
           </section>
