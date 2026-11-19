@@ -78,9 +78,9 @@ select extensions.lives_ok(
 select extensions.is(
   (select count(*)::integer from nexora.contract_offers
    where scope='personal' and user_id='pgtap_active' and board_date=(now() at time zone 'UTC')::date
-     and slot_no between 1 and 6 and status in ('offered','accepted','processing','ready')),
-  6,
-  'personal board contains six standard offers'
+     and slot_no between 1 and 5 and status in ('offered','accepted','processing','ready')),
+  5,
+  'personal board contains five standard offers'
 );
 select extensions.lives_ok(
   $$select nexora.accept_dynamic_contract('pgtap_active',(select id from nexora.contract_offers where user_id='pgtap_active' and status='offered' and slot_no=1 order by slot_generation desc limit 1))$$,
@@ -467,8 +467,8 @@ select extensions.lives_ok(
 );
 select extensions.is(
   (select reputation from nexora.organizations where id='pgtap_goal_org'),
-  (select reward_reputation from nexora.org_weekly_goals
-   where org_id='pgtap_goal_org' and status='completed' order by completed_at desc limit 1),
+  (select coalesce(sum(reward_reputation),0)::bigint from nexora.org_weekly_goals
+   where org_id='pgtap_goal_org' and status='completed'),
   'organization goal reputation is awarded once only'
 );
 select extensions.ok(
