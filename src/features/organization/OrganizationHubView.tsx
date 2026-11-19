@@ -5,6 +5,7 @@ import { useToast } from '../../components/ui/ToastProvider';
 import { ORG_CREATION_COST, ROLE_DEFAULT_PERMISSIONS } from '../../data/catalog';
 import { useTranslations, formatOrgRole } from '../../i18n/translations';
 import { searchAndSortOrganizations, type OrganizationSort } from '../../lib/organizationDirectory';
+import { OrganizationMembersPanel } from './OrganizationMembersPanel';
 import {
   calculateOrgUpgradeCost,
   calculateOrgResearchCost,
@@ -797,64 +798,20 @@ export function OrganizationHubView({
                       </div>
                     )}
           
-                    <div id="org-members" className="bg-[#141821] border border-white/8 rounded-2xl p-5 space-y-3">
-                      <div className="flex items-center justify-between">
-                        <h2 className="text-base font-semibold text-[#F4F5F7]">{t.members}</h2>
-                        <Users className="w-4 h-4 text-[#9299A6]" />
-                      </div>
-                      <div className="space-y-2">
-                        {[...orgMembers].sort((a, b) => Number(Boolean(memberPresence[b.uid])) - Number(Boolean(memberPresence[a.uid])) || ({ leader: 0, deputy: 1, officer: 2, member: 3 }[a.role] - { leader: 0, deputy: 1, officer: 2, member: 3 }[b.role])).map((m) => {
-                          const canChangeRole =
-                            canManageRoles &&
-                            m.uid !== profile.uid &&
-                            m.role !== 'leader' &&
-                            (myOrgMember.role === 'leader' || m.role !== 'deputy');
-                          const canKick =
-                            canManageMembers &&
-                            m.uid !== profile.uid &&
-                            canManageOrgMember(myOrgMember.role, m.role);
-          
-                          return (
-                            <div
-                              key={m.uid}
-                              className="p-3 rounded-xl bg-[#0B0D12] border border-white/6 flex items-center justify-between gap-3"
-                            >
-                              <div className="min-w-0">
-                                <p className="text-sm font-medium text-[#F4F5F7] truncate">{m.username}</p>
-                                <p className="text-xs text-[#9299A6] mt-0.5">
-                                  {formatOrgRole(m.role, language)}
-                                  <span className={`mt-1 inline-flex items-center gap-1.5 ${memberPresence[m.uid] ? 'text-emerald-400' : 'text-[#77808F]'}`}><span className={`h-1.5 w-1.5 rounded-full ${memberPresence[m.uid] ? 'bg-emerald-400' : 'bg-[#77808F]'}`} />{memberPresence[m.uid] ? (language === 'ar' ? 'متصل الآن' : 'Online now') : (language === 'ar' ? 'غير متصل' : 'Offline')}</span>
-                                </p>
-                              </div>
-                              <div className="flex items-center gap-2 shrink-0">
-                                {canChangeRole && (
-                                  <div className="flex flex-col items-end gap-1">
-                                    <select value={m.role} disabled={busyKey === `role_${m.uid}`} onChange={(e) => handleRoleChange(m.uid, e.target.value as Exclude<OrgRole, 'leader'>)} className="min-h-[38px] px-2.5 rounded-lg bg-[#141821] border border-white/10 text-xs text-[#F4F5F7]">
-                                      {myOrgMember.role === 'leader' && <option value="deputy">{formatOrgRole('deputy', language)}</option>}
-                                      <option value="officer">{formatOrgRole('officer', language)}</option>
-                                      <option value="member">{formatOrgRole('member', language)}</option>
-                                    </select>
-                                    <span className="max-w-[190px] text-[10px] text-[#9299A6] text-end">{(ROLE_DEFAULT_PERMISSIONS[m.role] || []).length === 0 ? (language === 'ar' ? 'صلاحيات العضو الأساسية' : 'Basic member access') : (ROLE_DEFAULT_PERMISSIONS[m.role] || []).map((p) => p === 'manage_members' ? (language === 'ar' ? 'إدارة الأعضاء' : 'Members') : p === 'manage_roles' ? (language === 'ar' ? 'إدارة الرتب' : 'Roles') : p === 'manage_treasury' ? (language === 'ar' ? 'الخزينة' : 'Treasury') : (language === 'ar' ? 'إدارة المنظمة' : 'Organization')).join(' · ')}</span>
-                                  </div>
-                                )}
-                                {canKick && (
-                                  <button
-                                    type="button"
-                                    disabled={busyKey === `kick_${m.uid}`}
-                                    onClick={() => setKickTarget({ uid: m.uid, username: m.username })}
-                                    title={t.kick}
-                                    aria-label={t.kick}
-                                    className="min-h-[38px] px-2.5 rounded-lg bg-[#1B2230] hover:bg-[#B91C32]/30 text-[#E04455] text-xs font-semibold flex items-center gap-1"
-                                  >
-                                    <UserMinus className="w-3.5 h-3.5" />
-                                  </button>
-                                )}
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
+                    <OrganizationMembersPanel
+                      members={orgMembers}
+                      memberPresence={memberPresence}
+                      profileUid={profile.uid}
+                      myOrgRole={myOrgMember.role}
+                      canManageRoles={canManageRoles}
+                      canManageMembers={canManageMembers}
+                      busyKey={busyKey}
+                      language={language}
+                      membersLabel={t.members}
+                      kickLabel={t.kick}
+                      onRoleChange={handleRoleChange}
+                      onKick={(member) => setKickTarget({ uid: member.uid, username: member.username })}
+                    />
                   </div>
         )}
       </div>
