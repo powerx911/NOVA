@@ -3,7 +3,7 @@
 create extension if not exists pgtap with schema extensions;
 
 begin;
-select extensions.plan(61);
+select extensions.plan(103);
 
 select extensions.ok(
   exists(select 1 from nexora.contract_config where config_key='catalog_prices'),
@@ -78,9 +78,9 @@ select extensions.lives_ok(
 select extensions.is(
   (select count(*)::integer from nexora.contract_offers
    where scope='personal' and user_id='pgtap_active' and board_date=(now() at time zone 'UTC')::date
-     and slot_no between 1 and 6 and status in ('offered','accepted','processing','ready')),
-  6,
-  'personal board contains six standard offers'
+     and slot_no between 1 and 5 and status in ('offered','accepted','processing','ready')),
+  5,
+  'personal board contains five standard offers'
 );
 select extensions.lives_ok(
   $$select nexora.accept_dynamic_contract('pgtap_active',(select id from nexora.contract_offers where user_id='pgtap_active' and status='offered' and slot_no=1 order by slot_generation desc limit 1))$$,
@@ -134,28 +134,33 @@ select extensions.lives_ok(
   'five daily acceptances remain consumed even after abandonment'
 );
 select extensions.is(
-  (select used_count from nexora.contract_daily_limits
+  (select personal_used_count from nexora.contract_daily_limits
    where user_id='pgtap_daily' and date_key=(now() at time zone 'UTC')::date),
   5,
-  'personal and organization contract attempts share a five-per-day counter'
+  'personal acceptance quota is consumed after five attempts, including abandoned contracts'
 );
-select extensions.throws_ok(
-  $$select nexora.accept_dynamic_contract('pgtap_daily',(select id from nexora.contract_offers where user_id='pgtap_daily' and status='offered' order by slot_no limit 1))$$,
-  'P0001','DAILY_CONTRACT_LIMIT_REACHED',
-  'a sixth daily contract acceptance is rejected'
+select extensions.is(
+  (select org_used_count from nexora.contract_daily_limits
+   where user_id='pgtap_daily' and date_key=(now() at time zone 'UTC')::date),
+  0,
+  'personal acceptances do not consume the separate organization quota'
 );
 select extensions.ok(
-  exists(
-    select 1 from nexora.contract_offers old
-    join nexora.contract_offers replacement
-      on replacement.scope=old.scope and replacement.user_id=old.user_id
-      and replacement.board_date=old.board_date and replacement.slot_no=old.slot_no
-      and replacement.slot_generation>old.slot_generation
-    where old.user_id='pgtap_daily' and old.status='abandoned'
-      and replacement.status='offered'
-      and (replacement.item_id<>old.item_id or replacement.tier<>old.tier)
-  ),
-  'a replacement offer differs by item or tier'
+  exists(select 1 from nexora.contract_slot_cooldowns c
+    join nexora.contract_offers o on o.user_id=c.owner_id and o.slot_no=c.slot_no
+      and o.board_date=c.board_date and o.scope=c.scope
+    where c.scope='personal' and c.owner_id='pgtap_daily'
+      and o.status='abandoned' and c.cooldown_until>now()),
+  'abandoning a contract leaves its slot in an independent fifteen-minute cooldown'
+);
+update nexora.contract_slot_cooldowns set cooldown_until=now()-interval '1 second'
+where scope='personal' and owner_id='pgtap_daily';
+select extensions.lives_ok($q$select nexora.get_dynamic_contract_board('pgtap_daily')$q$,
+  'personal offers refill after their cooldown elapses');
+select extensions.throws_ok(
+  $q$select nexora.accept_dynamic_contract('pgtap_daily',(select id from nexora.contract_offers where user_id='pgtap_daily' and scope='personal' and status='offered' order by slot_no limit 1))$q$,
+  'P0001','DAILY_CONTRACT_LIMIT_REACHED',
+  'a sixth personal contract acceptance is rejected independently'
 );
 
 insert into nexora.player_profiles(user_id,username,username_lower,level)
@@ -227,6 +232,7 @@ insert into nexora.wallets(user_id,balance) values ('pgtap_expiry',2500);
 insert into nexora.player_private(user_id,language,notifications_enabled)
 values ('pgtap_expiry','en',true);
 select extensions.lives_ok($$select nexora.get_dynamic_contract_board('pgtap_expiry')$$,'expiry fixture receives offers');
+select extensions.is((select count(*)::integer from nexora.contract_offers where user_id='pgtap_expiry' and scope='personal' and board_date=(now() at time zone 'UTC')::date and slot_no between 1 and 5 and status='offered'),5,'personal board exposes five offers');
 select extensions.lives_ok(
   $$select nexora.accept_dynamic_contract('pgtap_expiry',(select id from nexora.contract_offers where user_id='pgtap_expiry' and status='offered' order by slot_no limit 1))$$,
   'expiry fixture accepts a contract'
@@ -234,13 +240,31 @@ select extensions.lives_ok(
 update nexora.contract_offers set deadline_at=now()-interval '1 second'
 where id=(select id from nexora.contract_offers where user_id='pgtap_expiry' and status='accepted' limit 1);
 select extensions.lives_ok($$select nexora.get_dynamic_contract_board('pgtap_expiry')$$,'board RPC lazily settles expired contracts');
+select extensions.is(
+  (select count(*)::integer from nexora.contract_offers old join nexora.contract_offers fresh
+    on fresh.user_id=old.user_id and fresh.scope=old.scope and fresh.slot_no=old.slot_no
+      and fresh.board_date=old.board_date and fresh.slot_generation>old.slot_generation
+    where old.user_id='pgtap_expiry' and old.status='expired' and fresh.status='offered'),
+  0,
+  'expired contract slot stays empty during its server-side cooldown'
+);
+select extensions.ok(
+  exists(select 1 from nexora.contract_slot_cooldowns
+    where scope='personal' and owner_id='pgtap_expiry' and slot_no=(
+      select slot_no from nexora.contract_offers where user_id='pgtap_expiry' and status='expired' order by updated_at desc limit 1
+    ) and cooldown_until>now()),
+  'each expired slot receives its own fifteen-minute cooldown'
+);
+update nexora.contract_slot_cooldowns set cooldown_until=now()-interval '1 second'
+where scope='personal' and owner_id='pgtap_expiry';
+select extensions.lives_ok($$select nexora.get_dynamic_contract_board('pgtap_expiry')$$,
+  'expired cooldown is cleared on the next board refresh');
 select extensions.ok(
   exists(select 1 from nexora.contract_offers old join nexora.contract_offers fresh
     on fresh.user_id=old.user_id and fresh.scope=old.scope and fresh.slot_no=old.slot_no
       and fresh.board_date=old.board_date and fresh.slot_generation>old.slot_generation
-    where old.user_id='pgtap_expiry' and old.status='expired' and fresh.status='offered'
-      and (fresh.item_id<>old.item_id or fresh.tier<>old.tier)),
-  'lazy expiry rotates the expired slot to a different offer'
+    where old.user_id='pgtap_expiry' and old.status='expired' and fresh.status='offered'),
+  'the same slot is refilled after fifteen minutes elapse'
 );
 select extensions.ok(
   exists(select 1 from nexora.notifications where user_id='pgtap_expiry' and title='Contract expired'),
@@ -284,6 +308,8 @@ values ('pgtap_org_user','en',true);
 insert into nexora.organization_members(org_id,user_id,username,role,joined_at)
 values ('pgtap_org','pgtap_org_user','Org User','leader',now()-interval '7 hours');
 select extensions.lives_ok($$select nexora.get_dynamic_contract_board('pgtap_org_user')$$,'organization board is generated');
+select extensions.is((select count(*)::integer from nexora.contract_offers where org_id='pgtap_org' and scope='organization' and board_date=(now() at time zone 'UTC')::date and status='offered'),10,'level one organization board exposes ten offers');
+select extensions.is((nexora.get_dynamic_contract_board('pgtap_org_user')->>'organization_slots')::integer,10,'organization board reports ten unlocked slots at level one');
 select extensions.throws_ok(
   $$select nexora.accept_dynamic_contract('pgtap_org_user',(select id from nexora.contract_offers where scope='organization' and org_id='pgtap_org' and status='offered' order by slot_no limit 1))$$,
   'P0001','ORG_MEMBERSHIP_TOO_NEW',
@@ -307,7 +333,17 @@ select extensions.throws_ok(
 select extensions.is(
   (select used_count from nexora.contract_daily_limits where user_id='pgtap_org_user' and date_key=(now() at time zone 'UTC')::date),
   2,
-  'personal and organization acceptances consume the same daily allowance'
+  'combined contract acceptance count remains available for audit'
+);
+select extensions.is(
+  (select personal_used_count from nexora.contract_daily_limits where user_id='pgtap_org_user' and date_key=(now() at time zone 'UTC')::date),
+  1,
+  'personal acceptance consumes only the personal daily quota'
+);
+select extensions.is(
+  (select org_used_count from nexora.contract_daily_limits where user_id='pgtap_org_user' and date_key=(now() at time zone 'UTC')::date),
+  1,
+  'organization acceptance consumes only the organization daily quota'
 );
 insert into nexora.inventory(user_id,item_id,quantity)
 select 'pgtap_org_user',item_id,100 from nexora.contract_offers
@@ -327,6 +363,30 @@ select extensions.ok(
   exists(select 1 from nexora.notifications where user_id='pgtap_org_user' and title='Contract ready to claim'),
   'ready notification respects enabled player notifications'
 );
+insert into nexora.inventory(user_id,item_id,quantity)
+select 'pgtap_org_user',item_id,100 from nexora.contract_offers
+where id=(select id from nexora.contract_offers where scope='personal' and user_id='pgtap_org_user' and status='accepted' limit 1)
+on conflict(user_id,item_id) do update set quantity=100;
+select extensions.lives_ok(
+  $$select nexora.deliver_dynamic_contract('pgtap_org_user',(select id from nexora.contract_offers where scope='personal' and user_id='pgtap_org_user' and status='accepted' limit 1))$$,
+  'personal contract can be delivered independently of the organization contract'
+);
+update nexora.contract_offers set ready_at=now()-interval '1 second'
+where scope='personal' and user_id='pgtap_org_user' and status='processing';
+select extensions.lives_ok(
+  $$select nexora.claim_dynamic_contract('pgtap_org_user',(select id from nexora.contract_offers where scope='personal' and user_id='pgtap_org_user' and status='processing' limit 1))$$,
+  'personal contract reward can be claimed after processing'
+);
+select extensions.is(
+  (select current_amount from nexora.org_weekly_goals where org_id='pgtap_org' and goal_type='org_contracts_completed' and week_start=date_trunc('week',timezone('UTC',now()))::date),
+  1::numeric,
+  'organization contract claim advances the organization contract goal'
+);
+select extensions.is(
+  (select current_amount from nexora.org_weekly_goals where org_id='pgtap_org' and goal_type='personal_contracts_completed' and week_start=date_trunc('week',timezone('UTC',now()))::date),
+  1::numeric,
+  'personal contract claim advances the personal contract goal'
+);
 select extensions.is(
   (select reputation from nexora.organizations where id='pgtap_org'),
   (select org_reputation_reward from nexora.contract_offers where scope='organization' and org_id='pgtap_org' and status='completed' order by completed_at desc limit 1)::bigint,
@@ -336,6 +396,16 @@ select extensions.throws_ok(
   $$select nexora.claim_dynamic_contract('pgtap_org_user',(select id from nexora.contract_offers where scope='organization' and org_id='pgtap_org' and status='completed' order by completed_at desc limit 1))$$,
   'P0001','CONTRACT_NOT_CLAIMABLE',
   'the same organization contract cannot be claimed twice'
+);
+
+insert into nexora.player_profiles(user_id,username,username_lower,level,org_id)
+values ('pgtap_org_member','Org Member','pgtap_org_member',1,'pgtap_org');
+insert into nexora.organization_members(org_id,user_id,username,role,joined_at)
+values ('pgtap_org','pgtap_org_member','Org Member','member',now()-interval '30 days');
+select extensions.throws_ok(
+  $$select nexora.refresh_dynamic_contract('pgtap_org_member',(select id from nexora.contract_offers where scope='organization' and org_id='pgtap_org' and status='offered' order by slot_no limit 1))$$,
+  'P0001','ORG_REFRESH_PERMISSION_REQUIRED',
+  'regular organization members cannot refresh shared organization contracts'
 );
 
 insert into nexora.organizations(id,name,tag,leader_uid,leader_name,level,member_count,reputation)
@@ -348,8 +418,44 @@ select extensions.lives_ok($$select nexora.get_org_weekly_goals('pgtap_goal_user
 select extensions.is(
   (select count(*)::integer from nexora.org_weekly_goals
    where org_id='pgtap_goal_org' and week_start=date_trunc('week',timezone('UTC',now()))::date),
-  3,
-  'three distinct goals are generated for the UTC ISO week'
+  10,
+  'ten distinct goals are generated for the UTC ISO week'
+);
+select extensions.ok(
+  exists(select 1 from nexora.org_weekly_goals where org_id='pgtap_goal_org' and goal_type='personal_contracts_completed')
+  and exists(select 1 from nexora.org_weekly_goals where org_id='pgtap_goal_org' and goal_type='org_contracts_completed'),
+  'weekly goals separately include personal and organization contract completions'
+);
+insert into nexora.companies(id,owner_uid,owner_name,name,sector)
+values ('pgtap_goal_company','pgtap_goal_user','Goal User','Goal Company','tech');
+select extensions.is(
+  (select current_amount from nexora.org_weekly_goals where org_id='pgtap_goal_org' and goal_type='companies_founded' and week_start=date_trunc('week',timezone('UTC',now()))::date),
+  1::numeric,
+  'company creation advances the companies-founded goal'
+);
+update nexora.companies set total_revenue=5000,level=2 where id='pgtap_goal_company';
+select extensions.is(
+  (select current_amount from nexora.org_weekly_goals where org_id='pgtap_goal_org' and goal_type='company_revenue' and week_start=date_trunc('week',timezone('UTC',now()))::date),
+  5000::numeric,
+  'collected company revenue advances the revenue goal'
+);
+select extensions.is(
+  (select current_amount from nexora.org_weekly_goals where org_id='pgtap_goal_org' and goal_type='company_upgrades' and week_start=date_trunc('week',timezone('UTC',now()))::date),
+  1::numeric,
+  'company level upgrades advance the company-upgrade goal'
+);
+insert into nexora.factories(id,owner_uid,owner_name,name,resource_id)
+values ('pgtap_goal_factory','pgtap_goal_user','Goal User','Goal Factory','copper_wire');
+select extensions.is(
+  (select current_amount from nexora.org_weekly_goals where org_id='pgtap_goal_org' and goal_type='factories_founded' and week_start=date_trunc('week',timezone('UTC',now()))::date),
+  1::numeric,
+  'factory creation advances the factories-founded goal'
+);
+update nexora.factories set level=2 where id='pgtap_goal_factory';
+select extensions.is(
+  (select current_amount from nexora.org_weekly_goals where org_id='pgtap_goal_org' and goal_type='factory_upgrades' and week_start=date_trunc('week',timezone('UTC',now()))::date),
+  1::numeric,
+  'factory level upgrades advance the factory-upgrade goal'
 );
 select extensions.lives_ok(
   $query$do $body$
@@ -366,8 +472,8 @@ select extensions.lives_ok(
 );
 select extensions.is(
   (select reputation from nexora.organizations where id='pgtap_goal_org'),
-  (select reward_reputation from nexora.org_weekly_goals
-   where org_id='pgtap_goal_org' and status='completed' order by completed_at desc limit 1),
+  (select coalesce(sum(reward_reputation),0)::bigint from nexora.org_weekly_goals
+   where org_id='pgtap_goal_org' and status='completed'),
   'organization goal reputation is awarded once only'
 );
 select extensions.ok(
@@ -375,6 +481,124 @@ select extensions.ok(
     join nexora.org_weekly_goals g on g.id=c.goal_id
     where c.org_id='pgtap_goal_org' and c.user_id='pgtap_goal_user' and g.status='completed'),
   'completed goals retain per-member contribution records'
+);
+
+
+select extensions.lives_ok(
+  $$select nexora.refresh_dynamic_contract('pgtap_expiry',(select id from nexora.contract_offers where user_id='pgtap_expiry' and scope='personal' and status='offered' order by slot_no limit 1))$$,
+  'a player can refresh a personal offer'
+);
+select extensions.lives_ok(
+  $$select nexora.refresh_dynamic_contract('pgtap_expiry',(select id from nexora.contract_offers where user_id='pgtap_expiry' and scope='personal' and status='offered' order by slot_no limit 1))$$,
+  'a second independent personal slot can be refreshed'
+);
+select extensions.lives_ok(
+  $$select nexora.refresh_dynamic_contract('pgtap_expiry',(select id from nexora.contract_offers where user_id='pgtap_expiry' and scope='personal' and status='offered' order by slot_no limit 1))$$,
+  'a third personal refresh is allowed in the UTC day'
+);
+select extensions.throws_ok(
+  $$select nexora.refresh_dynamic_contract('pgtap_expiry',(select id from nexora.contract_offers where user_id='pgtap_expiry' and scope='personal' and status='offered' order by slot_no limit 1))$$,
+  'P0001','CONTRACT_REFRESH_LIMIT_REACHED',
+  'personal refresh allowance stops at three per UTC day'
+);
+select extensions.is(
+  (select used_count from nexora.contract_slot_refresh_usage where scope='personal' and owner_id='pgtap_expiry' and date_key=(now() at time zone 'UTC')::date),
+  3,
+  'personal refresh usage is tracked independently'
+);
+
+select extensions.lives_ok(
+  $$select nexora.refresh_dynamic_contract('pgtap_org_user',(select id from nexora.contract_offers where scope='organization' and org_id='pgtap_org' and status='offered' order by slot_no limit 1))$$,
+  'organization leader can refresh a shared organization offer'
+);
+select extensions.lives_ok(
+  $$select nexora.refresh_dynamic_contract('pgtap_org_user',(select id from nexora.contract_offers where scope='organization' and org_id='pgtap_org' and status='offered' order by slot_no limit 1))$$,
+  'organization refresh allowance permits a second refresh'
+);
+select extensions.lives_ok(
+  $$select nexora.refresh_dynamic_contract('pgtap_org_user',(select id from nexora.contract_offers where scope='organization' and org_id='pgtap_org' and status='offered' order by slot_no limit 1))$$,
+  'organization refresh allowance permits a third refresh'
+);
+select extensions.lives_ok(
+  $$select nexora.refresh_dynamic_contract('pgtap_org_user',(select id from nexora.contract_offers where scope='organization' and org_id='pgtap_org' and status='offered' order by slot_no limit 1))$$,
+  'organization refresh allowance permits a fourth refresh'
+);
+select extensions.lives_ok(
+  $$select nexora.refresh_dynamic_contract('pgtap_org_user',(select id from nexora.contract_offers where scope='organization' and org_id='pgtap_org' and status='offered' order by slot_no limit 1))$$,
+  'organization refresh allowance permits five refreshes per UTC day'
+);
+select extensions.throws_ok(
+  $$select nexora.refresh_dynamic_contract('pgtap_org_user',(select id from nexora.contract_offers where scope='organization' and org_id='pgtap_org' and status='offered' order by slot_no limit 1))$$,
+  'P0001','CONTRACT_REFRESH_LIMIT_REACHED',
+  'organization refresh allowance stops at five per UTC day'
+);
+
+
+update nexora.organizations set level=10 where id='pgtap_org';
+update nexora.contract_slot_cooldowns set cooldown_until=now()-interval '1 second'
+where scope='organization' and owner_id='pgtap_org';
+select extensions.is(
+  (nexora.get_dynamic_contract_board('pgtap_org_user')->>'organization_slots')::integer,
+  100,
+  'level ten organization board expands to one hundred unlocked slots'
+);
+select extensions.is(
+  (select count(*)::integer from nexora.contract_offers
+   where scope='organization' and org_id='pgtap_org'
+     and board_date=(now() at time zone 'UTC')::date
+     and slot_no between 1 and 100 and status='offered'),
+  100,
+  'level ten organization board fills all one hundred unlocked contract slots'
+);
+
+
+update nexora.world_events set active=false;
+select extensions.lives_ok(
+  $q$select nexora.rotate_world_events(to_timestamp(4*6*60*60+1))$q$,
+  'the Supabase world event scheduler activates the negative rotation window'
+);
+select extensions.is(
+  (select count(*)::integer from nexora.world_events where active=true),
+  3,
+  'the Supabase world event scheduler maintains a maximum of three active events'
+);
+select extensions.is(
+  (select count(*)::integer from nexora.world_events
+   where active=true and effect_type in ('service_crisis','economic_recession','supply_glut','logistics_disruption')),
+  1,
+  'only one negative event is activated during a negative rotation window'
+);
+select extensions.is(
+  (select count(distinct stack_group)::integer from nexora.world_events where active=true),
+  3,
+  'active Supabase world events never share a stack group'
+);
+update nexora.world_events set active=false;
+select extensions.lives_ok(
+  $q$select nexora.rotate_world_events(to_timestamp(5*6*60*60+1))$q$,
+  'the Supabase world event scheduler activates a regular positive rotation'
+);
+select extensions.is(
+  (select count(*)::integer from nexora.world_events
+   where active=true and effect_type in ('service_crisis','economic_recession','supply_glut','logistics_disruption')),
+  0,
+  'regular rotation windows activate positive events only'
+);
+
+
+insert into nexora.player_profiles(user_id,username,username_lower,level)
+values ('pgtap_rollover','Rollover Test','pgtap_rollover',1);
+insert into nexora.wallets(user_id,balance) values ('pgtap_rollover',1000);
+insert into nexora.player_private(user_id,language,notifications_enabled)
+values ('pgtap_rollover','en',true);
+select extensions.lives_ok($q$select nexora.get_dynamic_contract_board('pgtap_rollover')$q$,
+  'UTC rollover fixture receives personal contract offers');
+update nexora.contract_offers
+set board_date=(now() at time zone 'UTC')::date-1,status='abandoned',completed_at=now(),updated_at=now()
+where id=(select id from nexora.contract_offers where user_id='pgtap_rollover' and scope='personal' and status='offered' order by slot_no limit 1);
+select extensions.ok(
+  jsonb_array_length(nexora.get_contract_slot_cooldowns('pgtap_rollover')->'personal')=1,
+  'a slot cooldown remains visible when its contract ends across a UTC day boundary'
 );
 
 select * from extensions.finish();

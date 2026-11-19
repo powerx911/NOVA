@@ -233,7 +233,7 @@ describe('NOVA Core Economy & Security Invariants', () => {
     const low = calculateDynamicItemPrice('microchips', 100, extremeLow, 1_000);
 
     expect(high).toBeLessThanOrEqual(Math.round(supplyAdjustedPrice * 1.45));
-    expect(low).toBeGreaterThanOrEqual(Math.round(supplyAdjustedPrice * 0.7));
+    expect(low).toBeGreaterThanOrEqual(Math.round(supplyAdjustedPrice * 0.6));
   });
 
   it('clamps market tax even when world events apply extreme modifiers', () => {

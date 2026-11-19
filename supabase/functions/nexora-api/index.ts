@@ -244,6 +244,12 @@ Deno.serve(async (req: Request) => {
 
     const dynamicContractActions: Record<string, { rpc: string; args: Record<string, unknown>; status: number }> = {
       get_dynamic_contract_board: { rpc: "get_dynamic_contract_board", args: { p_uid: identity.uid }, status: 200 },
+      get_contract_slot_cooldowns: { rpc: "get_contract_slot_cooldowns", args: { p_uid: identity.uid }, status: 200 },
+      refresh_dynamic_contract: {
+        rpc: "refresh_dynamic_contract",
+        args: { p_uid: identity.uid, p_contract_id: typeof body.contractId === "string" ? body.contractId : "" },
+        status: 200,
+      },
       accept_dynamic_contract: {
         rpc: "accept_dynamic_contract",
         args: { p_uid: identity.uid, p_contract_id: typeof body.contractId === "string" ? body.contractId : "" },
@@ -268,7 +274,7 @@ Deno.serve(async (req: Request) => {
     };
     const dynamicContractAction = dynamicContractActions[body.action];
     if (dynamicContractAction) {
-      if (body.action !== "get_dynamic_contract_board" && body.action !== "get_org_weekly_goals") {
+      if (body.action !== "get_dynamic_contract_board" && body.action !== "get_org_weekly_goals" && body.action !== "get_contract_slot_cooldowns") {
         const contractId = dynamicContractAction.args.p_contract_id;
         if (typeof contractId !== "string" || !contractId || contractId.length > 128) {
           return json({ error: "INVALID_ARGUMENT" }, 400, origin);
@@ -281,13 +287,18 @@ Deno.serve(async (req: Request) => {
           "UNAUTHORIZED", "ORG_NOT_FOUND", "ORG_MEMBERSHIP_TOO_NEW", "CONTRACT_ALREADY_CLAIMED",
           "ORG_ACTIVE_CONTRACT_LIMIT", "ACTIVE_CONTRACT_LIMIT", "CONTRACT_NOT_ACCEPTED",
           "CONTRACT_CANNOT_BE_ABANDONED", "MISSING_INPUTS", "INSUFFICIENT_FUNDS",
-          "CONTRACT_NOT_READY", "CONTRACT_NOT_CLAIMABLE", "DAILY_CONTRACT_LIMIT_REACHED",
+          "CONTRACT_NOT_READY", "CONTRACT_NOT_CLAIMABLE", "DAILY_CONTRACT_LIMIT_REACHED", "CONTRACT_NOT_REFRESHABLE", "ORG_REFRESH_PERMISSION_REQUIRED", "CONTRACT_REFRESH_LIMIT_REACHED",
           "NOT_IN_ORG",
         ].find((code) => error.message.includes(code));
         return json({ error: known ?? "DYNAMIC_CONTRACT_FAILED" }, 409, origin);
       }
       if (data && typeof data === "object" && "error" in data && (data as { error?: unknown }).error) {
         return json({ error: String((data as { error: unknown }).error) }, 409, origin);
+      }
+      if (body.action === "get_dynamic_contract_board") {
+        const { data: cooldowns, error: cooldownError } = await db.rpc("get_contract_slot_cooldowns", { p_uid: identity.uid });
+        if (cooldownError) return json({ error: "CONTRACT_COOLDOWN_FETCH_FAILED" }, 500, origin);
+        return json({ ok: true, data: { ...(data as Record<string, unknown>), cooldowns } }, dynamicContractAction.status, origin);
       }
       return json({ ok: true, data }, dynamicContractAction.status, origin);
     }

@@ -56,6 +56,19 @@ describe('NEXORA world event rotation engine', () => {
     expect(plan.toActivate).toHaveLength(0);
   });
 
+  it('introduces negative events only once per five six-hour rotations and never more than one at a time', () => {
+    const negativeWindow = buildWorldEventRotationPlan([], 24 * HOUR, 3);
+    const regularWindow = buildWorldEventRotationPlan([], 30 * HOUR, 3);
+    expect(negativeWindow.toActivate.filter((event) => event.template.eventClass === 'negative')).toHaveLength(1);
+    expect(regularWindow.toActivate.every((event) => event.template.eventClass === 'positive')).toBe(true);
+  });
+
+  it('includes a severe 0.6 negative market multiplier', () => {
+    expect(SERVER_WORLD_EVENT_TEMPLATES.some((event) =>
+      event.eventClass === 'negative' && event.priceMultiplier === 0.6
+    )).toBe(true);
+  });
+
   it('assigns each activated event its configured duration', () => {
     const now = 300 * HOUR;
     const plan = buildWorldEventRotationPlan([], now, 3);

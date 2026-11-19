@@ -151,7 +151,7 @@ export function calculateMarketTaxRate(
 
 /**
  * Computes dynamic market reference price based on supply volume and active world events.
- * Combined event price multiplier is capped to [0.7, 1.45].
+ * Combined event price multiplier is capped to [0.6, 1.45] so severe negative events remain meaningful.
  */
 export function calculateDynamicItemPrice(
   itemId: string,
@@ -171,7 +171,7 @@ export function calculateDynamicItemPrice(
       eventMultiplier *= evt.priceMultiplier || 1.0;
     }
   }
-  const boundedMultiplier = Math.max(0.7, Math.min(1.45, eventMultiplier));
+  const boundedMultiplier = Math.max(0.6, Math.min(1.45, eventMultiplier));
   return Math.max(1, Math.round(item.basePrice * supplyFactor * boundedMultiplier));
 }
 

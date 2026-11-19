@@ -362,7 +362,10 @@ export type WorldEventEffectType =
   | 'tax_cut'
   | 'industrial_boom'
   | 'service_crisis'
-  | 'logistics_boom';
+  | 'logistics_boom'
+  | 'economic_recession'
+  | 'supply_glut'
+  | 'logistics_disruption';
 
 export interface WorldEvent {
   id: string;
@@ -448,13 +451,24 @@ export interface DynamicContractOffer {
   fee_paid: number;
 }
 
+export interface DynamicContractCooldown {
+  slot_no: number;
+  board_date: string;
+  cooldown_until: string;
+}
+
 export interface DynamicContractBoard {
   personal: DynamicContractOffer[];
   organization: DynamicContractOffer[];
   active_personal: number;
   daily_used: number;
   daily_limit: number;
+  org_daily_used?: number;
+  org_daily_limit?: number;
   offer_expires_at: string;
+  organization_slots?: number;
+  organization_max_slots?: number;
+  cooldowns?: { server_now: string; can_refresh_org?: boolean; personal_refresh_used?: number; personal_refresh_limit?: number; org_refresh_used?: number; org_refresh_limit?: number; personal: DynamicContractCooldown[]; organization: DynamicContractCooldown[] };
 }
 
 export interface OrgGoalContribution {
@@ -465,7 +479,7 @@ export interface OrgGoalContribution {
 
 export interface OrgWeeklyGoal {
   id: string;
-  type: 'produce_units' | 'trade_volume' | 'contracts_completed' | 'treasury_donations';
+  type: 'produce_units' | 'trade_volume' | 'contracts_completed' | 'treasury_donations' | 'personal_contracts_completed' | 'org_contracts_completed' | 'company_revenue' | 'factory_upgrades' | 'company_upgrades' | 'companies_founded' | 'factories_founded';
   difficulty: 'easy' | 'medium' | 'hard';
   target: number;
   current: number;

@@ -1,18 +1,18 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  Award, Building2, CheckCircle2, Loader2, RefreshCw,
-  ShieldCheck, Timer, Trophy,
+  Building2, Loader2, RefreshCw, Lock,
+  ShieldCheck, Timer,
 } from 'lucide-react';
 import { ResourceIcon } from '../../components/ui/ResourceIcon';
 import { useToast } from '../../components/ui/ToastProvider';
 import { ITEM_MAP } from '../../data/catalog';
 import { useTranslations } from '../../i18n/translations';
 import {
-  acceptDynamicContract, abandonDynamicContract, claimDynamicContract,
-  deliverDynamicContract, getDynamicContractBoard, getOrgWeeklyGoals,
+  acceptDynamicContract, abandonDynamicContract, claimDynamicContract, refreshDynamicContract,
+  deliverDynamicContract, getDynamicContractBoard,
 } from '../../services/gameService';
 import type {
-  DynamicContractOffer, Language, OrgWeeklyGoal, PlayerProfile, InventoryItem, Wallet,
+  DynamicContractOffer, Language, PlayerProfile, InventoryItem, Wallet,
 } from '../../types/game';
 
 interface DynamicContractsPanelProps {
@@ -66,28 +66,29 @@ function tierText(tier: DynamicContractOffer['tier'], t: ReturnType<typeof useTr
   return map[tier];
 }
 
-function goalTitle(goal: OrgWeeklyGoal, t: ReturnType<typeof useTranslations>) {
-  const map: Record<OrgWeeklyGoal['type'], string> = {
-    produce_units: t.goalProduceUnits,
-    trade_volume: t.goalTradeVolume,
-    contracts_completed: t.goalContractsCompleted,
-    treasury_donations: t.goalTreasuryDonations,
-  };
-  return map[goal.type];
-}
-
 export function DynamicContractsPanel({ profile, inventory, wallet, language }: DynamicContractsPanelProps) {
   const t = useTranslations(language);
   const { showToast } = useToast();
   const [contracts, setContracts] = useState<DynamicContractOffer[]>([]);
   const [orgContracts, setOrgContracts] = useState<DynamicContractOffer[]>([]);
-  const [goals, setGoals] = useState<OrgWeeklyGoal[]>([]);
+  const [orgUnlockedSlots, setOrgUnlockedSlots] = useState(0);
   const [dailyUsed, setDailyUsed] = useState(0);
   const [dailyLimit, setDailyLimit] = useState(5);
+  const [orgDailyUsed, setOrgDailyUsed] = useState(0);
+  const [orgDailyLimit, setOrgDailyLimit] = useState(5);
+  const [personalRefreshUsed, setPersonalRefreshUsed] = useState(0);
+  const [personalRefreshLimit, setPersonalRefreshLimit] = useState(3);
+  const [orgRefreshUsed, setOrgRefreshUsed] = useState(0);
+  const [orgRefreshLimit, setOrgRefreshLimit] = useState(5);
   const [activePersonal, setActivePersonal] = useState(0);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [now, setNow] = useState(Date.now());
+  const [serverOffsetMs, setServerOffsetMs] = useState(0);
+  const [personalCooldowns, setPersonalCooldowns] = useState<Array<{ slot_no: number; cooldown_until: string }>>([]);
+  const [orgCooldowns, setOrgCooldowns] = useState<Array<{ slot_no: number; cooldown_until: string }>>([]);
+  const [canRefreshOrgContracts, setCanRefreshOrgContracts] = useState(false);
+  const [activeContractTab, setActiveContractTab] = useState<'personal' | 'organization'>('personal');
   const inventoryMap = useMemo(
     () => new Map<string, number>(inventory.map((item) => [item.itemId, item.quantity] as [string, number])),
     [inventory],
@@ -97,16 +98,21 @@ export function DynamicContractsPanel({ profile, inventory, wallet, language }: 
     try {
       const board = await getDynamicContractBoard();
       setContracts(board.personal ?? []);
+      setPersonalCooldowns(board.cooldowns?.personal ?? []);
+      setOrgCooldowns(board.cooldowns?.organization ?? []);
+      setCanRefreshOrgContracts(board.cooldowns?.can_refresh_org === true);
+      setPersonalRefreshUsed(board.cooldowns?.personal_refresh_used ?? 0);
+      setPersonalRefreshLimit(board.cooldowns?.personal_refresh_limit ?? 3);
+      setOrgRefreshUsed(board.cooldowns?.org_refresh_used ?? 0);
+      setOrgRefreshLimit(board.cooldowns?.org_refresh_limit ?? 5);
+      if (board.cooldowns?.server_now) setServerOffsetMs(new Date(board.cooldowns.server_now).getTime() - Date.now());
       setOrgContracts(board.organization ?? []);
+      setOrgUnlockedSlots(board.organization_slots ?? 0);
       setDailyUsed(board.daily_used ?? 0);
       setDailyLimit(board.daily_limit ?? 5);
+      setOrgDailyUsed(board.org_daily_used ?? 0);
+      setOrgDailyLimit(board.org_daily_limit ?? 5);
       setActivePersonal(board.active_personal ?? 0);
-      if (profile.orgId) {
-        const weekly = await getOrgWeeklyGoals();
-        setGoals(weekly.goals ?? []);
-      } else {
-        setGoals([]);
-      }
     } catch (error) {
       const code = error instanceof Error ? error.message : '';
       if (code !== 'NOT_IN_ORG') {
@@ -132,15 +138,27 @@ export function DynamicContractsPanel({ profile, inventory, wallet, language }: 
     };
   }, [refresh]);
 
-  async function runAction(contract: DynamicContractOffer, action: 'accept' | 'deliver' | 'abandon' | 'claim') {
+  useEffect(() => {
+    const expiries = [...personalCooldowns, ...orgCooldowns]
+      .map((slot) => new Date(slot.cooldown_until).getTime())
+      .filter((value) => Number.isFinite(value) && value > Date.now() + serverOffsetMs);
+    if (expiries.length === 0) return undefined;
+    const nextExpiry = Math.min(...expiries);
+    const timer = window.setTimeout(() => { void refresh(); }, Math.max(0, nextExpiry - (Date.now() + serverOffsetMs) + 250));
+    return () => window.clearTimeout(timer);
+  }, [personalCooldowns, orgCooldowns, serverOffsetMs, refresh]);
+
+  async function runAction(contract: DynamicContractOffer, action: 'accept' | 'deliver' | 'abandon' | 'claim' | 'refresh') {
     setBusyId(contract.id);
     try {
       if (action === 'accept') await acceptDynamicContract(contract.id);
+      if (action === 'refresh') await refreshDynamicContract(contract.id);
       if (action === 'deliver') await deliverDynamicContract(contract.id);
       if (action === 'abandon') await abandonDynamicContract(contract.id);
       if (action === 'claim') await claimDynamicContract(contract.id);
       const messages = {
         accept: language === 'ar' ? 'تم استلام العقد وبدأت المهلة.' : 'Contract accepted. The deadline has started.',
+        refresh: language === 'ar' ? 'تم تجديد العقد، وستُملأ الخانة بعد 15 دقيقة.' : 'Contract refreshed. The slot will refill in 15 minutes.',
         deliver: language === 'ar' ? 'تم تسليم المواد وبدأت المعالجة.' : 'Materials delivered. Processing has started.',
         abandon: language === 'ar' ? 'تم التخلي عن العقد.' : 'Contract abandoned.',
         claim: language === 'ar' ? 'تم استلام مكافأة العقد.' : 'Contract reward claimed.',
@@ -151,6 +169,9 @@ export function DynamicContractsPanel({ profile, inventory, wallet, language }: 
       const code = error instanceof Error ? error.message : '';
       const messages: Record<string, [string, string]> = {
         DAILY_CONTRACT_LIMIT_REACHED: ['استهلكت فرص العقود الخمس لهذا اليوم.', 'You have used all five contract attempts today.'],
+        CONTRACT_REFRESH_LIMIT_REACHED: ['استهلكت عدد مرات التجديد المسموح لهذا اليوم.', 'You have used all refreshes allowed for today.'],
+        ORG_REFRESH_PERMISSION_REQUIRED: ['تجديد عقود المنظمة متاح للقائد ونائبه فقط.', 'Only the leader and deputy can refresh organization contracts.'],
+        CONTRACT_NOT_REFRESHABLE: ['لا يمكن تجديد هذا العقد الآن.', 'This contract cannot be refreshed now.'],
         ACTIVE_CONTRACT_LIMIT: ['لديك 3 عقود شخصية نشطة بالفعل.', 'You already have three active personal contracts.'],
         ORG_ACTIVE_CONTRACT_LIMIT: ['لديك عقد منظمة نشط بالفعل.', 'You already have an active organization contract.'],
         ORG_MEMBERSHIP_TOO_NEW: ['يجب أن تمر 8 ساعات على عضويتك في المنظمة.', 'Organization membership must be at least 8 hours old.'],
@@ -188,7 +209,8 @@ export function DynamicContractsPanel({ profile, inventory, wallet, language }: 
         ? t.readyIn
         : t.offerEndsIn;
     const canAccept = contract.status === 'offered' && !isReservedByOther
-      && dailyUsed < dailyLimit && (organization || activePersonal < 3);
+      && (organization ? orgDailyUsed < orgDailyLimit : dailyUsed < dailyLimit) && (organization || activePersonal < 3);
+    const canRefresh = organization ? canRefreshOrgContracts && orgRefreshUsed < orgRefreshLimit : personalRefreshUsed < personalRefreshLimit;
     const canDeliver = contract.status === 'accepted' && isOwnedContract && owned >= contract.quantity && (wallet?.balance ?? 0) >= fee;
     const isBusy = busyId === contract.id;
     const tierColor: Record<DynamicContractOffer['tier'], string> = {
@@ -226,7 +248,7 @@ export function DynamicContractsPanel({ profile, inventory, wallet, language }: 
         {countdownTarget && (
           <div className="flex items-center justify-between gap-2 text-[11px]">
             <span className="text-[#8FA1BF]">{countdownLabel}</span>
-            <span className="flex items-center gap-1.5 text-[#D7E5FF] font-mono-num"><Timer className="w-3.5 h-3.5" />{remainingLabel(countdownTarget, now)}</span>
+            <span className="flex items-center gap-1.5 text-[#D7E5FF] font-mono-num"><Timer className="w-3.5 h-3.5" />{remainingLabel(countdownTarget, now + serverOffsetMs)}</span>
           </div>
         )}
         {contract.status === 'processing' && contract.deadline_remaining_secs !== null && (
@@ -253,10 +275,16 @@ export function DynamicContractsPanel({ profile, inventory, wallet, language }: 
         {isReservedByOther && <p className="text-[11px] text-amber-300">{t.reservedByMember}</p>}
         <div className="flex flex-wrap gap-2 mt-auto pt-1">
           {contract.status === 'offered' && (
-            <button type="button" disabled={!canAccept || isBusy} onClick={() => void runAction(contract, 'accept')}
-              className="flex-1 min-h-10 rounded-xl bg-[#2468D8] hover:bg-[#347CF0] text-white text-xs font-bold disabled:opacity-40">
-              {isBusy ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : t.acceptContract}
-            </button>
+            <>
+              <button type="button" disabled={!canAccept || isBusy} onClick={() => void runAction(contract, 'accept')}
+                className="flex-1 min-h-10 rounded-xl bg-[#2468D8] hover:bg-[#347CF0] text-white text-xs font-bold disabled:opacity-40">
+                {isBusy ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : t.acceptContract}
+              </button>
+              {(!organization || canRefreshOrgContracts) && <button type="button" disabled={isBusy || !canRefresh} onClick={() => void runAction(contract, 'refresh')}
+                className="min-h-10 rounded-xl border border-sky-400/25 px-3 text-sky-200 text-xs font-semibold disabled:opacity-40">
+                <span className="inline-flex items-center gap-1.5"><RefreshCw className="w-3.5 h-3.5" />{language === 'ar' ? 'تجديد العقد' : 'Refresh contract'}</span>
+              </button>}
+            </>
           )}
           {contract.status === 'accepted' && isOwnedContract && (
             <>
@@ -295,9 +323,12 @@ export function DynamicContractsPanel({ profile, inventory, wallet, language }: 
 
   const personal = contracts.map((contract) => renderContract(contract)).filter(Boolean);
   const organization = orgContracts.map((contract) => renderContract(contract, true)).filter(Boolean);
+  const lockedOrganization = Array.from({ length: Math.max(0, 100 - orgUnlockedSlots) }, (_, index) => {
+    const slotNo = orgUnlockedSlots + index + 1;
+    const requiredLevel = Math.ceil(slotNo / 10);
+    return <article key={"org-locked-" + slotNo} className="min-h-36 rounded-2xl border border-dashed border-white/10 bg-[#0A1423] p-4 flex flex-col items-center justify-center gap-2 text-center opacity-70"><Lock className="w-5 h-5 text-[#64748B]" /><p className="text-xs font-semibold text-[#A1AEC3]">{language === 'ar' ? 'خانة مقفلة' : 'Locked slot'}</p><p className="text-[10px] text-[#71819A]">{language === 'ar' ? 'تفتح عند مستوى المنظمة ' + requiredLevel : 'Unlocks at organization level ' + requiredLevel}</p><p className="text-[10px] font-mono-num text-[#53647E]">{slotNo} / 100</p></article>;
+  });
 
-  const difficultyText = (difficulty: OrgWeeklyGoal['difficulty']) => difficulty === 'easy'
-    ? t.goalDifficultyEasy : difficulty === 'medium' ? t.goalDifficultyMedium : t.goalDifficultyHard;
 
   return (
     <div className="space-y-6">
@@ -306,6 +337,7 @@ export function DynamicContractsPanel({ profile, inventory, wallet, language }: 
           <div>
             <h2 className="text-lg font-bold text-white">{t.dynamicContracts}</h2>
             <p className="text-xs text-[#A9B9D4] mt-1">{t.dailyRemaining}: {Math.max(0, dailyLimit - dailyUsed)} / {dailyLimit} · {t.activeContractLimit}: {activePersonal} / 3</p>
+            <p className="text-[10px] text-[#8FA1BF] mt-1">{language === "ar" ? "تجديداتك الشخصية المتبقية اليوم: " : "Personal refreshes left today: "}<b className="font-mono-num text-white">{Math.max(0, personalRefreshLimit - personalRefreshUsed)} / {personalRefreshLimit}</b></p>
           </div>
           <button type="button" onClick={() => void refresh()} className="min-h-10 min-w-10 rounded-xl bg-white/10 flex items-center justify-center text-white" aria-label={language === 'ar' ? 'تحديث' : 'Refresh'}>
             <RefreshCw className="w-4 h-4" />
@@ -320,59 +352,31 @@ export function DynamicContractsPanel({ profile, inventory, wallet, language }: 
 
       {!loading && (
         <>
+          <div className="flex gap-2 rounded-xl border border-white/10 bg-[#0B1425] p-1.5" role="tablist" aria-label={language === 'ar' ? 'أنواع العقود' : 'Contract types'}>
+            <button type="button" role="tab" aria-selected={activeContractTab === 'personal'} onClick={() => setActiveContractTab('personal')} className={`flex-1 min-h-10 rounded-lg px-3 text-xs font-bold transition-colors ${activeContractTab === 'personal' ? 'bg-[#2468D8] text-white' : 'text-[#9AAEC9] hover:text-white'}`}>{t.personalContracts}</button>
+            {profile.orgId && <button type="button" role="tab" aria-selected={activeContractTab === 'organization'} onClick={() => setActiveContractTab('organization')} className={`flex-1 min-h-10 rounded-lg px-3 text-xs font-bold transition-colors ${activeContractTab === 'organization' ? 'bg-[#2468D8] text-white' : 'text-[#9AAEC9] hover:text-white'}`}>{t.organizationContracts}</button>}
+          </div>
+          {activeContractTab === 'personal' && (
           <section className="space-y-3">
             <div className="flex items-center justify-between gap-2">
               <h3 className="text-base font-bold text-white flex items-center gap-2"><ShieldCheck className="w-4 h-4 text-sky-300" />{t.personalContracts}</h3>
-              <span className="text-[10px] text-[#8192AD]">{contracts.filter((contract) => contract.status === 'offered' && contract.slot_no >= 1 && contract.slot_no <= 6).length} / 6</span>
+              <span className="text-[10px] text-[#8192AD]">{contracts.filter((contract) => contract.status === 'offered' && contract.slot_no >= 1 && contract.slot_no <= 5).length + personalCooldowns.filter((slot) => slot.slot_no >= 1 && slot.slot_no <= 5).length} / 5</span>
             </div>
-            {personal.length ? <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">{personal}</div> : <p className="rounded-xl border border-white/10 p-5 text-center text-xs text-[#8192AD]">{t.noContracts}</p>}
+            {personal.length || personalCooldowns.length ? <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">{personal}{personalCooldowns.map((slot) => <article key={"personal-cooldown-" + slot.slot_no} className="min-h-36 rounded-2xl border border-dashed border-sky-400/25 bg-[#0D192B] p-4 flex flex-col items-center justify-center gap-2 text-center"><Timer className="w-5 h-5 text-sky-300" /><p className="text-xs font-semibold text-sky-200">{language === "ar" ? "جاري التجديد" : "Refreshing"}</p><p className="font-mono-num text-lg text-white">{remainingLabel(slot.cooldown_until, now + serverOffsetMs)}</p><p className="text-[10px] text-[#8192AD]">{language === "ar" ? "الخانة " + slot.slot_no : "Slot " + slot.slot_no}</p></article>)}</div> : <p className="rounded-xl border border-white/10 p-5 text-center text-xs text-[#8192AD]">{t.noContracts}</p>}
           </section>
+          )}
 
-          {profile.orgId && (
+          {profile.orgId && activeContractTab === 'organization' && (
             <>
               <section className="space-y-3">
                 <h3 className="text-base font-bold text-white flex items-center gap-2"><Building2 className="w-4 h-4 text-amber-300" />{t.organizationContracts}</h3>
+                <p className="text-[11px] text-[#8192AD]">{language === "ar" ? "الخانات المفتوحة حسب مستوى المنظمة: " : "Slots unlocked by organization level: "}<b className="font-mono-num text-white">{orgUnlockedSlots} / 100</b></p>
+                <p className="text-[11px] text-[#A9B9D4]">{language === "ar" ? "فرص استلام عقود المنظمة المتبقية اليوم: " : "Organization contract claims remaining today: "}<b className="font-mono-num text-white">{Math.max(0, orgDailyLimit - orgDailyUsed)} / {orgDailyLimit}</b></p>
+                {canRefreshOrgContracts && <p className="text-[11px] text-[#8FA1BF]">{language === "ar" ? "تجديدات المنظمة المتبقية اليوم: " : "Organization refreshes left today: "}<b className="font-mono-num text-white">{Math.max(0, orgRefreshLimit - orgRefreshUsed)} / {orgRefreshLimit}</b></p>}
                 <p className="text-[11px] text-[#8192AD]">{language === 'ar' ? 'اللوحة مشتركة، وأول عضو يستلم العقد يحجزه حتى ينتهي.' : 'Shared board: the first member to accept reserves a contract until it ends.'}</p>
-                {organization.length ? <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">{organization}</div> : <p className="rounded-xl border border-white/10 p-5 text-center text-xs text-[#8192AD]">{t.noContracts}</p>}
+                {organization.length || orgCooldowns.length ? <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">{organization}{orgCooldowns.map((slot) => <article key={"org-cooldown-" + slot.slot_no} className="min-h-36 rounded-2xl border border-dashed border-amber-400/25 bg-[#0D192B] p-4 flex flex-col items-center justify-center gap-2 text-center"><Timer className="w-5 h-5 text-amber-300" /><p className="text-xs font-semibold text-amber-200">{language === "ar" ? "جاري التجديد" : "Refreshing"}</p><p className="font-mono-num text-lg text-white">{remainingLabel(slot.cooldown_until, now + serverOffsetMs)}</p><p className="text-[10px] text-[#8192AD]">{language === "ar" ? "الخانة " + slot.slot_no : "Slot " + slot.slot_no}</p></article>)}{lockedOrganization}</div> : <p className="rounded-xl border border-white/10 p-5 text-center text-xs text-[#8192AD]">{t.noContracts}</p>}
               </section>
 
-              <section className="rounded-2xl border border-white/10 bg-[#111A2C] p-4 sm:p-5 space-y-4">
-                <div className="flex items-center justify-between gap-2">
-                  <h3 className="text-base font-bold text-white flex items-center gap-2"><Trophy className="w-4 h-4 text-amber-300" />{t.orgWeeklyGoals}</h3>
-                  <span className="text-[10px] text-[#8192AD]">{t.weeklyReset}</span>
-                </div>
-                {goals.length === 0 ? <p className="text-xs text-[#8192AD]">{t.noContracts}</p> : goals.map((goal) => {
-                  const progress = Math.min(100, goal.current / Math.max(1, goal.target) * 100);
-                  return (
-                    <div key={goal.id} className="rounded-xl border border-white/8 bg-[#0B1425] p-3.5 space-y-3">
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <p className="text-sm font-semibold text-white">{goalTitle(goal, t)}</p>
-                          <span className="text-[10px] text-[#91A4C3]">{difficultyText(goal.difficulty)}</span>
-                        </div>
-                        <span className="flex items-center gap-1 text-xs font-semibold text-amber-300"><Award className="w-3.5 h-3.5" />+{goal.rewardReputation}</span>
-                      </div>
-                      <div className="flex items-center justify-between text-[11px] text-[#9AAEC9]">
-                        <span>{t.goalProgress}</span>
-                        <span className="font-mono-num text-white">{Math.floor(goal.current).toLocaleString()} / {Math.floor(goal.target).toLocaleString()}</span>
-                      </div>
-                      <div className="h-2 rounded-full bg-white/8 overflow-hidden"><div className={`h-full rounded-full ${goal.status === 'completed' ? 'bg-emerald-400' : 'bg-sky-400'}`} style={{ width: `${progress}%` }} /></div>
-                      {goal.contributions?.length > 0 && (
-                        <div className="space-y-1.5">
-                          <p className="text-[10px] text-[#8192AD]">{t.topContributors}</p>
-                          {goal.contributions.slice(0, 3).map((entry, index) => (
-                            <div key={entry.uid} className="flex items-center justify-between text-[11px]">
-                              <span className="text-[#C8D5EA]">{index + 1}. {entry.username ?? entry.uid.slice(0, 8)}</span>
-                              <span className="font-mono-num text-[#A9C9FF]">{Math.floor(entry.amount).toLocaleString()}</span>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                      {goal.status === 'completed' && <p className="text-[10px] text-emerald-300 flex items-center gap-1"><CheckCircle2 className="w-3.5 h-3.5" />{t.contractCompleted}</p>}
-                    </div>
-                  );
-                })}
-              </section>
             </>
           )}
         </>
