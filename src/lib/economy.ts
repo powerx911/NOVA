@@ -482,6 +482,7 @@ export function getMissionProgress(
       tradesCount: number;
       companiesOwned: number;
       totalProduced: number;
+      propertiesOwned?: number;
     };
   }
 ): number {
