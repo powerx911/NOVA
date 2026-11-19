@@ -3,7 +3,7 @@
 create extension if not exists pgtap with schema extensions;
 
 begin;
-select extensions.plan(26);
+select extensions.plan(29);
 
 select extensions.ok(
   not exists (select 1 from nexora.wallets where balance < 0),
@@ -223,6 +223,53 @@ select extensions.ok(
   (select balance=3250 from nexora.wallets where user_id='pgtap_medal_owner')
   and (select count(*)=2 from nexora.transactions where to_uid='pgtap_medal_owner' and reference_id in ('medal_whale_bronze','medal_trader_bronze')),
   'rechecking achievements never duplicates medal rewards or ledger entries'
+);
+
+
+-- Weekly market mission progress is measured from completed purchases in the current ISO week.
+insert into nexora.player_profiles(user_id, username, username_lower, stats)
+values ('pgtap_weekly_owner', 'pgTAP_Weekly', 'pgtap_weekly',
+  '{"tradesCount":0,"companiesOwned":0,"totalProduced":0}'::jsonb);
+insert into nexora.wallets(user_id, balance, total_earned, total_spent)
+values ('pgtap_weekly_owner', 1000, 1000, 0);
+insert into nexora.transactions(
+  id, from_uid, to_uid, amount, fee, net_amount, type, reference_id, description, status, created_at
+)
+select
+  'pgtap_weekly_trade_' || trade_no::text,
+  'pgtap_weekly_owner',
+  'SYSTEM',
+  1, 0, 1, 'market_buy',
+  'pgtap_weekly_ref_' || trade_no::text,
+  'weekly mission fixture',
+  'completed',
+  date_trunc('week', now() at time zone 'UTC') at time zone 'UTC' + interval '1 hour'
+from generate_series(1, 20) as trade_no;
+
+select nexora.claim_mission_reward('pgtap_weekly_owner', 'weekly_market_mogul');
+
+select extensions.ok(
+  exists(
+    select 1 from nexora.player_missions
+    where user_id='pgtap_weekly_owner'
+      and mission_id='weekly_market_mogul'
+      and category='weekly'
+      and period_key=to_char(now() at time zone 'UTC','IYYY-"W"IW')
+  ),
+  'weekly market mogul records a claim for the current ISO week after 20 completed market buys'
+);
+
+select extensions.is(
+  (select balance from nexora.wallets where user_id='pgtap_weekly_owner'),
+  2500::bigint,
+  'weekly market mission grants its one-time 1,500 credit reward'
+);
+
+select extensions.throws_ok(
+  $select nexora.claim_mission_reward('pgtap_weekly_owner', 'weekly_market_mogul')$,
+  'P0001',
+  'MISSION_ALREADY_CLAIMED',
+  'weekly market mission cannot be claimed twice in the same week'
 );
 
 select * from extensions.finish();
