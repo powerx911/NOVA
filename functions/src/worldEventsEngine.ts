@@ -41,6 +41,7 @@ export const SERVER_WORLD_EVENT_TEMPLATES: ServerWorldEventTemplate[] = [
     taxDelta: 0,
     stackGroup: 'sector_tech',
     durationHours: 24,
+    eventClass: 'positive',
   },
   {
     id: 'evt_raw_shortage',
@@ -58,6 +59,7 @@ export const SERVER_WORLD_EVENT_TEMPLATES: ServerWorldEventTemplate[] = [
     taxDelta: 0.01,
     stackGroup: 'supply_raw',
     durationHours: 18,
+    eventClass: 'positive',
   },
   {
     id: 'evt_industrial_surge',
@@ -75,6 +77,7 @@ export const SERVER_WORLD_EVENT_TEMPLATES: ServerWorldEventTemplate[] = [
     taxDelta: 0,
     stackGroup: 'sector_industry',
     durationHours: 24,
+    eventClass: 'positive',
   },
   {
     id: 'evt_service_crisis',
@@ -92,6 +95,7 @@ export const SERVER_WORLD_EVENT_TEMPLATES: ServerWorldEventTemplate[] = [
     taxDelta: 0.01,
     stackGroup: 'macro_demand',
     durationHours: 12,
+    eventClass: 'positive',
   },
   {
     id: 'evt_tax_holiday',
@@ -109,6 +113,7 @@ export const SERVER_WORLD_EVENT_TEMPLATES: ServerWorldEventTemplate[] = [
     taxDelta: -0.01,
     stackGroup: 'fiscal_policy',
     durationHours: 24,
+    eventClass: 'positive',
   },
   {
     id: 'evt_logistics_boom',
@@ -126,7 +131,58 @@ export const SERVER_WORLD_EVENT_TEMPLATES: ServerWorldEventTemplate[] = [
     taxDelta: 0,
     stackGroup: 'sector_logistics',
     durationHours: 24,
+    eventClass: 'positive',
   },
+
+  {
+    id: 'evt_global_recession',
+    titleAr: 'ركود اقتصادي عالمي',
+    titleEn: 'Global Economic Recession',
+    descriptionAr: 'انكماش حاد في الطلب العالمي يخفض مؤشر الرقائق إلى 60% ويقلص عوائد قطاعات الاقتصاد.',
+    descriptionEn: 'A sharp global demand contraction cuts the Microchip market index to 60% and reduces company yields across sectors.',
+    effectType: 'economic_recession',
+    targetItemId: 'microchips',
+    affectedSectors: ['trade', 'manufacturing', 'services', 'tech', 'logistics'],
+    priceMultiplier: 0.6,
+    revenueMultiplier: 0.72,
+    taxDelta: 0.01,
+    stackGroup: 'macro_demand',
+    durationHours: 12,
+    eventClass: 'negative',
+  },
+  {
+    id: 'evt_raw_material_glut',
+    titleAr: 'تخمة المعروض من الخامات',
+    titleEn: 'Raw Material Supply Glut',
+    descriptionAr: 'وفرة مفاجئة في المعروض تضغط على أسعار خام السيليكون إلى 70% وتضعف عوائد التصنيع.',
+    descriptionEn: 'A sudden supply glut pushes Silicon Ore prices to 70% and softens manufacturing yields.',
+    effectType: 'supply_glut',
+    targetItemId: 'silicon_ore',
+    affectedSectors: ['manufacturing'],
+    priceMultiplier: 0.7,
+    revenueMultiplier: 0.88,
+    taxDelta: 0,
+    stackGroup: 'supply_raw',
+    durationHours: 12,
+    eventClass: 'negative',
+  },
+  {
+    id: 'evt_logistics_disruption',
+    titleAr: 'تعطل سلاسل الإمداد',
+    titleEn: 'Global Logistics Disruption',
+    descriptionAr: 'تعطل الشحن يرفع تكاليف التشغيل ويخفض عوائد قطاعي النقل والتجارة إلى 75%.',
+    descriptionEn: 'Shipping disruption increases operating pressure and cuts Logistics and Trade yields to 75%.',
+    effectType: 'logistics_disruption',
+    targetItemId: 'logistics_drone',
+    affectedSectors: ['logistics', 'trade'],
+    priceMultiplier: 0.82,
+    revenueMultiplier: 0.75,
+    taxDelta: 0.01,
+    stackGroup: 'sector_logistics',
+    durationHours: 10,
+    eventClass: 'negative',
+  },
+
 ];
 
 export interface ExistingWorldEventRecord {
