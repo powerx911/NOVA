@@ -2,6 +2,7 @@ import { ArrowUpCircle, Factory, Package, Pause, Play, Wrench } from 'lucide-rea
 import { useEffect, useMemo, useState } from 'react';
 import { useToast } from '../../components/ui/ToastProvider';
 import { FACTORY_RESOURCES, ITEM_MAP } from '../../data/catalog';
+import { ResourceIcon } from '../../components/ui/ResourceIcon';
 import { timestampToMs } from '../../services/gameService';
 import { completeFactoryUpgrade, completeFactoryWarehouseUpgrade, foundFactory, setFactoryActive, syncFactory, upgradeFactory, upgradeFactorySkill, upgradeFactoryWarehouse, withdrawFactoryWarehouse } from '../../services/gameService';
 import type { Factory as FactoryRecord, FactoryResourceId, InventoryItem, Language, PlayerProfile, Wallet } from '../../types/game';
@@ -152,14 +153,14 @@ export function FactoriesPanel({ factories, inventory, profile, wallet, language
             <h2 className="text-base font-bold text-[#F4F5F7]">{isAr ? 'مصانعي' : 'My factories'}</h2>
             <p className="mt-1 text-xs text-[#9299A6]">{isAr ? 'كل مصنع ينتج مورداً خاماً واحداً فقط، والحد الأقصى 3 مصانع.' : 'Each factory produces one raw resource only. Maximum ownership: 3 factories.'}</p>
           </div>
-          <span className="rounded-lg bg-[#0B0D12] px-3 py-1.5 text-xs font-mono-num text-[#E5A0A8]">{factories.length}/3</span>
+          <span className="rounded-lg bg-[#0B0D12] px-3 py-1.5 text-xs font-mono-num text-[#9CBFFF]">{factories.length}/3</span>
         </div>
         {factories.length > 0 && (
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
             {factories.map((factory) => {
               const resource = FACTORY_RESOURCES.find((item) => item.resourceId === factory.resourceId);
-              return <button key={factory.id} type="button" onClick={() => setSelectedId(factory.id)} className={`rounded-xl border p-3 text-start transition-colors ${selected?.id === factory.id ? 'border-[#E04455] bg-[#1B2230]' : 'border-white/8 bg-[#0B0D12] hover:border-white/20'}`}>
-                <span className="flex items-center gap-2"><Factory className="h-4 w-4 text-[#E04455]" /><span className="truncate text-sm font-semibold text-[#F4F5F7]">{factory.name}</span></span>
+              return <button key={factory.id} type="button" onClick={() => setSelectedId(factory.id)} className={`rounded-xl border p-3 text-start transition-colors ${selected?.id === factory.id ? 'border-[#397BFF] bg-[#1B2230]' : 'border-white/8 bg-[#0B0D12] hover:border-white/20'}`}>
+                <span className="flex items-center gap-2"><ResourceIcon itemId={factory.resourceId} size="md" /><span className="truncate text-sm font-semibold text-[#F4F5F7]">{factory.name}</span></span>
                 <span className="mt-1 block text-[11px] text-[#9299A6]">{isAr ? resource?.nameAr : resource?.nameEn} · Lv.{factory.level}</span>
                 <span className="mt-1 block text-[11px] text-emerald-300">{factory.warehouseQty.toLocaleString()} {isAr ? 'وحدة بالمستودع' : 'in warehouse'}</span>
               </button>;
@@ -169,8 +170,8 @@ export function FactoriesPanel({ factories, inventory, profile, wallet, language
         {selected && selectedResource && (
           <div className="rounded-xl border border-white/8 bg-[#0B0D12] p-4 space-y-3">
             <div className="flex flex-wrap items-start justify-between gap-2">
-              <div><h3 className="text-sm font-bold text-[#F4F5F7]">{selected.name}</h3><p className="mt-1 text-xs text-[#9299A6]">{isAr ? selectedResource.nameAr : selectedResource.nameEn} · {isAr ? 'المستوى' : 'Level'} {selected.level}/100</p></div>
-              <span className="rounded-lg bg-[#141821] px-2.5 py-1 text-[10px] text-[#E5A0A8]">{isAr ? 'مصنع موارد خام' : 'Raw-resource factory'}</span>
+              <div className="flex items-center gap-3"><ResourceIcon itemId={selected.resourceId} size="lg" /><div><h3 className="text-sm font-bold text-[#F4F5F7]">{selected.name}</h3><p className="mt-1 text-xs text-[#9299A6]">{isAr ? selectedResource.nameAr : selectedResource.nameEn} · {isAr ? 'المستوى' : 'Level'} {selected.level}/100</p></div></div>
+              <span className="rounded-lg bg-[#141821] px-2.5 py-1 text-[10px] text-[#9CBFFF]">{isAr ? 'مصنع موارد خام' : 'Raw-resource factory'}</span>
               <span className={`rounded-lg px-2.5 py-1 text-[10px] ${selected.isActive ? 'bg-emerald-500/10 text-emerald-300' : 'bg-amber-500/10 text-amber-300'}`}>{selected.isActive ? (isAr ? 'الإنتاج يعمل' : 'Production active') : (isAr ? 'الإنتاج متوقف' : 'Production paused')}</span>
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
@@ -181,7 +182,7 @@ export function FactoriesPanel({ factories, inventory, profile, wallet, language
             </div>
             <div className="space-y-1.5">
               <div className="flex items-center justify-between text-xs"><span className="text-[#9299A6]">{isAr ? 'المستودع' : 'Warehouse'} · {resourceItem ? (isAr ? resourceItem.nameAr : resourceItem.nameEn) : selected.resourceId}</span><span className="font-mono-num text-[#F4F5F7]">{selected.warehouseQty.toLocaleString()} / {warehouseCapacity.toLocaleString()}</span></div>
-              <div className="h-2 overflow-hidden rounded-full bg-white/8"><div className="h-full rounded-full bg-[#B91C32]" style={{ width: `${selectedWarehousePercent}%` }} /></div>
+              <div className="h-2 overflow-hidden rounded-full bg-white/8"><div className="h-full rounded-full bg-[#397BFF]" style={{ width: `${selectedWarehousePercent}%` }} /></div>
             </div>
             <div className="rounded-xl border border-white/8 bg-[#141821] p-3 space-y-2">
               <div className="flex items-center justify-between gap-2">
@@ -195,7 +196,7 @@ export function FactoriesPanel({ factories, inventory, profile, wallet, language
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <button type="button" disabled={busyKey === `sync_${selected.id}`} onClick={() => void runAction(`sync_${selected.id}`, () => syncFactory(selected.id), isAr ? 'تم تحديث الإنتاج وخصم مصاريف التشغيل.' : 'Production synchronized and operating costs charged.')} className="min-h-[42px] rounded-xl bg-[#1B2230] px-3 text-xs font-semibold text-[#F4F5F7] hover:bg-[#263247] disabled:opacity-50">{isAr ? 'تحديث الإنتاج' : 'Sync production'}</button>
               <button type="button" disabled={busyKey === `active_${selected.id}`} onClick={() => void runAction(`active_${selected.id}`, () => setFactoryActive(selected.id, !selected.isActive), selected.isActive ? (isAr ? 'تم إيقاف المصنع ولن تُخصم مصاريف إنتاج أثناء التوقف.' : 'Factory paused; production costs stop while paused.') : (isAr ? 'تم تشغيل المصنع.' : 'Factory activated.'))} className="min-h-[42px] rounded-xl border border-white/10 bg-[#141821] px-3 text-xs font-semibold text-[#F4F5F7] disabled:opacity-50">{selected.isActive ? <><Pause className="me-1 inline h-4 w-4" />{isAr ? 'إيقاف الإنتاج' : 'Pause production'}</> : <><Play className="me-1 inline h-4 w-4" />{isAr ? 'تشغيل الإنتاج' : 'Resume production'}</>}</button>
-              <button type="button" disabled={selected.level >= 100 || Boolean(selectedUpgradeEnd > now) || selectedResourceOwned < upgradeMaterials || (wallet?.balance ?? 0) < upgradeCost || busyKey === `upgrade_${selected.id}`} onClick={() => void runAction(`upgrade_${selected.id}`, () => upgradeFactory(selected.id), isAr ? 'بدأ تطوير المصنع، وسيكتمل تلقائياً.' : 'Factory upgrade started and will complete automatically.')} className="min-h-[42px] rounded-xl bg-[#B91C32] px-3 text-xs font-semibold text-white hover:bg-[#E04455] disabled:opacity-40"><ArrowUpCircle className="me-1 inline h-4 w-4" />{isAr ? `تطوير المصنع · ${upgradeCost.toLocaleString()}` : `Upgrade · ${upgradeCost.toLocaleString()}`}</button>
+              <button type="button" disabled={selected.level >= 100 || Boolean(selectedUpgradeEnd > now) || selectedResourceOwned < upgradeMaterials || (wallet?.balance ?? 0) < upgradeCost || busyKey === `upgrade_${selected.id}`} onClick={() => void runAction(`upgrade_${selected.id}`, () => upgradeFactory(selected.id), isAr ? 'بدأ تطوير المصنع، وسيكتمل تلقائياً.' : 'Factory upgrade started and will complete automatically.')} className="min-h-[42px] rounded-xl bg-[#397BFF] px-3 text-xs font-semibold text-white hover:bg-[#2F6DE0] disabled:opacity-40"><ArrowUpCircle className="me-1 inline h-4 w-4" />{isAr ? `تطوير المصنع · ${upgradeCost.toLocaleString()}` : `Upgrade · ${upgradeCost.toLocaleString()}`}</button>
               <button type="button" disabled={selected.skillLevel >= 10 || selectedResourceOwned < skillMaterials || (wallet?.balance ?? 0) < skillCost || busyKey === `skill_${selected.id}`} onClick={() => void runAction(`skill_${selected.id}`, () => upgradeFactorySkill(selected.id), isAr ? 'تم تطوير مهارة تشغيل المصنع.' : 'Factory operator skill upgraded.')} className="min-h-[42px] rounded-xl border border-white/10 bg-[#141821] px-3 text-xs font-semibold text-[#F4F5F7] disabled:opacity-40"><Wrench className="me-1 inline h-4 w-4" />{isAr ? `تطوير المهارة · ${skillCost.toLocaleString()}` : `Train skill · ${skillCost.toLocaleString()}`}</button>
             </div>
             <p className="text-[11px] text-[#77808F]">{isAr ? `ترقية المصنع تستهلك ${upgradeMaterials} من ${selectedResource.nameAr}. وتطوير المهارة يستهلك ${skillMaterials} من المورد نفسه.` : `Factory upgrade consumes ${upgradeMaterials} units of ${selectedResource.nameEn}; skill training consumes ${skillMaterials}.`}</p>
@@ -214,14 +215,14 @@ export function FactoriesPanel({ factories, inventory, profile, wallet, language
           <label className="block space-y-1"><span className="text-xs text-[#9299A6]">{isAr ? 'اسم المصنع' : 'Factory name'}</span><input value={factoryName} onChange={(event) => setFactoryName(event.target.value)} minLength={2} maxLength={48} required placeholder={isAr ? 'مصنع النحاس المتقدم' : 'Advanced Copper Works'} className="w-full min-h-[44px] rounded-xl border border-white/10 bg-[#0B0D12] px-3 text-sm text-[#F4F5F7]" /></label>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             {FACTORY_RESOURCES.map((resource) => (
-              <button key={resource.resourceId} type="button" onClick={() => setResourceId(resource.resourceId)} className={`rounded-xl border p-3 text-start transition-colors ${resourceId === resource.resourceId ? 'border-[#E04455] bg-[#1B2230]' : 'border-white/8 bg-[#0B0D12]'}`}>
-                <span className="block text-xs font-semibold text-[#F4F5F7]">{isAr ? resource.nameAr : resource.nameEn}</span>
+              <button key={resource.resourceId} type="button" onClick={() => setResourceId(resource.resourceId)} className={`rounded-xl border p-3 text-start transition-colors ${resourceId === resource.resourceId ? 'border-[#397BFF] bg-[#1B2230]' : 'border-white/8 bg-[#0B0D12]'}`}>
+                <span className="mb-2 flex items-center gap-2"><ResourceIcon itemId={resource.resourceId} size="md" /><span className="text-xs font-semibold text-[#F4F5F7]">{isAr ? resource.nameAr : resource.nameEn}</span></span>
                 <span className="mt-1 block text-[11px] text-[#9299A6]">{isAr ? resource.descriptionAr : resource.descriptionEn}</span>
-                <span className="mt-2 block text-xs font-bold text-[#E5A0A8]">${resource.foundingCost.toLocaleString()} · {resource.productionPerHour} {isAr ? 'وحدة/ساعة' : 'units/hr'}</span>
+                <span className="mt-2 block text-xs font-bold text-[#9CBFFF]">${resource.foundingCost.toLocaleString()} · {resource.productionPerHour} {isAr ? 'وحدة/ساعة' : 'units/hr'}</span>
               </button>
             ))}
           </div>
-          <button type="submit" disabled={factories.length >= 3 || busyKey === 'found' || !factoryName.trim() || (wallet?.balance ?? 0) < (FACTORY_RESOURCES.find((item) => item.resourceId === resourceId)?.foundingCost ?? Infinity)} className="w-full min-h-[44px] rounded-xl bg-[#B91C32] px-4 text-sm font-semibold text-white hover:bg-[#E04455] disabled:opacity-40">{busyKey === 'found' ? '...' : factories.length >= 3 ? (isAr ? 'اكتمل الحد الأقصى (3 مصانع)' : 'Three-factory limit reached') : (isAr ? `تأسيس المصنع · ${(FACTORY_RESOURCES.find((item) => item.resourceId === resourceId)?.foundingCost ?? 0).toLocaleString()}` : `Found factory · ${(FACTORY_RESOURCES.find((item) => item.resourceId === resourceId)?.foundingCost ?? 0).toLocaleString()}`)}</button>
+          <button type="submit" disabled={factories.length >= 3 || busyKey === 'found' || !factoryName.trim() || (wallet?.balance ?? 0) < (FACTORY_RESOURCES.find((item) => item.resourceId === resourceId)?.foundingCost ?? Infinity)} className="w-full min-h-[44px] rounded-xl bg-[#397BFF] px-4 text-sm font-semibold text-white hover:bg-[#2F6DE0] disabled:opacity-40">{busyKey === 'found' ? '...' : factories.length >= 3 ? (isAr ? 'اكتمل الحد الأقصى (3 مصانع)' : 'Three-factory limit reached') : (isAr ? `تأسيس المصنع · ${(FACTORY_RESOURCES.find((item) => item.resourceId === resourceId)?.foundingCost ?? 0).toLocaleString()}` : `Found factory · ${(FACTORY_RESOURCES.find((item) => item.resourceId === resourceId)?.foundingCost ?? 0).toLocaleString()}`)}</button>
         </form>
       </section>
     </div>
