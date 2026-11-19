@@ -367,14 +367,20 @@ begin
   loop
     update nexora.contract_offers set status='ready',updated_at=now() where id=v_row.id and status='processing';
     insert into nexora.notifications(id,user_id,title,body,type,is_read)
-    select 'ntf_'||gen_random_uuid()::text,p_uid,'CONTRACT_READY','Your contract is ready to claim','economy',false
-    where exists(select 1 from nexora.player_private pp where pp.user_id=p_uid and pp.notifications_enabled=true);
+    select 'ntf_'||gen_random_uuid()::text,pp.user_id,
+      case when pp.language='ar' then 'العقد جاهز للاستلام' else 'Contract ready to claim' end,
+      case when pp.language='ar' then 'انتهت معالجة عقدك وأصبحت المكافأة جاهزة.' else 'Your contract has finished processing and its reward is ready.' end,
+      'economy',false
+    from nexora.player_private pp where pp.user_id=p_uid and pp.notifications_enabled=true;
   end loop;
   for v_row in
     select * from nexora.contract_offers
     where ((scope='personal' and user_id=p_uid) or
       (scope='organization' and (claimed_by=p_uid or org_id=(select org_id from nexora.player_profiles where user_id=p_uid))))
       and ((status='offered' and offer_expires_at<=now())
+        or (status='offered' and event_id is not null and not exists(
+          select 1 from nexora.world_events e where e.id=contract_offers.event_id
+            and e.active=true and e.starts_at<=now() and e.ends_at>now()))
         or (status='accepted' and deadline_at<=now()))
     order by id for update
   loop
@@ -388,10 +394,12 @@ begin
     end if;
     if coalesce(v_row.claimed_by,v_row.user_id) is not null then
       insert into nexora.notifications(id,user_id,title,body,type,is_read)
-      select 'ntf_'||gen_random_uuid()::text,coalesce(v_row.claimed_by,v_row.user_id),
-        'CONTRACT_EXPIRED','Contract deadline expired','economy',false
-      where exists(select 1 from nexora.player_private pp
-        where pp.user_id=coalesce(v_row.claimed_by,v_row.user_id) and pp.notifications_enabled=true);
+      select 'ntf_'||gen_random_uuid()::text,pp.user_id,
+        case when pp.language='ar' then 'انتهت مهلة العقد' else 'Contract expired' end,
+        case when pp.language='ar' then 'انتهت المهلة وتم تحديث خانة العقد بعرض جديد.' else 'The deadline expired and the contract slot was refreshed.' end,
+        'economy',false
+      from nexora.player_private pp
+      where pp.user_id=coalesce(v_row.claimed_by,v_row.user_id) and pp.notifications_enabled=true;
     end if;
   end loop;
   return v_count;
