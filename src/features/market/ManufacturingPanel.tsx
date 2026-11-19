@@ -85,8 +85,9 @@ export function ManufacturingPanel({ profile, wallet, inventory, language, onNav
                   <div className="min-w-0">
                     <h3 className="text-base font-bold text-[#EAF1FF]">{language === 'ar' ? output.nameAr : output.nameEn} ×{recipe.outputQty * quantity}</h3>
                     <p className="text-xs text-[#9AAAC7] mt-0.5">{language === 'ar' ? 'مهارة الصناعة المطلوبة:' : 'Required Industry:'} <span className="font-mono-num text-[#F4F5F7]">Lv.{recipe.requiredIndustrySkill}</span> · +{recipe.xpReward * quantity} XP</p>
+                  </div>
                 </div>
-                <Factory className="w-5 h-5 text-[#E04455] shrink-0" />
+                <Factory className="w-5 h-5 text-[#63A5FF] shrink-0" />
               </div>
               <div className="space-y-2 bg-[#0B0D12] border border-white/6 rounded-xl p-3.5">
                 {recipe.inputs.map((input) => {
