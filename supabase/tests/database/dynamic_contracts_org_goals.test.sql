@@ -118,7 +118,7 @@ select extensions.lives_ok(
   'daily-limit fixture receives a board'
 );
 select extensions.lives_ok(
-  $$do $body$
+  $query$do $body$
     declare v_id text;
     begin
       for i in 1..5 loop
@@ -130,7 +130,7 @@ select extensions.lives_ok(
         perform nexora.abandon_dynamic_contract('pgtap_daily',v_id);
       end loop;
     end;
-  $body$$$,
+  $body$$query$,
   'five daily acceptances remain consumed even after abandonment'
 );
 select extensions.is(
@@ -352,7 +352,7 @@ select extensions.is(
   'three distinct goals are generated for the UTC ISO week'
 );
 select extensions.lives_ok(
-  $$do $body$
+  $query$do $body$
     declare v_goal nexora.org_weekly_goals%rowtype;
     begin
       select * into v_goal from nexora.org_weekly_goals
@@ -361,7 +361,7 @@ select extensions.lives_ok(
       perform nexora.record_org_goal_progress('pgtap_goal_user',v_goal.goal_type,v_goal.target_amount+1);
       perform nexora.record_org_goal_progress('pgtap_goal_user',v_goal.goal_type,v_goal.target_amount+1);
     end;
-  $body$$$,
+  $body$$query$,
   'goal progress is recorded and repeated completion remains idempotent'
 );
 select extensions.is(
