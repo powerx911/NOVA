@@ -1,7 +1,7 @@
 function camelKey(key: string): string {
   return key === "user_id" ? "uid" : key.replace(/_([a-z])/g, (_, letter: string) => letter.toUpperCase());
 }
-function camelRow<T>(row: T): T {
+export function camelRow<T>(row: T): T {
   if (Array.isArray(row)) return row.map((item) => camelRow(item)) as T;
   if (!row || typeof row !== "object") return row;
   return Object.fromEntries(Object.entries(row as Record<string, unknown>).map(([key, value]) => {
@@ -18,7 +18,7 @@ function camelRow<T>(row: T): T {
   })) as T;
 }
 
-async function queryData<T>(promise: PromiseLike<{ data: T; error: { message: string } | null }>): Promise<T> {
+export async function queryData<T>(promise: PromiseLike<{ data: T; error: { message: string } | null }>): Promise<T> {
   const { data, error } = await promise;
   if (error) throw new Error(error.message);
   return data;

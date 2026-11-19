@@ -6,7 +6,7 @@ const FIREBASE_ISSUER = `https://securetoken.google.com/${FIREBASE_PROJECT_ID}`;
 const FIREBASE_KEYS = createRemoteJWKSet(
   new URL("https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com"),
 );
-function getAdminClient() {
+export function getAdminClient() {
   const url = Deno.env.get("SUPABASE_URL");
   if (!url) throw new Error("SUPABASE_URL_MISSING");
   // Prefer the legacy JWT service_role key with supabase-js v2. The newer
@@ -25,7 +25,7 @@ function getAdminClient() {
   });
 }
 
-async function authenticate(req: Request) {
+export async function authenticate(req: Request) {
   const header = req.headers.get("Authorization") ?? "";
   const token = header.startsWith("Bearer ") ? header.slice(7) : "";
   if (!token) throw new Error("UNAUTHENTICATED");
