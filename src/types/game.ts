@@ -22,6 +22,7 @@ export interface PlayerStats {
   companiesOwned: number;
   totalProduced: number;
   propertiesOwned?: number;
+  weeklyTradesCount?: number;
 }
 
 export interface PlayerProfile {
@@ -38,6 +39,7 @@ export interface PlayerProfile {
   skills: SkillsMap;
   stats: PlayerStats;
   dailyTradesCount?: number;
+  weeklyTradesCount?: number;
   orgId?: string | null;
   createdAt: unknown;
   updatedAt: unknown;
@@ -314,7 +316,7 @@ export interface MissionDefinition {
   rewardXp: number;
   rewardReputation: number;
   targetCount: number;
-  metric: 'trades' | 'companies' | 'produced' | 'level' | 'org' | 'properties';
+  metric: 'trades' | 'companies' | 'produced' | 'level' | 'org' | 'properties' | 'weekly_trades';
 }
 
 export interface PlayerMissionClaim {
