@@ -32,7 +32,8 @@ insert into nexora.contract_config(config_key, config_value) values
   "rare":{"min_qty":1,"max_qty":2,"multiplier":1.25,"min_hours":5,"max_hours":6,"reputation":24,"org_reputation":20},
   "epic":{"min_qty":2,"max_qty":4,"multiplier":1.35,"min_hours":6,"max_hours":6,"reputation":40,"org_reputation":40}
 }'::jsonb),
-('personal_tier_weights', '{"common":70,"uncommon":22,"rare":8}'::jsonb),
+('personal_tier_weights', '{"common":90,"uncommon":9,"rare":1}'::jsonb),
+('item_selection', '{"price_exponent":0.30}'::jsonb),
 ('org_tier_weights', '{"1-2":{"common":80,"uncommon":20,"rare":0,"epic":0},"3-5":{"common":50,"uncommon":35,"rare":15,"epic":0},"6-8":{"common":25,"uncommon":35,"rare":30,"epic":10},"9-10":{"common":10,"uncommon":30,"rare":35,"epic":25}}'::jsonb),
 ('progression', '{"uncommon_level":3,"rare_level":8,"personal_slots":6,"daily_claim_limit":5,"active_personal_limit":3,"org_join_hours":8,"fee_rate":0.04,"xp_rate":0.17,"xp_cap":400,"payout_cap":2500,"processing_divisor":12,"processing_min_minutes":10,"processing_max_minutes":120}'::jsonb),
 ('weekly_goal_bases', '{"produce_units":250,"trade_volume":5000,"contracts_completed":8,"treasury_donations":2500}'::jsonb),
@@ -252,12 +253,15 @@ declare
   v_key text;
   v_value jsonb;
   v_min_level integer;
+  v_item_weight_exponent numeric:=0.30;
   v_level integer:=1;
   v_board_end timestamptz;
 begin
   select config_value into v_catalog from nexora.contract_config where config_key='catalog_prices';
   select config_value into v_rules from nexora.contract_config where config_key='tier_rules';
   select config_value into v_progression from nexora.contract_config where config_key='progression';
+  select coalesce((config_value->>'price_exponent')::numeric,0.30) into v_item_weight_exponent
+    from nexora.contract_config where config_key='item_selection';
   if p_scope='personal' then
     select * into v_profile from nexora.player_profiles where user_id=p_uid;
     if not found then raise exception 'ACCOUNT_NOT_FOUND'; end if;
@@ -299,11 +303,11 @@ begin
           and ((p_scope='personal' and o.scope='personal' and o.user_id=p_uid)
             or (p_scope='organization' and o.scope='organization' and o.org_id=p_org_id))
       )
-    order by random() limit 1;
+    order by random()/power((item_cfg->>'price')::numeric,-v_item_weight_exponent) limit 1;
     if v_item is null then
       select item_id into v_item from jsonb_each(v_catalog) c(item_id,item_cfg)
       where ((v_tier='epic' and item_cfg->>'tier'='rare') or item_cfg->>'tier'=v_tier) and (p_previous_item is null or item_id<>p_previous_item)
-      order by random() limit 1;
+      order by random()/power((item_cfg->>'price')::numeric,-v_item_weight_exponent) limit 1;
     end if;
   end if;
   if v_item is null then raise exception 'CONTRACT_CATALOG_EMPTY'; end if;
