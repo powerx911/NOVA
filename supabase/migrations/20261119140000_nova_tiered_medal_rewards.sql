@@ -33,7 +33,6 @@ begin
       ('ach_merchant', 'trades', 5),
       ('ach_industrial_pioneer', 'produced', 5),
       ('ach_tycoon', 'companies', 2),
-      ('ach_landlord', 'properties', 2),
       ('ach_level_5', 'level', 5),
       ('ach_reputation_100', 'reputation', 100),
       ('medal_whale_bronze', 'spent', 10000),
