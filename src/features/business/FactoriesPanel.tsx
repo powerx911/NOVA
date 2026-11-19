@@ -21,12 +21,14 @@ export function FactoriesPanel({ factories, inventory, profile, wallet, language
   const [factoryName, setFactoryName] = useState('');
   const [resourceId, setResourceId] = useState<FactoryResourceId>('copper_wire');
   const [selectedId, setSelectedId] = useState('');
+  const [factoryView, setFactoryView] = useState<'overview' | 'detail' | 'found'>('overview');
   const [withdrawAmount, setWithdrawAmount] = useState(1);
   const [busyKey, setBusyKey] = useState<string | null>(null);
   const [now, setNow] = useState(Date.now());
   const completionAttempts = useRef(new Set<string>());
   const inventoryMap = useMemo(() => new Map<string, number>(inventory.map((item) => [item.itemId, item.quantity] as [string, number])), [inventory]);
-  const selected = factories.find((factory) => factory.id === selectedId) ?? factories[0] ?? null;
+  const selected = factories.find((factory) => factory.id === selectedId) ?? null;
+  const sortedFactories = [...factories].sort((a, b) => b.level - a.level || a.name.localeCompare(b.name));
   const selectedResource = selected ? FACTORY_RESOURCES.find((item) => item.resourceId === selected.resourceId) : null;
   const selectedUpgradeEnd = selected?.upgradeEndsAt ? timestampToMs(selected.upgradeEndsAt) : 0;
   const selectedWarehouseUpgradeEnd = selected?.warehouseUpgradeEndsAt ? timestampToMs(selected.warehouseUpgradeEndsAt) : 0;
@@ -170,18 +172,16 @@ export function FactoriesPanel({ factories, inventory, profile, wallet, language
   return (
     <div className="space-y-4">
       <section className="rounded-2xl border border-white/8 bg-[#141821] p-4 sm:p-5 space-y-3">
-        <div className="flex items-center justify-between gap-3">
-          <div>
+        {factoryView === 'overview' && <>
+          <div className="flex items-center justify-between gap-3">
             <h2 className="text-base font-bold text-[#F4F5F7]">{isAr ? 'مصانعي' : 'My factories'}</h2>
-            <p className="mt-1 text-xs text-[#9299A6]">{isAr ? 'كل مصنع ينتج مورداً خاماً واحداً فقط، والحد الأقصى 3 مصانع.' : 'Each factory produces one raw resource only. Maximum ownership: 3 factories.'}</p>
+            <button type="button" disabled={factories.length >= 3} onClick={() => setFactoryView('found')} className="min-h-[38px] rounded-lg bg-[#397BFF] px-3 text-xs font-semibold text-white disabled:opacity-40">{isAr ? 'تأسيس مصنع' : 'Found factory'}</button>
           </div>
-          <span className="rounded-lg bg-[#0B0D12] px-3 py-1.5 text-xs font-mono-num text-[#9CBFFF]">{factories.length}/3</span>
-        </div>
-        {factories.length > 0 && (
+          {factories.length > 0 && (
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-            {factories.map((factory) => {
+            {sortedFactories.map((factory) => {
               const resource = FACTORY_RESOURCES.find((item) => item.resourceId === factory.resourceId);
-              return <button key={factory.id} type="button" onClick={() => setSelectedId(factory.id)} className={`rounded-xl border p-3 text-start transition-colors ${selected?.id === factory.id ? 'border-[#397BFF] bg-[#1B2230]' : 'border-white/8 bg-[#0B0D12] hover:border-white/20'}`}>
+              return <button key={factory.id} type="button" onClick={() => { setSelectedId(factory.id); setFactoryView('detail'); }} className={`rounded-xl border p-3 text-start transition-colors ${selected?.id === factory.id ? 'border-[#397BFF] bg-[#1B2230]' : 'border-white/8 bg-[#0B0D12] hover:border-white/20'}`}>
                 <span className="flex items-center gap-2"><ResourceIcon itemId={factory.resourceId} size="md" /><span className="truncate text-sm font-semibold text-[#F4F5F7]">{factory.name}</span></span>
                 <span className="mt-1 block text-[11px] text-[#9299A6]">{isAr ? resource?.nameAr : resource?.nameEn} · Lv.{factory.level}</span>
                 <span className="mt-1 block text-[11px] text-emerald-300">{factory.warehouseQty.toLocaleString()} {isAr ? 'وحدة بالمستودع' : 'in warehouse'}</span>
@@ -189,7 +189,10 @@ export function FactoriesPanel({ factories, inventory, profile, wallet, language
             })}
           </div>
         )}
-        {selected && selectedResource && (
+        </>}
+        {factoryView === 'detail' && selected && selectedResource && (
+          <>
+            <button type="button" onClick={() => setFactoryView('overview')} className="min-h-[38px] rounded-lg bg-[#1B2230] px-3 text-xs font-semibold text-[#F4F5F7]">{isAr ? 'مصانعي' : 'My factories'}</button>
           <div className="rounded-xl border border-white/8 bg-[#0B0D12] p-4 space-y-3">
             <div className="flex flex-wrap items-start justify-between gap-2">
               <div className="flex items-center gap-3"><ResourceIcon itemId={selected.resourceId} size="lg" /><div><h3 className="text-sm font-bold text-[#F4F5F7]">{selected.name}</h3><p className="mt-1 text-xs text-[#9299A6]">{isAr ? selectedResource.nameAr : selectedResource.nameEn} · {isAr ? 'المستوى' : 'Level'} {selected.level}/100</p></div></div>
@@ -226,12 +229,15 @@ export function FactoriesPanel({ factories, inventory, profile, wallet, language
             <div className="flex flex-wrap items-end gap-2 border-t border-white/8 pt-3">
               <label className="min-w-0 flex-1 space-y-1"><span className="text-[11px] text-[#9299A6]">{isAr ? 'سحب من المستودع إلى حقيبتك' : 'Withdraw to inventory'}</span><input type="number" min="1" max={selected.warehouseQty} value={withdrawAmount} onChange={(event) => setWithdrawAmount(Math.max(1, Math.min(1_000_000, Number(event.target.value) || 1)))} className="w-full min-h-[40px] rounded-lg border border-white/10 bg-[#141821] px-3 text-sm text-[#F4F5F7]" /></label>
               <button type="button" disabled={selected.warehouseQty < 1 || withdrawAmount > selected.warehouseQty || busyKey === `withdraw_${selected.id}`} onClick={() => void runAction(`withdraw_${selected.id}`, () => withdrawFactoryWarehouse(selected.id, withdrawAmount), isAr ? 'تم نقل الموارد إلى حقيبتك.' : 'Resources moved to your inventory.')} className="min-h-[40px] rounded-lg bg-[#1B2230] px-4 text-xs font-semibold text-[#F4F5F7] disabled:opacity-40"><Package className="me-1 inline h-4 w-4" />{isAr ? 'سحب الموارد' : 'Withdraw'}</button>
+              <button type="button" disabled={selected.warehouseQty < 1 || busyKey === `withdraw_all_${selected.id}`} onClick={() => void runAction(`withdraw_all_${selected.id}`, () => withdrawFactoryWarehouse(selected.id, selected.warehouseQty), isAr ? 'تم سحب كل الموارد إلى حقيبتك.' : 'All resources moved to your inventory.')} className="min-h-[40px] rounded-lg border border-white/10 bg-[#141821] px-4 text-xs font-semibold text-[#F4F5F7] disabled:opacity-40">{isAr ? 'سحب الكل' : 'Withdraw all'}</button>
             </div>
           </div>
+          </>
         )}
       </section>
 
-      <section className="rounded-2xl border border-white/8 bg-[#141821] p-4 sm:p-5 space-y-3">
+      {factoryView === 'found' && <section className="rounded-2xl border border-white/8 bg-[#141821] p-4 sm:p-5 space-y-3">
+        <button type="button" onClick={() => setFactoryView('overview')} className="min-h-[38px] rounded-lg bg-[#1B2230] px-3 text-xs font-semibold text-[#F4F5F7]">{isAr ? 'مصانعي' : 'My factories'}</button>
         <div><h3 className="text-sm font-bold text-[#F4F5F7]">{isAr ? 'تأسيس مصنع جديد' : 'Found a new factory'}</h3><p className="mt-1 text-xs text-[#9299A6]">{isAr ? 'المصانع لا تنتج أموالاً؛ تنتج موارد خاماً وتستهلك مصاريف تشغيل مرتفعة.' : 'Factories do not generate credits; they produce raw resources and incur substantial operating costs.'}</p></div>
         <form onSubmit={handleFoundFactory} className="space-y-3">
           <label className="block space-y-1"><span className="text-xs text-[#9299A6]">{isAr ? 'اسم المصنع' : 'Factory name'}</span><input value={factoryName} onChange={(event) => setFactoryName(event.target.value)} minLength={2} maxLength={48} required placeholder={isAr ? 'مصنع النحاس المتقدم' : 'Advanced Copper Works'} className="w-full min-h-[44px] rounded-xl border border-white/10 bg-[#0B0D12] px-3 text-sm text-[#F4F5F7]" /></label>
@@ -246,7 +252,7 @@ export function FactoriesPanel({ factories, inventory, profile, wallet, language
           </div>
           <button type="submit" disabled={factories.length >= 3 || busyKey === 'found' || !factoryName.trim() || (wallet?.balance ?? 0) < (FACTORY_RESOURCES.find((item) => item.resourceId === resourceId)?.foundingCost ?? Infinity)} className="w-full min-h-[44px] rounded-xl bg-[#397BFF] px-4 text-sm font-semibold text-white hover:bg-[#2F6DE0] disabled:opacity-40">{busyKey === 'found' ? '...' : factories.length >= 3 ? (isAr ? 'اكتمل الحد الأقصى (3 مصانع)' : 'Three-factory limit reached') : (isAr ? `تأسيس المصنع · ${(FACTORY_RESOURCES.find((item) => item.resourceId === resourceId)?.foundingCost ?? 0).toLocaleString()}` : `Found factory · ${(FACTORY_RESOURCES.find((item) => item.resourceId === resourceId)?.foundingCost ?? 0).toLocaleString()}`)}</button>
         </form>
-      </section>
+      </section>}
     </div>
   );
 }
