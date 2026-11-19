@@ -62,7 +62,7 @@ jobs:
         run: |
           set -euo pipefail
           eval "$(supabase status -o env)"
-          mapfile -t statements < <(find supabase/recovered-history -type f -name '2026*.sql' -printf '%f\\t%p\\n' | sort -k1,1 | cut -f2-)
+          mapfile -t statements < <(find supabase/recovered-history -type f -name '2026*.sql' -printf '%f\t%p\n' | sort -k1,1 | cut -f2-)
           if [ "${#statements[@]}" -ne 55 ]; then
             echo "::error::Expected 55 recovered SQL sources; found ${#statements[@]}."
             exit 1
