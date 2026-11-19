@@ -1,4 +1,4 @@
-import { ArrowUpCircle, Factory, Package, Pause, Play, Wrench } from 'lucide-react';
+import { ArrowLeft, ArrowUpCircle, Factory, Package, Pause, Play, Wrench } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useToast } from '../../components/ui/ToastProvider';
 import { FACTORY_RESOURCES, ITEM_MAP } from '../../data/catalog';
@@ -181,6 +181,7 @@ export function FactoriesPanel({ factories, inventory, profile, wallet, language
             <h2 className="text-base font-bold text-[#F4F5F7]">{isAr ? 'مصانعي' : 'My factories'}</h2>
             <button type="button" disabled={factories.length >= 3} onClick={() => setFactoryView('found')} className="min-h-[38px] rounded-lg bg-[#397BFF] px-3 text-xs font-semibold text-white disabled:opacity-40">{isAr ? 'تأسيس مصنع' : 'Found factory'}</button>
           </div>
+          <p className="text-[11px] text-[#9299A6]">{isAr ? `يمكنك امتلاك 3 مصانع كحد أقصى · المصانع الحالية: ${factories.length}/3` : `You can own up to 3 factories · Current factories: ${factories.length}/3`}</p>
           {factories.length > 0 && (
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
             {sortedFactories.map((factory) => {
@@ -196,7 +197,7 @@ export function FactoriesPanel({ factories, inventory, profile, wallet, language
         </>}
         {factoryView === 'detail' && selected && selectedResource && (
           <>
-            <button type="button" onClick={() => setFactoryView('overview')} className="min-h-[38px] rounded-lg bg-[#1B2230] px-3 text-xs font-semibold text-[#F4F5F7]">{isAr ? 'مصانعي' : 'My factories'}</button>
+            <button type="button" onClick={() => setFactoryView('overview')} className="inline-flex min-h-[40px] items-center gap-2 rounded-xl bg-[#1B2230] px-3 text-xs font-semibold text-[#F4F5F7]"><ArrowLeft className="h-4 w-4" />{isAr ? 'العودة إلى مصانعي' : 'Back to My factories'}</button>
           <div className="rounded-xl border border-white/8 bg-[#0B0D12] p-4 space-y-3">
             <div className="flex flex-wrap items-start justify-between gap-2">
               <div className="flex items-center gap-3"><ResourceIcon itemId={selected.resourceId} size="lg" /><div><h3 className="text-sm font-bold text-[#F4F5F7]">{selected.name}</h3><p className="mt-1 text-xs text-[#9299A6]">{isAr ? selectedResource.nameAr : selectedResource.nameEn} · {isAr ? 'المستوى' : 'Level'} {selected.level}/100</p></div></div>
@@ -241,7 +242,7 @@ export function FactoriesPanel({ factories, inventory, profile, wallet, language
       </section>
 
       {factoryView === 'found' && <section className="rounded-2xl border border-white/8 bg-[#141821] p-4 sm:p-5 space-y-3">
-        <button type="button" onClick={() => setFactoryView('overview')} className="min-h-[38px] rounded-lg bg-[#1B2230] px-3 text-xs font-semibold text-[#F4F5F7]">{isAr ? 'مصانعي' : 'My factories'}</button>
+        <button type="button" onClick={() => setFactoryView('overview')} className="inline-flex min-h-[40px] items-center gap-2 rounded-xl bg-[#1B2230] px-3 text-xs font-semibold text-[#F4F5F7]"><ArrowLeft className="h-4 w-4" />{isAr ? 'العودة إلى مصانعي' : 'Back to My factories'}</button>
         <div><h3 className="text-sm font-bold text-[#F4F5F7]">{isAr ? 'تأسيس مصنع جديد' : 'Found a new factory'}</h3><p className="mt-1 text-xs text-[#9299A6]">{isAr ? 'المصانع لا تنتج أموالاً؛ تنتج موارد خاماً وتستهلك مصاريف تشغيل مرتفعة.' : 'Factories do not generate credits; they produce raw resources and incur substantial operating costs.'}</p></div>
         <form onSubmit={handleFoundFactory} className="space-y-3">
           <label className="block space-y-1"><span className="text-xs text-[#9299A6]">{isAr ? 'اسم المصنع' : 'Factory name'}</span><input value={factoryName} onChange={(event) => setFactoryName(event.target.value)} minLength={2} maxLength={48} required placeholder={isAr ? 'مصنع النحاس المتقدم' : 'Advanced Copper Works'} className="w-full min-h-[44px] rounded-xl border border-white/10 bg-[#0B0D12] px-3 text-sm text-[#F4F5F7]" /></label>

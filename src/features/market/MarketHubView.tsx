@@ -118,7 +118,7 @@ export function MarketHubView({
 
   const filteredListings = liveListings.filter((l) => {
     const item = ITEM_MAP[l.itemId];
-    if (!item || l.status !== 'active' || l.remainingQty <= 0) return false;
+    if (!item || getMarketPriceBounds(l.itemId) === null || l.status !== 'active' || l.remainingQty <= 0) return false;
     if (itemFilter !== 'all' && l.itemId !== itemFilter) return false;
     if (searchQuery.trim()) {
       const q = searchQuery.trim().toLowerCase();
@@ -495,6 +495,8 @@ export function MarketHubView({
                     type="number"
                     min={sellPriceBounds?.minPrice ?? 1}
                     max={sellPriceBounds?.maxPrice ?? LISTING_MAX_PRICE}
+                    step={1}
+                    required
                     value={sellPrice || ''}
                     onChange={(e) => {
                       const v = e.target.value;
@@ -505,11 +507,11 @@ export function MarketHubView({
                   />
                 </div>
               </div>
-              <p className="text-[11px] text-[#9299A6]">
+              <div className="rounded-lg border border-[#2A3445] bg-[#141B27] px-3 py-2 text-xs text-[#D5DCE7]">
                 {language === 'ar'
-                  ? `حد السعر للوحدة: ${sellPriceBounds?.minPrice ?? '—'} إلى ${sellPriceBounds?.maxPrice ?? '—'} (50%–200% من السعر المرجعي).`
-                  : `Allowed unit price: ${sellPriceBounds?.minPrice ?? '—'} to ${sellPriceBounds?.maxPrice ?? '—'} (50%–200% of reference value).`}
-              </p>
+                  ? `الحد الأدنى: ${sellPriceBounds?.minPrice ?? '—'} رصيد · الحد الأقصى: ${sellPriceBounds?.maxPrice ?? '—'} رصيد`
+                  : `Minimum: ${sellPriceBounds?.minPrice ?? '—'} credits · Maximum: ${sellPriceBounds?.maxPrice ?? '—'} credits`}
+              </div>
 
               <button
                 type="submit"
