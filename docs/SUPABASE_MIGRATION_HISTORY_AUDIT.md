@@ -276,3 +276,17 @@ On 2026-11-19, the active healthy production project was queried using catalog m
 This check is a marker-based read of current function definitions, not a full semantic proof of every branch. It establishes the deployment boundary: the hardening changes remain pending in Draft PR #83. Do not tell players or operators that the new economy/transfer/auction rules are active until a separately reviewed deployment has actually succeeded.
 
 Production ledger still reports 42 migration records. No production function was replaced, no migration was pushed or repaired, and no player/business data was accessed.
+## Exact production function comparison — lock ordering and pending guards
+
+A read-only `pg_get_functiondef` inspection on the active production database confirmed the following exact live behavior (function definitions only; no player or business rows were queried):
+
+- `nexora.collect_company_revenue(text,text)` still grants a minimum of 10 XP per collection and increments reputation/influence. Its current row-lock sequence is company → wallet → profile. The PR replacement removes reputation/influence, awards XP only when cumulative collected revenue crosses each 15-credit threshold, and uses company → profile → wallet.
+- `nexora.transfer_credits(text,text,bigint,text)` currently has a deterministic wallet lock (`ORDER BY user_id`) but no level-10 requirement, transfer fee, or daily cap. The PR replacement adds level 10, 3% fee, and a UTC daily 10,000-credit sender cap while retaining deterministic wallet locks.
+- `nexora.buy_market_listing(text,text,integer)` currently locks listing → buyer profile → buyer wallet → seller wallet. Reciprocal trades can therefore acquire the two wallet rows in opposite orders. The PR replacement locks buyer profile → both wallets ordered by `user_id` → listing, rechecks the seller/listing after locks, and does not grant XP/reputation/influence.
+- The auction fee and anti-sniping triggers are also new PR behavior and are not present in the live production definitions inspected earlier.
+
+These exact definitions strengthen the reason not to deploy the active migration directory wholesale. The three PR migrations are targeted function/trigger replacements and should be considered for a separately reviewed release only after the full migration-ledger mapping and rollback plan are complete. No production DDL, data writes, or migration-ledger changes were made.
+
+### Current CI status at time of this audit
+
+On branch head `9ff51e68ba75d169fcfb08470af6a382137c41a8`, App CI completed successfully (run 44512233031). The isolated PostgreSQL/pgTAP and 55-source historical replay runs (44512233131 and 44512233105) were still running when this section was recorded; do not treat them as passed until GitHub reports successful conclusions.
