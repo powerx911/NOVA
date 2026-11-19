@@ -131,6 +131,8 @@ export function FactoriesPanel({ factories, inventory, profile, wallet, language
     try {
       await foundFactory(factoryName, resourceId);
       setFactoryName('');
+      setFactoryView('overview');
+      window.dispatchEvent(new Event('nova:refresh-game'));
       showToast(isAr ? 'تم تأسيس المصنع بنجاح.' : 'Factory founded successfully.', 'success');
     } catch (error) {
       const message = error instanceof Error ? error.message : '';
@@ -148,6 +150,7 @@ export function FactoriesPanel({ factories, inventory, profile, wallet, language
     setBusyKey(key);
     try {
       await action();
+      window.dispatchEvent(new Event('nova:refresh-game'));
       showToast(success, 'success');
     } catch (error) {
       const message = error instanceof Error ? error.message : '';
@@ -166,7 +169,8 @@ export function FactoriesPanel({ factories, inventory, profile, wallet, language
   }
 
   const remainingMs = selectedUpgradeEnd ? Math.max(0, selectedUpgradeEnd - now) : 0;
-  const remainingMinutes = Math.ceil(remainingMs / 60_000);
+  const remainingSeconds = Math.ceil(remainingMs / 1000);
+  const remainingLabel = `${Math.floor(remainingSeconds / 60)}:${String(remainingSeconds % 60).padStart(2, '0')}`;
   const selectedWarehousePercent = selected && warehouseCapacity > 0 ? Math.min(100, selected.warehouseQty / warehouseCapacity * 100) : 0;
 
   return (
@@ -217,7 +221,7 @@ export function FactoriesPanel({ factories, inventory, profile, wallet, language
               {selectedWarehouseUpgradeEnd > 0 && <p className="text-xs text-amber-300">{selectedWarehouseUpgradeEnd > now ? (isAr ? 'توسعة المستودع قيد التنفيذ…' : 'Warehouse expansion in progress…') : (isAr ? 'اكتمل الوقت، جارٍ إنهاء التوسعة.' : 'Timer complete; finalizing expansion.')}</p>}
               <button type="button" disabled={warehouseLevel >= 5 || selectedWarehouseUpgradeEnd > now || selectedUpgradeEnd > now || (wallet?.balance ?? 0) < warehouseUpgradeCost || busyKey === `warehouse_${selected.id}`} onClick={() => void runAction(`warehouse_${selected.id}`, () => upgradeFactoryWarehouse(selected.id), isAr ? 'بدأت توسعة المستودع.' : 'Warehouse expansion started.')} className="w-full min-h-[40px] rounded-lg border border-white/10 bg-[#0B0D12] px-3 text-xs font-semibold text-[#F4F5F7] disabled:opacity-40">{warehouseLevel >= 5 ? (isAr ? 'وصل المستودع إلى المستوى الأقصى' : 'Warehouse max level reached') : (isAr ? `توسعة المستودع · ${warehouseUpgradeCost.toLocaleString()} $` : `Expand warehouse · ${warehouseUpgradeCost.toLocaleString()} $`)}</button>
             </div>
-            {selectedUpgradeEnd > 0 && <p className="text-xs text-amber-300">{remainingMs > 0 ? (isAr ? `التطوير جارٍ · متبقٍ نحو ${remainingMinutes} دقيقة` : `Upgrade in progress · about ${remainingMinutes} min left`) : (isAr ? 'اكتمل الوقت، جارٍ إنهاء التطوير.' : 'Timer complete; finalizing upgrade.')}</p>}
+            {selectedUpgradeEnd > 0 && <p className="text-xs text-amber-300">{remainingMs > 0 ? (isAr ? `التطوير جارٍ · متبقٍ ${remainingLabel}` : `Upgrade in progress · ${remainingLabel} left`) : (isAr ? 'اكتمل الوقت، جارٍ إنهاء التطوير.' : 'Timer complete; finalizing upgrade.')}</p>}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <button type="button" disabled={busyKey === `sync_${selected.id}`} onClick={() => void runAction(`sync_${selected.id}`, () => syncFactory(selected.id), isAr ? 'تم تحديث الإنتاج وخصم مصاريف التشغيل.' : 'Production synchronized and operating costs charged.')} className="min-h-[42px] rounded-xl bg-[#1B2230] px-3 text-xs font-semibold text-[#F4F5F7] hover:bg-[#263247] disabled:opacity-50">{isAr ? 'تحديث الإنتاج' : 'Sync production'}</button>
               <button type="button" disabled={busyKey === `active_${selected.id}`} onClick={() => void runAction(`active_${selected.id}`, () => setFactoryActive(selected.id, !selected.isActive), selected.isActive ? (isAr ? 'تم إيقاف المصنع ولن تُخصم مصاريف إنتاج أثناء التوقف.' : 'Factory paused; production costs stop while paused.') : (isAr ? 'تم تشغيل المصنع.' : 'Factory activated.'))} className="min-h-[42px] rounded-xl border border-white/10 bg-[#141821] px-3 text-xs font-semibold text-[#F4F5F7] disabled:opacity-50">{selected.isActive ? <><Pause className="me-1 inline h-4 w-4" />{isAr ? 'إيقاف الإنتاج' : 'Pause production'}</> : <><Play className="me-1 inline h-4 w-4" />{isAr ? 'تشغيل الإنتاج' : 'Resume production'}</>}</button>
