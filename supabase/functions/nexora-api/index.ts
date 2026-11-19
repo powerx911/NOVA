@@ -78,6 +78,23 @@ Deno.serve(async (req: Request) => {
       return json({ ok: true, data }, 200, origin);
     }
 
+    if (body.action === "validate_transfer_recipient") {
+      const username = typeof body.username === "string" ? body.username.trim() : "";
+      if (!/^[a-zA-Z0-9_]{3,24}$/.test(username)) {
+        return json({ ok: true, data: { exists: false, isSelf: false } }, 200, origin);
+      }
+      const { data, error } = await db.from("usernames").select("uid")
+        .eq("username_lower", username.toLowerCase()).maybeSingle();
+      if (error) throw error;
+      return json({ ok: true, data: { exists: Boolean(data), isSelf: Boolean(data && data.uid === identity.uid) } }, 200, origin);
+    }
+
+    if (body.action === "refresh_achievements") {
+      const { data, error } = await db.rpc("unlock_eligible_achievements", { p_uid: identity.uid });
+      if (error) throw error;
+      return json({ ok: true, data }, 200, origin);
+    }
+
     if (body.action === "username_available") {
       const username = typeof body.username === "string" ? body.username.trim() : "";
       if (!/^[a-zA-Z0-9_]{3,24}$/.test(username)) {
