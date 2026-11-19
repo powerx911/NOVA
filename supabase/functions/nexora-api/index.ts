@@ -242,7 +242,7 @@ Deno.serve(async (req: Request) => {
         p_uid: identity.uid, p_job_id: jobId,
       });
       if (error) {
-        const known = ["MANUFACTURING_JOB_NOT_FOUND","MANUFACTURING_JOB_NOT_FINISHED","INVENTORY_CAPACITY_EXCEEDED","ACCOUNT_NOT_FOUND"].find((code) => error.message.includes(code));
+        const known = ["MANUFACTURING_JOB_NOT_FOUND","MANUFACTURING_JOB_NOT_FINISHED","MANUFACTURING_JOB_CANCELLED","INVENTORY_CAPACITY_EXCEEDED","ACCOUNT_NOT_FOUND"].find((code) => error.message.includes(code));
         return json({ error: known ?? "MANUFACTURING_COMPLETION_FAILED" }, 409, origin);
       }
       return json({ ok: true, data }, 200, origin);
