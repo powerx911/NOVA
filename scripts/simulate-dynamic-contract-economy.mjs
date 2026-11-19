@@ -60,7 +60,7 @@ const averageFiveDailyNet = 5 * (totalPayout - totalFee) / OFFER_COUNT;
 console.log(`Simulated offers: ${OFFER_COUNT}`);
 console.log(`Average payout: ${averagePayout.toFixed(2)}`);
 console.log(`Average payout / market value: ${averagePayoutToMarket.toFixed(4)}`);
-console.log(`Average net injection from 5 daily contracts: ${averageFiveDailyNet.toFixed(2)}`);
+console.log(`Average net injection from 5 personal daily contracts: ${averageFiveDailyNet.toFixed(2)}`);
 if (averagePayoutToMarket < 1.05 || averagePayoutToMarket > 1.45) {
   throw new Error('PAYOUT_TO_MARKET_RATIO_OUT_OF_RANGE');
 }
