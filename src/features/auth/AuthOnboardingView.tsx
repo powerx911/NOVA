@@ -358,6 +358,8 @@ export function AuthOnboardingView({
                     >
                       <img
                         src={av.src}
+                        loading="lazy"
+                        decoding="async"
                         alt={language === 'ar' ? av.labelAr : av.labelEn}
                         referrerPolicy="no-referrer"
                         className="w-full aspect-square rounded-lg object-cover mb-2"

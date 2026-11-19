@@ -309,6 +309,8 @@ export function MarketHubView({
           <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-[#141821]">
             <img
               src={BRAND_ASSETS.marketBanner}
+              loading="lazy"
+              decoding="async"
               alt="NOVA Global Exchange"
               referrerPolicy="no-referrer"
               className="w-full h-36 sm:h-44 object-cover"
