@@ -267,6 +267,7 @@ export async function claimDynamicContract(contractId: string): Promise<void> {
   await runDynamicContractAction('claim_dynamic_contract', contractId);
 }
 
+/** @deprecated Legacy fixed-contract RPC; the NOVA UI uses dynamic contracts. */
 export async function fulfillTradeContract(_uid: string, contractId: string): Promise<number> {
   if (!TRADE_CONTRACTS.some((contract) => contract.id === contractId)) throw new Error('INVALID_CONTRACT');
   try {
