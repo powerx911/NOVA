@@ -4,7 +4,7 @@ import {
   ShoppingBag,
   Tag,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { ManufacturingPanel } from './ManufacturingPanel';
 import { DynamicContractsPanel } from './DynamicContractsPanel';
@@ -25,6 +25,7 @@ import {
   buyMarketListing,
   cancelMarketListing,
   createMarketListing,
+  fetchMarketListings,
   transferCredits,
   validateTransferRecipient,
 } from '../../services/gameService';
@@ -63,6 +64,24 @@ export function MarketHubView({
   const [itemFilter, setItemFilter] = useState<string>('all');
   const [buyQuantities, setBuyQuantities] = useState<Record<string, number>>({});
   const [busyKey, setBusyKey] = useState<string | null>(null);
+  const [liveListings, setLiveListings] = useState(marketListings);
+
+  useEffect(() => {
+    let active = true;
+    const refresh = () => {
+      void fetchMarketListings().then((rows) => { if (active) setLiveListings(rows); }).catch(() => undefined);
+    };
+    refresh();
+    const timer = window.setInterval(refresh, 2000);
+    return () => { active = false; window.clearInterval(timer); };
+  }, []);
+
+  useEffect(() => { setLiveListings(marketListings); }, [marketListings]);
+
+  async function refreshListings() {
+    const rows = await fetchMarketListings();
+    setLiveListings(rows);
+  }
 
   // Create Sell Listing form
   const ownedStacks = inventory.filter((i) => i.quantity > 0 && getMarketPriceBounds(i.itemId) !== null);
@@ -87,17 +106,17 @@ export function MarketHubView({
 
   // Compute live supply per item across active listings
   const supplyByItem = new Map<string, number>();
-  for (const l of marketListings) {
+  for (const l of liveListings) {
     if (l.status === 'active' && l.remainingQty > 0) {
       supplyByItem.set(l.itemId, (supplyByItem.get(l.itemId) || 0) + l.remainingQty);
     }
   }
 
   const pulseItems = CATALOG_ITEMS.slice(0, 4).map((item) =>
-    calculateMarketItemAnalytics(item.id, marketListings, worldEvents)
+    calculateMarketItemAnalytics(item.id, liveListings, worldEvents)
   );
 
-  const filteredListings = marketListings.filter((l) => {
+  const filteredListings = liveListings.filter((l) => {
     const item = ITEM_MAP[l.itemId];
     if (!item || l.status !== 'active' || l.remainingQty <= 0) return false;
     if (itemFilter !== 'all' && l.itemId !== itemFilter) return false;
@@ -120,6 +139,7 @@ export function MarketHubView({
     setBusyKey(`buy_${listing.id}`);
     try {
       await buyMarketListing(profile.uid, listing.id, qty, taxRate);
+      await refreshListings().catch(() => undefined);
       showToast(
         language === 'ar'
           ? `تم شراء ${qty} وحدة بنجاح.`
@@ -166,6 +186,7 @@ export function MarketHubView({
     setBusyKey('sell_create');
     try {
       await createMarketListing(profile.uid, profile.username, sellItemId, cleanQty, cleanPrice);
+      await refreshListings();
       showToast(
         language === 'ar' ? 'تم نشر عرض البيع في السوق.' : 'Sell offer published on market.',
         'success'
@@ -199,6 +220,7 @@ export function MarketHubView({
     setBusyKey(`can_${listingId}`);
     try {
       await cancelMarketListing(profile.uid, listingId);
+      await refreshListings();
       showToast(
         language === 'ar' ? 'تم إلغاء العرض وإعادة الكمية للمخزون.' : 'Listing cancelled and stock returned.',
         'info'
