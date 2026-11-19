@@ -28,6 +28,7 @@ import {
   fulfillTradeContract,
   getUtcDateKey,
   transferCredits,
+  validateTransferRecipient,
 } from '../../services/gameService';
 import type {
   InventoryItem,
@@ -80,6 +81,7 @@ export function MarketHubView({
   const [transferAmount, setTransferAmount] = useState(100);
   const [transferNote, setTransferNote] = useState('');
   const [confirmTransferOpen, setConfirmTransferOpen] = useState(false);
+  const [recipientCheck, setRecipientCheck] = useState<'idle' | 'checking' | 'valid' | 'invalid' | 'self'>('idle');
   const transferFeePreview = Math.round(transferAmount * 0.03);
   const transferNetPreview = Math.max(0, transferAmount - transferFeePreview);
 
@@ -228,6 +230,35 @@ export function MarketHubView({
     }
   }
 
+  async function checkTransferRecipient(): Promise<boolean> {
+    const clean = recipientName.trim();
+    if (!clean) {
+      setRecipientCheck('invalid');
+      return false;
+    }
+    setRecipientCheck('checking');
+    try {
+      const result = await validateTransferRecipient(clean);
+      const status = !result.exists ? 'invalid' : result.isSelf ? 'self' : 'valid';
+      setRecipientCheck(status);
+      if (status === 'invalid') showToast(language === 'ar' ? 'اسم اللاعب غير موجود. تحقق من كتابة اسم المستخدم.' : 'Player not found. Check the username.', 'error');
+      if (status === 'self') showToast(language === 'ar' ? 'لا يمكنك تحويل الأموال إلى نفسك.' : 'You cannot transfer credits to yourself.', 'error');
+      return status === 'valid';
+    } catch {
+      setRecipientCheck('idle');
+      showToast(language === 'ar' ? 'تعذر التحقق من اسم اللاعب. حاول مجدداً.' : 'Could not verify the player. Please try again.', 'error');
+      return false;
+    }
+  }
+
+  async function prepareTransfer() {
+    if (transferAmount > 10000) {
+      showToast(language === 'ar' ? 'الحد الأقصى للتحويل اليومي هو 10,000 قبل الرسوم.' : 'The daily transfer limit is 10,000 before fees.', 'error');
+      return;
+    }
+    if (await checkTransferRecipient()) setConfirmTransferOpen(true);
+  }
+
   async function executeTransfer() {
     const cleanAmount = sanitizePositiveInt(transferAmount, 0);
     if (cleanAmount <= 0) {
@@ -251,7 +282,7 @@ export function MarketHubView({
       );
     } catch (err) {
       const code = err instanceof Error ? err.message : '';
-      if (['SELF_OR_MISSING_RECIPIENT', 'INVALID_AMOUNT', 'TRANSFER_LEVEL_REQUIRED', 'TRANSFER_DAILY_LIMIT'].includes(code)) {
+      if (['RECIPIENT_NOT_FOUND', 'SELF_OR_MISSING_RECIPIENT', 'INVALID_AMOUNT', 'TRANSFER_LEVEL_REQUIRED', 'TRANSFER_DAILY_LIMIT'].includes(code)) {
         setConfirmTransferOpen(false);
       }
       showToast(
@@ -724,12 +755,17 @@ export function MarketHubView({
             <Send className="w-4 h-4 text-[#E04455]" />
           </div>
 
+          <div className="rounded-xl border border-amber-400/20 bg-amber-400/5 p-3 space-y-1.5">
+            <p className="text-xs font-semibold text-amber-200">{language === 'ar' ? 'شروط التحويل' : 'Transfer requirements'}</p>
+            <p className="text-xs text-[#C2C8D2]">{language === 'ar' ? 'المستوى المطلوب: 10 على الأقل · رسوم التحويل: 3% · الحد اليومي: 10,000 رصيد قبل الرسوم (بتوقيت UTC).' : 'Minimum level: 10 · Transfer fee: 3% · Daily limit: 10,000 credits before fees (UTC).'}</p>
+          </div>
           <div className="space-y-1.5">
             <label className="text-xs text-[#9299A6]">{t.recipientUsername}</label>
             <input
               type="text"
               value={recipientName}
-              onChange={(e) => setRecipientName(e.target.value)}
+              onChange={(e) => { setRecipientName(e.target.value); setRecipientCheck('idle'); }}
+              onBlur={() => { if (recipientName.trim()) void checkTransferRecipient(); }}
               dir="ltr"
               placeholder="Username"
               className="w-full min-h-[44px] px-3.5 rounded-xl bg-[#0B0D12] border border-white/10 text-sm text-[#F4F5F7] focus:outline-none focus:border-[#E04455]"
@@ -752,6 +788,14 @@ export function MarketHubView({
             />
           </div>
 
+          <div className="rounded-xl bg-[#0B0D12] border border-white/8 p-3 grid grid-cols-3 gap-2 text-center">
+            <div><p className="text-[10px] text-[#9299A6]">{language === 'ar' ? 'الرسوم 3%' : '3% fee'}</p><p className="text-sm font-mono-num text-amber-200">{transferFeePreview.toLocaleString(){'}'}</p></div>
+            <div><p className="text-[10px] text-[#9299A6]">{language === 'ar' ? 'سيصل للمستلم' : 'Recipient gets'}</p><p className="text-sm font-mono-num text-emerald-300">{transferNetPreview.toLocaleString(){'}'}</p></div>
+            <div><p className="text-[10px] text-[#9299A6]">{language === 'ar' ? 'المتبقي من حد اليوم' : 'Daily limit left'}</p><p className="text-sm font-mono-num text-[#F4F5F7]">{Math.max(0, 10000 - transferAmount).toLocaleString(){'}'}</p></div>
+          </div>
+          {recipientCheck === 'invalid' && <p className="text-xs text-rose-300">{language === 'ar' ? 'لم نعثر على لاعب بهذا الاسم. لن يتم إرسال التحويل.' : 'No player matches this username. The transfer will not be sent.'}</p>}
+          {recipientCheck === 'self' && <p className="text-xs text-rose-300">{language === 'ar' ? 'هذا اسم حسابك.' : 'This is your own username.'}</p>}
+          {recipientCheck === 'valid' && <p className="text-xs text-emerald-300">{language === 'ar' ? 'تم التأكد من وجود اللاعب.' : 'Player account verified.'}</p>}
           <div className="space-y-1.5">
             <label className="text-xs text-[#9299A6]">
               {language === 'ar' ? 'مرجع العملية (اختياري)' : 'Reference Note (Optional)'}
@@ -768,10 +812,10 @@ export function MarketHubView({
           <button
             type="button"
             disabled={!recipientName.trim() || transferAmount <= 0 || transferAmount > (wallet?.balance ?? 0)}
-            onClick={() => setConfirmTransferOpen(true)}
+            onClick={() => void prepareTransfer()}
             className="w-full min-h-[46px] px-4 rounded-xl bg-[#B91C32] hover:bg-[#E04455] text-white text-sm font-semibold transition-colors disabled:bg-[#1B2230] disabled:text-[#9299A6]"
           >
-            {t.sendTransfer}
+            {recipientCheck === 'checking' ? (language === 'ar' ? 'جارٍ التحقق...' : 'Checking player...') : t.sendTransfer}
           </button>
         </div>
       )}
