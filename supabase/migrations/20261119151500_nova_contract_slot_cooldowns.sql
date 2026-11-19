@@ -43,6 +43,18 @@ begin
   v_generator_definition:=replace(v_generator_definition,
     'if v_item is null then raise exception ''CONTRACT_CATALOG_EMPTY''; end if;',
     'if v_item is null then return null; end if;');
+  -- Reuse catalog items across different organization slots so level 10 can
+  -- actually fill a 100-slot board even when the catalog has fewer than 100 items.
+  v_generator_definition:=replace(v_generator_definition,
+    'and o.item_id=item_id and o.tier=v_tier',
+    'and o.item_id=item_id and o.tier=v_tier and o.slot_no=p_slot');
+  v_generator_definition:=replace(v_generator_definition,
+    'and o.item_id=c.item_id and o.tier=c.item_cfg->>''tier''',
+    'and o.item_id=c.item_id and o.tier=c.item_cfg->>''tier'' and o.slot_no=p_slot');
+  if position('and o.item_id=item_id and o.tier=v_tier and o.slot_no=p_slot' in v_generator_definition)=0
+    or position('and o.item_id=c.item_id and o.tier=c.item_cfg->>''tier'' and o.slot_no=p_slot' in v_generator_definition)=0 then
+    raise exception 'CONTRACT_BOARD_SLOT_REUSE_PATCH_FAILED';
+  end if;
   if position('if v_item is null then return null; end if;' in v_generator_definition)=0 then
     raise exception 'CONTRACT_CATALOG_EMPTY_GUARD_PATCH_FAILED';
   end if;
