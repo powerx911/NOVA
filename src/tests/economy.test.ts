@@ -159,6 +159,18 @@ describe('NEXORA Core Economy & Security Invariants', () => {
     expect(scarcePrice).toBeGreaterThan(abundantPrice);
   });
 
+  it('moves the supply price index smoothly across former threshold boundaries', () => {
+    const quantities = [19, 20, 21, 99, 100, 101, 399, 400, 401];
+    const prices = quantities.map((quantity) =>
+      calculateDynamicItemPrice('microchips', quantity, [], 1_000)
+    );
+
+    expect(prices[0]).toBeGreaterThan(prices.at(-1)!);
+    for (let index = 1; index < prices.length; index += 1) {
+      expect(Math.abs(prices[index] - prices[index - 1])).toBeLessThanOrEqual(2);
+    }
+  });
+
   it('calculates company hourly net profit with Management and Finance skills', () => {
     const base = calculateCompanyHourlyNet(
       { baseRevenuePerHour: 200, expensePerHour: 60, level: 1 },

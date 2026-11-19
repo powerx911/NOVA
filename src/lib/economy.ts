@@ -161,14 +161,9 @@ export function calculateDynamicItemPrice(
 ): number {
   const item = ITEM_MAP[itemId];
   if (!item) return 0;
-  const supplyFactor =
-    activeSupplyQty <= 20
-      ? 1.15
-      : activeSupplyQty <= 100
-      ? 1.05
-      : activeSupplyQty >= 400
-      ? 0.92
-      : 1.0;
+  // A continuous scarcity curve avoids exploitable price jumps at fixed supply thresholds.
+  const safeSupply = Math.max(0, Number.isFinite(activeSupplyQty) ? activeSupplyQty : 0);
+  const supplyFactor = 0.9 + 0.25 * Math.exp(-safeSupply / 200);
 
   let eventMultiplier = 1.0;
   for (const evt of getActiveWorldEvents(worldEvents, nowMs)) {

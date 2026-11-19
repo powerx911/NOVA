@@ -382,7 +382,7 @@ export function BusinessHubView({
         <div className="space-y-4">
           {companyView === 'overview' && (
             <div className="space-y-4">
-              <button type="button" disabled={!canFoundCompany} onClick={() => setCompanyView('found')} className="w-full min-h-[64px] rounded-2xl border border-dashed border-[#E04455]/50 bg-[#141821] px-5 py-4 flex items-center justify-between text-start disabled:opacity-40">
+              <button type="button" data-testid="found-company-start" disabled={!canFoundCompany} onClick={() => setCompanyView('found')} className="w-full min-h-[64px] rounded-2xl border border-dashed border-[#397BFF]/50 bg-[#141821] px-5 py-4 flex items-center justify-between text-start disabled:opacity-40">
                 <span><span className="block text-sm font-bold text-[#F4F5F7]">{language === 'ar' ? 'تأسيس' : 'Found'}</span><span className="block text-xs text-[#9299A6] mt-1">{activeBidReservations > 0 ? (language === 'ar' ? 'لا يمكنك تأسيس شركة ما دام لديك عرض شراء هو الأعلى في المزاد.' : 'You cannot found a company while you are leading an active auction bid.') : canFoundCompany ? (language === 'ar' ? 'ابدأ مشروعاً جديداً' : 'Start a new enterprise') : (language === 'ar' ? 'اكتمل الحد الأقصى لثلاث شركات.' : 'You have reached the three-company limit.')}</span></span><Plus className="w-5 h-5 text-[#E04455]" />
               </button>
               <section className="bg-[#141821] border border-white/8 rounded-2xl p-4 space-y-3">
@@ -410,6 +410,7 @@ export function BusinessHubView({
             <div className="space-y-1.5">
               <label className="text-xs text-[#9299A6]">{t.companyName}</label>
               <input
+                data-testid="company-name"
                 type="text"
                 value={newCompName}
                 onChange={(e) => setNewCompName(e.target.value)}
@@ -452,6 +453,7 @@ export function BusinessHubView({
 
             <button
               type="submit"
+              data-testid="found-company-submit"
               disabled={busyKey === 'found_company'}
               className="w-full min-h-[44px] px-4 rounded-xl bg-[#B91C32] hover:bg-[#E04455] text-white text-sm font-semibold flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
             >
@@ -625,9 +627,10 @@ export function BusinessHubView({
                     <div className="flex flex-wrap items-center gap-2.5">
                       <button
                         type="button"
+                        data-testid="collect-company-revenue"
                         disabled={accrued < 1 || busyKey === `col_${c.id}`}
                         onClick={() => handleCollectCompany(c.id)}
-                        className="flex-1 min-h-[42px] px-4 rounded-xl bg-[#B91C32] hover:bg-[#E04455] text-white text-xs font-semibold whitespace-nowrap disabled:bg-[#1B2230] disabled:text-[#9299A6] transition-colors"
+                        className="flex-1 min-h-[42px] px-4 rounded-xl bg-[#397BFF] hover:bg-[#2F6DE0] active:bg-[#245CCB] text-white text-xs font-semibold whitespace-nowrap disabled:bg-[#1B2230] disabled:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#63A5FF]/70 transition-colors"
                       >
                         {t.collectRevenue} ({accrued})
                       </button>

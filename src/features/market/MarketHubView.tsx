@@ -359,16 +359,16 @@ export function MarketHubView({
                 return (
                   <div
                     key={ana.itemId}
-                    className="p-3 rounded-xl bg-[#0B0D12] border border-white/6 space-y-1"
+                    className="p-3 rounded-xl bg-[#0B0D12] border border-white/6 space-y-2"
                   >
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="flex min-w-0 items-center gap-2">
+                    <div className="flex min-w-0 flex-col items-start gap-2">
+                      <div className="flex min-w-0 w-full items-start gap-2">
                         <ResourceIcon itemId={ana.itemId} size="sm" />
-                        <span className="text-xs font-semibold text-[#EAF1FF] truncate">
+                        <span className="min-w-0 flex-1 whitespace-normal break-words text-xs font-semibold leading-4 text-[#EAF1FF]">
                           {language === 'ar' ? item.nameAr : item.nameEn}
                         </span>
                       </div>
-                      <span className={`text-[11px] font-medium ${statusColor}`}>
+                      <span className={`self-start text-[10px] leading-4 font-medium whitespace-normal ${statusColor}`}>
                         {statusLabel}
                       </span>
                     </div>
@@ -541,6 +541,9 @@ export function MarketHubView({
                     return (
                       <div
                         key={listing.id}
+                        data-testid="market-listing"
+                        data-market-own={isMine ? 'true' : 'false'}
+                        data-unit-price={listing.unitPrice}
                         className="bg-[#141821] border border-white/8 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4"
                       >
                         <div className="flex min-w-0 items-center gap-3">
@@ -609,6 +612,7 @@ export function MarketHubView({
                               />
                               <button
                                 type="button"
+                                data-testid="market-buy"
                                 disabled={
                                   busyKey === `buy_${listing.id}` ||
                                   (wallet?.balance ?? 0) < listing.unitPrice * effectiveBuyQty
