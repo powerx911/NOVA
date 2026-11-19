@@ -144,7 +144,7 @@ returns jsonb
 language sql
 security definer
 set search_path = ''
-as $
+as $$
   with bounds as (
     select
       date_trunc('day',now() at time zone 'UTC') at time zone 'UTC' as day_start,
@@ -189,7 +189,7 @@ as $
     'companyRevenueTotal',(select coalesce(sum(amount),0) from nexora.transactions where to_uid=p_uid and type='company_collect' and status='completed')
   )
   from activity;
-$;
+$$;
 revoke all on function nexora.get_mission_progress(text) from public,anon,authenticated;
 grant execute on function nexora.get_mission_progress(text) to service_role;
 
