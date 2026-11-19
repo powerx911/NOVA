@@ -340,3 +340,8 @@ After aligning the three active migration filenames to the exact versions record
 - Full historical replay: [44514511180](https://github.com/powerx911/NOVA/actions/runs/44514511180) — success; 42 tracked sources + 13 untracked events replayed, both local PL/pgSQL definitions compiled, the three version-aligned PR migrations applied, pgTAP passed, and the disposable stack stopped successfully.
 
 The production ledger and local migration filenames now agree for all three newly applied changes. The PR's app changes remain unpublished until merge; the main-branch GitHub Pages workflow is the repository's configured website deployment path.
+
+
+### Edge API release update
+
+The `nexora-api` Supabase Edge Function was also deployed from this PR branch after the database migrations. Supabase reports the function as `ACTIVE`, version **31**, with its existing `verify_jwt=false` setting preserved. The deployed source was read back with the Supabase function inspection operation and includes the updated bootstrap payload (recurring mission rows and current-day completed market-purchase count). The unrelated `nova-control` function was not changed.
