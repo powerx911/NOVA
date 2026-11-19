@@ -82,5 +82,11 @@ select is(
   'syncing after pause does not charge a second operating cost'
 );
 
+select is(
+  (select count(*)::bigint from nexora.transactions where from_uid = 'pgtap_pause_owner' and type = 'factory_operating'),
+  1::bigint,
+  'syncing after pause does not append another operating-cost ledger row'
+);
+
 select * from finish();
 rollback;

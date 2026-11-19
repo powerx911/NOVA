@@ -16,6 +16,7 @@ test('email sign-in → character creation → market purchase → company found
   await page.waitForFunction(
     () => document.querySelector('[data-testid="create-character-submit"]') ||
       document.querySelector('[data-testid="nav-tab-home"]'),
+    null,
     { timeout: 60_000 },
   );
 
@@ -30,10 +31,18 @@ test('email sign-in → character creation → market purchase → company found
   await expect(page.getByTestId('nav-tab-home')).toBeVisible({ timeout: 60_000 });
   await page.getByTestId('nav-tab-market').click();
 
-  const listing = page.locator('[data-testid="market-listing"][data-market-own="false"]')
-    .filter({ has: page.locator('[data-testid="market-buy"]:not([disabled])') })
-    .first();
-  await expect(listing).toBeVisible({ timeout: 30_000 });
+  const listings = page.locator('[data-testid="market-listing"][data-market-own="false"]');
+  let listing = null;
+  for (let index = 0; index < await listings.count(); index += 1) {
+    const candidate = listings.nth(index);
+    const unitPrice = Number(await candidate.getAttribute('data-unit-price'));
+    const buyButton = candidate.getByTestId('market-buy');
+    if (unitPrice > 0 && unitPrice <= 100 && await buyButton.isEnabled()) {
+      listing = candidate;
+      break;
+    }
+  }
+  expect(listing, 'The isolated test market must contain a non-owned listing priced at 100 credits or less.').not.toBeNull();
   await listing.getByTestId('market-buy').click();
   await expect(page.getByText(/تم شراء|Purchased/).first()).toBeVisible({ timeout: 20_000 });
 
