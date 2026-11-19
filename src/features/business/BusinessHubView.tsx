@@ -128,7 +128,7 @@ export function BusinessHubView({
     const timer = window.setInterval(() => { void refresh(); }, 15000);
     return () => { active = false; window.clearInterval(timer); };
   }, []);
-  const visibleCompanies = companies.filter((company) => !deletedCompanyIds.includes(company.id));
+  const visibleCompanies = companies.filter((company) => !deletedCompanyIds.includes(company.id)).sort((a, b) => b.level - a.level || a.name.localeCompare(b.name));
   const activeAuctions = auctions.filter((auction) => auction.status === 'active');
   const companyBidReservations = activeAuctions.filter((auction) => auction.assetType !== 'factory' && auction.highestBidderUid === profile.uid).length;
   const factoryBidReservations = activeAuctions.filter((auction) => auction.assetType === 'factory' && auction.highestBidderUid === profile.uid).length;
