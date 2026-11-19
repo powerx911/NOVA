@@ -657,7 +657,7 @@ begin
   end if;
   return jsonb_build_object('ok',true);
 end;
-$;
+$$;
 
 create or replace function nexora.claim_dynamic_contract(p_uid text,p_contract_id text)
 returns jsonb language plpgsql security definer set search_path = '' as $$
