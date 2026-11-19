@@ -655,7 +655,7 @@ begin
     perform nexora.generate_dynamic_contract(v_contract.scope,v_contract.user_id,v_contract.org_id,
       v_contract.slot_no,v_today,v_contract.item_id,v_contract.tier,v_contract.event_id);
   end if;
-  return jsonb_build_object('ok',true,'daily_used',v_used);
+  return jsonb_build_object('ok',true);
 end;
 $;
 
@@ -734,7 +734,7 @@ begin
   return jsonb_build_object('ok',true,'payout',v_contract.payout,'xp',v_xp,
     'reputation',round(v_contract.reputation_reward*v_leadership));
 end;
-$;
+$$;
 
 create or replace function nexora.get_org_weekly_goals(p_uid text)
 returns jsonb language plpgsql security definer set search_path = '' as $$
