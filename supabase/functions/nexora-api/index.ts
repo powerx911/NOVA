@@ -198,7 +198,7 @@ Deno.serve(async (req: Request) => {
         p_uid: identity.uid, p_listing_id: listingId, p_qty: quantity,
       });
       if (error) {
-        const known = ["INVALID_QUANTITY","LISTING_NOT_FOUND","INSUFFICIENT_LISTING_QTY","CANNOT_BUY_OWN_LISTING","INSUFFICIENT_FUNDS","ACCOUNT_NOT_FOUND","SELLER_ACCOUNT_NOT_FOUND","INVENTORY_CAPACITY_EXCEEDED"].find((code) => error.message.includes(code));
+        const known = ["INVALID_QUANTITY","LISTING_NOT_FOUND","INSUFFICIENT_LISTING_QTY","CANNOT_BUY_OWN_LISTING","INSUFFICIENT_FUNDS","ACCOUNT_NOT_FOUND","SELLER_ACCOUNT_NOT_FOUND","INVENTORY_CAPACITY_EXCEEDED","PRICE_BELOW_MINIMUM","PRICE_ABOVE_MAXIMUM"].find((code) => error.message.includes(code));
         return json({ error: known ?? "MARKET_PURCHASE_FAILED" }, 409, origin);
       }
       return json({ ok: true, data }, 200, origin);
