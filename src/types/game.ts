@@ -99,7 +99,9 @@ export type TransactionType =
   | 'org_create'
   | 'org_deposit'
   | 'org_withdraw'
-  | 'contract_deal';
+  | 'contract_deal'
+  | 'contract_fee'
+  | 'contract_reward';
 
 export interface TransactionRecord {
   id: string;
