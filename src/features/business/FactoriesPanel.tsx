@@ -1,10 +1,10 @@
-import { ArrowLeft, ArrowUpCircle, Factory, Package, Pause, Play, Wrench } from 'lucide-react';
+import { ArrowLeft, ArrowUpCircle, Package, Wrench } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useToast } from '../../components/ui/ToastProvider';
 import { FACTORY_RESOURCES, ITEM_MAP } from '../../data/catalog';
 import { ResourceIcon } from '../../components/ui/ResourceIcon';
 import { timestampToMs } from '../../services/gameService';
-import { completeFactoryUpgrade, completeFactoryWarehouseUpgrade, foundFactory, setFactoryActive, syncFactory, upgradeFactory, upgradeFactorySkill, upgradeFactoryWarehouse, withdrawFactoryWarehouse } from '../../services/gameService';
+import { completeFactoryUpgrade, completeFactoryWarehouseUpgrade, foundFactory, syncFactory, upgradeFactory, upgradeFactorySkill, upgradeFactoryWarehouse, withdrawFactoryWarehouse } from '../../services/gameService';
 import type { Factory as FactoryRecord, FactoryResourceId, InventoryItem, Language, PlayerProfile, Wallet } from '../../types/game';
 
 interface FactoriesPanelProps {
@@ -34,7 +34,7 @@ export function FactoriesPanel({ factories, inventory, profile, wallet, language
   const selectedWarehouseUpgradeEnd = selected?.warehouseUpgradeEndsAt ? timestampToMs(selected.warehouseUpgradeEndsAt) : 0;
   const resourceItem = selected ? ITEM_MAP[selected.resourceId] : null;
   const productionRate = selected && selectedResource
-    ? selectedResource.productionPerHour * (1 + (selected.level - 1) * 0.12) * (1 + selected.skillLevel * 0.04)
+    ? selectedResource.productionPerHour * (1 + 0.025 * (selected.level - 1) + 0.00015 * Math.pow(selected.level - 1, 2)) * (1 + selected.skillLevel * 0.04)
     : 0;
   const operatingCost = selected && selectedResource
     ? selectedResource.operatingCostPerHour * (1 + (selected.level - 1) * 0.06) * (1 - selected.skillLevel * 0.03)
@@ -202,7 +202,7 @@ export function FactoriesPanel({ factories, inventory, profile, wallet, language
             <div className="flex flex-wrap items-start justify-between gap-2">
               <div className="flex items-center gap-3"><ResourceIcon itemId={selected.resourceId} size="lg" /><div><h3 className="text-sm font-bold text-[#F4F5F7]">{selected.name}</h3><p className="mt-1 text-xs text-[#9299A6]">{isAr ? selectedResource.nameAr : selectedResource.nameEn} · {isAr ? 'المستوى' : 'Level'} {selected.level}/100</p></div></div>
               <span className="rounded-lg bg-[#141821] px-2.5 py-1 text-[10px] text-[#9CBFFF]">{isAr ? 'مصنع موارد خام' : 'Raw-resource factory'}</span>
-              <span className={`rounded-lg px-2.5 py-1 text-[10px] ${selected.isActive ? 'bg-emerald-500/10 text-emerald-300' : 'bg-amber-500/10 text-amber-300'}`}>{selected.isActive ? (isAr ? 'الإنتاج يعمل' : 'Production active') : (isAr ? 'الإنتاج متوقف' : 'Production paused')}</span>
+              <span className={`rounded-lg px-2.5 py-1 text-[10px] ${selected.isActive ? 'bg-emerald-500/10 text-emerald-300' : 'bg-amber-500/10 text-amber-300'}`}>{selected.isActive ? (isAr ? 'الإنتاج يعمل تلقائيًا' : 'Automatic production active') : (isAr ? 'متوقف لنقص أموال التشغيل' : 'Paused: insufficient operating funds')}</span>
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
               <div className="rounded-lg bg-[#141821] p-3"><p className="text-[10px] text-[#9299A6]">{isAr ? 'الإنتاج / ساعة' : 'Output / hour'}</p><p className="mt-1 text-sm font-bold text-emerald-300">{productionRate.toFixed(2)}</p></div>
@@ -224,11 +224,10 @@ export function FactoriesPanel({ factories, inventory, profile, wallet, language
             </div>
             {selectedUpgradeEnd > 0 && <p className="text-xs text-amber-300">{remainingMs > 0 ? (isAr ? `التطوير جارٍ · متبقٍ ${remainingLabel}` : `Upgrade in progress · ${remainingLabel} left`) : (isAr ? 'اكتمل الوقت، جارٍ إنهاء التطوير.' : 'Timer complete; finalizing upgrade.')}</p>}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              <button type="button" disabled={busyKey === `sync_${selected.id}`} onClick={() => void runAction(`sync_${selected.id}`, () => syncFactory(selected.id), isAr ? 'تم تحديث الإنتاج وخصم مصاريف التشغيل.' : 'Production synchronized and operating costs charged.')} className="min-h-[42px] rounded-xl bg-[#1B2230] px-3 text-xs font-semibold text-[#F4F5F7] hover:bg-[#263247] disabled:opacity-50">{isAr ? 'تحديث الإنتاج' : 'Sync production'}</button>
-              <button type="button" disabled={busyKey === `active_${selected.id}`} onClick={() => void runAction(`active_${selected.id}`, () => setFactoryActive(selected.id, !selected.isActive), selected.isActive ? (isAr ? 'تم إيقاف المصنع ولن تُخصم مصاريف إنتاج أثناء التوقف.' : 'Factory paused; production costs stop while paused.') : (isAr ? 'تم تشغيل المصنع.' : 'Factory activated.'))} className="min-h-[42px] rounded-xl border border-white/10 bg-[#141821] px-3 text-xs font-semibold text-[#F4F5F7] disabled:opacity-50">{selected.isActive ? <><Pause className="me-1 inline h-4 w-4" />{isAr ? 'إيقاف الإنتاج' : 'Pause production'}</> : <><Play className="me-1 inline h-4 w-4" />{isAr ? 'تشغيل الإنتاج' : 'Resume production'}</>}</button>
               <button type="button" disabled={selected.level >= 100 || Boolean(selectedUpgradeEnd > now) || selectedResourceOwned < upgradeMaterials || (wallet?.balance ?? 0) < upgradeCost || busyKey === `upgrade_${selected.id}`} onClick={() => void runAction(`upgrade_${selected.id}`, () => upgradeFactory(selected.id), isAr ? 'بدأ تطوير المصنع، وسيكتمل تلقائياً.' : 'Factory upgrade started and will complete automatically.')} className="min-h-[42px] rounded-xl bg-[#397BFF] px-3 text-xs font-semibold text-white hover:bg-[#2F6DE0] disabled:opacity-40"><ArrowUpCircle className="me-1 inline h-4 w-4" />{isAr ? `تطوير المصنع · ${upgradeCost.toLocaleString()}` : `Upgrade · ${upgradeCost.toLocaleString()}`}</button>
               <button type="button" disabled={selected.skillLevel >= 10 || selectedResourceOwned < skillMaterials || (wallet?.balance ?? 0) < skillCost || busyKey === `skill_${selected.id}`} onClick={() => void runAction(`skill_${selected.id}`, () => upgradeFactorySkill(selected.id), isAr ? 'تم تطوير مهارة تشغيل المصنع.' : 'Factory operator skill upgraded.')} className="min-h-[42px] rounded-xl border border-white/10 bg-[#141821] px-3 text-xs font-semibold text-[#F4F5F7] disabled:opacity-40"><Wrench className="me-1 inline h-4 w-4" />{isAr ? `تطوير المهارة · ${skillCost.toLocaleString()}` : `Train skill · ${skillCost.toLocaleString()}`}</button>
             </div>
+            <p className="text-[11px] text-[#77808F]">{isAr ? 'يعمل المصنع تلقائيًا، وتتم مزامنة الإنتاج ومصاريفه دوريًا. عند نفاد رصيد التشغيل يتوقف مؤقتًا ويستأنف وحده عند توفر الرصيد.' : 'The factory runs automatically and synchronizes production and operating costs periodically. It pauses when funds run out and resumes automatically when funds are available.'}</p>
             <p className="text-[11px] text-[#77808F]">{isAr ? `ترقية المصنع تستهلك ${upgradeMaterials} من ${selectedResource.nameAr}. وتطوير المهارة يستهلك ${skillMaterials} من المورد نفسه.` : `Factory upgrade consumes ${upgradeMaterials} units of ${selectedResource.nameEn}; skill training consumes ${skillMaterials}.`}</p>
             <p className="text-[11px] text-[#77808F]">{isAr ? `كل مستوى في مهارة التشغيل يزيد الإنتاج 4% ويخفض مصاريف التشغيل 3%. المتوفر لديك: ${selectedResourceOwned} وحدة.` : `Each operator skill level increases output by 4% and reduces operating costs by 3%. You own ${selectedResourceOwned} units.`}</p>
             <div className="flex flex-wrap items-end gap-2 border-t border-white/8 pt-3">
