@@ -142,7 +142,7 @@ begin
   select c.cooldown_until into v_until
   from nexora.contract_slot_cooldowns c
   where c.scope = new.scope and c.owner_id = v_owner_id
-    and c.slot_no = new.slot_no and c.cooldown_until > now()
+    and c.slot_no = new.slot_no
   order by c.cooldown_until desc limit 1
   for update;
 
