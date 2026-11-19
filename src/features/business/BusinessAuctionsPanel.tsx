@@ -30,6 +30,10 @@ export function BusinessAuctionsPanel({
 }: BusinessAuctionsPanelProps) {
   return (
     <div className="space-y-4">
+      <section className="rounded-xl border border-amber-400/20 bg-amber-400/5 px-4 py-3 space-y-1">
+        <p className="text-xs font-bold text-amber-200">{language === 'ar' ? 'عمولة البيع في المزادات: 4%' : 'Auction seller fee: 4%'}</p>
+        <p className="text-xs text-[#C2C8D2]">{language === 'ar' ? 'تُخصم العمولة من البائع عند إتمام البيع، ويستلم البائع صافي 96% من سعر البيع النهائي. لا تُفرض هذه العمولة على المزايد.' : 'The fee is deducted from the seller when the auction closes. The seller receives 96% of the final sale price; bidders do not pay this fee.'}</p>
+      </section>
       <section className="rounded-2xl border border-amber-400/20 bg-[#141821] p-4 space-y-2">
         <div className="flex items-center gap-2 text-sm font-bold text-amber-200"><Gavel className="w-4 h-4" />{language === 'ar' ? 'مزاد الأعمال' : 'Business Auction'}</div>
         <p className="text-xs text-[#AAB1BD]">{language === 'ar' ? 'الشركات والمصانع من المستوى 50 فأعلى. مدة المزاد 24 ساعة، ويُحجز مبلغ العرض في الضمان حتى الفوز أو تجاوزه.' : 'Level 50+ companies and factories. Auctions last 24 hours; bids are held in escrow until settlement or being outbid.'}</p>
