@@ -52,8 +52,8 @@ begin
 
   -- 1 XP per 25 credits actually collected: no minimum reward for tiny API calls,
   -- and no reputation/influence for withdrawing money already earned by the company.
-  v_xp_gain:=floor((v_company.total_revenue+v_payout)::numeric/25)::bigint
-    - floor(v_company.total_revenue::numeric/25)::bigint;
+  v_xp_gain:=floor((v_company.total_revenue+v_payout)::numeric/15)::bigint
+    - floor(v_company.total_revenue::numeric/15)::bigint;
   v_xp:=v_profile.xp+v_xp_gain;
   v_remaining:=v_xp;
   while v_level_after<200 loop
