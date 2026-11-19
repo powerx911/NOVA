@@ -136,8 +136,10 @@ select extensions.ok(
 
 select extensions.ok(
   position('order by user_id' in lower(pg_get_functiondef('nexora.buy_market_listing(text,text,integer)'::regprocedure)))>0
-  and position('xp=' in lower(pg_get_functiondef('nexora.buy_market_listing(text,text,integer)'::regprocedure)))=0,
-  'market purchases lock wallets deterministically and grant no XP'
+  and position('xp=' in lower(pg_get_functiondef('nexora.buy_market_listing(text,text,integer)'::regprocedure)))=0
+  and position('reputation=reputation+' in lower(pg_get_functiondef('nexora.buy_market_listing(text,text,integer)'::regprocedure)))=0
+  and position('influence=influence+' in lower(pg_get_functiondef('nexora.buy_market_listing(text,text,integer)'::regprocedure)))=0,
+  'market purchases lock wallets deterministically and grant no XP, reputation, or influence'
 );
 
 select * from extensions.finish();
