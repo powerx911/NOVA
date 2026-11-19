@@ -23,6 +23,7 @@ import {
   updatePlayerSettings,
   upgradeSkill,
   resetSkills,
+  refreshPlayerAchievements,
 } from '../../services/gameService';
 import type {
   Company,
@@ -33,6 +34,7 @@ import type {
   ProfileSubTab,
   SkillKey,
   UserPrivate,
+  Wallet,
 } from '../../types/game';
 
 const DiagnosticsView = lazy(() =>
@@ -41,6 +43,7 @@ const DiagnosticsView = lazy(() =>
 
 interface ProfileHubViewProps {
   profile: PlayerProfile;
+  wallet: Wallet | null;
   userPrivate: UserPrivate | null;
   claimedMissions: PlayerMissionClaim[];
   unlockedAchievements: Set<string>;
@@ -52,6 +55,7 @@ interface ProfileHubViewProps {
 
 export function ProfileHubView({
   profile,
+  wallet,
   userPrivate,
   claimedMissions,
   unlockedAchievements,
@@ -64,6 +68,7 @@ export function ProfileHubView({
   const { showToast } = useToast();
 
   const [subTab, setSubTab] = useState<ProfileSubTab>('overview');
+  const [nowMs, setNowMs] = useState(() => Date.now());
   const [isOwnerAuthorized, setIsOwnerAuthorized] = useState(false);
   const [busyKey, setBusyKey] = useState<string | null>(null);
   const [lbTab, setLbTab] = useState<'players' | 'companies' | 'orgs'>('players');
@@ -85,6 +90,17 @@ export function ProfileHubView({
   const [buttonSoundEnabled, setButtonSoundEnabled] = useState(() => {
     try { return window.localStorage.getItem('nexora-button-sound') !== 'off'; } catch { return true; }
   });
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setNowMs(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
+    if (subTab === 'achievements') {
+      void refreshPlayerAchievements().catch(() => undefined);
+    }
+  }, [subTab, profile.uid]);
 
   const claimedSet = new Set(claimedMissions.filter((m) => (m.periodKey ?? 'lifetime') === getMissionPeriodKey(m.missionId)).map((m) => m.missionId));
   const getProgress = (mission: (typeof MISSIONS)[number]) => mission.id === 'daily_active_trader'
@@ -312,6 +328,7 @@ export function ProfileHubView({
     { id: 'overview', label: t.subOverview },
     { id: 'skills', label: t.subSkills },
     { id: 'missions', label: t.subMissions },
+    { id: 'achievements', label: t.achievementsTitle },
     { id: 'rankings', label: t.subRankings },
     { id: 'settings', label: t.subSettings },
     ...(isOwnerAuthorized ? [{ id: 'diagnostics' as const, label: t.subDiagnostics }] : []),
@@ -455,51 +472,6 @@ export function ProfileHubView({
             })()}
           </div>
 
-          <div className="bg-[#141821] border border-white/8 rounded-2xl p-5 space-y-3">
-            <div className="flex items-center justify-between">
-              <h2 className="text-base font-semibold text-[#F4F5F7]">{t.achievementsTitle}</h2>
-              <Trophy className="w-4 h-4 text-[#E04455]" />
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {ACHIEVEMENTS.map((ach) => {
-                const unlocked = unlockedAchievements.has(ach.id);
-                const val = getAchievementProgress(ach.metric, profile);
-                const pct = Math.min(100, Math.round((Math.min(val, ach.threshold) / ach.threshold) * 100));
-                return (
-                  <div
-                    key={ach.id}
-                    className={`p-3.5 rounded-xl border space-y-2 ${
-                      unlocked
-                        ? 'bg-[#1B2230] border-[#B91C32]/40'
-                        : 'bg-[#0B0D12] border-white/6'
-                    }`}
-                  >
-                    <div className="flex items-start justify-between gap-2">
-                      <div>
-                        <p className="text-sm font-semibold text-[#F4F5F7]">
-                          {language === 'ar' ? ach.titleAr : ach.titleEn}
-                        </p>
-                        <p className="text-xs text-[#9299A6] mt-0.5">
-                          {language === 'ar' ? ach.descriptionAr : ach.descriptionEn}
-                        </p>
-                      </div>
-                      <span className="text-xs font-mono-num text-[#9299A6] shrink-0">
-                        {Math.min(val, ach.threshold)}/{ach.threshold}
-                      </span>
-                    </div>
-                    <div className="h-1.5 rounded-full bg-[#141821] overflow-hidden">
-                      <div
-                        className={`h-full rounded-full transition-all duration-300 ${
-                          unlocked ? 'bg-emerald-500' : 'bg-[#B91C32]'
-                        }`}
-                        style={{ width: `${pct}%` }}
-                      />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
         </div>
       )}
 
@@ -568,58 +540,109 @@ export function ProfileHubView({
 
       {/* 3. MISSIONS */}
       {subTab === 'missions' && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {MISSIONS.map((m) => {
-            const isClaimed = claimedSet.has(m.id);
-            const val = getProgress(m);
-            const pct = Math.min(100, Math.round((Math.min(val, m.targetCount) / m.targetCount) * 100));
-            const ready = val >= m.targetCount && !isClaimed;
-
+        <div className="space-y-6">
+          {(['daily', 'weekly', 'seasonal', 'tutorial'] as const).map((category) => {
+            const missions = MISSIONS.filter((mission) =>
+              mission.category === category && !(category === 'tutorial' && claimedSet.has(mission.id))
+            );
+            if (!missions.length) return null;
+            const nextDaily = new Date(nowMs);
+            const dailyReset = Date.UTC(nextDaily.getUTCFullYear(), nextDaily.getUTCMonth(), nextDaily.getUTCDate() + 1);
+            const weekday = new Date(nowMs).getUTCDay();
+            const daysToMonday = (8 - weekday) % 7 || 7;
+            const weeklyReset = Date.UTC(nextDaily.getUTCFullYear(), nextDaily.getUTCMonth(), nextDaily.getUTCDate() + daysToMonday);
+            const nextQuarterMonth = (Math.floor(nextDaily.getUTCMonth() / 3) + 1) * 3;
+            const seasonalReset = Date.UTC(nextDaily.getUTCFullYear(), nextQuarterMonth, 1);
+            const resetAt = category === 'daily' ? dailyReset : category === 'weekly' ? weeklyReset : seasonalReset;
+            const remaining = Math.max(0, resetAt - nowMs);
+            const seconds = Math.floor(remaining / 1000);
+            const days = Math.floor(seconds / 86400);
+            const hours = Math.floor((seconds % 86400) / 3600);
+            const minutes = Math.floor((seconds % 3600) / 60);
+            const secs = seconds % 60;
+            const countdown = [days ? `${days}d` : '', `${String(hours).padStart(2, '0')}h`, `${String(minutes).padStart(2, '0')}m`, `${String(secs).padStart(2, '0')}s`].filter(Boolean).join(' ');
+            const heading = category === 'daily' ? (language === 'ar' ? 'المهام اليومية' : 'Daily Missions')
+              : category === 'weekly' ? (language === 'ar' ? 'المهام الأسبوعية' : 'Weekly Missions')
+              : category === 'seasonal' ? (language === 'ar' ? 'المهام الموسمية' : 'Seasonal Missions')
+              : (language === 'ar' ? 'المهام التعليمية' : 'Tutorial Missions');
             return (
-              <div
-                key={m.id}
-                className="bg-[#141821] border border-white/8 rounded-2xl p-5 flex flex-col justify-between gap-4"
-              >
-                <div className="space-y-1.5">
-                  <div className="flex items-center justify-between gap-2">
-                    <h3 className="text-base font-bold text-[#F4F5F7]">
-                      {language === 'ar' ? m.titleAr : m.titleEn}
-                    </h3>
-                    <Award className="w-4 h-4 text-[#E04455] shrink-0" />
-                  </div>
-                  <p className="text-xs text-[#9299A6]">
-                    {formatMissionCategory(m.category, language)} ·{' '}
-                    <span className="font-mono-num">{Math.min(val, m.targetCount)}/{m.targetCount}</span>
-                  </p>
-                  <p className="text-xs text-[#9299A6] pt-0.5 leading-relaxed">
-                    {language === 'ar' ? m.descriptionAr : m.descriptionEn}
-                  </p>
-                  <div className="h-1.5 rounded-full bg-[#0B0D12] overflow-hidden pt-0">
-                    <div
-                      className={`h-full rounded-full transition-all duration-300 ${
-                        isClaimed || ready ? 'bg-emerald-500' : 'bg-[#B91C32]'
-                      }`}
-                      style={{ width: `${pct}%` }}
-                    />
-                  </div>
+              <section key={category} className="space-y-3">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <h2 className="text-base font-bold text-[#F4F5F7]">{heading}</h2>
+                  {(category === 'daily' || category === 'weekly' || category === 'seasonal') && (
+                    <span className="text-xs text-amber-200 font-mono-num">
+                      {language === 'ar' ? 'تجدد المهام بعد: ' : 'Resets in: '}{countdown}
+                    </span>
+                  )}
                 </div>
-
-                <div className="flex items-center justify-between gap-3 pt-2 border-t border-white/6">
-                  <span className="text-xs font-mono-num text-[#F4F5F7]">
-                    +${m.rewardCredits} · +{m.rewardXp} XP · +{m.rewardReputation} {t.reputation}
-                  </span>
-                  <button
-                    type="button"
-                    disabled={!ready || busyKey === `mis_${m.id}`}
-                    onClick={() => handleClaimMission(m.id)}
-                    className="min-h-[40px] px-4 rounded-xl bg-[#B91C32] hover:bg-[#E04455] text-white text-xs font-semibold disabled:bg-[#1B2230] disabled:text-[#9299A6]"
-                  >
-                    {isClaimed ? t.claimed : ready ? t.claimReward : t.inProgress}
-                  </button>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {missions.map((m) => {
+                    const isClaimed = claimedSet.has(m.id);
+                    const val = getProgress(m);
+                    const pct = Math.min(100, Math.round((Math.min(val, m.targetCount) / m.targetCount) * 100));
+                    const ready = val >= m.targetCount && !isClaimed;
+                    return (
+                      <div key={m.id} className="bg-[#141821] border border-white/8 rounded-2xl p-5 flex flex-col justify-between gap-4">
+                        <div className="space-y-1.5">
+                          <div className="flex items-center justify-between gap-2">
+                            <h3 className="text-base font-bold text-[#F4F5F7]">{language === 'ar' ? m.titleAr : m.titleEn}</h3>
+                            <Award className="w-4 h-4 text-[#E04455] shrink-0" />
+                          </div>
+                          <p className="text-xs text-[#9299A6]">{formatMissionCategory(m.category, language)} · <span className="font-mono-num">{Math.min(val, m.targetCount)}/{m.targetCount}</span></p>
+                          <p className="text-xs text-[#9299A6] pt-0.5 leading-relaxed">{language === 'ar' ? m.descriptionAr : m.descriptionEn}</p>
+                          <div className="h-1.5 rounded-full bg-[#0B0D12] overflow-hidden">
+                            <div className={`h-full rounded-full transition-all duration-300 ${isClaimed || ready ? 'bg-emerald-500' : 'bg-[#B91C32]'}`} style={{ width: `${pct}%` }} />
+                          </div>
+                        </div>
+                        <div className="flex items-center justify-between gap-3 pt-2 border-t border-white/6">
+                          <span className="text-xs font-mono-num text-[#F4F5F7]">+${m.rewardCredits} · +{m.rewardXp} XP · +{m.rewardReputation} {t.reputation}</span>
+                          <button type="button" disabled={!ready || busyKey === `mis_${m.id}`} onClick={() => handleClaimMission(m.id)} className="min-h-[40px] px-4 rounded-xl bg-[#B91C32] hover:bg-[#E04455] text-white text-xs font-semibold disabled:bg-[#1B2230] disabled:text-[#9299A6]">
+                            {isClaimed ? t.claimed : ready ? t.claimReward : t.inProgress}
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
-              </div>
+              </section>
             );
           })}
+        </div>
+      )}
+
+      {/* 4. MEDAL ACHIEVEMENTS */}
+      {subTab === 'achievements' && (
+        <div className="space-y-4">
+          <div className="rounded-2xl border border-white/8 bg-[#141821] p-4">
+            <div className="flex items-center gap-2"><Trophy className="w-5 h-5 text-amber-300" /><h2 className="text-base font-bold text-[#F4F5F7]">{t.achievementsTitle}</h2></div>
+            <p className="mt-1 text-xs text-[#9299A6]">{language === 'ar' ? 'كل ميدالية تُمنح مرة واحدة فقط، وتُضاف مكافأتها تلقائياً عند تحقيق الشرط. الميداليات تتدرج من البرونزية حتى البلاتينية.' : 'Each medal and its reward are granted once only when its requirement is reached. Medal tiers progress from Bronze to Platinum.'}</p>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {ACHIEVEMENTS.map((ach) => {
+              const unlocked = unlockedAchievements.has(ach.id);
+              const val = ach.metric === 'spent' ? (wallet?.totalSpent ?? 0) : getAchievementProgress(ach.metric, profile);
+              const pct = Math.min(100, Math.round((Math.min(val, ach.threshold) / ach.threshold) * 100));
+              const medalColor = ach.tier === 'platinum' ? 'text-cyan-200 border-cyan-300/30' : ach.tier === 'gold' ? 'text-amber-300 border-amber-300/30' : ach.tier === 'silver' ? 'text-slate-200 border-slate-300/30' : 'text-orange-300 border-orange-300/30';
+              const rewardText = ach.rewardCredits ? '+' + ach.rewardCredits.toLocaleString() + ' $' : '';
+              return (
+                <article key={ach.id} className={`rounded-2xl border p-4 space-y-3 ${unlocked ? 'bg-[#1B2230] border-emerald-400/30' : 'bg-[#141821] border-white/8'}`}>
+                  <div className="flex items-start gap-3">
+                    <div className={`w-11 h-11 shrink-0 rounded-full border flex items-center justify-center ${unlocked ? medalColor : 'text-[#77808F] border-white/10'}`}><Award className="w-5 h-5" /></div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center justify-between gap-2"><h3 className="text-sm font-bold text-[#F4F5F7]">{language === 'ar' ? ach.titleAr : ach.titleEn}</h3><span className={`text-[10px] uppercase ${unlocked ? medalColor.split(' ')[0] : 'text-[#77808F]'}`}>{unlocked ? (language === 'ar' ? 'مكتملة' : 'Earned') : (language === 'ar' ? 'قيد التقدم' : 'In progress')}</span></div>
+                      <p className="mt-1 text-xs text-[#9299A6]">{language === 'ar' ? ach.descriptionAr : ach.descriptionEn}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="font-mono-num text-[#C2C8D2]">{Math.min(val, ach.threshold).toLocaleString()} / {ach.threshold.toLocaleString()}</span>
+                    <span className="text-emerald-300">{rewardText}</span>
+                  </div>
+                  <div className="h-1.5 rounded-full bg-[#0B0D12] overflow-hidden"><div className={`h-full rounded-full ${unlocked ? 'bg-emerald-500' : 'bg-[#B91C32]'}`} style={{ width: `${pct}%` }} /></div>
+                  {unlocked && <p className="text-[10px] text-emerald-300">{language === 'ar' ? 'تم استلام المكافأة — مرة واحدة' : 'Reward granted — one time only'}</p>}
+                </article>
+              );
+            })}
+          </div>
         </div>
       )}
 

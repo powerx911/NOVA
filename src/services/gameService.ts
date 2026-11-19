@@ -82,6 +82,16 @@ export async function isUsernameAvailable(username: string): Promise<boolean> {
   return result.available;
 }
 
+export async function validateTransferRecipient(username: string): Promise<{ exists: boolean; isSelf: boolean }> {
+  const clean = username.trim();
+  if (!/^[a-zA-Z0-9_]{3,24}$/.test(clean)) return { exists: false, isSelf: false };
+  return nexoraApi<{ exists: boolean; isSelf: boolean }>('validate_transfer_recipient', { username: clean });
+}
+
+export async function refreshPlayerAchievements(): Promise<void> {
+  await nexoraApi('refresh_achievements');
+}
+
 export async function createPlayerCharacter(
   _uid: string,
   _email: string,

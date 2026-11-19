@@ -3,7 +3,7 @@
 create extension if not exists pgtap with schema extensions;
 
 begin;
-select extensions.plan(23);
+select extensions.plan(26);
 
 select extensions.ok(
   not exists (select 1 from nexora.wallets where balance < 0),
@@ -192,6 +192,37 @@ select extensions.ok(
   (select ends_at>now()+interval '4 minutes' and ends_at<=now()+interval '5 minutes'
    from nexora.company_auctions where id='pgtap_anti_sniping'),
   'a bid in the final five minutes extends the auction close to five minutes from now'
+);
+
+
+-- Tiered medal rewards are granted once, atomically with the medal record.
+insert into nexora.player_profiles(user_id, username, username_lower, stats)
+values ('pgtap_medal_owner', 'pgTAP_Medal', 'pgtap_medal',
+  '{"tradesCount":25,"companiesOwned":0,"totalProduced":0}'::jsonb);
+insert into nexora.wallets(user_id, balance, total_earned, total_spent)
+values ('pgtap_medal_owner', 2500, 2500, 10000);
+
+select nexora.unlock_eligible_achievements('pgtap_medal_owner');
+
+select extensions.ok(
+  exists(select 1 from nexora.player_achievements where user_id='pgtap_medal_owner' and achievement_id='medal_whale_bronze')
+  and exists(select 1 from nexora.player_achievements where user_id='pgtap_medal_owner' and achievement_id='medal_trader_bronze')
+  and not exists(select 1 from nexora.player_achievements where user_id='pgtap_medal_owner' and achievement_id='medal_whale_silver'),
+  'achievement sync awards eligible bronze medals without skipping unearned silver tiers'
+);
+
+select extensions.is(
+  (select balance from nexora.wallets where user_id='pgtap_medal_owner'),
+  3250::bigint,
+  'new whale and trader medals grant their combined one-time 750 credit reward'
+);
+
+select nexora.unlock_eligible_achievements('pgtap_medal_owner');
+
+select extensions.ok(
+  (select balance=3250 from nexora.wallets where user_id='pgtap_medal_owner')
+  and (select count(*)=2 from nexora.transactions where to_uid='pgtap_medal_owner' and reference_id in ('medal_whale_bronze','medal_trader_bronze')),
+  'rechecking achievements never duplicates medal rewards or ledger entries'
 );
 
 select * from extensions.finish();
