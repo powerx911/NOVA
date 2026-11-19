@@ -3,7 +3,7 @@
 create extension if not exists pgtap with schema extensions;
 
 begin;
-select extensions.plan(75);
+select extensions.plan(79);
 
 select extensions.ok(
   exists(select 1 from nexora.contract_config where config_key='catalog_prices'),
@@ -226,7 +226,8 @@ values ('pgtap_expiry','Expiry Test','pgtap_expiry',1);
 insert into nexora.wallets(user_id,balance) values ('pgtap_expiry',2500);
 insert into nexora.player_private(user_id,language,notifications_enabled)
 values ('pgtap_expiry','en',true);
-select extensions.lives_ok($$select nexora.get_dynamic_contract_board('pgtap_expiry')$$,'expiry fixture receives offers');
+select extensions.lives_ok($select nexora.get_dynamic_contract_board('pgtap_expiry')$,'expiry fixture receives offers');
+select extensions.is((select count(*)::integer from nexora.contract_offers where user_id='pgtap_expiry' and scope='personal' and board_date=(now() at time zone 'UTC')::date and status='offered'),5,'personal board exposes five offers');
 select extensions.lives_ok(
   $$select nexora.accept_dynamic_contract('pgtap_expiry',(select id from nexora.contract_offers where user_id='pgtap_expiry' and status='offered' order by slot_no limit 1))$$,
   'expiry fixture accepts a contract'
@@ -301,7 +302,8 @@ insert into nexora.player_private(user_id,language,notifications_enabled)
 values ('pgtap_org_user','en',true);
 insert into nexora.organization_members(org_id,user_id,username,role,joined_at)
 values ('pgtap_org','pgtap_org_user','Org User','leader',now()-interval '7 hours');
-select extensions.lives_ok($$select nexora.get_dynamic_contract_board('pgtap_org_user')$$,'organization board is generated');
+select extensions.lives_ok($select nexora.get_dynamic_contract_board('pgtap_org_user')$,'organization board is generated');
+select extensions.is((select count(*)::integer from nexora.contract_offers where org_id='pgtap_org' and scope='organization' and board_date=(now() at time zone 'UTC')::date and status='offered'),10,'level one organization board exposes ten offers');
 select extensions.throws_ok(
   $$select nexora.accept_dynamic_contract('pgtap_org_user',(select id from nexora.contract_offers where scope='organization' and org_id='pgtap_org' and status='offered' order by slot_no limit 1))$$,
   'P0001','ORG_MEMBERSHIP_TOO_NEW',
@@ -325,7 +327,17 @@ select extensions.throws_ok(
 select extensions.is(
   (select used_count from nexora.contract_daily_limits where user_id='pgtap_org_user' and date_key=(now() at time zone 'UTC')::date),
   2,
-  'personal and organization acceptances consume the same daily allowance'
+  'combined contract acceptance count remains available for audit'
+);
+select extensions.is(
+  (select personal_used_count from nexora.contract_daily_limits where user_id='pgtap_org_user' and date_key=(now() at time zone 'UTC')::date),
+  1,
+  'personal acceptance consumes only the personal daily quota'
+);
+select extensions.is(
+  (select org_used_count from nexora.contract_daily_limits where user_id='pgtap_org_user' and date_key=(now() at time zone 'UTC')::date),
+  1,
+  'organization acceptance consumes only the organization daily quota'
 );
 insert into nexora.inventory(user_id,item_id,quantity)
 select 'pgtap_org_user',item_id,100 from nexora.contract_offers
