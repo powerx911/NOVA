@@ -479,6 +479,7 @@ export const COMPANY_SECTORS: CompanySectorSpec[] = [
   },
 ];
 
+/** @deprecated Fixed trade contracts are retained only for historical compatibility. */
 export const TRADE_CONTRACTS: TradeContract[] = [
   {
     id: 'ctr_chip_batch',
