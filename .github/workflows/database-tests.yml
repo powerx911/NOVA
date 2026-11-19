@@ -36,9 +36,9 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Setup Supabase CLI
-        uses: supabase/setup-cli@v1
+        uses: supabase/setup-cli@v3
         with:
-          version: latest
+          version: v2.stable
 
       # The repository's historical migration chain is incomplete. Start a
       # disposable empty Supabase DB first, then restore the CI-only snapshot
@@ -60,7 +60,7 @@ jobs:
             fi
           }
           trap restore_migrations EXIT
-          supabase start --exclude rest,auth,realtime,storage,functions,studio,mail,analytics,pooler
+          supabase start --exclude edge-runtime,gotrue,imgproxy,kong,logflare,mailpit,postgres-meta,postgrest,realtime,storage-api,studio,supavisor,vector
 
       - name: Restore data-free NOVA schema snapshot
         shell: bash
@@ -87,4 +87,9 @@ jobs:
 
       - name: Stop disposable database
         if: always()
-        run: supabase stop
+        run: |
+          if command -v supabase >/dev/null 2>&1; then
+            supabase stop
+          else
+            echo 'Supabase CLI was not installed; no local stack was started.'
+          fi
