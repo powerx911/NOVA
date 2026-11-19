@@ -163,7 +163,7 @@ begin
     v_fee:=round(new.current_price*0.04)::bigint;
     if v_fee>0 then
       update nexora.wallets
-        set balance=balance-v_fee,total_spent=total_spent+v_fee,updated_at=now()
+        set balance=balance-v_fee,total_spent=total_spent+v_fee,last_tx_id=v_tx,updated_at=now()
         where user_id=new.seller_uid;
       if not found then raise exception 'SELLER_WALLET_NOT_FOUND'; end if;
       insert into nexora.transactions(id,from_uid,to_uid,amount,fee,net_amount,type,reference_id,description,status)
