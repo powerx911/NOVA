@@ -3,7 +3,7 @@
 create extension if not exists pgtap with schema extensions;
 
 begin;
-select extensions.plan(84);
+select extensions.plan(85);
 
 select extensions.ok(
   exists(select 1 from nexora.contract_config where config_key='catalog_prices'),
@@ -414,6 +414,11 @@ select extensions.is(
    where org_id='pgtap_goal_org' and week_start=date_trunc('week',timezone('UTC',now()))::date),
   10,
   'ten distinct goals are generated for the UTC ISO week'
+);
+select extensions.ok(
+  exists(select 1 from nexora.org_weekly_goals where org_id='pgtap_goal_org' and goal_type='personal_contracts_completed')
+  and exists(select 1 from nexora.org_weekly_goals where org_id='pgtap_goal_org' and goal_type='org_contracts_completed'),
+  'weekly goals separately include personal and organization contract completions'
 );
 select extensions.lives_ok(
   $query$do $body$
