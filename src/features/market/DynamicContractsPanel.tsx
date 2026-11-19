@@ -338,12 +338,7 @@ export function DynamicContractsPanel({ profile, inventory, wallet, language }: 
         <div className="flex items-center justify-between gap-3">
           <div>
             <h2 className="text-lg font-bold text-white">{t.dynamicContracts}</h2>
-            <p className="text-xs text-[#A9B9D4] mt-1">{t.dailyRemaining}: {Math.max(0, dailyLimit - dailyUsed)} / {dailyLimit} · {t.activeContractLimit}: {activePersonal} / 3</p>
-            <p className="text-[10px] text-[#8FA1BF] mt-1">{language === "ar" ? "تجديداتك الشخصية المتبقية اليوم: " : "Personal refreshes left today: "}<b className="font-mono-num text-white">{Math.max(0, personalRefreshLimit - personalRefreshUsed)} / {personalRefreshLimit}</b></p>
           </div>
-          <button type="button" onClick={() => void refresh()} className="min-h-10 min-w-10 rounded-xl bg-white/10 flex items-center justify-center text-white" aria-label={language === 'ar' ? 'تحديث' : 'Refresh'}>
-            <RefreshCw className="w-4 h-4" />
-          </button>
         </div>
         <div className="h-2 rounded-full bg-black/25 overflow-hidden">
           <div className="h-full rounded-full bg-[#5797FF] transition-all" style={{ width: `${Math.min(100, dailyUsed / Math.max(1, dailyLimit) * 100)}%` }} />
@@ -364,6 +359,8 @@ export function DynamicContractsPanel({ profile, inventory, wallet, language }: 
               <h3 className="text-base font-bold text-white flex items-center gap-2"><ShieldCheck className="w-4 h-4 text-sky-300" />{t.personalContracts}</h3>
               <span className="text-[10px] text-[#8192AD]">{contracts.filter((contract) => contract.status === 'offered' && contract.slot_no >= 1 && contract.slot_no <= 5).length + personalCooldowns.filter((slot) => slot.slot_no >= 1 && slot.slot_no <= 5).length} / 5</span>
             </div>
+            <p className="text-xs text-[#A9B9D4]">{t.dailyRemaining}: {Math.max(0, dailyLimit - dailyUsed)} / {dailyLimit} · {t.activeContractLimit}: {activePersonal} / 3</p>
+            <p className="text-[10px] text-[#8FA1BF]">{language === "ar" ? "تجديداتك الشخصية المتبقية اليوم: " : "Personal refreshes left today: "}<b className="font-mono-num text-white">{Math.max(0, personalRefreshLimit - personalRefreshUsed)} / {personalRefreshLimit}</b></p>
             {personal.length || personalCooldowns.length ? <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">{personal}{personalCooldowns.map((slot) => <article key={"personal-cooldown-" + slot.slot_no} className="min-h-36 rounded-2xl border border-dashed border-sky-400/25 bg-[#0D192B] p-4 flex flex-col items-center justify-center gap-2 text-center"><Timer className="w-5 h-5 text-sky-300" /><p className="text-xs font-semibold text-sky-200">{language === "ar" ? "جاري التجديد" : "Refreshing"}</p><p className="font-mono-num text-lg text-white">{remainingLabel(slot.cooldown_until, now + serverOffsetMs)}</p><p className="text-[10px] text-[#8192AD]">{language === "ar" ? "الخانة " + slot.slot_no : "Slot " + slot.slot_no}</p></article>)}</div> : <p className="rounded-xl border border-white/10 p-5 text-center text-xs text-[#8192AD]">{t.noContracts}</p>}
           </section>
           )}

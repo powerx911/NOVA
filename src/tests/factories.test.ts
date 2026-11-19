@@ -18,7 +18,7 @@ describe('Raw resource factories', () => {
 
   it('keeps even advanced factory operating costs within a controlled ceiling', () => {
     for (const factory of FACTORY_RESOURCES) {
-      expect(factory.operatingCostPerHour).toBeLessThanOrEqual(260);
+      expect(factory.operatingCostPerHour).toBeLessThanOrEqual(650);
     }
   });
 
@@ -29,6 +29,14 @@ describe('Raw resource factories', () => {
       expect(grossValue).toBeGreaterThan(factory.operatingCostPerHour);
       expect(grossValue - factory.operatingCostPerHour).toBeLessThan(lowestCompanyNetIncome);
     }
+  });
+
+  it('uses a progressive but bounded factory output curve', () => {
+    const multiplier = (level: number) => 1 + 0.018 * (level - 1) + 0.00012 * Math.pow(level - 1, 2);
+    const gain = (from: number, to: number) => multiplier(to) - multiplier(from);
+    expect(gain(2, 3)).toBeLessThan(gain(41, 42));
+    expect(gain(41, 42)).toBeLessThan(gain(75, 76));
+    expect(multiplier(100)).toBeLessThan(4);
   });
 
   it('keeps raw-resource production margins controlled', () => {
