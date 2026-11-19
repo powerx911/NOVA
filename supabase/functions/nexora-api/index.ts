@@ -154,7 +154,7 @@ Deno.serve(async (req: Request) => {
         p_note: note,
       });
       if (error) {
-        const known = ["RECIPIENT_NOT_FOUND","SELF_OR_MISSING_RECIPIENT","INVALID_AMOUNT","INSUFFICIENT_FUNDS"].find((code) => error.message.includes(code));
+        const known = ["RECIPIENT_NOT_FOUND","SELF_OR_MISSING_RECIPIENT","INVALID_AMOUNT","INSUFFICIENT_FUNDS","TRANSFER_LEVEL_REQUIRED","TRANSFER_DAILY_LIMIT"].find((code) => error.message.includes(code));
         return json({ error: known ?? "TRANSFER_FAILED" }, 409, origin);
       }
       return json({ ok: true, data }, 200, origin);
