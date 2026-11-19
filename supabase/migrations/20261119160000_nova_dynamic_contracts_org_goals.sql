@@ -586,6 +586,7 @@ declare
   v_org nexora.organizations%rowtype;
   v_inventory nexora.inventory%rowtype;
   v_fee bigint;
+  v_remaining_secs integer;
   v_tx text:='tx_'||gen_random_uuid()::text;
   v_now timestamptz:=now();
 begin
@@ -624,17 +625,18 @@ begin
   if v_inventory.quantity<v_contract.quantity then raise exception 'MISSING_INPUTS'; end if;
   v_fee:=round(v_contract.payout*0.04)::bigint;
   if v_wallet.balance<v_fee then raise exception 'INSUFFICIENT_FUNDS'; end if;
+  v_remaining_secs:=greatest(0,ceil(extract(epoch from (v_contract.deadline_at-v_now)))::integer);
   update nexora.inventory set quantity=quantity-v_contract.quantity,updated_at=v_now
     where user_id=p_uid and item_id=v_contract.item_id;
   update nexora.wallets set balance=balance-v_fee,total_spent=total_spent+v_fee,last_tx_id=v_tx,updated_at=v_now
     where user_id=p_uid;
   insert into nexora.transactions(id,from_uid,to_uid,amount,fee,net_amount,type,reference_id,description,status)
   values(v_tx,p_uid,'SYSTEM',v_fee,v_fee,0,'contract_fee',p_contract_id,'Contract processing fee','completed');
-  update nexora.contract_offers set status='processing',deadline_remaining_secs=greatest(0,ceil(extract(epoch from (deadline_at-v_now)))::integer),
+  update nexora.contract_offers set status='processing',deadline_remaining_secs=v_remaining_secs,
     deadline_at=null,processing_started_at=v_now,ready_at=v_now+make_interval(mins=>v_contract.processing_minutes),
     delivered_at=v_now,fee_paid=v_fee,updated_at=v_now where id=p_contract_id;
   return jsonb_build_object('ok',true,'ready_at',v_now+make_interval(mins=>v_contract.processing_minutes),
-    'fee',v_fee,'remaining_secs',v_contract.deadline_remaining_secs);
+    'fee',v_fee,'remaining_secs',v_remaining_secs);
 end;
 $$;
 
