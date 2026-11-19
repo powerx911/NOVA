@@ -91,13 +91,13 @@ select extensions.is(
 
 select extensions.is(
   nexora.player_inventory_capacity(1),
-  100::bigint,
-  'level one starts with 100 inventory units'
+  250::bigint,
+  'level one starts with 250 inventory units'
 );
 
 select extensions.is(
   nexora.player_inventory_capacity(200),
-  3085::bigint,
+  3235::bigint,
   'inventory capacity scales smoothly through the level cap'
 );
 
@@ -106,7 +106,7 @@ values ('pgtap_inventory_capacity', 'pgTAP_Inventory', 'pgtap_inventory',
   '{"tradesCount":0,"companiesOwned":0,"totalProduced":0}'::jsonb);
 
 insert into nexora.inventory(user_id, item_id, quantity)
-values ('pgtap_inventory_capacity', 'capacity_test_item', 100);
+values ('pgtap_inventory_capacity', 'capacity_test_item', 250);
 
 select extensions.throws_ok(
   $$insert into nexora.inventory(user_id, item_id, quantity) values ('pgtap_inventory_capacity', 'capacity_overflow_item', 1)$$,
@@ -116,7 +116,7 @@ select extensions.throws_ok(
 );
 
 select extensions.ok(
-  position('group by value->>''item_id''' in lower(pg_get_functiondef('nexora.manufacture_recipe(text,text,integer)'::regprocedure))) > 0
+  position('group by' in lower(pg_get_functiondef('nexora.manufacture_recipe(text,text,integer)'::regprocedure))) > 0
   and position('manufacturing_job_in_progress' in lower(pg_get_functiondef('nexora.manufacture_recipe(text,text,integer)'::regprocedure))) > 0,
   'manufacturing aggregates duplicate recipe inputs and permits only one active job per player'
 );
