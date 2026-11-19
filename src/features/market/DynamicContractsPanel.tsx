@@ -165,6 +165,7 @@ export function DynamicContractsPanel({ profile, inventory, wallet, language }: 
     if (!item) return null;
     const owned = inventoryMap.get(contract.item_id) ?? 0;
     const fee = Math.round(contract.payout * 0.04);
+    const isOwnedContract = !organization || contract.claimed_by === profile.uid;
     const isReservedByOther = organization && contract.claimed_by && contract.claimed_by !== profile.uid;
     const countdownTarget = contract.status === 'accepted'
       ? contract.deadline_at
@@ -178,7 +179,7 @@ export function DynamicContractsPanel({ profile, inventory, wallet, language }: 
         : t.offerEndsIn;
     const canAccept = contract.status === 'offered' && !isReservedByOther
       && dailyUsed < dailyLimit && (organization || activePersonal < 3);
-    const canDeliver = contract.status === 'accepted' && owned >= contract.quantity && (wallet?.balance ?? 0) >= fee;
+    const canDeliver = contract.status === 'accepted' && isOwnedContract && owned >= contract.quantity && (wallet?.balance ?? 0) >= fee;
     const isBusy = busyId === contract.id;
     const tierColor: Record<DynamicContractOffer['tier'], string> = {
       common: 'text-slate-300 border-slate-400/25 bg-slate-400/10',
@@ -239,7 +240,7 @@ export function DynamicContractsPanel({ profile, inventory, wallet, language }: 
               {isBusy ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : t.acceptContract}
             </button>
           )}
-          {contract.status === 'accepted' && (
+          {contract.status === 'accepted' && isOwnedContract && (
             <>
               <button type="button" disabled={!canDeliver || isBusy} onClick={() => void runAction(contract, 'deliver')}
                 className="flex-1 min-h-10 rounded-xl bg-[#2468D8] hover:bg-[#347CF0] text-white text-xs font-bold disabled:opacity-40">
@@ -249,19 +250,25 @@ export function DynamicContractsPanel({ profile, inventory, wallet, language }: 
                 className="min-h-10 rounded-xl border border-rose-400/25 px-3 text-rose-300 text-xs font-semibold disabled:opacity-40">{t.abandonContract}</button>
             </>
           )}
-          {contract.status === 'processing' && (
+          {contract.status === 'accepted' && isReservedByOther && (
+            <p className="w-full text-center text-[11px] text-amber-300">{t.reservedByMember}</p>
+          )}
+          {contract.status === 'processing' && isOwnedContract && (
             <div className="w-full rounded-xl bg-sky-400/10 border border-sky-400/20 px-3 py-2 text-center text-xs text-sky-200 flex items-center justify-center gap-2">
               <Loader2 className="w-4 h-4 animate-spin" />{t.contractProcessing}
             </div>
           )}
-          {contract.status === 'ready' && (
+          {contract.status === 'processing' && isReservedByOther && (
+            <p className="w-full text-center text-[11px] text-amber-300">{t.reservedByMember}</p>
+          )}
+          {contract.status === 'ready' && isOwnedContract && (
             <button type="button" disabled={isBusy} onClick={() => void runAction(contract, 'claim')}
               className="flex-1 min-h-10 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold disabled:opacity-40">
               {isBusy ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : t.claimContractReward}
             </button>
           )}
-          {contract.status === 'offered' && organization && contract.claimed_by === profile.uid && (
-            <span className="text-[10px] text-amber-300">{t.contractAccepted}</span>
+          {contract.status === 'ready' && isReservedByOther && (
+            <p className="w-full text-center text-[11px] text-amber-300">{t.reservedByMember}</p>
           )}
         </div>
       </article>
