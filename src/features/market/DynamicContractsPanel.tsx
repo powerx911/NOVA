@@ -210,6 +210,7 @@ export function DynamicContractsPanel({ profile, inventory, wallet, language }: 
         : t.offerEndsIn;
     const canAccept = contract.status === 'offered' && !isReservedByOther
       && (organization ? orgDailyUsed < orgDailyLimit : dailyUsed < dailyLimit) && (organization || activePersonal < 3);
+    const canRefresh = organization ? canRefreshOrgContracts && orgRefreshUsed < orgRefreshLimit : personalRefreshUsed < personalRefreshLimit;
     const canDeliver = contract.status === 'accepted' && isOwnedContract && owned >= contract.quantity && (wallet?.balance ?? 0) >= fee;
     const isBusy = busyId === contract.id;
     const tierColor: Record<DynamicContractOffer['tier'], string> = {
@@ -279,7 +280,7 @@ export function DynamicContractsPanel({ profile, inventory, wallet, language }: 
                 className="flex-1 min-h-10 rounded-xl bg-[#2468D8] hover:bg-[#347CF0] text-white text-xs font-bold disabled:opacity-40">
                 {isBusy ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : t.acceptContract}
               </button>
-              {(!organization || canRefreshOrgContracts) && <button type="button" disabled={isBusy} onClick={() => void runAction(contract, 'refresh')}
+              {(!organization || canRefreshOrgContracts) && <button type="button" disabled={isBusy || !canRefresh} onClick={() => void runAction(contract, 'refresh')}
                 className="min-h-10 rounded-xl border border-sky-400/25 px-3 text-sky-200 text-xs font-semibold disabled:opacity-40">
                 <span className="inline-flex items-center gap-1.5"><RefreshCw className="w-3.5 h-3.5" />{language === 'ar' ? 'تجديد العقد' : 'Refresh contract'}</span>
               </button>}
