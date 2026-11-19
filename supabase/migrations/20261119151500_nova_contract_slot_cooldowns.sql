@@ -89,7 +89,6 @@ begin
   if old.status is distinct from new.status
     and new.status in ('completed','abandoned','expired')
     and new.slot_no > 0
-    and new.board_date = (now() at time zone 'UTC')::date
   then
     v_owner_id := case when new.scope = 'personal' then new.user_id else new.org_id end;
     if v_owner_id is not null then
@@ -143,7 +142,8 @@ begin
   select c.cooldown_until into v_until
   from nexora.contract_slot_cooldowns c
   where c.scope = new.scope and c.owner_id = v_owner_id
-    and c.slot_no = new.slot_no and c.board_date = new.board_date
+    and c.slot_no = new.slot_no and c.cooldown_until > now()
+  order by c.cooldown_until desc limit 1
   for update;
 
   if v_until is not null and v_until > now() then
@@ -153,8 +153,7 @@ begin
   if v_until is not null then
     delete from nexora.contract_slot_cooldowns c
     where c.scope = new.scope and c.owner_id = v_owner_id
-      and c.slot_no = new.slot_no and c.board_date = new.board_date
-      and c.cooldown_until <= now();
+      and c.slot_no = new.slot_no and c.cooldown_until <= now();
   end if;
   return new;
 end;
@@ -199,20 +198,24 @@ begin
         'slot_no', c.slot_no, 'board_date', c.board_date,
         'cooldown_until', c.cooldown_until
       ) order by c.slot_no)
-      from nexora.contract_slot_cooldowns c
-      where c.scope='personal' and c.owner_id=p_uid
-        and c.board_date=(now() at time zone 'UTC')::date
-        and c.cooldown_until>now()
+      from (
+        select slot_no,max(board_date) as board_date,max(cooldown_until) as cooldown_until
+        from nexora.contract_slot_cooldowns
+        where scope='personal' and owner_id=p_uid and cooldown_until>now()
+        group by slot_no
+      ) c
     ), '[]'::jsonb),
     'organization', coalesce((
       select jsonb_agg(jsonb_build_object(
         'slot_no', c.slot_no, 'board_date', c.board_date,
         'cooldown_until', c.cooldown_until
       ) order by c.slot_no)
-      from nexora.contract_slot_cooldowns c
-      where c.scope='organization' and c.owner_id=v_org_id
-        and c.board_date=(now() at time zone 'UTC')::date
-        and c.cooldown_until>now()
+      from (
+        select slot_no,max(board_date) as board_date,max(cooldown_until) as cooldown_until
+        from nexora.contract_slot_cooldowns
+        where scope='organization' and owner_id=v_org_id and cooldown_until>now()
+        group by slot_no
+      ) c
     ), '[]'::jsonb)
   );
 end;
