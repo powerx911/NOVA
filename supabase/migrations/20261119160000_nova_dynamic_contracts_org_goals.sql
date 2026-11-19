@@ -483,7 +483,7 @@ begin
       v_event_offer_count:=1+floor(random()*2)::integer;
       for v_event_index in 1..v_event_offer_count loop
         perform nexora.generate_dynamic_contract('personal',p_uid,null,
-          1000+((select count(*) from nexora.world_events e2 where e2.id<=v_event.id)-1)*2+v_event_index,
+          (1000+((select count(*) from nexora.world_events e2 where e2.id<=v_event.id)-1)*2+v_event_index)::integer,
           v_today,null,null,v_event.id);
       end loop;
     end if;
