@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  Building2, Loader2, RefreshCw,
+  Building2, Loader2, RefreshCw, Lock,
   ShieldCheck, Timer,
 } from 'lucide-react';
 import { ResourceIcon } from '../../components/ui/ResourceIcon';
@@ -71,6 +71,7 @@ export function DynamicContractsPanel({ profile, inventory, wallet, language }: 
   const { showToast } = useToast();
   const [contracts, setContracts] = useState<DynamicContractOffer[]>([]);
   const [orgContracts, setOrgContracts] = useState<DynamicContractOffer[]>([]);
+  const [orgUnlockedSlots, setOrgUnlockedSlots] = useState(0);
   const [dailyUsed, setDailyUsed] = useState(0);
   const [dailyLimit, setDailyLimit] = useState(5);
   const [orgDailyUsed, setOrgDailyUsed] = useState(0);
@@ -106,6 +107,7 @@ export function DynamicContractsPanel({ profile, inventory, wallet, language }: 
       setOrgRefreshLimit(board.cooldowns?.org_refresh_limit ?? 5);
       if (board.cooldowns?.server_now) setServerOffsetMs(new Date(board.cooldowns.server_now).getTime() - Date.now());
       setOrgContracts(board.organization ?? []);
+      setOrgUnlockedSlots(board.organization_slots ?? 0);
       setDailyUsed(board.daily_used ?? 0);
       setDailyLimit(board.daily_limit ?? 5);
       setOrgDailyUsed(board.org_daily_used ?? 0);
@@ -320,6 +322,11 @@ export function DynamicContractsPanel({ profile, inventory, wallet, language }: 
 
   const personal = contracts.map((contract) => renderContract(contract)).filter(Boolean);
   const organization = orgContracts.map((contract) => renderContract(contract, true)).filter(Boolean);
+  const lockedOrganization = Array.from({ length: Math.max(0, 100 - orgUnlockedSlots) }, (_, index) => {
+    const slotNo = orgUnlockedSlots + index + 1;
+    const requiredLevel = Math.ceil(slotNo / 10);
+    return <article key={"org-locked-" + slotNo} className="min-h-36 rounded-2xl border border-dashed border-white/10 bg-[#0A1423] p-4 flex flex-col items-center justify-center gap-2 text-center opacity-70"><Lock className="w-5 h-5 text-[#64748B]" /><p className="text-xs font-semibold text-[#A1AEC3]">{language === 'ar' ? 'خانة مقفلة' : 'Locked slot'}</p><p className="text-[10px] text-[#71819A]">{language === 'ar' ? 'تفتح عند مستوى المنظمة ' + requiredLevel : 'Unlocks at organization level ' + requiredLevel}</p><p className="text-[10px] font-mono-num text-[#53647E]">{slotNo} / 100</p></article>;
+  });
 
 
   return (
@@ -354,7 +361,7 @@ export function DynamicContractsPanel({ profile, inventory, wallet, language }: 
               <h3 className="text-base font-bold text-white flex items-center gap-2"><ShieldCheck className="w-4 h-4 text-sky-300" />{t.personalContracts}</h3>
               <span className="text-[10px] text-[#8192AD]">{contracts.filter((contract) => contract.status === 'offered' && contract.slot_no >= 1 && contract.slot_no <= 5).length + personalCooldowns.length} / 5</span>
             </div>
-            {personal.length || personalCooldowns.length ? <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">{personal}{personalCooldowns.map((slot) => <article key={"personal-cooldown-" + slot.slot_no} className="min-h-36 rounded-2xl border border-dashed border-sky-400/25 bg-[#0D192B] p-4 flex flex-col items-center justify-center gap-2 text-center"><Timer className="w-5 h-5 text-sky-300" /><p className="text-xs font-semibold text-sky-200">{language === "ar" ? "جاري التجديد" : "Refreshing"}</p><p className="font-mono-num text-lg text-white">{remainingLabel(slot.cooldown_until, now + serverOffsetMs)}</p><p className="text-[10px] text-[#8192AD]">{language === "ar" ? "الخانة " + slot.slot_no : "Slot " + slot.slot_no}</p></article>)}</div> : <p className="rounded-xl border border-white/10 p-5 text-center text-xs text-[#8192AD]">{t.noContracts}</p>}
+            {personal.length || personalCooldowns.length ? <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">{personal}{personalCooldowns.map((slot) => <article key={"personal-cooldown-" + slot.slot_no} className="min-h-36 rounded-2xl border border-dashed border-sky-400/25 bg-[#0D192B] p-4 flex flex-col items-center justify-center gap-2 text-center"><Timer className="w-5 h-5 text-sky-300" /><p className="text-xs font-semibold text-sky-200">{language === "ar" ? "جاري التجديد" : "Refreshing"}</p><p className="font-mono-num text-lg text-white">{remainingLabel(slot.cooldown_until, now + serverOffsetMs)}</p><p className="text-[10px] text-[#8192AD]">{language === "ar" ? "الخانة " + slot.slot_no : "Slot " + slot.slot_no}</p></article>)}{lockedOrganization}</div> : <p className="rounded-xl border border-white/10 p-5 text-center text-xs text-[#8192AD]">{t.noContracts}</p>}
           </section>
           )}
 
