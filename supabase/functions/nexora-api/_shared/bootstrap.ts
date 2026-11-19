@@ -3,10 +3,15 @@ import { camelRow, queryData } from "./serialization.ts";
 
 export async function bootstrap(admin: ReturnType<typeof getAdminClient>, uid: string) {
   const db = admin.schema("nexora");
+  const utcNow = new Date();
+  const utcWeekStart = new Date(Date.UTC(utcNow.getUTCFullYear(), utcNow.getUTCMonth(), utcNow.getUTCDate()));
+  const utcDay = utcWeekStart.getUTCDay() || 7;
+  utcWeekStart.setUTCDate(utcWeekStart.getUTCDate() - utcDay + 1);
+  utcWeekStart.setUTCHours(0, 0, 0, 0);
   const [
     profile, userPrivate, wallet, inventory, sent, received, marketListings,
     marketOrders, companies, factories, organizations,
-    organizationMembers, organizationRequests, playerMissions, dailyClaims, dailyMarketTrades,
+    organizationMembers, organizationRequests, playerMissions, dailyClaims, dailyMarketTrades, weeklyMarketTrades,
     contractClaims, playerAchievements, notifications, worldEvents,
   ] = await Promise.all([
     queryData(db.from("player_profiles").select("*").eq("user_id", uid).maybeSingle()),
@@ -25,6 +30,7 @@ export async function bootstrap(admin: ReturnType<typeof getAdminClient>, uid: s
     queryData(db.from("player_missions").select("*").eq("user_id", uid)),
     queryData(db.from("daily_claims").select("*").eq("user_id", uid).eq("date_key", new Date().toISOString().slice(0, 10)).maybeSingle()),
     queryData(db.from("transactions").select("id").eq("from_uid", uid).eq("type", "market_buy").eq("status", "completed").gte("created_at", new Date().toISOString().slice(0, 10))),
+    queryData(db.from("transactions").select("id").eq("from_uid", uid).eq("type", "market_buy").eq("status", "completed").gte("created_at", utcWeekStart.toISOString())),
     queryData(db.from("contract_claims").select("*").eq("user_id", uid)),
     queryData(db.from("player_achievements").select("*").eq("user_id", uid)),
     queryData(db.from("notifications").select("*").eq("user_id", uid).order("created_at", { ascending: false }).limit(30)),
@@ -55,7 +61,7 @@ export async function bootstrap(admin: ReturnType<typeof getAdminClient>, uid: s
   ).slice(0, 40);
 
   return {
-    profile: { ...(camelRow(profile) as Record<string, unknown>), dailyTradesCount: (dailyMarketTrades as Record<string, unknown>[]).length },
+    profile: { ...(camelRow(profile) as Record<string, unknown>), dailyTradesCount: (dailyMarketTrades as Record<string, unknown>[]).length, weeklyTradesCount: (weeklyMarketTrades as Record<string, unknown>[]).length },
     userPrivate: camelRow(userPrivate),
     wallet: camelRow(wallet),
     inventory: camelRow(inventory),
