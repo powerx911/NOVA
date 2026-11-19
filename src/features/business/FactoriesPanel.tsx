@@ -34,7 +34,7 @@ export function FactoriesPanel({ factories, inventory, profile, wallet, language
   const selectedWarehouseUpgradeEnd = selected?.warehouseUpgradeEndsAt ? timestampToMs(selected.warehouseUpgradeEndsAt) : 0;
   const resourceItem = selected ? ITEM_MAP[selected.resourceId] : null;
   const productionRate = selected && selectedResource
-    ? selectedResource.productionPerHour * (1 + 0.025 * (selected.level - 1) + 0.00015 * Math.pow(selected.level - 1, 2)) * (1 + selected.skillLevel * 0.04)
+    ? selectedResource.productionPerHour * (1 + 0.018 * (selected.level - 1) + 0.00012 * Math.pow(selected.level - 1, 2)) * (1 + selected.skillLevel * 0.04)
     : 0;
   const operatingCost = selected && selectedResource
     ? selectedResource.operatingCostPerHour * (1 + (selected.level - 1) * 0.06) * (1 - selected.skillLevel * 0.03)
