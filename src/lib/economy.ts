@@ -476,7 +476,8 @@ export interface MarketPriceBounds {
 /** Keeps player listings within 50%-200% of the catalog reference price. */
 const MARKET_LISTABLE_ITEM_IDS = new Set([
   'silicon_ore', 'copper_wire', 'energy_cells', 'crude_alloy', 'carbon_fiber',
-  'rare_minerals', 'microchips', 'precision_frame', 'synth_polymer',
+  'rare_minerals', 'titanium_ore', 'polymer_resin', 'biotech_gel', 'quantum_dust',
+  'microchips', 'precision_frame', 'synth_polymer',
   'quantum_server', 'logistics_drone', 'bio_module',
 ]);
 
