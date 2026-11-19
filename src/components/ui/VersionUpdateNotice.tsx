@@ -1,74 +1,57 @@
 import { useEffect, useState } from 'react';
+import { BUILD_VERSION } from '../../generated/buildVersion';
 
-const STORAGE_KEY = 'nexora-installed-version';
-// Last published static version before automatic per-build versioning was introduced.
-const PRE_UPDATE_NOTICE_VERSION = '2026.11.16.1';
-const CHECK_INTERVAL_MS = 45_000;
+const CHECK_INTERVAL_MS = 30_000;
 
-/** Detects a newly deployed build without requiring a page refresh. */
+/** Compares the running bundle with the no-cache version manifest from the deployed site. */
 export function VersionUpdateNotice() {
   const [availableVersion, setAvailableVersion] = useState<string | null>(null);
 
   useEffect(() => {
+    if (import.meta.env.DEV) return;
+
     let active = true;
-    let knownVersion: string | null = null;
-
-    try {
-      knownVersion = window.localStorage.getItem(STORAGE_KEY);
-    } catch {
-      // The update prompt still works for this session if storage is unavailable.
-    }
-
     const checkVersion = async () => {
       try {
-        const response = await fetch(`${import.meta.env.BASE_URL}version.json`, { cache: 'no-store' });
+        const response = await fetch(
+          `${import.meta.env.BASE_URL}version.json?check=${Date.now()}`,
+          { cache: 'no-store', headers: { 'Cache-Control': 'no-cache' } },
+        );
         if (!response.ok) return;
         const payload = (await response.json()) as { version?: unknown };
         if (typeof payload.version !== 'string' || !payload.version.trim() || !active) return;
 
-        const latest = payload.version.trim();
-        if (knownVersion === null) {
-          // Existing players have no marker because this notice did not exist in
-          // the previous build. Compare against that build instead of silently
-          // treating the first check as an already-installed update.
-          if (latest !== PRE_UPDATE_NOTICE_VERSION) {
-            setAvailableVersion(latest);
-            return;
-          }
-          knownVersion = latest;
-          try {
-            window.localStorage.setItem(STORAGE_KEY, latest);
-          } catch {
-            // Ignore storage restrictions.
-          }
-          return;
-        }
-
-        if (latest !== knownVersion) setAvailableVersion(latest);
+        const latestVersion = payload.version.trim();
+        setAvailableVersion(latestVersion === BUILD_VERSION ? null : latestVersion);
       } catch {
         // A temporary network error must not interrupt gameplay.
       }
     };
 
+    const checkWhenVisible = () => {
+      if (document.visibilityState === 'visible') void checkVersion();
+    };
+
     void checkVersion();
     const timer = window.setInterval(() => void checkVersion(), CHECK_INTERVAL_MS);
-    window.addEventListener('online', checkVersion);
+    window.addEventListener('online', checkWhenVisible);
+    window.addEventListener('focus', checkWhenVisible);
+    document.addEventListener('visibilitychange', checkWhenVisible);
     return () => {
       active = false;
       window.clearInterval(timer);
-      window.removeEventListener('online', checkVersion);
+      window.removeEventListener('online', checkWhenVisible);
+      window.removeEventListener('focus', checkWhenVisible);
+      document.removeEventListener('visibilitychange', checkWhenVisible);
     };
   }, []);
 
   if (!availableVersion) return null;
 
   function applyUpdate() {
-    try {
-      window.localStorage.setItem(STORAGE_KEY, availableVersion as string);
-    } catch {
-      // Reload regardless; version detection can recover on the next session.
-    }
-    window.location.replace(`${import.meta.env.BASE_URL}?v=${encodeURIComponent(availableVersion as string)}`);
+    window.location.replace(
+      `${import.meta.env.BASE_URL}?v=${encodeURIComponent(availableVersion as string)}&refresh=${Date.now()}`,
+    );
   }
 
   return (
