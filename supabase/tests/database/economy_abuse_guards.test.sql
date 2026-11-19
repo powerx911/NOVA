@@ -96,7 +96,7 @@ select extensions.ok(
 );
 
 select extensions.ok(
-  position('floor(v_payout::numeric/25)' in lower(pg_get_functiondef('nexora.collect_company_revenue(text,text)'::regprocedure)))>0,
+  position('v_company.total_revenue+v_payout' in lower(pg_get_functiondef('nexora.collect_company_revenue(text,text)'::regprocedure)))>0,
   'company collection XP scales with actual collected revenue'
 );
 
