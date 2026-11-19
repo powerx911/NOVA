@@ -1,0 +1,71 @@
+name: NOVA isolated database tests
+
+on:
+  push:
+    branches:
+      - main
+      - "fix/**"
+    paths:
+      - "supabase/ci/**"
+      - "supabase/migrations/**"
+      - "supabase/tests/**"
+      - ".github/workflows/database-tests.yml"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "supabase/ci/**"
+      - "supabase/migrations/**"
+      - "supabase/tests/**"
+      - ".github/workflows/database-tests.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nova-db-tests-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  isolated-postgres:
+    name: PostgreSQL 17 + pgTAP (isolated)
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Start disposable local Supabase stack
+        run: supabase start
+
+      - name: Restore data-free NOVA schema snapshot
+        shell: bash
+        run: |
+          set -euo pipefail
+          eval "$(supabase status -o env)"
+          psql "$DB_URL" -v ON_ERROR_STOP=1 -f supabase/ci/nexora_schema_snapshot.sql
+
+      - name: Apply only the PR migrations to the isolated database
+        shell: bash
+        run: |
+          set -euo pipefail
+          eval "$(supabase status -o env)"
+          for migration in \
+            supabase/migrations/20261119120000_nova_economy_abuse_guards.sql \
+            supabase/migrations/20261119130000_nova_recurring_mission_periods.sql \
+            supabase/migrations/20261119140000_nova_market_wallet_lock_order.sql
+          do
+            psql "$DB_URL" -v ON_ERROR_STOP=1 -f "$migration"
+          done
+
+      - name: Execute database regression suites
+        run: supabase test db
+
+      - name: Stop disposable database
+        if: always()
+        run: supabase stop
