@@ -25,6 +25,7 @@ export interface ServerWorldEventTemplate {
   taxDelta: number;
   stackGroup: string;
   durationHours: number;
+  eventClass: 'positive' | 'negative';
 }
 
 export const SERVER_WORLD_EVENT_TEMPLATES: ServerWorldEventTemplate[] = [
