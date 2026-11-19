@@ -40,6 +40,17 @@ export interface PlayerProfile {
   stats: PlayerStats;
   dailyTradesCount?: number;
   weeklyTradesCount?: number;
+  dailyManufacturingCount?: number;
+  dailyCompanyCollectionsCount?: number;
+  dailyMarketSpend?: number;
+  weeklyManufacturingCount?: number;
+  weeklyCompanyCollectionsCount?: number;
+  weeklyMarketSpend?: number;
+  seasonalMarketBuys?: number;
+  seasonalManufacturingCount?: number;
+  seasonalCompanyCollectionsCount?: number;
+  seasonalMarketSpend?: number;
+  companyRevenueTotal?: number;
   orgId?: string | null;
   createdAt: unknown;
   updatedAt: unknown;
@@ -316,7 +327,7 @@ export interface MissionDefinition {
   rewardXp: number;
   rewardReputation: number;
   targetCount: number;
-  metric: 'trades' | 'companies' | 'produced' | 'level' | 'org' | 'properties' | 'weekly_trades';
+  metric: 'trades' | 'companies' | 'produced' | 'level' | 'org' | 'properties' | 'weekly_trades' | 'daily_market_buys' | 'daily_manufacturing' | 'daily_company_collections' | 'daily_market_spend' | 'weekly_market_buys' | 'weekly_manufacturing' | 'weekly_market_spend' | 'weekly_company_collections' | 'seasonal_market_buys' | 'seasonal_manufacturing' | 'seasonal_market_spend' | 'seasonal_company_collections';
 }
 
 export interface PlayerMissionClaim {
@@ -335,8 +346,10 @@ export interface AchievementDefinition {
   titleEn: string;
   descriptionAr: string;
   descriptionEn: string;
-  metric: 'trades' | 'companies' | 'produced' | 'level' | 'reputation' | 'spent';
+  metric: 'trades' | 'companies' | 'produced' | 'level' | 'reputation' | 'spent' | 'revenue';
   threshold: number;
+  group: 'whale' | 'market' | 'industry' | 'enterprise';
+  tierLevel: 1 | 2 | 3 | 4;
   tier?: 'bronze' | 'silver' | 'gold' | 'platinum';
   rewardCredits?: number;
 }
