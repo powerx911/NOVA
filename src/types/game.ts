@@ -460,6 +460,8 @@ export interface DynamicContractBoard {
   active_personal: number;
   daily_used: number;
   daily_limit: number;
+  org_daily_used?: number;
+  org_daily_limit?: number;
   offer_expires_at: string;
   cooldowns?: { server_now: string; personal: DynamicContractCooldown[]; organization: DynamicContractCooldown[] };
 }
