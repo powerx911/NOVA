@@ -91,14 +91,14 @@ export function ManufacturingPanel({ profile, wallet, inventory, language, onNav
     } catch (error) {
       const code = error instanceof Error ? error.message : '';
       if (code === 'MANUFACTURING_JOB_ALREADY_FINISHED') {
-        setNowMs(Date.now());
+        setNowMs(Date.now() + 1000);
         showToast(isAr ? 'انتهى وقت التصنيع بالفعل؛ جارٍ استلام الإنتاج.' : 'The production timer has ended; collecting the output now.', 'info');
-      } else if (code !== 'MANUFACTURING_JOB_ALREADY_COMPLETED' && code !== 'MANUFACTURING_JOB_CANCELLED') {
-        showToast(isAr ? 'تعذر إلغاء التصنيع. لم تُخصم مواد إضافية.' : 'Could not cancel manufacturing. No additional materials were consumed.', 'error');
-      }
-      if (code === 'MANUFACTURING_JOB_ALREADY_CANCELLED') {
+      } else if (code === 'MANUFACTURING_JOB_ALREADY_COMPLETED' || code === 'MANUFACTURING_JOB_CANCELLED') {
+        setCancelDialogOpen(false);
         setActiveJob(null);
         window.dispatchEvent(new Event('nova:refresh-game'));
+      } else {
+        showToast(isAr ? 'تعذر إلغاء التصنيع. لم تُخصم مواد إضافية.' : 'Could not cancel manufacturing. No additional materials were consumed.', 'error');
       }
     } finally {
       setCancelBusy(false);
