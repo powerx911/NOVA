@@ -572,7 +572,7 @@ AS $function$
 begin
   raise exception 'NEXORA immutable records cannot be updated or deleted';
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION nexora.create_player_character(p_uid text, p_email text, p_username text, p_avatar_id text, p_language text DEFAULT 'ar'::text)
@@ -637,7 +637,7 @@ EXCEPTION
   WHEN unique_violation THEN
     RAISE EXCEPTION 'USERNAME_TAKEN';
 END;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION nexora.claim_daily_stipend(p_uid text)
@@ -701,7 +701,7 @@ begin
 
   return jsonb_build_object('ok',true,'amount',v_amount,'xp_gain',40,'date_key',v_date);
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION nexora.upgrade_player_skill(p_uid text, p_skill text)
@@ -729,7 +729,7 @@ begin
   where user_id=p_uid;
   return jsonb_build_object('ok',true,'skill',p_skill,'level',v_current+1);
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION nexora.transfer_credits(p_uid text, p_recipient_username text, p_amount bigint, p_note text DEFAULT ''::text)
@@ -778,7 +778,7 @@ begin
 
   return jsonb_build_object('ok',true,'transaction_id',v_tx,'amount',v_amount);
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION nexora.create_market_listing(p_uid text, p_item_id text, p_qty integer, p_unit_price bigint)
@@ -803,7 +803,7 @@ begin
   values(v_id,p_uid,v_username,p_item_id,p_qty,p_qty,p_unit_price,'active');
   return jsonb_build_object('ok',true,'listing_id',v_id);
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION nexora.buy_market_listing(p_uid text, p_listing_id text, p_qty integer)
@@ -856,7 +856,7 @@ begin
   update nexora.player_profiles set stats=v_stats,updated_at=now() where user_id=p_uid;
   return jsonb_build_object('ok',true,'order_id',v_order,'transaction_id',v_tx,'total',v_total,'tax',v_fee);
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION nexora.cancel_market_listing(p_uid text, p_listing_id text)
@@ -878,7 +878,7 @@ begin
     set quantity=nexora.inventory.quantity+excluded.quantity,last_listing_id=excluded.last_listing_id,updated_at=now();
   return jsonb_build_object('ok',true,'returned_qty',v_listing.remaining_qty);
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION nexora.manufacture_recipe(p_uid text, p_recipe_id text, p_batches integer)
@@ -939,7 +939,7 @@ begin
     stats=v_stats,updated_at=now() where user_id=p_uid;
   return jsonb_build_object('ok',true,'output_item',v_output,'output_qty',v_output_qty*p_batches,'cost',v_total);
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION nexora.fulfill_trade_contract(p_uid text, p_contract_id text)
@@ -994,7 +994,7 @@ begin
     stats=v_stats,updated_at=now() where user_id=p_uid;
   return jsonb_build_object('ok',true,'payout',v_payout,'contract_id',v_claim);
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION nexora.update_player_settings(p_uid text, p_language text, p_notifications_enabled boolean)
@@ -1009,7 +1009,7 @@ begin
   if not found then raise exception 'ACCOUNT_NOT_FOUND'; end if;
   return jsonb_build_object('ok',true);
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION nexora.update_player_avatar(p_uid text, p_avatar_id text)
@@ -1024,7 +1024,7 @@ begin
   if not found then raise exception 'ACCOUNT_NOT_FOUND'; end if;
   return jsonb_build_object('ok',true);
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION nexora.mark_notification_read(p_uid text, p_notification_id text)
@@ -1038,7 +1038,7 @@ begin
   if not found then raise exception 'NOTIFICATION_NOT_FOUND'; end if;
   return jsonb_build_object('ok',true);
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION nexora.mark_all_notifications_read(p_uid text)
@@ -1053,7 +1053,7 @@ begin
   get diagnostics v_count = row_count;
   return jsonb_build_object('ok',true,'updated',v_count);
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION nexora.found_company(p_uid text, p_name text, p_sector text)
@@ -1103,7 +1103,7 @@ begin
   values(v_log,v_id,p_uid,'founded',-v_cost,'Company established in ' || p_sector || ' sector');
   return jsonb_build_object('ok',true,'company_id',v_id);
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION nexora.company_net_hourly(p_company_id text)
@@ -1152,7 +1152,7 @@ begin
   v_expense:=round(v_company.expense_per_hour*(1+(v_company.level-1)*0.2)*(1-least(0.45,v_finance*0.05)));
   return greatest(15,(v_gross-v_expense))::bigint;
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION nexora.start_company_upgrade(p_uid text, p_company_id text)
@@ -1198,7 +1198,7 @@ begin
   values(v_log,p_company_id,p_uid,'upgrade_started',-v_cost,'Started upgrade to Level '||v_target::text);
   return jsonb_build_object('ok',true,'target_level',v_target,'ends_at',v_ends);
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION nexora.complete_company_upgrade(p_uid text, p_company_id text)
@@ -1230,7 +1230,7 @@ begin
   values(v_log,p_company_id,p_uid,'upgrade_completed',0,'Company reached Level '||v_target::text);
   return jsonb_build_object('ok',true,'level',v_target);
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION nexora.complete_company_vault_upgrade(p_uid text, p_company_id text)
@@ -1254,7 +1254,7 @@ begin
   values(v_log,p_company_id,p_uid,'vault_upgrade_completed',0,'Profit vault reached Level '||v_target::text);
   return jsonb_build_object('ok',true,'vault_level',v_target);
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION nexora.upgrade_company_vault(p_uid text, p_company_id text)
@@ -1333,7 +1333,7 @@ begin
   return jsonb_build_object('ok',true,'target_level',v_target,'ends_at',v_ends,
     'vault_balance',v_preserved,'capacity',v_cap);
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION nexora.collect_company_revenue(p_uid text, p_company_id text)
@@ -1373,7 +1373,7 @@ begin
   values(v_log,p_company_id,p_uid,'collect',v_payout,'Collected +$'||v_payout::text);
   return jsonb_build_object('ok',true,'payout',v_payout);
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION nexora.claim_mission_reward(p_uid text, p_mission_id text)
@@ -1457,7 +1457,7 @@ BEGIN
 
   RETURN jsonb_build_object('ok',true,'reward_credits',v_credits,'reward_xp',v_xp_gain);
 END;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION nexora.unlock_eligible_achievements(p_uid text)
@@ -1498,7 +1498,7 @@ BEGIN
 
   RETURN jsonb_build_object('unlocked_ids',v_unlocked);
 END;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION nexora.create_organization(p_uid text, p_name text, p_tag text, p_description text)
@@ -1531,7 +1531,7 @@ begin
  where user_id=p_uid;
  return jsonb_build_object('ok',true,'org_id',v_id);
 exception when unique_violation then raise exception 'TAG_TAKEN';
-end;$function$
+end;$function$;
 
 
 CREATE OR REPLACE FUNCTION nexora.start_organization_upgrade(p_uid text, p_org_id text)
@@ -1557,7 +1557,7 @@ begin
  insert into nexora.organization_transactions(id,org_id,user_id,username,type,amount,note)
  values(v_tx,p_org_id,p_uid,v_member.username,'upgrade',v_cost,'Started organization upgrade to Lv.'||v_target::text);
  return jsonb_build_object('ok',true,'target_level',v_target,'ends_at',v_end,'cost',v_cost,'duration_ms',v_duration);
-end;$function$
+end;$function$;
 
 
 CREATE OR REPLACE FUNCTION nexora.complete_organization_upgrade(p_uid text, p_org_id text)
@@ -1578,7 +1578,7 @@ begin
  v_capacity:=least(80,20+(v_target-1)*5+coalesce((v_org.research->>'expansion')::integer,0));
  update nexora.organizations set level=v_target,member_capacity=v_capacity,upgrade_ends_at=null,upgrade_started_at=null,upgrade_target_level=null,updated_at=now() where id=p_org_id;
  return jsonb_build_object('ok',true,'level',v_target,'member_capacity',v_capacity);
-end;$function$
+end;$function$;
 
 
 CREATE OR REPLACE FUNCTION nexora.research_organization(p_uid text, p_org_id text, p_research_id text)
@@ -1603,7 +1603,7 @@ begin
  insert into nexora.organization_transactions(id,org_id,user_id,username,type,amount,note)
  values(v_tx,p_org_id,p_uid,v_member.username,'upgrade',v_cost,'Research '||p_research_id||' advanced to Lv.'||(v_current+1)::text);
  return jsonb_build_object('ok',true,'research_id',p_research_id,'level',v_current+1,'cost',v_cost,'member_capacity',v_capacity);
-end;$function$
+end;$function$;
 
 
 CREATE OR REPLACE FUNCTION nexora.request_join_organization(p_uid text, p_org_id text)
@@ -1622,7 +1622,7 @@ begin
  if exists(select 1 from nexora.organization_requests where org_id=p_org_id and user_id=p_uid and status='pending') then raise exception 'REQUEST_ALREADY_PENDING';end if;
  insert into nexora.organization_requests(id,org_id,user_id,username,status) values(v_id,p_org_id,p_uid,v_profile.username,'pending');
  return jsonb_build_object('ok',true,'request_id',v_id);
-end;$function$
+end;$function$;
 
 
 CREATE OR REPLACE FUNCTION nexora.handle_org_join_request(p_actor_uid text, p_org_id text, p_request_id text, p_decision text)
@@ -1653,7 +1653,7 @@ begin
  end if;
  update nexora.organization_requests set status=p_decision,updated_at=now() where id=p_request_id;
  return jsonb_build_object('ok',true);
-end;$function$
+end;$function$;
 
 
 CREATE OR REPLACE FUNCTION nexora.update_org_member_role(p_actor_uid text, p_org_id text, p_target_uid text, p_role text)
@@ -1675,7 +1675,7 @@ begin
  v_perms:=case p_role when 'deputy' then '["manage_members","manage_roles","manage_treasury"]'::jsonb when 'officer' then '["manage_members"]'::jsonb else '[]'::jsonb end;
  update nexora.organization_members set role=p_role,permissions=v_perms where org_id=p_org_id and user_id=p_target_uid;
  return jsonb_build_object('ok',true);
-end;$function$
+end;$function$;
 
 
 CREATE OR REPLACE FUNCTION nexora.leave_organization(p_uid text, p_org_id text)
@@ -1693,7 +1693,7 @@ begin
  update nexora.organizations set member_count=greatest(1,member_count-1),updated_at=now() where id=p_org_id;
  update nexora.player_profiles set org_id=null,updated_at=now() where user_id=p_uid and org_id=p_org_id;
  return jsonb_build_object('ok',true);
-end;$function$
+end;$function$;
 
 
 CREATE OR REPLACE FUNCTION nexora.kick_org_member(p_actor_uid text, p_org_id text, p_target_uid text)
@@ -1716,7 +1716,7 @@ begin
  update nexora.organizations set member_count=greatest(1,member_count-1),updated_at=now() where id=p_org_id;
  update nexora.player_profiles set org_id=null,updated_at=now() where user_id=p_target_uid and org_id=p_org_id;
  return jsonb_build_object('ok',true);
-end;$function$
+end;$function$;
 
 
 CREATE OR REPLACE FUNCTION nexora.deposit_org_treasury(p_uid text, p_org_id text, p_amount bigint)
@@ -1737,7 +1737,7 @@ begin
  insert into nexora.transactions(id,from_uid,to_uid,amount,fee,net_amount,type,reference_id,description,status) values(v_tx,p_uid,'ORG',p_amount,0,p_amount,'org_deposit',p_org_id,'Org treasury deposit ['||v_org.tag||']','completed');
  insert into nexora.organization_transactions(id,org_id,user_id,username,type,amount,note) values(v_otx,p_org_id,p_uid,v_member.username,'deposit',p_amount,'Deposit by '||v_member.username);
  return jsonb_build_object('ok',true);
-end;$function$
+end;$function$;
 
 
 CREATE OR REPLACE FUNCTION nexora.withdraw_org_treasury(p_uid text, p_org_id text, p_amount bigint)
@@ -1759,7 +1759,7 @@ begin
  insert into nexora.transactions(id,from_uid,to_uid,amount,fee,net_amount,type,reference_id,description,status) values(v_tx,'ORG',p_uid,p_amount,0,p_amount,'org_withdraw',p_org_id,'Org treasury withdrawal ['||v_org.tag||']','completed');
  insert into nexora.organization_transactions(id,org_id,user_id,username,type,amount,note) values(v_otx,p_org_id,p_uid,v_member.username,'withdraw',p_amount,'Withdrawal by '||v_member.username);
  return jsonb_build_object('ok',true);
-end;$function$
+end;$function$;
 
 
 CREATE OR REPLACE FUNCTION nexora.get_org_pending_requests(p_org_id text, p_uid text)
@@ -1775,7 +1775,7 @@ begin
  select coalesce(jsonb_agg(jsonb_build_object('id',id,'orgId',org_id,'uid',user_id,'username',username,'status',status,'createdAt',created_at) order by created_at),'[]'::jsonb)
  into v_result from nexora.organization_requests where org_id=p_org_id and status='pending';
  return v_result;
-end;$function$
+end;$function$;
 
 
 CREATE OR REPLACE FUNCTION nexora.fetch_leaderboards()
@@ -1806,7 +1806,7 @@ AS $function$
    'upgradeEndsAt',upgrade_ends_at,'upgradeTargetLevel',upgrade_target_level,'createdAt',created_at,'updatedAt',updated_at
   ) order by reputation desc) from (select * from nexora.organizations order by reputation desc limit 20) o),'[]'::jsonb)
  );
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION nexora.sync_self_org_membership(p_uid text, p_org_id text)
@@ -1831,7 +1831,7 @@ begin
   update nexora.player_profiles set org_id=p_org_id,updated_at=now() where user_id=p_uid;
  end if;
  return jsonb_build_object('ok',true);
-end;$function$
+end;$function$;
 
 
 CREATE OR REPLACE FUNCTION nexora.enforce_skill_point_progression()
@@ -1847,7 +1847,7 @@ BEGIN
   END IF;
   RETURN NEW;
 END;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION nexora.get_public_player_profile(p_target_uid text)
@@ -1863,7 +1863,7 @@ begin
  if not found then raise exception 'PLAYER_NOT_FOUND'; end if;
  return jsonb_build_object('uid',p.user_id,'username',p.username,'avatarId',p.avatar_id,'title',p.title,
   'level',p.level,'reputation',p.reputation,'influence',p.influence,'orgId',p.org_id);
-end $function$
+end $function$;
 
 
 CREATE OR REPLACE FUNCTION nexora.search_players(p_user_id text, p_prefix text)
@@ -1884,7 +1884,7 @@ begin
   from player_profiles where username_lower like v_prefix||'%' and user_id<>p_user_id
   order by username_lower limit 15) q;
  return jsonb_build_object('players',v_players);
-end $function$
+end $function$;
 
 
 CREATE OR REPLACE FUNCTION nexora.list_blocked_players(p_user_id text)
@@ -1895,7 +1895,7 @@ CREATE OR REPLACE FUNCTION nexora.list_blocked_players(p_user_id text)
 AS $function$
  select jsonb_build_object('blockedUids',coalesce(jsonb_agg(target_uid),'[]'::jsonb))
  from user_blocks where owner_uid=p_user_id
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION nexora.block_player(p_user_id text, p_target_uid text)
@@ -1909,7 +1909,7 @@ begin
  if not exists(select 1 from player_profiles where user_id=p_user_id) or not exists(select 1 from player_profiles where user_id=p_target_uid) then raise exception 'PLAYER_NOT_FOUND'; end if;
  insert into user_blocks(id,owner_uid,target_uid) values(p_user_id||'__'||p_target_uid,p_user_id,p_target_uid) on conflict(owner_uid,target_uid) do nothing;
  return jsonb_build_object('ok',true);
-end $function$
+end $function$;
 
 
 CREATE OR REPLACE FUNCTION nexora.unblock_player(p_user_id text, p_target_uid text)
@@ -1918,7 +1918,7 @@ CREATE OR REPLACE FUNCTION nexora.unblock_player(p_user_id text, p_target_uid te
  SECURITY DEFINER
  SET search_path TO 'nexora', 'pg_temp'
 AS $function$
-begin delete from user_blocks where owner_uid=p_user_id and target_uid=p_target_uid; return jsonb_build_object('ok',true); end $function$
+begin delete from user_blocks where owner_uid=p_user_id and target_uid=p_target_uid; return jsonb_build_object('ok',true); end $function$;
 
 
 CREATE OR REPLACE FUNCTION nexora.submit_player_report(p_user_id text, p_target_uid text, p_reason text, p_request_id uuid)
@@ -1938,7 +1938,7 @@ begin
  if rate_id is null then raise exception 'REPORT_RATE_LIMIT'; end if;
  insert into player_reports(id,reporter_uid,target_uid,reason) values(rid,p_user_id,p_target_uid,p_reason);
  return jsonb_build_object('ok',true);
-end $function$
+end $function$;
 
 
 CREATE OR REPLACE FUNCTION nexora.open_direct_conversation(p_user_id text, p_target_uid text)
@@ -1960,7 +1960,7 @@ begin
  on conflict(id) do nothing;
  if not exists(select 1 from conversations where id=cid and participants=pair) then raise exception 'CONVERSATION_ACCESS_DENIED'; end if;
  return jsonb_build_object('conversationId',cid);
-end $function$
+end $function$;
 
 
 CREATE OR REPLACE FUNCTION nexora.send_direct_message(p_user_id text, p_target_uid text, p_text text, p_request_id uuid)
@@ -1990,7 +1990,7 @@ begin
  insert into conversation_messages(id,conversation_id,sender_uid,sender_name,message_text) values(mid,cid,p_user_id,a.username,msg);
  update conversations set last_message=left(msg,120),last_message_at=now(),last_sender_uid=p_user_id,updated_at=now() where id=cid;
  return jsonb_build_object('ok',true);
-end $function$
+end $function$;
 
 
 CREATE OR REPLACE FUNCTION nexora.send_global_chat_message(p_user_id text, p_text text, p_request_id uuid)
@@ -2011,7 +2011,7 @@ begin
  if rate_id is null then raise exception 'CHAT_RATE_LIMIT'; end if;
  insert into global_chat_messages(id,sender_uid,sender_name,avatar_id,message_text) values(mid,p_user_id,p.username,p.avatar_id,msg);
  return jsonb_build_object('ok',true);
-end $function$
+end $function$;
 
 
 CREATE OR REPLACE FUNCTION nexora.list_direct_conversations(p_user_id text)
@@ -2026,7 +2026,7 @@ AS $function$
   'lastMessageAt',c.last_message_at,'lastSenderUid',c.last_sender_uid
  ) order by c.last_message_at desc),'[]'::jsonb))
  from (select * from conversations where p_user_id=any(participants) order by last_message_at desc limit 50) c
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION nexora.list_direct_messages(p_user_id text, p_conversation_id text)
@@ -2041,7 +2041,7 @@ begin
  select coalesce(jsonb_agg(jsonb_build_object('id',m.id,'senderUid',m.sender_uid,'senderName',m.sender_name,'text',m.message_text,'createdAt',m.created_at) order by m.created_at),'[]'::jsonb)
  into msgs from (select * from conversation_messages where conversation_id=p_conversation_id order by created_at desc limit 80) m;
  return jsonb_build_object('messages',msgs);
-end $function$
+end $function$;
 
 
 CREATE OR REPLACE FUNCTION nexora.list_global_chat_messages(p_user_id text)
@@ -2052,7 +2052,7 @@ CREATE OR REPLACE FUNCTION nexora.list_global_chat_messages(p_user_id text)
 AS $function$
  select jsonb_build_object('messages',coalesce(jsonb_agg(jsonb_build_object('id',m.id,'senderUid',m.sender_uid,'senderName',m.sender_name,'avatarId',m.avatar_id,'text',m.message_text,'createdAt',m.created_at) order by m.created_at),'[]'::jsonb))
  from (select * from global_chat_messages order by created_at desc limit 60) m
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION nexora.list_organization_invites(p_user_id text)
@@ -2063,7 +2063,7 @@ CREATE OR REPLACE FUNCTION nexora.list_organization_invites(p_user_id text)
 AS $function$
  select jsonb_build_object('invites',coalesce(jsonb_agg(jsonb_build_object('id',i.id,'orgId',i.org_id,'orgName',i.org_name,'orgTag',i.org_tag,'inviterName',i.inviter_name,'status',i.status,'targetUid',i.target_uid) order by i.created_at desc),'[]'::jsonb))
  from organization_invites i where i.target_uid=p_user_id and i.status='pending'
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION nexora.invite_player_to_organization(p_user_id text, p_target_uid text)
@@ -2089,7 +2089,7 @@ begin
  where organization_invites.status<>'pending';
  if not found then raise exception 'INVITE_ALREADY_PENDING'; end if;
  return jsonb_build_object('ok',true);
-end $function$
+end $function$;
 
 
 CREATE OR REPLACE FUNCTION nexora.respond_organization_invite(p_user_id text, p_invite_id text, p_response text)
@@ -2114,7 +2114,7 @@ begin
  update organizations set member_count=member_count+1,updated_at=now() where id=o.id;
  update organization_invites set status='accepted',responded_at=now() where id=i.id;
  return jsonb_build_object('ok',true,'status','accepted');
-end $function$
+end $function$;
 
 
 CREATE OR REPLACE FUNCTION nexora.touch_player_presence(p_user_id text)
@@ -2139,7 +2139,7 @@ begin
   returning * into v_presence;
   return jsonb_build_object('uid',v_presence.user_id,'onlineSince',v_presence.online_since,'lastSeenAt',v_presence.last_seen_at);
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION nexora.get_players_presence(p_user_ids text[])
@@ -2156,7 +2156,7 @@ AS $function$
   )),'[]'::jsonb))
   from (select distinct unnest(coalesce(p_user_ids,'{}'::text[])) as uid limit 60) ids
   left join player_presence p on p.user_id=ids.uid;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION nexora.get_org_donation_ranking(p_org_id text, p_user_id text)
@@ -2182,7 +2182,7 @@ begin
   ) q;
   return jsonb_build_object('ranking',v_ranking);
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION nexora.enforce_company_capacity()
@@ -2201,7 +2201,7 @@ begin
   if v_owned >= 3 then raise exception 'COMPANY_CAPACITY_REACHED'; end if;
   return new;
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION nexora.settle_company_auction(p_auction_id text)
@@ -2318,7 +2318,7 @@ begin
   where exists (select 1 from nexora.player_private where user_id=v_auction.highest_bidder_uid and notifications_enabled=true);
   return jsonb_build_object('settled',true,'status','sold','company_id',v_auction.company_id,'buyer_uid',v_auction.highest_bidder_uid,'price',v_auction.current_price);
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION nexora.settle_expired_company_auctions()
@@ -2336,7 +2336,7 @@ begin
   end loop;
   return v_count;
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION nexora.list_company_for_auction(p_uid text, p_company_id text, p_starting_price bigint)
@@ -2366,7 +2366,7 @@ begin
   where exists (select 1 from nexora.player_private where user_id=p_uid and notifications_enabled=true);
   return jsonb_build_object('auction_id',v_auction_id,'ends_at',v_ends);
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION nexora.place_company_auction_bid(p_uid text, p_auction_id text, p_amount bigint)
@@ -2457,7 +2457,7 @@ begin
   where exists (select 1 from nexora.player_private where user_id=v_auction.seller_uid and notifications_enabled=true);
   return jsonb_build_object('ok',true,'current_price',p_amount,'minimum_next_bid',p_amount+1);
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION nexora.fetch_company_auctions(p_uid text)
@@ -2483,7 +2483,7 @@ begin
     or a.seller_uid=p_uid or a.highest_bidder_uid=p_uid;
   return v_result;
 end
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION nexora.delete_company(p_uid text, p_company_id text)
@@ -2508,7 +2508,7 @@ begin
       jsonb_build_object('company_name',v_company.name,'company_level',v_company.level));
   return jsonb_build_object('ok',true,'archived',true);
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION nexora.reset_player_skills(p_uid text)
@@ -2565,7 +2565,7 @@ begin
 
   return jsonb_build_object('ok', true, 'refunded_points', v_refund, 'cost', v_cost);
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION nexora.factory_resource_config(p_resource_id text)
@@ -2588,7 +2588,7 @@ AS $function$
     ('quantum_dust',30000,0.83,110.00,6.00)
   ) as cfg(resource_id,founding_cost,production_rate,operating_cost,rarity_factor)
   where cfg.resource_id=p_resource_id
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION nexora.found_factory(p_uid text, p_name text, p_resource_id text)
@@ -2625,7 +2625,7 @@ begin
   values(v_tx,p_uid,'SYSTEM',v_cfg.founding_cost,0,v_cfg.founding_cost,'factory_create',v_id,'Founded raw-resource factory: '||btrim(p_name),'completed');
   return jsonb_build_object('ok',true,'factory_id',v_id,'cost',v_cfg.founding_cost);
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION nexora.sync_factory_production(p_uid text, p_factory_id text)
@@ -2679,7 +2679,7 @@ begin
     operating_cost_remainder=v_cost_remainder,last_produced_at=now(),updated_at=now() where id=p_factory_id;
   return jsonb_build_object('produced',v_qty,'operating_cost',v_cost,'warehouse_qty',v_factory.warehouse_qty+v_qty,'capacity',v_capacity);
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION nexora.upgrade_factory(p_uid text, p_factory_id text)
@@ -2721,7 +2721,7 @@ begin
   values(v_tx,p_uid,'SYSTEM',v_cost,0,v_cost,'factory_upgrade',p_factory_id,'Started factory upgrade: '||v_factory.name,'completed');
   return jsonb_build_object('target_level',v_target,'ends_at',v_ends,'cost',v_cost,'materials',v_materials);
 end
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION nexora.complete_factory_upgrade(p_uid text, p_factory_id text)
@@ -2739,7 +2739,7 @@ begin
   if v_factory.upgrade_ends_at>now() then raise exception 'UPGRADE_NOT_FINISHED'; end if;
   update nexora.factories set level=upgrade_target_level,upgrade_started_at=null,upgrade_ends_at=null,upgrade_target_level=null,upgrade_cost=null,updated_at=now() where id=p_factory_id;
   return jsonb_build_object('ok',true,'level',v_factory.upgrade_target_level);
-end $function$
+end $function$;
 
 
 CREATE OR REPLACE FUNCTION nexora.upgrade_factory_skill(p_uid text, p_factory_id text)
@@ -2775,7 +2775,7 @@ begin
   insert into nexora.transactions(id,from_uid,to_uid,amount,fee,net_amount,type,reference_id,description,status)
   values(v_tx,p_uid,'SYSTEM',v_cost,0,v_cost,'factory_skill',p_factory_id,'Factory operator skill training: '||v_factory.name,'completed');
   return jsonb_build_object('ok',true,'skill_level',v_factory.skill_level+1,'cost',v_cost,'materials',v_materials);
-end $function$
+end $function$;
 
 
 CREATE OR REPLACE FUNCTION nexora.set_factory_active(p_uid text, p_factory_id text, p_active boolean)
@@ -2799,7 +2799,7 @@ begin
     set is_active=coalesce(p_active,false),last_produced_at=now(),updated_at=now()
     where id=p_factory_id;
   return jsonb_build_object('ok',true,'is_active',coalesce(p_active,false));
-end $function$
+end $function$;
 
 
 CREATE OR REPLACE FUNCTION nexora.withdraw_factory_warehouse(p_uid text, p_factory_id text, p_quantity integer)
@@ -2819,7 +2819,7 @@ begin
   insert into nexora.inventory(user_id,item_id,quantity,updated_at) values(p_uid,v_factory.resource_id,p_quantity,now())
   on conflict(user_id,item_id) do update set quantity=nexora.inventory.quantity+excluded.quantity,updated_at=now();
   return jsonb_build_object('ok',true,'withdrawn',p_quantity,'remaining',v_factory.warehouse_qty-p_quantity);
-end $function$
+end $function$;
 
 
 CREATE OR REPLACE FUNCTION nexora.upgrade_factory_warehouse(p_uid text, p_factory_id text)
@@ -2853,7 +2853,7 @@ begin
   return jsonb_build_object('target_level',v_target,'ends_at',v_ends,'cost',v_cost,
     'capacity',nexora.factory_warehouse_capacity(v_factory.resource_id,v_target));
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION nexora.complete_factory_warehouse_upgrade(p_uid text, p_factory_id text)
@@ -2877,7 +2877,7 @@ begin
     where id=p_factory_id;
   return jsonb_build_object('ok',true,'warehouse_level',v_target,'capacity',v_capacity);
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION nexora.list_factory_for_auction(p_uid text, p_factory_id text, p_starting_price bigint)
@@ -2901,7 +2901,7 @@ begin
   update nexora.factories set auction_id=v_id,auction_ends_at=v_ends,auction_status='active',updated_at=now() where id=p_factory_id;
   return jsonb_build_object('auction_id',v_id,'ends_at',v_ends);
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION nexora.place_factory_auction_bid(p_uid text, p_auction_id text, p_amount bigint)
@@ -2965,7 +2965,7 @@ begin
   values('abid_'||gen_random_uuid()::text,p_auction_id,p_uid,v_p.username,p_amount);
   return jsonb_build_object('ok',true,'current_price',p_amount,'minimum_next_bid',p_amount+1);
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION nexora.settle_factory_auction(p_auction_id text)
@@ -3025,7 +3025,7 @@ begin
   values(v_tx,'SYSTEM',v_a.seller_uid,v_a.current_price,0,v_a.current_price,'factory_auction_sale',v_a.factory_id,'Factory sold at auction: '||v_a.company_name,'completed');
   return jsonb_build_object('settled',true,'status','sold','factory_id',v_a.factory_id,'buyer_uid',v_a.highest_bidder_uid,'price',v_a.current_price);
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION nexora.factory_warehouse_capacity(p_resource_id text, p_level integer)
@@ -3043,7 +3043,7 @@ AS $function$
       when 'biotech_gel' then 120::numeric when 'quantum_dust' then 160::numeric
       else 30::numeric
     end))::bigint
-$function$
+$function$;
 
 
 -- Triggers
