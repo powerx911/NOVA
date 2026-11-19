@@ -76,6 +76,16 @@ function goalTitle(goal: OrgWeeklyGoal, t: ReturnType<typeof useTranslations>) {
   return map[goal.type];
 }
 
+function goalDescription(type: OrgWeeklyGoal['type'], language: Language): string {
+  const descriptions: Record<OrgWeeklyGoal['type'], [string, string]> = {
+    produce_units: ['أنتج الكميات المطلوبة في مصانعك؛ تُحتسب وحدات الإنتاج المكتملة فقط.', 'Produce the required quantities in your factories; only completed production is counted.'],
+    trade_volume: ['نفّذ عمليات شراء وبيع في السوق حتى يصل إجمالي قيمة الصفقات إلى الهدف.', 'Complete market buy and sell transactions until their combined value reaches the target.'],
+    contracts_completed: ['أكمل العقود الشخصية وعقود المنظمة واستلم مكافآتها؛ كل عقد مكتمل يُحتسب مرة واحدة.', 'Complete personal and organization contracts and claim their rewards; each completed contract counts once.'],
+    treasury_donations: ['تبرّع بالأموال إلى خزينة المنظمة؛ تُحتسب قيمة الإيداعات الفعلية فقط.', 'Donate credits to the organization treasury; only completed deposits count.'],
+  };
+  return descriptions[type][language === 'ar' ? 0 : 1];
+}
+
 export function DynamicContractsPanel({ profile, inventory, wallet, language }: DynamicContractsPanelProps) {
   const t = useTranslations(language);
   const { showToast } = useToast();
@@ -88,6 +98,7 @@ export function DynamicContractsPanel({ profile, inventory, wallet, language }: 
   const [busyId, setBusyId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [now, setNow] = useState(Date.now());
+  const [activeContractTab, setActiveContractTab] = useState<'personal' | 'organization'>('personal');
   const inventoryMap = useMemo(
     () => new Map<string, number>(inventory.map((item) => [item.itemId, item.quantity] as [string, number])),
     [inventory],
@@ -320,6 +331,11 @@ export function DynamicContractsPanel({ profile, inventory, wallet, language }: 
 
       {!loading && (
         <>
+          <div className="flex gap-2 rounded-xl border border-white/10 bg-[#0B1425] p-1.5" role="tablist" aria-label={language === 'ar' ? 'أنواع العقود' : 'Contract types'}>
+            <button type="button" role="tab" aria-selected={activeContractTab === 'personal'} onClick={() => setActiveContractTab('personal')} className={`flex-1 min-h-10 rounded-lg px-3 text-xs font-bold transition-colors ${activeContractTab === 'personal' ? 'bg-[#2468D8] text-white' : 'text-[#9AAEC9] hover:text-white'}`}>{t.personalContracts}</button>
+            {profile.orgId && <button type="button" role="tab" aria-selected={activeContractTab === 'organization'} onClick={() => setActiveContractTab('organization')} className={`flex-1 min-h-10 rounded-lg px-3 text-xs font-bold transition-colors ${activeContractTab === 'organization' ? 'bg-[#2468D8] text-white' : 'text-[#9AAEC9] hover:text-white'}`}>{t.organizationContracts}</button>}
+          </div>
+          {activeContractTab === 'personal' && (
           <section className="space-y-3">
             <div className="flex items-center justify-between gap-2">
               <h3 className="text-base font-bold text-white flex items-center gap-2"><ShieldCheck className="w-4 h-4 text-sky-300" />{t.personalContracts}</h3>
@@ -327,8 +343,9 @@ export function DynamicContractsPanel({ profile, inventory, wallet, language }: 
             </div>
             {personal.length ? <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">{personal}</div> : <p className="rounded-xl border border-white/10 p-5 text-center text-xs text-[#8192AD]">{t.noContracts}</p>}
           </section>
+          )}
 
-          {profile.orgId && (
+          {profile.orgId && activeContractTab === 'organization' && (
             <>
               <section className="space-y-3">
                 <h3 className="text-base font-bold text-white flex items-center gap-2"><Building2 className="w-4 h-4 text-amber-300" />{t.organizationContracts}</h3>
@@ -348,6 +365,7 @@ export function DynamicContractsPanel({ profile, inventory, wallet, language }: 
                       <div className="flex items-start justify-between gap-3">
                         <div>
                           <p className="text-sm font-semibold text-white">{goalTitle(goal, t)}</p>
+                          <p className="mt-1 max-w-xl text-[11px] leading-relaxed text-[#9AAEC9]">{goalDescription(goal.type, language)}</p>
                           <span className="text-[10px] text-[#91A4C3]">{difficultyText(goal.difficulty)}</span>
                         </div>
                         <span className="flex items-center gap-1 text-xs font-semibold text-amber-300"><Award className="w-3.5 h-3.5" />+{goal.rewardReputation}</span>
