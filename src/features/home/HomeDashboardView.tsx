@@ -38,6 +38,7 @@ interface HomeDashboardViewProps {
   marketListings: MarketListing[];
   language: Language;
   onNavigate: (tab: MainTab) => void;
+  onOpenMissions: () => void;
 }
 
 export function HomeDashboardView({
@@ -50,6 +51,7 @@ export function HomeDashboardView({
   marketListings,
   language,
   onNavigate,
+  onOpenMissions,
 }: HomeDashboardViewProps) {
   const t = useTranslations(language);
   const { showToast } = useToast();
@@ -328,11 +330,11 @@ export function HomeDashboardView({
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2">
               <Award className="w-4 h-4 text-[#63A5FF]" />
-              <h2 className="text-base font-semibold text-[#F4F5F7]">{t.activeMissions}</h2>
+              <h2 className="text-base font-semibold text-[#F4F5F7]">{language === 'ar' ? 'المهام اليومية' : 'Daily Missions'}</h2>
             </div>
             <button
               type="button"
-              onClick={() => onNavigate('profile')}
+              onClick={onOpenMissions}
               className="text-xs font-medium text-[#63A5FF] hover:underline whitespace-nowrap"
             >
               {t.allMissions}
@@ -340,6 +342,7 @@ export function HomeDashboardView({
           </div>
           <div className="space-y-2.5">
             {[...MISSIONS]
+              .filter((mission) => mission.category === 'daily')
               .sort((a, b) => {
                 const aClaimed = claimedSet.has(a.id) ? 1 : 0;
                 const bClaimed = claimedSet.has(b.id) ? 1 : 0;
@@ -369,7 +372,7 @@ export function HomeDashboardView({
                           <span className="font-mono-num">
                             {Math.min(val, m.targetCount)}/{m.targetCount}
                           </span>{' '}
-                          · +${m.rewardCredits} · +{m.rewardXp} XP
+                          · +${m.rewardCredits} · +{m.rewardXp} XP · +{m.rewardReputation} {t.reputation}
                         </p>
                       </div>
                       <button
