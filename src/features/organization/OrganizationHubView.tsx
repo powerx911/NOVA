@@ -1,4 +1,4 @@
-import { ArrowUpCircle, Building2, Check, Plus, Shield, Vault, X } from 'lucide-react';
+import { ArrowUpCircle, Award, Building2, Check, CheckCircle2, Plus, Shield, Trophy, Vault, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { useToast } from '../../components/ui/ToastProvider';
@@ -29,6 +29,7 @@ import {
   withdrawFromOrgTreasury,
   getOrgDonationRanking,
   getPlayersPresence,
+  getOrgWeeklyGoals,
 } from '../../services/gameService';
 import type {
   Language,
@@ -40,6 +41,7 @@ import type {
   OrgRole,
   PlayerProfile,
   Wallet,
+  OrgWeeklyGoal,
 } from '../../types/game';
 
 interface OrganizationHubViewProps {
@@ -79,7 +81,8 @@ export function OrganizationHubView({
   const [kickTarget, setKickTarget] = useState<{ uid: string; username: string } | null>(null);
   const [clockNow, setClockNow] = useState(Date.now());
   const [donationRanking, setDonationRanking] = useState<Array<{ uid: string; username: string; amount: number }>>([]);
-  const [activeOrgTab, setActiveOrgTab] = useState<'info' | 'members' | 'research' | 'treasury'>('info');
+  const [activeOrgTab, setActiveOrgTab] = useState<'info' | 'members' | 'research' | 'treasury' | 'goals'>('info');
+  const [weeklyGoals, setWeeklyGoals] = useState<OrgWeeklyGoal[]>([]);
   const [memberPresence, setMemberPresence] = useState<Record<string, boolean>>({});
 
   const currentOrg = myOrgMember
@@ -95,6 +98,19 @@ export function OrganizationHubView({
     const clock = window.setInterval(() => setClockNow(Date.now()), 15_000);
     return () => window.clearInterval(clock);
   }, []);
+
+  useEffect(() => {
+    if (!currentOrg?.id) { setWeeklyGoals([]); return; }
+    let active = true;
+    const refresh = () => { void getOrgWeeklyGoals().then((result) => {
+      if (active) setWeeklyGoals(result.goals ?? []);
+    }).catch(() => undefined); };
+    refresh();
+    const timer = window.setInterval(refresh, 30_000);
+    window.addEventListener('nova:refresh-game', refresh);
+    window.addEventListener('focus', refresh);
+    return () => { active = false; window.clearInterval(timer); window.removeEventListener('nova:refresh-game', refresh); window.removeEventListener('focus', refresh); };
+  }, [currentOrg?.id]);
 
   useEffect(() => {
     if (!currentOrg?.upgradeEndsAt) return;
@@ -542,6 +558,7 @@ export function OrganizationHubView({
           ['members', t.members],
           ['research', language === 'ar' ? 'الأبحاث' : 'Research'],
           ['treasury', language === 'ar' ? 'الخزنة' : 'Treasury'],
+          ['goals', language === 'ar' ? 'الأهداف الأسبوعية' : 'Weekly goals'],
         ] as const).map(([id, label]) => (
           <button
             key={id}
@@ -626,6 +643,66 @@ export function OrganizationHubView({
                 </div>
               </div>
         </>
+      )}
+
+      {activeOrgTab === 'goals' && (
+        <section className="rounded-2xl border border-white/10 bg-[#111A2C] p-4 sm:p-5 space-y-4">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <h2 className="text-base font-bold text-white flex items-center gap-2"><Trophy className="w-4 h-4 text-amber-300" />{language === 'ar' ? 'أهداف المنظمة الأسبوعية' : 'Weekly organization goals'}</h2>
+              <p className="mt-1 text-[11px] text-[#91A4C3]">{language === 'ar' ? 'تتجدد الأهداف كل يوم اثنين عند 00:00 بتوقيت UTC.' : 'Goals reset every Monday at 00:00 UTC.'}</p>
+            </div>
+            <span className="shrink-0 rounded-lg bg-white/5 px-2.5 py-1.5 text-[11px] font-mono-num text-[#C8D5EA]">
+              {(() => {
+                const now = new Date(clockNow);
+                const day = now.getUTCDay();
+                const days = day === 1 ? 7 : (8 - day) % 7;
+                const reset = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + days);
+                const seconds = Math.max(0, Math.floor((reset - clockNow) / 1000));
+                const hours = Math.floor(seconds / 3600);
+                const minutes = Math.floor((seconds % 3600) / 60);
+                const secs = seconds % 60;
+                return `${hours}:${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+              })()}
+            </span>
+          </div>
+          {weeklyGoals.length === 0 ? (
+            <p className="rounded-xl border border-white/10 p-5 text-center text-xs text-[#8192AD]">{language === 'ar' ? 'لا توجد أهداف متاحة حاليًا.' : 'No weekly goals available yet.'}</p>
+          ) : weeklyGoals.map((goal) => {
+            const progress = Math.min(100, goal.current / Math.max(1, goal.target) * 100);
+            const titles: Record<OrgWeeklyGoal['type'], [string, string]> = {
+              produce_units: ['إنتاج الموارد', 'Produce resources'],
+              trade_volume: ['حجم التداول', 'Trading volume'],
+              contracts_completed: ['إكمال العقود', 'Complete contracts'],
+              treasury_donations: ['دعم خزينة المنظمة', 'Fund the organization treasury'],
+            };
+            const descriptions: Record<OrgWeeklyGoal['type'], [string, string]> = {
+              produce_units: ['أنتج الموارد في مصانعك. تُحتسب وحدات الإنتاج المكتملة التي تسجلها اللعبة.', 'Produce resources in your factories. Completed production units recorded by the game count.'],
+              trade_volume: ['نفّذ صفقات شراء أو بيع في السوق. تُجمع القيمة الفعلية للصفقات المنفذة، وليس قيمة العروض المنشورة.', 'Complete market purchases or sales. The actual value of executed trades counts, not listing prices.'],
+              contracts_completed: ['أكمل عقودك الشخصية وعقود المنظمة حتى تستلم مكافآتها. كل عقد يُحتسب مرة واحدة بعد الاستلام.', 'Finish personal and organization contracts and claim their rewards. Each contract counts once after claiming.'],
+              treasury_donations: ['حوّل أموالًا من رصيدك إلى خزينة المنظمة عبر زر التبرع. تُحتسب قيمة الإيداع الناجح.', 'Transfer credits from your wallet to the organization treasury using Donate. Successful deposits count.'],
+            };
+            const difficulty = goal.difficulty === 'easy' ? (language === 'ar' ? 'سهل' : 'Easy') : goal.difficulty === 'medium' ? (language === 'ar' ? 'متوسط' : 'Medium') : (language === 'ar' ? 'صعب' : 'Hard');
+            return (
+              <article key={goal.id} className="rounded-xl border border-white/8 bg-[#0B1425] p-3.5 space-y-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-white">{titles[goal.type][language === 'ar' ? 0 : 1]}</p>
+                    <p className="mt-1 text-[11px] leading-relaxed text-[#9AAEC9]">{descriptions[goal.type][language === 'ar' ? 0 : 1]}</p>
+                    <span className="mt-1 inline-block text-[10px] text-[#91A4C3]">{difficulty}</span>
+                  </div>
+                  <span className="flex shrink-0 items-center gap-1 text-xs font-semibold text-amber-300"><Award className="w-3.5 h-3.5" />+{goal.rewardReputation}</span>
+                </div>
+                <div className="flex items-center justify-between text-[11px] text-[#9AAEC9]">
+                  <span>{language === 'ar' ? 'التقدم' : 'Progress'}</span>
+                  <span className="font-mono-num text-white">{Math.floor(goal.current).toLocaleString()} / {Math.floor(goal.target).toLocaleString()}</span>
+                </div>
+                <div className="h-2 rounded-full bg-white/8 overflow-hidden"><div className={`h-full rounded-full ${goal.status === 'completed' ? 'bg-emerald-400' : 'bg-sky-400'}`} style={{ width: `${progress}%` }} /></div>
+                {goal.status === 'completed' && <p className="flex items-center gap-1 text-[10px] text-emerald-300"><CheckCircle2 className="w-3.5 h-3.5" />{language === 'ar' ? 'اكتمل الهدف وحصلت المنظمة على المكافأة.' : 'Goal completed and the organization received its reward.'}</p>}
+              </article>
+            );
+          })}
+        </section>
       )}
 
       {activeOrgTab === 'research' && (
