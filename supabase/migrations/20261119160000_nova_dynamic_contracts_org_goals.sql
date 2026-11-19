@@ -359,8 +359,6 @@ declare
   v_count integer:=0;
   v_today date:=(now() at time zone 'UTC')::date;
 begin
-  for v_row in
-    select * from nexora.contract_offers
   -- Ready transitions are persisted on every contract RPC, not inferred by the client.
   for v_row in
     select * from nexora.contract_offers
@@ -419,6 +417,11 @@ declare
   v_profile nexora.player_profiles%rowtype;
   v_wallet nexora.wallets%rowtype;
   v_org nexora.organizations%rowtype;
+  v_progression jsonb;
+  v_personal_slots integer;
+  v_daily_limit integer;
+  v_org_slots_base integer;
+  v_org_slots_divisor integer;
   v_today date:=(now() at time zone 'UTC')::date;
   v_end timestamptz:=((date_trunc('day',timezone('UTC',now()))+interval '1 day') at time zone 'UTC');
   v_personal jsonb;
@@ -436,11 +439,13 @@ begin
   if not found then raise exception 'ACCOUNT_NOT_FOUND'; end if;
   select * into v_wallet from nexora.wallets where user_id=p_uid for update;
   if not found then raise exception 'ACCOUNT_NOT_FOUND'; end if;
-  if v_profile.org_id is not null then
-    select * into v_org from nexora.organizations where id=v_profile.org_id for update;
-  end if;
+  select config_value into v_progression from nexora.contract_config where config_key='progression';
+  v_personal_slots:=coalesce((v_progression->>'personal_slots')::integer,6);
+  v_daily_limit:=coalesce((v_progression->>'daily_claim_limit')::integer,5);
+  v_org_slots_base:=coalesce((v_progression->>'org_slots_base')::integer,2);
+  v_org_slots_divisor:=greatest(1,coalesce((v_progression->>'org_slots_level_divisor')::integer,2));
   perform nexora.settle_dynamic_contracts(p_uid);
-  for v_slot in 1..6 loop
+  for v_slot in 1..v_personal_slots loop
     if not exists(select 1 from nexora.contract_offers where scope='personal' and user_id=p_uid
       and board_date=v_today and slot_no=v_slot and status in ('offered','accepted','processing','ready')) then
       perform nexora.generate_dynamic_contract('personal',p_uid,null,v_slot,v_today,null,null,null);
@@ -478,7 +483,7 @@ begin
     select * into v_org from nexora.organizations where id=v_profile.org_id for update;
     if found then
       perform nexora.ensure_org_weekly_goals(v_org.id);
-      v_slots:=2+floor(v_org.level/2)::integer;
+      v_slots:=v_org_slots_base+floor(v_org.level/v_org_slots_divisor)::integer;
       for v_slot in 1..v_slots loop
         if not exists(select 1 from nexora.contract_offers where scope='organization' and org_id=v_org.id
           and board_date=v_today and slot_no=v_slot and status in ('offered','accepted','processing','ready')) then
@@ -494,7 +499,7 @@ begin
   end if;
   return jsonb_build_object('personal',coalesce(v_personal,'[]'::jsonb),
     'organization',coalesce(v_org_board,'[]'::jsonb),'active_personal',v_active,
-    'daily_used',coalesce(v_claims,0),'daily_limit',5,'offer_expires_at',v_end);
+    'daily_used',coalesce(v_claims,0),'daily_limit',v_daily_limit,'offer_expires_at',v_end);
 end;
 $$;
 
@@ -506,6 +511,10 @@ declare
   v_contract nexora.contract_offers%rowtype;
   v_org nexora.organizations%rowtype;
   v_active integer;
+  v_progression jsonb;
+  v_daily_limit integer;
+  v_active_limit integer;
+  v_join_hours integer;
   v_today date:=(now() at time zone 'UTC')::date;
   v_used integer;
   v_now timestamptz:=now();
@@ -515,12 +524,12 @@ begin
   if not found then raise exception 'ACCOUNT_NOT_FOUND'; end if;
   select * into v_wallet from nexora.wallets where user_id=p_uid for update;
   if not found then raise exception 'ACCOUNT_NOT_FOUND'; end if;
+  select config_value into v_progression from nexora.contract_config where config_key='progression';
+  v_daily_limit:=coalesce((v_progression->>'daily_claim_limit')::integer,5);
+  v_active_limit:=coalesce((v_progression->>'active_personal_limit')::integer,3);
+  v_join_hours:=coalesce((v_progression->>'org_join_hours')::integer,8);
   select * into v_contract from nexora.contract_offers where id=p_contract_id;
   if not found then raise exception 'CONTRACT_NOT_FOUND'; end if;
-  if coalesce(v_contract.org_id,v_profile.org_id) is not null then
-    select * into v_org from nexora.organizations
-      where id=coalesce(v_contract.org_id,v_profile.org_id) for update;
-  end if;
   perform nexora.settle_dynamic_contracts(p_uid);
   select * into v_contract from nexora.contract_offers where id=p_contract_id for update;
   if not found then raise exception 'CONTRACT_NOT_FOUND'; end if;
@@ -542,20 +551,20 @@ begin
     select extract(epoch from (v_now-joined_at))/3600 into v_hours
       from nexora.organization_members where org_id=v_contract.org_id and user_id=p_uid;
     if not found then raise exception 'UNAUTHORIZED'; end if;
-    if v_hours<8 then raise exception 'ORG_MEMBERSHIP_TOO_NEW'; end if;
+    if v_hours<v_join_hours then raise exception 'ORG_MEMBERSHIP_TOO_NEW'; end if;
     if v_contract.claimed_by is not null then raise exception 'CONTRACT_ALREADY_CLAIMED'; end if;
     if exists(select 1 from nexora.contract_offers where scope='organization' and claimed_by=p_uid
       and status in ('accepted','processing','ready')) then raise exception 'ORG_ACTIVE_CONTRACT_LIMIT'; end if;
   else
     select count(*) into v_active from nexora.contract_offers
       where scope='personal' and user_id=p_uid and status in ('accepted','processing','ready');
-    if v_active>=3 then raise exception 'ACTIVE_CONTRACT_LIMIT'; end if;
+    if v_active>=v_active_limit then raise exception 'ACTIVE_CONTRACT_LIMIT'; end if;
   end if;
   insert into nexora.contract_daily_limits(user_id,date_key,used_count) values(p_uid,v_today,0)
     on conflict(user_id,date_key) do nothing;
   select used_count into v_used from nexora.contract_daily_limits
     where user_id=p_uid and date_key=v_today for update;
-  if v_used>=5 then raise exception 'DAILY_CONTRACT_LIMIT_REACHED'; end if;
+  if v_used>=v_daily_limit then raise exception 'DAILY_CONTRACT_LIMIT_REACHED'; end if;
   update nexora.contract_daily_limits set used_count=used_count+1,updated_at=v_now
     where user_id=p_uid and date_key=v_today;
   update nexora.contract_offers set status='accepted',accepted_at=v_now,
@@ -590,6 +599,8 @@ declare
   v_inventory nexora.inventory%rowtype;
   v_fee bigint;
   v_remaining_secs integer;
+  v_progression jsonb;
+  v_fee_rate numeric;
   v_tx text:='tx_'||gen_random_uuid()::text;
   v_now timestamptz:=now();
 begin
@@ -597,15 +608,13 @@ begin
   if not found then raise exception 'ACCOUNT_NOT_FOUND'; end if;
   select * into v_wallet from nexora.wallets where user_id=p_uid for update;
   if not found then raise exception 'ACCOUNT_NOT_FOUND'; end if;
+  select config_value into v_progression from nexora.contract_config where config_key='progression';
+  v_fee_rate:=coalesce((v_progression->>'fee_rate')::numeric,0.04);
   select * into v_contract from nexora.contract_offers where id=p_contract_id;
   if not found then raise exception 'CONTRACT_NOT_FOUND'; end if;
   insert into nexora.inventory(user_id,item_id,quantity) values(p_uid,v_contract.item_id,0)
     on conflict(user_id,item_id) do nothing;
   select * into v_inventory from nexora.inventory where user_id=p_uid and item_id=v_contract.item_id for update;
-  if coalesce(v_contract.org_id,v_profile.org_id) is not null then
-    select * into v_org from nexora.organizations
-      where id=coalesce(v_contract.org_id,v_profile.org_id) for update;
-  end if;
   perform nexora.settle_dynamic_contracts(p_uid);
   select * into v_contract from nexora.contract_offers where id=p_contract_id for update;
   if v_contract.status='expired' then return jsonb_build_object('ok',false,'error','CONTRACT_EXPIRED'); end if;
@@ -626,7 +635,7 @@ begin
     return jsonb_build_object('ok',false,'error','CONTRACT_EXPIRED');
   end if;
   if v_inventory.quantity<v_contract.quantity then raise exception 'MISSING_INPUTS'; end if;
-  v_fee:=round(v_contract.payout*0.04)::bigint;
+  v_fee:=round(v_contract.payout*v_fee_rate)::bigint;
   if v_wallet.balance<v_fee then raise exception 'INSUFFICIENT_FUNDS'; end if;
   v_remaining_secs:=greatest(0,ceil(extract(epoch from (v_contract.deadline_at-v_now)))::integer);
   update nexora.inventory set quantity=quantity-v_contract.quantity,updated_at=v_now
@@ -656,12 +665,11 @@ begin
   if not found then raise exception 'ACCOUNT_NOT_FOUND'; end if;
   select * into v_wallet from nexora.wallets where user_id=p_uid for update;
   if not found then raise exception 'ACCOUNT_NOT_FOUND'; end if;
+  select config_value into v_progression from nexora.contract_config where config_key='progression';
+  v_xp_rate:=coalesce((v_progression->>'xp_rate')::numeric,0.17);
+  v_xp_cap:=coalesce((v_progression->>'xp_cap')::integer,400);
   select * into v_contract from nexora.contract_offers where id=p_contract_id;
   if not found then raise exception 'CONTRACT_NOT_FOUND'; end if;
-  if coalesce(v_contract.org_id,v_profile.org_id) is not null then
-    select * into v_org from nexora.organizations
-      where id=coalesce(v_contract.org_id,v_profile.org_id) for update;
-  end if;
   perform nexora.settle_dynamic_contracts(p_uid);
   select * into v_contract from nexora.contract_offers where id=p_contract_id for update;
   if v_contract.status='expired' then return jsonb_build_object('ok',false,'error','CONTRACT_EXPIRED'); end if;
@@ -709,6 +717,9 @@ declare
   v_leadership numeric;
   v_tx text:='tx_'||gen_random_uuid()::text;
   v_new_xp bigint;
+  v_progression jsonb;
+  v_xp_rate numeric;
+  v_xp_cap integer;
 begin
   select * into v_profile from nexora.player_profiles where user_id=p_uid for update;
   if not found then raise exception 'ACCOUNT_NOT_FOUND'; end if;
@@ -716,10 +727,6 @@ begin
   if not found then raise exception 'ACCOUNT_NOT_FOUND'; end if;
   select * into v_contract from nexora.contract_offers where id=p_contract_id;
   if not found then raise exception 'CONTRACT_NOT_FOUND'; end if;
-  if coalesce(v_contract.org_id,v_profile.org_id) is not null then
-    select * into v_org from nexora.organizations
-      where id=coalesce(v_contract.org_id,v_profile.org_id) for update;
-  end if;
   perform nexora.settle_dynamic_contracts(p_uid);
   select * into v_contract from nexora.contract_offers where id=p_contract_id for update;
   if v_contract.status='expired' then return jsonb_build_object('ok',false,'error','CONTRACT_EXPIRED'); end if;
@@ -737,7 +744,7 @@ begin
     raise exception 'CONTRACT_NOT_CLAIMABLE';
   end if;
   if v_contract.ready_at>now() then raise exception 'CONTRACT_NOT_READY'; end if;
-  v_xp:=least(400,round(v_contract.payout*0.17)::integer);
+  v_xp:=least(v_xp_cap,round(v_contract.payout*v_xp_rate)::integer);
   v_new_xp:=v_profile.xp+v_xp;
   v_remaining:=v_new_xp;
   while v_level<200 loop
