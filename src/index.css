@@ -74,3 +74,17 @@ input::placeholder, textarea::placeholder { color:#7183A5; opacity:1; }
 :where(button,[role="button"],input[type="button"],input[type="submit"]):active:not(:disabled):not([aria-disabled="true"]) {
   filter:none !important;
 }
+
+
+/* Cover native NOVA-blue and cyan primary buttons as well as legacy red classes above. */
+:where(button,[role="button"],input[type="button"],input[type="submit"]):not(:disabled):not([aria-disabled="true"])[class*="bg-[#397BFF]"],
+:where(button,[role="button"],input[type="button"],input[type="submit"]):not(:disabled):not([aria-disabled="true"])[class*="bg-cyan-700"] {
+  color:#fff !important;
+  box-shadow:0 0 0 1px rgba(99,165,255,.24),0 0 14px rgba(57,123,255,.24);
+}
+@media (hover:hover) {
+  :where(button,[role="button"],input[type="button"],input[type="submit"]):not(:disabled):not([aria-disabled="true"])[class*="bg-[#397BFF]"]:hover,
+  :where(button,[role="button"],input[type="button"],input[type="submit"]):not(:disabled):not([aria-disabled="true"])[class*="bg-cyan-700"]:hover {
+    box-shadow:0 0 0 1px rgba(99,165,255,.38),0 0 19px rgba(57,123,255,.34);
+  }
+}
