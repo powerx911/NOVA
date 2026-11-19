@@ -290,3 +290,9 @@ These exact definitions strengthen the reason not to deploy the active migration
 ### Current CI status at time of this audit
 
 On branch head `9ff51e68ba75d169fcfb08470af6a382137c41a8`, App CI completed successfully (run 44512233031). The isolated PostgreSQL/pgTAP and 55-source historical replay runs (44512233131 and 44512233105) were still running when this section was recorded; do not treat them as passed until GitHub reports successful conclusions.
+## Final verification after auction regression fixture fixes
+- Latest verified branch head: `01b73172cbf8c6234c17bc76ed33f71da7c262a3`.
+- App CI passed: [44512952167](https://github.com/powerx911/NOVA/actions/runs/44512952167).
+- Isolated PostgreSQL 17 + pgTAP passed: [44512952175](https://github.com/powerx911/NOVA/actions/runs/44512952175). The job log reports `Files=2, Tests=33` and `Result: PASS`; `economy_abuse_guards.test.sql` passed all 23 assertions, including the 4% seller debit, `last_tx_id`, `auction_fee` transaction, and anti-sniping extension checks.
+- Full recovered-history replay passed: [44512952138](https://github.com/powerx911/NOVA/actions/runs/44512952138). The job replayed 42 tracked migration sources plus 13 untracked SQL events in timestamp order, compiled the local presence/ranking SQL, applied the three PR migrations, ran pgTAP, and stopped the disposable Supabase stack successfully.
+- These are disposable CI results only. The live production database remains unchanged; the active migration directory still is not certified for `supabase db push`. PR #83 remains Draft and unmerged pending a separately reconciled clean release chain.
