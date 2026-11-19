@@ -184,7 +184,7 @@ returns trigger language plpgsql security definer set search_path = '' as $$
 begin
   if old.status='active'
      and new.status='active'
-     and new.current_price>old.current_price
+     and (new.current_price>old.current_price or new.highest_bidder_uid is distinct from old.highest_bidder_uid)
      and old.ends_at>now()
      and old.ends_at<=now()+interval '5 minutes' then
     new.ends_at:=now()+interval '5 minutes';
