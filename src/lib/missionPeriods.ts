@@ -5,7 +5,7 @@ export function getMissionPeriodKey(missionId: string, date = new Date()): strin
     const day = utc.getUTCDay() || 7;
     utc.setUTCDate(utc.getUTCDate() + 4 - day);
     const yearStart = new Date(Date.UTC(utc.getUTCFullYear(), 0, 1));
-    const week = Math.ceil(((utc.getTime() - yearStart.getTime()) / 86400000) / 7);
+    const week = Math.ceil((((utc.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
     return `${utc.getUTCFullYear()}-W${String(week).padStart(2, '0')}`;
   }
   if (missionId === 'seasonal_syndicate') {
