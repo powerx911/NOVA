@@ -98,7 +98,7 @@ export const SERVER_WORLD_EVENT_TEMPLATES: ServerWorldEventTemplate[] = [
     taxDelta: 0.01,
     stackGroup: 'macro_demand',
     durationHours: 12,
-    eventClass: 'positive',
+    eventClass: 'negative',
   },
   {
     id: 'evt_tax_holiday',
