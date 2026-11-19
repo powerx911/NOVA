@@ -3,7 +3,7 @@
 create extension if not exists pgtap with schema extensions;
 
 begin;
-select extensions.plan(16);
+select extensions.plan(19);
 
 select extensions.ok(
   not exists (select 1 from nexora.wallets where balance < 0),
@@ -119,6 +119,25 @@ select extensions.ok(
 select extensions.ok(
   exists(select 1 from pg_trigger where tgname='company_auction_late_bid_extension' and not tgisinternal),
   'late auction bids extend the auction close'
+);
+
+
+select extensions.ok(
+  exists(select 1 from information_schema.columns
+    where table_schema='nexora' and table_name='player_missions' and column_name='period_key'),
+  'mission claims store a period key'
+);
+
+select extensions.ok(
+  position('daily_trades' in lower(pg_get_functiondef('nexora.claim_mission_reward(text,text)'::regprocedure)))>0
+  and position('market_buy' in lower(pg_get_functiondef('nexora.claim_mission_reward(text,text)'::regprocedure)))>0,
+  'daily trader progress counts completed market buys in the current period'
+);
+
+select extensions.ok(
+  position('order by user_id' in lower(pg_get_functiondef('nexora.buy_market_listing(text,text,integer)'::regprocedure)))>0
+  and position('xp=' in lower(pg_get_functiondef('nexora.buy_market_listing(text,text,integer)'::regprocedure)))=0,
+  'market purchases lock wallets deterministically and grant no XP'
 );
 
 select * from extensions.finish();
