@@ -73,6 +73,14 @@ jobs:
             echo "::endgroup::"
           done
 
+      - name: Compile local presence and organization-ranking SQL against recovered history
+        shell: bash
+        run: |
+          set -euo pipefail
+          eval "$(supabase status -o env)"
+          psql "$DB_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20261118223000_nova_player_presence.sql
+          psql "$DB_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20261118224000_nova_org_donation_ranking.sql
+
       - name: Apply the three NOVA economy hardening migrations
         shell: bash
         run: |
