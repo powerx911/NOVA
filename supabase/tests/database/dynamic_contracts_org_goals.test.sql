@@ -3,7 +3,7 @@
 create extension if not exists pgtap with schema extensions;
 
 begin;
-select extensions.plan(83);
+select extensions.plan(84);
 
 select extensions.ok(
   exists(select 1 from nexora.contract_config where config_key='catalog_prices'),
@@ -390,6 +390,16 @@ select extensions.throws_ok(
   $$$select nexora.claim_dynamic_contract('pgtap_org_user',(select id from nexora.contract_offers where scope='organization' and org_id='pgtap_org' and status='completed' order by completed_at desc limit 1))$$$,
   'P0001','CONTRACT_NOT_CLAIMABLE',
   'the same organization contract cannot be claimed twice'
+);
+
+insert into nexora.player_profiles(user_id,username,username_lower,level,org_id)
+values ('pgtap_org_member','Org Member','pgtap_org_member',1,'pgtap_org');
+insert into nexora.organization_members(org_id,user_id,username,role,joined_at)
+values ('pgtap_org','pgtap_org_member','Org Member','member',now()-interval '30 days');
+select extensions.throws_ok(
+  $$select nexora.refresh_dynamic_contract('pgtap_org_member',(select id from nexora.contract_offers where scope='organization' and org_id='pgtap_org' and status='offered' order by slot_no limit 1))$$,
+  'P0001','ORG_REFRESH_PERMISSION_REQUIRED',
+  'regular organization members cannot refresh shared organization contracts'
 );
 
 insert into nexora.organizations(id,name,tag,leader_uid,leader_name,level,member_count,reputation)
