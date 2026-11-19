@@ -155,10 +155,10 @@ select extensions.ok(
 );
 update nexora.contract_slot_cooldowns set cooldown_until=now()-interval '1 second'
 where scope='personal' and owner_id='pgtap_daily';
-select extensions.lives_ok($select nexora.get_dynamic_contract_board('pgtap_daily')$,
+select extensions.lives_ok($q$select nexora.get_dynamic_contract_board('pgtap_daily')$q$,
   'personal offers refill after their cooldown elapses');
 select extensions.throws_ok(
-  $select nexora.accept_dynamic_contract('pgtap_daily',(select id from nexora.contract_offers where user_id='pgtap_daily' and scope='personal' and status='offered' order by slot_no limit 1))$,
+  $q$select nexora.accept_dynamic_contract('pgtap_daily',(select id from nexora.contract_offers where user_id='pgtap_daily' and scope='personal' and status='offered' order by slot_no limit 1))$q$,
   'P0001','DAILY_CONTRACT_LIMIT_REACHED',
   'a sixth personal contract acceptance is rejected independently'
 );
