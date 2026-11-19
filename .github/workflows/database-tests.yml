@@ -83,10 +83,10 @@ jobs:
             supabase/migrations/20261119141731_20261119142000_nova_org_goal_contribution_org_index.sql \
             supabase/migrations/20261119143000_nova_weekly_market_mogul.sql \
             supabase/migrations/20261119150000_nova_mission_achievement_rebuild.sql \
-            supabase/migrations/20261119151500_nova_contract_slot_cooldowns.sql \
-            supabase/migrations/20261119152000_nova_contract_slot_refresh_limits.sql \
-            supabase/migrations/20261119153000_nova_ten_org_weekly_goals.sql \
-            supabase/migrations/20261119154000_nova_independent_contract_claim_limits.sql
+            supabase/migrations/20261119160154_nova_contract_slot_cooldowns.sql \
+            supabase/migrations/20261119160205_nova_contract_slot_refresh_limits.sql \
+            supabase/migrations/20261119160209_nova_ten_org_weekly_goals.sql \
+            supabase/migrations/20261119160214_nova_independent_contract_claim_limits.sql
           do
             psql "$DB_URL" -v ON_ERROR_STOP=1 -f "$migration"
           done
