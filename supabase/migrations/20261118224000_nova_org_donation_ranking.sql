@@ -14,6 +14,6 @@ begin
     having sum(case when type='deposit' then amount when type='withdraw' then -amount else 0 end)>0
   ) q;
   return jsonb_build_object('ranking',v_ranking);
-end; $;
+end; $$;
 revoke all on function nexora.get_org_donation_ranking(text,text) from public,anon,authenticated;
 grant execute on function nexora.get_org_donation_ranking(text,text) to service_role;
