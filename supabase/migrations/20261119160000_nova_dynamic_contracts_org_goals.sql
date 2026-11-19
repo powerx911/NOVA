@@ -686,9 +686,6 @@ begin
   if not found then raise exception 'ACCOUNT_NOT_FOUND'; end if;
   select * into v_wallet from nexora.wallets where user_id=p_uid for update;
   if not found then raise exception 'ACCOUNT_NOT_FOUND'; end if;
-  select config_value into v_progression from nexora.contract_config where config_key='progression';
-  v_xp_rate:=coalesce((v_progression->>'xp_rate')::numeric,0.17);
-  v_xp_cap:=coalesce((v_progression->>'xp_cap')::integer,400);
   select * into v_contract from nexora.contract_offers where id=p_contract_id;
   if not found then raise exception 'CONTRACT_NOT_FOUND'; end if;
   perform nexora.settle_dynamic_contracts(p_uid);
@@ -746,6 +743,9 @@ begin
   if not found then raise exception 'ACCOUNT_NOT_FOUND'; end if;
   select * into v_wallet from nexora.wallets where user_id=p_uid for update;
   if not found then raise exception 'ACCOUNT_NOT_FOUND'; end if;
+  select config_value into v_progression from nexora.contract_config where config_key='progression';
+  v_xp_rate:=coalesce((v_progression->>'xp_rate')::numeric,0.17);
+  v_xp_cap:=coalesce((v_progression->>'xp_cap')::integer,400);
   select * into v_contract from nexora.contract_offers where id=p_contract_id;
   if not found then raise exception 'CONTRACT_NOT_FOUND'; end if;
   perform nexora.settle_dynamic_contracts(p_uid);
