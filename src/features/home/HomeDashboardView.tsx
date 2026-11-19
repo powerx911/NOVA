@@ -369,13 +369,13 @@ export function HomeDashboardView({
                           {language === 'ar' ? m.titleAr : m.titleEn}
                         </p>
                         <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-[#9299A6] mt-0.5" dir="ltr">
-                          <span className="font-mono-num">{Math.min(val, m.targetCount)}/{m.targetCount}</span>
+                          <span className="font-mono-num whitespace-nowrap">{Math.min(val, m.targetCount)}/{m.targetCount}</span>
                           <span className="text-[#667080]">•</span>
-                          <span className="font-mono-num text-[#F4F5F7]">${m.rewardCredits.toLocaleString()}</span>
+                          <span className="inline-flex items-center gap-1 whitespace-nowrap font-mono-num text-[#F4F5F7]">${m.rewardCredits.toLocaleString()}</span>
                           <span className="text-[#667080]">•</span>
-                          <span className="font-mono-num text-[#F4F5F7]">+{m.rewardXp} XP</span>
+                          <span className="inline-flex items-center gap-1 whitespace-nowrap font-mono-num text-[#F4F5F7]">+{m.rewardXp} XP</span>
                           <span className="text-[#667080]">•</span>
-                          <span dir={language === 'ar' ? 'rtl' : 'ltr'}>+{m.rewardReputation} {t.reputation}</span>
+                          <span className="inline-flex items-center gap-1 whitespace-nowrap"><span className="font-mono-num">+{m.rewardReputation}</span><span dir={language === 'ar' ? 'rtl' : 'ltr'}>{t.reputation}</span></span>
                         </div>
                       </div>
                       <button
