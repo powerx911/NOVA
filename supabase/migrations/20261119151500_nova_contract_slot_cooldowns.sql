@@ -29,6 +29,12 @@ begin
   end if;
   v_definition := replace(v_definition, v_old,
     'v_slots:=least(100,greatest(10,v_org.level*10));');
+  v_definition := replace(v_definition,
+    $old$'organization',coalesce(v_org_board,'[]'::jsonb),'active_personal',v_active,$old$,
+    $new$'organization',coalesce(v_org_board,'[]'::jsonb),'organization_slots',coalesce(v_slots,0),'organization_max_slots',100,'active_personal',v_active,$new$);
+  if position('organization_max_slots' in v_definition)=0 then
+    raise exception 'CONTRACT_BOARD_ORG_SLOT_METADATA_PATCH_FAILED';
+  end if;
   execute v_definition;
 end;
 $$;
