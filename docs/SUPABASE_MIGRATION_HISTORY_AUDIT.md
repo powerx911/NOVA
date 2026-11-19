@@ -196,3 +196,41 @@ The initial 42-entry archive was extended after a second pass through the Postgr
 - The expanded replay is strictly disposable/local. No production SQL has been executed.
 
 **Do not infer that untracked direct SQL events are safe to apply to production.** They are forensic evidence of SQL statements sent through the management API, and may depend on earlier state or have since been replaced.
+
+## Follow-up reconciliation — 2026-11-19 (latest branch audit)
+
+### Seven local-only RPC candidates versus untracked SQL events
+
+The seven RPC-oriented local-only files were matched to the seven corresponding recovered direct-SQL events by their function names and signatures. This is a correspondence, **not blanket content equivalence**:
+
+- `nexora_contract_rpc` and `nexora_player_settings_notifications` match their recovered event bodies after comment/whitespace normalization.
+- `nexora_economy_rpcs`, `nexora_market_rpcs`, `nexora_manufacturing_rpc`, `nexora_companies_properties`, and `nexora_company_vault_rpcs` contain the same function signatures but differ in SQL content from the recovered event bodies. They must remain classified as divergent local candidates, not as exact copies of the logged executions.
+- The recovered events remain forensic records under `supabase/recovered-history/untracked/`; none is promoted into the migration ledger.
+
+### Seed-world candidate
+
+`20261118201000_nexora_seed_world.sql` contains inserts for six starter market listings and three world events. No matching statement event was found in the inspected recovered SQL history. Whether these seed rows were applied through another path or remain pending is **unverified**. Do not apply or remove the file based on the log gap alone.
+
+### Factory/business auction candidate
+
+`20261119003000_nova_factory_business_auctions.sql` is a composite candidate, not a clean one-to-one missing migration. It combines auction schema alterations and several function definitions that overlap with recovered tracked sources, including `nova_factory_auction_support` (factory auction list/bid/settle functions) and `nova_factory_auction_capacity_reservations` (factory capacity logic), plus auction-fetch/settlement helpers already present in the broader auction history. Its combined body is not an exact substitute for a single remote ledger record. Keep it out of any automatic history repair or production push until each DDL/function is mapped to its applied source and final definition.
+
+### Three factory-economy source differences — final-state context
+
+The three same-name differences remain real differences in intermediate historical SQL bodies, but later remote migrations explain much of the apparent value drift:
+
+- The local `nova_factory_economy_rebalance` rates (2.00/2.00/1.50/1.50/1.25/2.00) differ from the earlier recovered remote migration's rates (8.00/7.00/6.00/5.00/4.00/3.00).
+- The local `nova_factory_base_profit_curve` rates (1.10/1.03/0.92/0.89/0.88/0.87) differ from the earlier remote `nova_factory_base_profit_curve` rates (2.00/2.00/1.50/1.50/1.25/2.00).
+- The local `nova_add_advanced_factory_resources` values for the ten resource tiers use the later lower production curve. The recovered remote `nova_factory_profit_margin_v2` subsequently replaces `factory_resource_config` with that same final lower curve, including the four advanced resources.
+
+Therefore the mismatches are not, by themselves, evidence of a production balance defect: later applied history supersedes the earlier values. However, the local intermediate migration bodies still do not reproduce the exact remote history and must not be substituted into the applied ledger. The final effective function definition should be compared as a whole before preparing a deployment chain.
+
+### Latest branch verification
+
+The branch head before this documentation-only follow-up was `f0f4709584249aff8c6039d035eb43be0b1cf1e4`. All three workflows completed successfully on that exact commit:
+
+- App CI: [44509621372](https://github.com/powerx911/NOVA/actions/runs/44509621372)
+- Isolated PostgreSQL/pgTAP: [44509621509](https://github.com/powerx911/NOVA/actions/runs/44509621509)
+- Full historical replay: [44509621481](https://github.com/powerx911/NOVA/actions/runs/44509621481)
+
+The PR remains Draft and unmerged. These checks ran on the code/workflow tree immediately before this audit-document update; no application or SQL behavior was changed by this addendum.
