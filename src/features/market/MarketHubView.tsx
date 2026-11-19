@@ -545,7 +545,7 @@ export function MarketHubView({
                 </div>
                 <div className="flex max-w-full items-center gap-1 overflow-x-auto bg-[#141821] border border-white/8 rounded-xl p-1">
                   <button type="button" onClick={() => setItemFilter('all')} className={`shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-colors ${itemFilter === 'all' ? 'bg-[#1B2230] text-[#F4F5F7]' : 'text-[#9299A6] hover:text-[#F4F5F7]'}`}>{t.allTiers}</button>
-                  {CATALOG_ITEMS.filter((item) => MARKET_RAW_ITEM_IDS.includes(item.id as (typeof MARKET_RAW_ITEM_IDS)[number])).map((item) => (
+                  {CATALOG_ITEMS.filter((item) => getMarketPriceBounds(item.id) !== null).map((item) => (
                     <button key={item.id} type="button" onClick={() => setItemFilter(item.id)} className={`shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-colors ${itemFilter === item.id ? 'bg-[#1B2230] text-[#F4F5F7]' : 'text-[#9299A6] hover:text-[#F4F5F7]'}`}>
                       {language === 'ar' ? item.nameAr : item.nameEn}
                     </button>
