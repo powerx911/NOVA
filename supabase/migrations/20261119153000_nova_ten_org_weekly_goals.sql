@@ -109,6 +109,17 @@ begin
 end;
 $$;
 
+create or replace function nexora.record_org_goal_from_market_order()
+returns trigger language plpgsql security definer set search_path = '' as $$
+begin
+  perform nexora.record_org_goal_progress(new.buyer_uid,'trade_volume',new.total_price);
+  if new.seller_uid is not null and new.seller_uid is distinct from new.buyer_uid then
+    perform nexora.record_org_goal_progress(new.seller_uid,'trade_volume',new.total_price);
+  end if;
+  return new;
+end;
+$$;
+
 create or replace function nexora.record_org_goal_from_company_revenue()
 returns trigger language plpgsql security definer set search_path = '' as $$
 declare v_delta numeric;
