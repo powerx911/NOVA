@@ -472,7 +472,7 @@ export interface OrgGoalContribution {
 
 export interface OrgWeeklyGoal {
   id: string;
-  type: 'produce_units' | 'trade_volume' | 'contracts_completed' | 'treasury_donations';
+  type: 'produce_units' | 'trade_volume' | 'contracts_completed' | 'treasury_donations' | 'personal_contracts_completed' | 'org_contracts_completed' | 'company_revenue' | 'factory_upgrades' | 'company_upgrades' | 'companies_founded' | 'factories_founded';
   difficulty: 'easy' | 'medium' | 'hard';
   target: number;
   current: number;
