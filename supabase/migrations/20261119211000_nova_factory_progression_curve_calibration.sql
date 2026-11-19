@@ -16,13 +16,13 @@ begin
   -- formatted historical migration; tolerate both when replaying migrations.
   v_definition := regexp_replace(
     v_definition,
-    '0\\.025\\s*\\*\\s*greatest\\(0,\\s*v_factory\\.level\\s*-\\s*1\\)',
+    '0[.]025[[:space:]]*[*][[:space:]]*greatest[(]0,[[:space:]]*v_factory[.]level[[:space:]]*-[[:space:]]*1[)]',
     '0.018*greatest(0,v_factory.level-1)',
     'g'
   );
   v_definition := regexp_replace(
     v_definition,
-    '0\\.00015\\s*\\*\\s*power\\(greatest\\(0,\\s*v_factory\\.level\\s*-\\s*1\\)::numeric,\\s*2\\)',
+    '0[.]00015[[:space:]]*[*][[:space:]]*power[(]greatest[(]0,[[:space:]]*v_factory[.]level[[:space:]]*-[[:space:]]*1[)]::numeric,[[:space:]]*2[)]',
     '0.00012*power(greatest(0,v_factory.level-1)::numeric,2)',
     'g'
   );
