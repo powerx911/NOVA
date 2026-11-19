@@ -1,5 +1,4 @@
 import {
-  FileCheck2,
   Search,
   Send,
   ShoppingBag,
@@ -8,12 +7,12 @@ import {
 import { useState } from 'react';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { ManufacturingPanel } from './ManufacturingPanel';
+import { DynamicContractsPanel } from './DynamicContractsPanel';
 import { useToast } from '../../components/ui/ToastProvider';
-import { BRAND_ASSETS, CATALOG_ITEMS, ITEM_MAP, TRADE_CONTRACTS } from '../../data/catalog';
+import { BRAND_ASSETS, CATALOG_ITEMS, ITEM_MAP } from '../../data/catalog';
 import { ResourceIcon } from '../../components/ui/ResourceIcon';
 import { useTranslations } from '../../i18n/translations';
 import {
-  calculateContractPayout,
   calculateDynamicItemPrice,
   calculateMarketItemAnalytics,
   calculateMarketTaxRate,
@@ -25,8 +24,6 @@ import {
   buyMarketListing,
   cancelMarketListing,
   createMarketListing,
-  fulfillTradeContract,
-  getUtcDateKey,
   transferCredits,
   validateTransferRecipient,
 } from '../../services/gameService';
@@ -47,7 +44,6 @@ interface MarketHubViewProps {
   inventory: InventoryItem[];
   marketListings: MarketListing[];
   worldEvents: WorldEvent[];
-  claimedContractsToday: Set<string>;
   language: Language;
 }
 
@@ -57,7 +53,6 @@ export function MarketHubView({
   inventory,
   marketListings,
   worldEvents,
-  claimedContractsToday,
   language,
 }: MarketHubViewProps) {
   const t = useTranslations(language);
@@ -88,7 +83,6 @@ export function MarketHubView({
   const taxRate = calculateMarketTaxRate(profile.skills.trade || 0, worldEvents);
   const invMap = new Map<string, number>();
   inventory.forEach((i) => invMap.set(i.itemId, i.quantity));
-  const todayKey = getUtcDateKey();
 
   // Compute live supply per item across active listings
   const supplyByItem = new Map<string, number>();
@@ -194,37 +188,6 @@ export function MarketHubView({
       );
     } catch {
       showToast(language === 'ar' ? 'تعذر إلغاء العرض.' : 'Could not cancel listing.', 'error');
-    } finally {
-      setBusyKey(null);
-    }
-  }
-
-  async function handleFulfillContract(contractId: string) {
-    setBusyKey(`ctr_${contractId}`);
-    try {
-      const payout = await fulfillTradeContract(profile.uid, contractId);
-      showToast(
-        language === 'ar'
-          ? `تم تنفيذ العقد واستلام +${payout} $.`
-          : `Contract fulfilled: +${payout} $.`,
-        'success'
-      );
-    } catch (err) {
-      const code = err instanceof Error ? err.message : '';
-      showToast(
-        code === 'MISSING_INPUTS'
-          ? language === 'ar'
-            ? 'المنتج المطلوب غير متوفر في المخزون.'
-            : 'Required product missing from inventory.'
-          : code === 'CONTRACT_ALREADY_FULFILLED'
-          ? language === 'ar'
-            ? 'تم تنفيذ هذا العقد اليوم بالفعل.'
-            : 'Contract already fulfilled today.'
-          : language === 'ar'
-          ? 'تعذر تنفيذ العقد التجاري.'
-          : 'Could not fulfill trade contract.',
-        'error'
-      );
     } finally {
       setBusyKey(null);
     }
@@ -687,69 +650,14 @@ export function MarketHubView({
         </div>
       )}
 
-      {/* 2. TRADE CONTRACTS */}
+      {/* 2. DYNAMIC CONTRACTS */}
       {subTab === 'contracts' && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {TRADE_CONTRACTS.map((ctr) => {
-            const item = ITEM_MAP[ctr.requiredItemId];
-            const owned = invMap.get(ctr.requiredItemId) || 0;
-            const claimed = claimedContractsToday.has(`${ctr.id}_${todayKey}`);
-            const payout = calculateContractPayout(
-              ctr.payoutCredits,
-              profile.skills.negotiation || 0,
-              profile.reputation
-            );
-
-            return (
-              <div
-                key={ctr.id}
-                className="bg-[#141821] border border-white/8 rounded-2xl p-5 flex flex-col justify-between gap-4"
-              >
-                <div className="space-y-1.5">
-                  <div className="flex items-center justify-between gap-2">
-                    <h3 className="text-base font-bold text-[#F4F5F7]">
-                      {language === 'ar' ? ctr.titleAr : ctr.titleEn}
-                    </h3>
-                    <FileCheck2 className="w-4 h-4 text-[#E04455] shrink-0" />
-                  </div>
-                  <p className="text-xs text-[#9299A6]">
-                    {language === 'ar' ? ctr.clientAr : ctr.clientEn}
-                  </p>
-                </div>
-
-                <div className="bg-[#0B0D12] border border-white/6 rounded-xl p-3.5 space-y-2 text-xs">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[#9299A6]">
-                      {language === 'ar' ? item.nameAr : item.nameEn}
-                    </span>
-                    <span
-                      className={`font-mono-num font-semibold ${
-                        owned >= ctr.requiredQty ? 'text-emerald-400' : 'text-[#E04455]'
-                      }`}
-                    >
-                      {owned} / {ctr.requiredQty}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-[#9299A6]">{language === 'ar' ? 'العائد' : 'Payout'}</span>
-                    <span className="font-mono-num font-bold text-emerald-400">
-                      +{'$'}{payout.toLocaleString()}
-                    </span>
-                  </div>
-                </div>
-
-                <button
-                  type="button"
-                  disabled={claimed || owned < ctr.requiredQty || busyKey === `ctr_${ctr.id}`}
-                  onClick={() => handleFulfillContract(ctr.id)}
-                  className="w-full min-h-[44px] px-4 rounded-xl bg-[#B91C32] hover:bg-[#E04455] text-white text-xs font-semibold transition-colors disabled:bg-[#1B2230] disabled:text-[#9299A6]"
-                >
-                  {claimed ? t.claimed : busyKey === `ctr_${ctr.id}` ? '...' : t.executeContract}
-                </button>
-              </div>
-            );
-          })}
-        </div>
+        <DynamicContractsPanel
+          profile={profile}
+          inventory={inventory}
+          wallet={wallet}
+          language={language}
+        />
       )}
 
       {/* 3. BANK & TRANSFERS */}

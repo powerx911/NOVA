@@ -20,6 +20,8 @@ import type {
   FactoryResourceId,
   CompanySector,
   CompanyAuction,
+  DynamicContractBoard,
+  OrgWeeklyGoals,
   InventoryItem,
   Language,
   MarketListing,
@@ -230,6 +232,42 @@ export async function manufactureRecipe(_uid: string, recipeId: string, batchQua
   }
 }
 
+export async function getDynamicContractBoard(): Promise<DynamicContractBoard> {
+  return nexoraApi<DynamicContractBoard>('get_dynamic_contract_board');
+}
+
+export async function getOrgWeeklyGoals(): Promise<OrgWeeklyGoals> {
+  return nexoraApi<OrgWeeklyGoals>('get_org_weekly_goals');
+}
+
+async function runDynamicContractAction<T = Record<string, unknown>>(action: string, contractId: string): Promise<T> {
+  try {
+    return await nexoraApi<T>(action, { contractId });
+  } catch (error) {
+    if (error instanceof Error && 'code' in error) {
+      throw new Error(String((error as { code?: unknown }).code ?? 'DYNAMIC_CONTRACT_FAILED'));
+    }
+    throw error;
+  }
+}
+
+export async function acceptDynamicContract(contractId: string): Promise<void> {
+  await runDynamicContractAction('accept_dynamic_contract', contractId);
+}
+
+export async function deliverDynamicContract(contractId: string): Promise<void> {
+  await runDynamicContractAction('deliver_dynamic_contract', contractId);
+}
+
+export async function abandonDynamicContract(contractId: string): Promise<void> {
+  await runDynamicContractAction('abandon_dynamic_contract', contractId);
+}
+
+export async function claimDynamicContract(contractId: string): Promise<void> {
+  await runDynamicContractAction('claim_dynamic_contract', contractId);
+}
+
+/** @deprecated Legacy fixed-contract RPC; the NOVA UI uses dynamic contracts. */
 export async function fulfillTradeContract(_uid: string, contractId: string): Promise<number> {
   if (!TRADE_CONTRACTS.some((contract) => contract.id === contractId)) throw new Error('INVALID_CONTRACT');
   try {

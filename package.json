@@ -11,6 +11,7 @@
     "lint": "tsc --noEmit",
     "lint:rules": "eslint firestore.rules",
     "test": "vitest run",
+    "test:contract-economy": "node scripts/simulate-dynamic-contract-economy.mjs",
     "test:e2e": "playwright test"
   },
   "dependencies": {

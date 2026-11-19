@@ -229,6 +229,7 @@ Deno.serve(async (req: Request) => {
       return json({ ok: true, data }, 200, origin);
     }
 
+    // @deprecated Retained for legacy clients only; the NOVA UI no longer calls this route.
     if (body.action === "fulfill_trade_contract") {
       const contractId = typeof body.contractId === "string" ? body.contractId : "";
       const { data, error } = await db.rpc("fulfill_trade_contract", {
@@ -239,6 +240,56 @@ Deno.serve(async (req: Request) => {
         return json({ error: known ?? "CONTRACT_FULFILLMENT_FAILED" }, 409, origin);
       }
       return json({ ok: true, data }, 200, origin);
+    }
+
+    const dynamicContractActions: Record<string, { rpc: string; args: Record<string, unknown>; status: number }> = {
+      get_dynamic_contract_board: { rpc: "get_dynamic_contract_board", args: { p_uid: identity.uid }, status: 200 },
+      accept_dynamic_contract: {
+        rpc: "accept_dynamic_contract",
+        args: { p_uid: identity.uid, p_contract_id: typeof body.contractId === "string" ? body.contractId : "" },
+        status: 200,
+      },
+      deliver_dynamic_contract: {
+        rpc: "deliver_dynamic_contract",
+        args: { p_uid: identity.uid, p_contract_id: typeof body.contractId === "string" ? body.contractId : "" },
+        status: 200,
+      },
+      abandon_dynamic_contract: {
+        rpc: "abandon_dynamic_contract",
+        args: { p_uid: identity.uid, p_contract_id: typeof body.contractId === "string" ? body.contractId : "" },
+        status: 200,
+      },
+      claim_dynamic_contract: {
+        rpc: "claim_dynamic_contract",
+        args: { p_uid: identity.uid, p_contract_id: typeof body.contractId === "string" ? body.contractId : "" },
+        status: 200,
+      },
+      get_org_weekly_goals: { rpc: "get_org_weekly_goals", args: { p_uid: identity.uid }, status: 200 },
+    };
+    const dynamicContractAction = dynamicContractActions[body.action];
+    if (dynamicContractAction) {
+      if (body.action !== "get_dynamic_contract_board" && body.action !== "get_org_weekly_goals") {
+        const contractId = dynamicContractAction.args.p_contract_id;
+        if (typeof contractId !== "string" || !contractId || contractId.length > 128) {
+          return json({ error: "INVALID_ARGUMENT" }, 400, origin);
+        }
+      }
+      const { data, error } = await db.rpc(dynamicContractAction.rpc, dynamicContractAction.args);
+      if (error) {
+        const known = [
+          "ACCOUNT_NOT_FOUND", "CONTRACT_NOT_FOUND", "CONTRACT_NOT_AVAILABLE", "CONTRACT_EXPIRED",
+          "UNAUTHORIZED", "ORG_NOT_FOUND", "ORG_MEMBERSHIP_TOO_NEW", "CONTRACT_ALREADY_CLAIMED",
+          "ORG_ACTIVE_CONTRACT_LIMIT", "ACTIVE_CONTRACT_LIMIT", "CONTRACT_NOT_ACCEPTED",
+          "CONTRACT_CANNOT_BE_ABANDONED", "MISSING_INPUTS", "INSUFFICIENT_FUNDS",
+          "CONTRACT_NOT_READY", "CONTRACT_NOT_CLAIMABLE", "DAILY_CONTRACT_LIMIT_REACHED",
+          "NOT_IN_ORG",
+        ].find((code) => error.message.includes(code));
+        return json({ error: known ?? "DYNAMIC_CONTRACT_FAILED" }, 409, origin);
+      }
+      if (data && typeof data === "object" && "error" in data && (data as { error?: unknown }).error) {
+        return json({ error: String((data as { error: unknown }).error) }, 409, origin);
+      }
+      return json({ ok: true, data }, dynamicContractAction.status, origin);
     }
 
     if (body.action === "update_settings") {

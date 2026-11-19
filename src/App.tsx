@@ -149,7 +149,6 @@ function NovaAppContent() {
           inventory={game.inventory}
           marketListings={game.marketListings}
           worldEvents={game.worldEvents}
-          claimedContractsToday={game.claimedContractsToday}
           language={game.language}
         />
       )}
