@@ -147,3 +147,65 @@ revoke all on function nexora.collect_company_revenue(text,text) from public,ano
 grant execute on function nexora.collect_company_revenue(text,text) to service_role;
 revoke all on function nexora.transfer_credits(text,text,bigint,text) from public,anon,authenticated;
 grant execute on function nexora.transfer_credits(text,text,bigint,text) to service_role;
+
+
+-- Auction proceeds incur a 4% seller-side sink fee for both companies and factories.
+create or replace function nexora.apply_company_auction_sale_fee()
+returns trigger language plpgsql security definer set search_path = '' as $$
+declare
+  v_fee bigint;
+  v_tx text:='tx_'||gen_random_uuid()::text;
+begin
+  if old.status='active' and new.status='sold' and new.highest_bidder_uid is not null then
+    v_fee:=round(new.current_price*0.04)::bigint;
+    if v_fee>0 then
+      update nexora.wallets
+        set balance=balance-v_fee,total_earned=greatest(0,total_earned-v_fee),updated_at=now()
+        where user_id=new.seller_uid;
+      if not found then raise exception 'SELLER_WALLET_NOT_FOUND'; end if;
+      insert into nexora.transactions(id,from_uid,to_uid,amount,fee,net_amount,type,reference_id,description,status)
+        values(v_tx,new.seller_uid,'SYSTEM',v_fee,0,v_fee,'auction_fee',new.id,
+          '4% company/factory auction sale fee','completed');
+    end if;
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists company_auction_sale_fee on nexora.company_auctions;
+create trigger company_auction_sale_fee
+after update of status on nexora.company_auctions
+for each row execute function nexora.apply_company_auction_sale_fee();
+
+-- Anti-sniping: any valid new high bid in the final five minutes resets the close
+-- to five minutes after the bid. Applies to both company and factory auctions.
+create or replace function nexora.extend_company_auction_on_late_bid()
+returns trigger language plpgsql security definer set search_path = '' as $$
+begin
+  if old.status='active'
+     and new.status='active'
+     and new.current_price>old.current_price
+     and old.ends_at>now()
+     and old.ends_at<=now()+interval '5 minutes' then
+    new.ends_at:=now()+interval '5 minutes';
+    if new.asset_type='factory' and new.factory_id is not null then
+      update nexora.factories
+        set auction_ends_at=new.ends_at,updated_at=now()
+        where id=new.factory_id and auction_id=new.id;
+    elsif new.company_id is not null then
+      update nexora.companies
+        set auction_ends_at=new.ends_at,updated_at=now()
+        where id=new.company_id and auction_id=new.id;
+    end if;
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists company_auction_late_bid_extension on nexora.company_auctions;
+create trigger company_auction_late_bid_extension
+before update of current_price on nexora.company_auctions
+for each row execute function nexora.extend_company_auction_on_late_bid();
+
+revoke all on function nexora.apply_company_auction_sale_fee() from public,anon,authenticated;
+revoke all on function nexora.extend_company_auction_on_late_bid() from public,anon,authenticated;
