@@ -29,6 +29,7 @@ begin
   where user_id=p_uid for update;
   if not found then raise exception 'ACCOUNT_NOT_FOUND'; end if;
 
+  perform nexora.settle_dynamic_contracts(p_uid);
   select * into v_contract from nexora.contract_offers
   where id=p_contract_id for update;
   if not found then raise exception 'CONTRACT_NOT_FOUND'; end if;
