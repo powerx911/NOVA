@@ -20,6 +20,16 @@ export function InventoryPanel({ inventory, language, title, marketLabel, onGoTo
         <h2 className="text-base font-semibold text-[#F4F5F7]">{title}</h2>
         <Package className="w-4 h-4 text-[#63A5FF]" />
       </div>
+      <div className="space-y-2 rounded-xl border border-white/8 bg-[#0B0D12] p-3.5">
+        <div className="flex items-center justify-between gap-2 text-xs">
+          <span className="text-[#9299A6]">{language === 'ar' ? 'سعة المخزون' : 'Inventory capacity'}</span>
+          <span className="font-mono-num font-semibold text-[#F4F5F7]">{totalQuantity.toLocaleString()} / {capacity.toLocaleString()}</span>
+        </div>
+        <div className="h-2 overflow-hidden rounded-full bg-white/8">
+          <div className={`h-full rounded-full transition-all ${capacityPercent >= 95 ? 'bg-rose-400' : 'bg-[#397BFF]'}`} style={{ width: `${capacityPercent}%` }} />
+        </div>
+        <p className="text-[10px] text-[#77808F]">{language === 'ar' ? 'تزداد السعة تلقائياً مع كل مستوى لاعب.' : 'Capacity increases automatically with each player level.'}</p>
+      </div>
       {availableItems.length === 0 ? (
         <div className="py-10 text-center space-y-3">
           <p className="text-sm text-[#9299A6]">
