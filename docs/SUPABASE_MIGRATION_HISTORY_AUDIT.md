@@ -243,3 +243,22 @@ Verification on code/workflow commit `096fc4d6c99e2789cc59578eba4e22ac08edcef2`:
 - Historical replay + local PL/pgSQL compile + pgTAP: https://github.com/powerx911/NOVA/actions/runs/44510752943
 
 The two duplicate in-progress workflow attempts on the same commit are not used as evidence; the links above are completed successful runs.
+## Release-readiness boundary — latest 34-file inventory
+
+A fresh tree inventory on this branch contains **34 SQL files** under `supabase/migrations/` (31 carried from `main` plus the three new PR migrations). The successful `database-history-replay` workflow does **not** execute all 34 active migration files as a deployment chain. Its exact scope is:
+
+1. Start a disposable Supabase/PostgreSQL stack with the active migration directory temporarily parked.
+2. Replay the 42 recovered ledger SQL bodies and 13 untracked forensic SQL events (55 total) in timestamp order.
+3. Compile the two corrected local `nova_player_presence` and `nova_org_donation_ranking` definitions against that recovered state.
+4. Apply the three new PR hardening migrations and run the 29 pgTAP tests.
+
+This is strong evidence that the recovered applied history and the new PR changes work in isolation. It is **not** evidence that the current 34-file `supabase/migrations/` directory is safe for `supabase db push`: several existing local files are duplicate, divergent, consolidated, or unresolved relative to the remote 42-version ledger. Replaying every active local file on top of the recovered history would risk duplicate DDL and conflicting definitions; the CI workflow intentionally does not do that.
+
+### Current decision
+
+- Keep PR #83 Draft. Do not merge it as a deployment-ready migration bundle and do not run `supabase db push`.
+- Do not use `migration repair` or rename timestamps to force the active local files into alignment.
+- A future deployment package must be prepared separately from the forensic archive: map every active local file to its exact remote ledger source/final object state, identify which changes are genuinely new, and include only reviewed pending migrations in a clean release chain.
+- The 34-file inventory and the exact CI replay scope were checked on branch head `7118ec2f0c74d39275f252ab433c02393ff65257`. All three workflows succeeded on that exact commit: App CI [44511078361](https://github.com/powerx911/NOVA/actions/runs/44511078361), historical replay [44511078310](https://github.com/powerx911/NOVA/actions/runs/44511078310), and isolated database tests [44511078178](https://github.com/powerx911/NOVA/actions/runs/44511078178).
+
+No production writes, migration pushes, or ledger repairs were performed.
