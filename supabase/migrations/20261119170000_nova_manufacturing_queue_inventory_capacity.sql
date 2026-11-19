@@ -30,7 +30,7 @@ begin
   from nexora.inventory
   where user_id = new.user_id;
 
-  if v_total > v_capacity then
+  if v_total > v_capacity and (tg_op = 'INSERT' or new.quantity > old.quantity) then
     raise exception 'INVENTORY_CAPACITY_EXCEEDED'
       using detail = 'Inventory capacity is % units; attempted total is % units.', hint = v_capacity::text;
   end if;
