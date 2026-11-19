@@ -3,7 +3,7 @@
 create extension if not exists pgtap with schema extensions;
 
 begin;
-select extensions.plan(10);
+select extensions.plan(15);
 
 select extensions.ok(
   not exists (select 1 from nexora.wallets where balance < 0),
@@ -86,6 +86,45 @@ select extensions.is(
   (select count(*)::bigint from nexora.transactions where from_uid = 'pgtap_pause_owner' and type = 'factory_operating'),
   1::bigint,
   'syncing after pause does not append another operating-cost ledger row'
+);
+
+
+select extensions.is(
+  nexora.player_inventory_capacity(1),
+  250::bigint,
+  'level one starts with 250 inventory units'
+);
+
+select extensions.is(
+  nexora.player_inventory_capacity(200),
+  3235::bigint,
+  'inventory capacity scales smoothly through the level cap'
+);
+
+insert into nexora.player_profiles(user_id, username, username_lower, stats)
+values ('pgtap_inventory_capacity', 'pgTAP_Inventory', 'pgtap_inventory',
+  '{"tradesCount":0,"companiesOwned":0,"totalProduced":0}'::jsonb);
+
+insert into nexora.inventory(user_id, item_id, quantity)
+values ('pgtap_inventory_capacity', 'capacity_test_item', 250);
+
+select extensions.throws_ok(
+  $$insert into nexora.inventory(user_id, item_id, quantity) values ('pgtap_inventory_capacity', 'capacity_overflow_item', 1)$$,
+  'P0001',
+  'INVENTORY_CAPACITY_EXCEEDED',
+  'the inventory trigger rejects additions above the player capacity'
+);
+
+select extensions.ok(
+  position('group by' in lower(pg_get_functiondef('nexora.manufacture_recipe(text,text,integer)'::regprocedure))) > 0
+  and position('manufacturing_job_in_progress' in lower(pg_get_functiondef('nexora.manufacture_recipe(text,text,integer)'::regprocedure))) > 0,
+  'manufacturing aggregates duplicate recipe inputs and permits only one active job per player'
+);
+
+select extensions.ok(
+  exists(select 1 from pg_indexes where schemaname='nexora' and indexname='manufacturing_jobs_one_running_per_player')
+  and position('v_output_qty * p_batches' in lower(pg_get_functiondef('nexora.manufacture_recipe(text,text,integer)'::regprocedure))) > 0,
+  'manufacturing time scales with each produced unit and a unique running-job guard exists'
 );
 
 select * from extensions.finish();

@@ -140,6 +140,10 @@ export function MarketHubView({
           ? language === 'ar'
             ? 'الكمية المتبقية في العرض لم تعد كافية.'
             : 'Requested quantity is no longer available.'
+          : code === 'INVENTORY_CAPACITY_EXCEEDED'
+          ? language === 'ar'
+            ? 'مخزونك ممتلئ. ارفع مستواك أو بع بعض الموارد قبل الشراء.'
+            : 'Your inventory is full. Level up or sell some items before buying.'
           : language === 'ar'
           ? 'تعذر إتمام الشراء.'
           : 'Purchase failed.',

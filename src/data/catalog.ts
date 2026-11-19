@@ -289,7 +289,7 @@ export const MANUFACTURING_RECIPES: ManufacturingRecipe[] = [
       { itemId: 'copper_wire', qty: 2 },
     ],
     processingCost: 40,
-    xpReward: 45,
+    xpReward: 8,
     requiredIndustrySkill: 0,
   },
   {
@@ -301,7 +301,7 @@ export const MANUFACTURING_RECIPES: ManufacturingRecipe[] = [
       { itemId: 'carbon_fiber', qty: 1 },
     ],
     processingCost: 50,
-    xpReward: 55,
+    xpReward: 9,
     requiredIndustrySkill: 0,
   },
   {
@@ -313,7 +313,7 @@ export const MANUFACTURING_RECIPES: ManufacturingRecipe[] = [
       { itemId: 'rare_minerals', qty: 1 },
     ],
     processingCost: 60,
-    xpReward: 65,
+    xpReward: 10,
     requiredIndustrySkill: 1,
   },
   {
@@ -325,7 +325,7 @@ export const MANUFACTURING_RECIPES: ManufacturingRecipe[] = [
       { itemId: 'energy_cells', qty: 1 },
     ],
     processingCost: 90,
-    xpReward: 110,
+    xpReward: 12,
     requiredIndustrySkill: 1,
   },
   {
@@ -337,7 +337,7 @@ export const MANUFACTURING_RECIPES: ManufacturingRecipe[] = [
       { itemId: 'microchips', qty: 1 },
     ],
     processingCost: 110,
-    xpReward: 125,
+    xpReward: 14,
     requiredIndustrySkill: 2,
   },
   {
@@ -349,7 +349,7 @@ export const MANUFACTURING_RECIPES: ManufacturingRecipe[] = [
       { itemId: 'rare_minerals', qty: 2 },
     ],
     processingCost: 125,
-    xpReward: 140,
+    xpReward: 15,
     requiredIndustrySkill: 2,
   },
   {
@@ -361,7 +361,7 @@ export const MANUFACTURING_RECIPES: ManufacturingRecipe[] = [
       { itemId: 'carbon_fiber', qty: 1 },
     ],
     processingCost: 80,
-    xpReward: 75,
+    xpReward: 11,
     requiredIndustrySkill: 1,
   },
   {
@@ -373,7 +373,7 @@ export const MANUFACTURING_RECIPES: ManufacturingRecipe[] = [
       { itemId: 'energy_cells', qty: 1 },
     ],
     processingCost: 90,
-    xpReward: 85,
+    xpReward: 12,
     requiredIndustrySkill: 1,
   },
   {
@@ -385,7 +385,7 @@ export const MANUFACTURING_RECIPES: ManufacturingRecipe[] = [
       { itemId: 'rare_minerals', qty: 1 },
     ],
     processingCost: 320,
-    xpReward: 155,
+    xpReward: 16,
     requiredIndustrySkill: 2,
   },
   {
@@ -397,7 +397,7 @@ export const MANUFACTURING_RECIPES: ManufacturingRecipe[] = [
       { itemId: 'microchips', qty: 1 },
     ],
     processingCost: 60,
-    xpReward: 180,
+    xpReward: 18,
     requiredIndustrySkill: 3,
   },
 ];

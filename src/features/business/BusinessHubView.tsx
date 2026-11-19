@@ -27,6 +27,7 @@ import {
   calculateCompanyVaultBalance,
   getCompanyVaultCapacity,
   getCompanyVaultLevel,
+  getPlayerInventoryCapacity,
 } from '../../lib/economy';
 import {
   collectCompanyRevenue,
@@ -640,7 +641,7 @@ export function BusinessHubView({
                         onClick={() => handleUpgradeCompany(c.id)}
                         className="min-h-[42px] px-3.5 rounded-xl bg-[#1B2230] hover:bg-[#232C3E] text-[#F4F5F7] text-xs font-semibold whitespace-nowrap disabled:opacity-50 transition-colors"
                       >
-                        {isMaxLevel ? t.maxLevelReached : companyUpgradePending ? (companyUpgradeRemaining > 0 ? (language === 'ar' ? `جارٍ التطوير: ${formatRemaining(companyUpgradeRemaining)}` : `Upgrading: ${formatRemaining(companyUpgradeRemaining)}`) : (language === 'ar' ? 'جارٍ إكمال التطوير...' : 'Finishing upgrade...')) : (language === 'ar' ? 'بدء تطوير الشركة' : 'Start Company Upgrade')}
+                        {isMaxLevel ? t.maxLevelReached : companyUpgradePending ? (companyUpgradeRemaining > 0 ? (language === 'ar' ? `جارٍ التطوير: ${formatRemaining(companyUpgradeRemaining)}` : `Upgrading: ${formatRemaining(companyUpgradeRemaining)}`) : (language === 'ar' ? 'جارٍ إكمال التطوير...' : 'Finishing upgrade...')) : (language === 'ar' ? 'تطوير الشركة - $' + upgradeCost.toLocaleString() : 'Upgrade Company - $' + upgradeCost.toLocaleString())}
                       </button>
                     </div>
                   </div>
@@ -695,6 +696,7 @@ export function BusinessHubView({
           title={t.subInventory}
           marketLabel={t.navMarket}
           onGoToMarket={onGoToMarket}
+          capacity={getPlayerInventoryCapacity(profile.level)}
         />
       )}
 

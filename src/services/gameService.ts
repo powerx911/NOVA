@@ -221,13 +221,37 @@ export async function cancelMarketListing(_uid: string, listingId: string): Prom
   }
 }
 
-export async function manufactureRecipe(_uid: string, recipeId: string, batchQuantity = 1): Promise<void> {
+export interface ManufacturingJob {
+  id: string;
+  recipe_id: string;
+  output_item_id: string;
+  output_qty: number;
+  started_at: string;
+  ends_at: string;
+  status: 'running';
+}
+
+export async function manufactureRecipe(_uid: string, recipeId: string, batchQuantity = 1): Promise<ManufacturingJob> {
   if (!MANUFACTURING_RECIPES.some((recipe) => recipe.id === recipeId)) throw new Error('INVALID_RECIPE');
   if (!Number.isInteger(batchQuantity) || batchQuantity < 1 || batchQuantity > 999) throw new Error('INVALID_QUANTITY');
   try {
-    await nexoraApi('manufacture_recipe', { recipeId, batches: batchQuantity });
+    return await nexoraApi<ManufacturingJob>('manufacture_recipe', { recipeId, batches: batchQuantity });
   } catch (error) {
     if (error instanceof Error && 'code' in error) throw new Error(String((error as { code?: unknown }).code ?? 'MANUFACTURING_FAILED'));
+    throw error;
+  }
+}
+
+export async function getManufacturingJob(): Promise<ManufacturingJob | null> {
+  return nexoraApi<ManufacturingJob | null>('get_manufacturing_job');
+}
+
+export async function completeManufacturingJob(jobId: string): Promise<void> {
+  if (!jobId) throw new Error('MANUFACTURING_JOB_NOT_FOUND');
+  try {
+    await nexoraApi('complete_manufacturing_job', { jobId });
+  } catch (error) {
+    if (error instanceof Error && 'code' in error) throw new Error(String((error as { code?: unknown }).code ?? 'MANUFACTURING_COMPLETION_FAILED'));
     throw error;
   }
 }

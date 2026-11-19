@@ -463,6 +463,11 @@ export function calculateCompanyVaultBalance(
   return Math.min(capacity, stored + Math.max(0, accrued));
 }
 
+export function getPlayerInventoryCapacity(level: number): number {
+  const safeLevel = Number.isFinite(level) ? Math.max(1, Math.min(200, Math.floor(level))) : 1;
+  return 250 + (safeLevel - 1) * 15;
+}
+
 export const COMPANY_MAX_LEVEL = 100;
 export const LISTING_MAX_QTY = 10_000;
 export const LISTING_MAX_PRICE = 1_000_000;

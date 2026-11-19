@@ -198,7 +198,7 @@ Deno.serve(async (req: Request) => {
         p_uid: identity.uid, p_listing_id: listingId, p_qty: quantity,
       });
       if (error) {
-        const known = ["INVALID_QUANTITY","LISTING_NOT_FOUND","INSUFFICIENT_LISTING_QTY","CANNOT_BUY_OWN_LISTING","INSUFFICIENT_FUNDS","ACCOUNT_NOT_FOUND","SELLER_ACCOUNT_NOT_FOUND"].find((code) => error.message.includes(code));
+        const known = ["INVALID_QUANTITY","LISTING_NOT_FOUND","INSUFFICIENT_LISTING_QTY","CANNOT_BUY_OWN_LISTING","INSUFFICIENT_FUNDS","ACCOUNT_NOT_FOUND","SELLER_ACCOUNT_NOT_FOUND","INVENTORY_CAPACITY_EXCEEDED"].find((code) => error.message.includes(code));
         return json({ error: known ?? "MARKET_PURCHASE_FAILED" }, 409, origin);
       }
       return json({ ok: true, data }, 200, origin);
@@ -223,8 +223,27 @@ Deno.serve(async (req: Request) => {
         p_uid: identity.uid, p_recipe_id: recipeId, p_batches: batches,
       });
       if (error) {
-        const known = ["INVALID_RECIPE","INVALID_QUANTITY","ACCOUNT_NOT_FOUND","INDUSTRY_SKILL_TOO_LOW","INSUFFICIENT_FUNDS","MISSING_INPUTS"].find((code) => error.message.includes(code));
+        const known = ["INVALID_RECIPE","INVALID_QUANTITY","ACCOUNT_NOT_FOUND","INDUSTRY_SKILL_TOO_LOW","INSUFFICIENT_FUNDS","MISSING_INPUTS","MANUFACTURING_JOB_IN_PROGRESS"].find((code) => error.message.includes(code));
         return json({ error: known ?? "MANUFACTURING_FAILED" }, 409, origin);
+      }
+      return json({ ok: true, data }, 200, origin);
+    }
+
+    if (body.action === "get_manufacturing_job") {
+      const { data, error } = await db.rpc("get_manufacturing_job", { p_uid: identity.uid });
+      if (error) return json({ error: "MANUFACTURING_JOB_FETCH_FAILED" }, 500, origin);
+      return json({ ok: true, data }, 200, origin);
+    }
+
+    if (body.action === "complete_manufacturing_job") {
+      const jobId = typeof body.jobId === "string" ? body.jobId : "";
+      if (!jobId || jobId.length > 128) return json({ error: "INVALID_ARGUMENT" }, 400, origin);
+      const { data, error } = await db.rpc("complete_manufacturing_job", {
+        p_uid: identity.uid, p_job_id: jobId,
+      });
+      if (error) {
+        const known = ["MANUFACTURING_JOB_NOT_FOUND","MANUFACTURING_JOB_NOT_FINISHED","INVENTORY_CAPACITY_EXCEEDED","ACCOUNT_NOT_FOUND"].find((code) => error.message.includes(code));
+        return json({ error: known ?? "MANUFACTURING_COMPLETION_FAILED" }, 409, origin);
       }
       return json({ ok: true, data }, 200, origin);
     }
@@ -376,7 +395,7 @@ Deno.serve(async (req: Request) => {
           "FACTORY_NOT_FOUND","UNAUTHORIZED","ACCOUNT_NOT_FOUND","INSUFFICIENT_FUNDS",
           "FACTORY_CAPACITY_REACHED","UPGRADE_IN_PROGRESS","MAX_LEVEL","MISSING_FACTORY_MATERIALS",
           "NO_UPGRADE_IN_PROGRESS","UPGRADE_NOT_FINISHED","SKILL_MAXED","INVALID_QUANTITY",
-          "WAREHOUSE_INSUFFICIENT_STOCK",
+          "WAREHOUSE_INSUFFICIENT_STOCK","INVENTORY_CAPACITY_EXCEEDED",
         ].find((code) => error.message.includes(code));
         return json({ error: known ?? "FACTORY_OPERATION_FAILED" }, 409, origin);
       }

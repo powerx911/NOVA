@@ -6,6 +6,7 @@ import {
   calculateCompanyVaultBalance,
   getCompanyVaultCapacity,
   getCompanyVaultLevel,
+  getPlayerInventoryCapacity,
   calculateDailyStipend,
   calculateDynamicItemPrice,
   calculateLevelProgress,
@@ -99,6 +100,17 @@ describe('Company Profit Vault', () => {
     expect(getCompanyVaultLevel({ vaultLevel: 99 })).toBe(5);
     expect(getCompanyVaultCapacity(-3)).toBe(3500);
     expect(getCompanyVaultCapacity(Number.NaN)).toBe(3500);
+  });
+});
+
+describe('Player Inventory Capacity', () => {
+  it('grows smoothly with player level and clamps invalid levels', () => {
+    expect(getPlayerInventoryCapacity(1)).toBe(250);
+    expect(getPlayerInventoryCapacity(2)).toBe(265);
+    expect(getPlayerInventoryCapacity(10)).toBe(385);
+    expect(getPlayerInventoryCapacity(200)).toBe(3235);
+    expect(getPlayerInventoryCapacity(0)).toBe(250);
+    expect(getPlayerInventoryCapacity(Number.NaN)).toBe(250);
   });
 });
 
