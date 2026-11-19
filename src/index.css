@@ -1,116 +1,28 @@
 @import "tailwindcss";
 @custom-variant dark (&:where(.dark, .dark *));
-
 @layer base {
   :root {
-    --nexora-bg: #0B0D12;
-    --nexora-surface: #141821;
-    --nexora-surface-2: #1B2230;
-    --nexora-accent: #B91C32;
-    --nexora-accent-hover: #E04455;
-    --nexora-text: #F4F5F7;
-    --nexora-muted: #9299A6;
-    --nexora-border: rgba(244, 245, 247, 0.08);
+    color-scheme: dark;
+    --nova-bg:#080E1C; --nova-surface:#101A30; --nova-surface-raised:#162642;
+    --nova-accent:#397BFF; --nova-accent-bright:#63A5FF; --nova-violet:#9867FF;
+    --nova-text:#EAF1FF; --nova-muted:#9AAAC7; --nova-border:rgba(169,201,255,.13);
+    --nexora-bg:var(--nova-bg); --nexora-surface:var(--nova-surface);
+    --nexora-surface-2:var(--nova-surface-raised); --nexora-accent:var(--nova-accent);
+    --nexora-accent-hover:var(--nova-accent-bright); --nexora-text:var(--nova-text);
+    --nexora-muted:var(--nova-muted); --nexora-border:var(--nova-border);
   }
-
-  html {
-    background-color: var(--nexora-bg);
-    color: var(--nexora-text);
-    font-family: 'IBM Plex Sans Arabic', 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
-    -webkit-tap-highlight-color: transparent;
-  }
-
-  html[dir="ltr"] {
-    font-family: 'Plus Jakarta Sans', 'IBM Plex Sans Arabic', system-ui, -apple-system, sans-serif;
-  }
-
-  .font-mono-num {
-    font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
-    font-variant-numeric: tabular-nums;
-  }
-
-  .tabular-nums {
-    font-variant-numeric: tabular-nums;
-  }
+  html { background-color:var(--nova-bg); color:var(--nova-text); font-family:'IBM Plex Sans Arabic','Plus Jakarta Sans',system-ui,sans-serif; -webkit-tap-highlight-color:transparent; }
+  html[dir="ltr"] { font-family:'Plus Jakarta Sans','IBM Plex Sans Arabic',system-ui,sans-serif; }
+  body { background:radial-gradient(ellipse at 82% -12%,rgba(57,123,255,.12),transparent 38rem),radial-gradient(ellipse at 8% 35%,rgba(152,103,255,.055),transparent 34rem),var(--nova-bg); color:var(--nova-text); min-height:100vh; }
+  .font-mono-num { font-family:'JetBrains Mono',ui-monospace,SFMono-Regular,monospace; font-variant-numeric:tabular-nums; }
+  .tabular-nums { font-variant-numeric:tabular-nums; }
+  ::selection { background:rgba(57,123,255,.38); color:#fff; }
 }
-
-.pb-safe {
-  padding-bottom: env(safe-area-inset-bottom, 0px);
-}
-
-.pt-safe {
-  padding-top: env(safe-area-inset-top, 0px);
-}
-
-/* Custom subtle scrollbars */
-::-webkit-scrollbar {
-  width: 5px;
-  height: 5px;
-}
-
-::-webkit-scrollbar-track {
-  background: #0B0D12;
-}
-
-::-webkit-scrollbar-thumb {
-  background: #1B2230;
-  border-radius: 9999px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: #2C364B;
-}
-
-
-/* Tactile response shared by the game's buttons and navigation controls. */
-button,
-[role="button"],
-a[href],
-input[type="button"],
-input[type="submit"] {
-    -webkit-tap-highlight-color: transparent;
-    touch-action: manipulation;
-    transition-property: transform, filter, background-color, border-color, color, box-shadow;
-    transition-duration: 140ms;
-    transition-timing-function: cubic-bezier(0.2, 0.8, 0.2, 1);
-}
-
-button:active:not(:disabled),
-  [role="button"]:active,
-  a[href]:active,
-  input[type="button"]:active:not(:disabled),
-  input[type="submit"]:active:not(:disabled) {
-    transform: scale(0.975);
-    filter: brightness(1.12);
-}
-
-button:disabled,
-  input:disabled {
-    cursor: not-allowed;
-}
-
-button:focus-visible,
-  [role="button"]:focus-visible,
-  a[href]:focus-visible,
-  input:focus-visible {
-    outline: 2px solid rgba(224, 68, 85, 0.8);
-    outline-offset: 3px;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  button,
-  [role="button"],
-  a[href],
-  input[type="button"],
-  input[type="submit"] {
-    transition-duration: 0.01ms;
-  }
-
-  button:active:not(:disabled),
-  [role="button"]:active,
-  a[href]:active,
-  input[type="button"]:active:not(:disabled),
-  input[type="submit"]:active:not(:disabled) {
-    transform: none;
-  }
-}
+.pb-safe{padding-bottom:env(safe-area-inset-bottom,0px)} .pt-safe{padding-top:env(safe-area-inset-top,0px)}
+::-webkit-scrollbar{width:5px;height:5px} ::-webkit-scrollbar-track{background:var(--nova-bg)}
+::-webkit-scrollbar-thumb{background:#263B60;border-radius:9999px} ::-webkit-scrollbar-thumb:hover{background:#397BFF}
+button,[role="button"],a[href],input[type="button"],input[type="submit"]{-webkit-tap-highlight-color:transparent;touch-action:manipulation;transition-property:transform,filter,background-color,border-color,color,box-shadow;transition-duration:140ms;transition-timing-function:cubic-bezier(.2,.8,.2,1)}
+button:active:not(:disabled),[role="button"]:active,a[href]:active,input[type="button"]:active:not(:disabled),input[type="submit"]:active:not(:disabled){transform:scale(.975);filter:brightness(1.12)}
+button:disabled,input:disabled{cursor:not-allowed}
+button:focus-visible,[role="button"]:focus-visible,a[href]:focus-visible,input:focus-visible{outline:2px solid rgba(99,165,255,.9);outline-offset:3px}
+@media(prefers-reduced-motion:reduce){button,[role="button"],a[href],input[type="button"],input[type="submit"]{transition-duration:.01ms}button:active:not(:disabled),[role="button"]:active,a[href]:active,input[type="button"]:active:not(:disabled),input[type="submit"]:active:not(:disabled){transform:none}}

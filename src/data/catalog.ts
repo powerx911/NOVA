@@ -15,7 +15,7 @@ import type {
 
 // Import images as build assets so every deployment contains the exact
 // image files for its own commit (no dependency on GitHub's mutable branch URL).
-const emblemImage = new URL('../assets/images/nexora_emblem_1794737992806.jpg', import.meta.url).href;
+const emblemImage = new URL('../../nova-icon.svg', import.meta.url).href;
 const marketBannerImage = new URL('../assets/images/world_market_banner_1794737994643.jpg', import.meta.url).href;
 const strategistAvatar = new URL('../assets/images/avatar_strategist_1794737993416.jpg', import.meta.url).href;
 const industrialistAvatar = new URL('../assets/images/avatar_industrialist_1794737993767.jpg', import.meta.url).href;
