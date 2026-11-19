@@ -74,6 +74,8 @@ export type TransactionType =
   | 'company_auction_escrow'
   | 'company_auction_refund'
   | 'company_auction_sale'
+  | 'factory_auction_sale'
+  | 'auction_fee'
   | 'manufacturing'
   | 'skill_reset'
   | 'factory_create'
