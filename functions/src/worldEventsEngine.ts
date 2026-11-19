@@ -4,7 +4,7 @@ export type ServerWorldEventEffectType =
   | 'tax_cut'
   | 'industrial_boom'
   | 'service_crisis'
-  | 'logistics_boom';
+  | 'logistics_boom'\n  | 'economic_recession'\n  | 'supply_glut'\n  | 'logistics_disruption';
 
 export type ServerCompanySector = 'trade' | 'manufacturing' | 'services' | 'tech' | 'logistics';
 
@@ -185,14 +185,22 @@ export function buildWorldEventRotationPlan(
   const toActivate: WorldEventActivation[] = [];
 
   if (slotsNeeded > 0) {
-    const count = SERVER_WORLD_EVENT_TEMPLATES.length;
-    const rotationOffset = Math.floor(nowMs / (6 * 3_600_000)) % count;
-    const orderedCandidates: ServerWorldEventTemplate[] = [];
-    for (let i = 0; i < count; i++) {
-      orderedCandidates.push(SERVER_WORLD_EVENT_TEMPLATES[(rotationOffset + i) % count]);
+    const rotationIndex = Math.floor(nowMs / (6 * 3_600_000));
+    const positiveTemplates = SERVER_WORLD_EVENT_TEMPLATES.filter((t) => t.eventClass === 'positive');
+    const negativeTemplates = SERVER_WORLD_EVENT_TEMPLATES.filter((t) => t.eventClass === 'negative');
+    const rotationOffset = rotationIndex % positiveTemplates.length;
+    const orderedPositive: ServerWorldEventTemplate[] = [];
+    for (let i = 0; i < positiveTemplates.length; i++) {
+      orderedPositive.push(positiveTemplates[(rotationOffset + i) % positiveTemplates.length]);
     }
 
-    // Prefer fresh non-just-expired events first, then fall back if needed
+    // One in five six-hour rotations may introduce a single negative event.
+    // All other rotations draw exclusively from positive events.
+    const negativeWindow = rotationIndex % 5 === 4;
+    const negativeCandidate = negativeWindow && negativeTemplates.length > 0
+      ? [negativeTemplates[Math.floor(rotationIndex / 5) % negativeTemplates.length]]
+      : [];
+    const orderedCandidates = [...negativeCandidate, ...orderedPositive];
     const prioritized = [
       ...orderedCandidates.filter((t) => !justExpiredIds.has(t.id)),
       ...orderedCandidates.filter((t) => justExpiredIds.has(t.id)),
@@ -200,7 +208,7 @@ export function buildWorldEventRotationPlan(
 
     for (const tpl of prioritized) {
       if (toActivate.length >= slotsNeeded) break;
-      if (keptActiveIds.has(tpl.id) || usedGroups.has(tpl.stackGroup)) continue;
+      if (keptActiveIds.has(tpl.id) || usedGroups.has(tpl.stackGroup)) continue;\n      if (tpl.eventClass === 'negative' && toActivate.some((entry) => entry.template.eventClass === 'negative')) continue;
       usedGroups.add(tpl.stackGroup);
       keptActiveIds.add(tpl.id);
       toActivate.push({
