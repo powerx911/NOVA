@@ -245,7 +245,12 @@ Deno.serve(async (req: Request) => {
     const dynamicContractActions: Record<string, { rpc: string; args: Record<string, unknown>; status: number }> = {
       get_dynamic_contract_board: { rpc: "get_dynamic_contract_board", args: { p_uid: identity.uid }, status: 200 },
       get_contract_slot_cooldowns: { rpc: "get_contract_slot_cooldowns", args: { p_uid: identity.uid }, status: 200 },
-      refresh_dynamic_contract: {\n        rpc: "refresh_dynamic_contract",\n        args: { p_uid: identity.uid, p_contract_id: typeof body.contractId === "string" ? body.contractId : "" },\n        status: 200,\n      },\n      accept_dynamic_contract: {
+      refresh_dynamic_contract: {
+        rpc: "refresh_dynamic_contract",
+        args: { p_uid: identity.uid, p_contract_id: typeof body.contractId === "string" ? body.contractId : "" },
+        status: 200,
+      },
+      accept_dynamic_contract: {
         rpc: "accept_dynamic_contract",
         args: { p_uid: identity.uid, p_contract_id: typeof body.contractId === "string" ? body.contractId : "" },
         status: 200,
