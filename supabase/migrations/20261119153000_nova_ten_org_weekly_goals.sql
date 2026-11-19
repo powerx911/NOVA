@@ -50,7 +50,8 @@ begin
     $old$for v_count in 1..coalesce((v_scaling->>'goal_count')::integer,10) loop$old$,
     $new$for v_count in 1..least(coalesce((v_scaling->>'goal_count')::integer,10),cardinality(v_types)) loop$new$);
   v_def:=replace(v_def,
-    $old$v_difficulty:=case v_type when 'produce_units' then 'easy' when 'trade_volume' then 'medium' when 'contracts_completed' then 'hard' else 'medium' end;$old$,
+    $old$v_difficulty:=case v_type when 'produce_units' then 'easy' when 'trade_volume' then 'medium'
+      when 'contracts_completed' then 'hard' else 'medium' end;$old$,
     $new$v_difficulty:=case when v_type in ('produce_units','companies_founded','factories_founded') then 'easy' when v_type in ('trade_volume','treasury_donations','company_revenue') then 'medium' else 'hard' end;$new$);
   if position('personal_contracts_completed' in v_def)=0 then
     raise exception 'WEEKLY_GOAL_GENERATOR_PATCH_FAILED';
