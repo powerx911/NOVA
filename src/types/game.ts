@@ -4,7 +4,7 @@ export type MainTab = 'home' | 'business' | 'market' | 'organization' | 'social'
 
 export type BusinessSubTab = 'companies' | 'auction' | 'factories' | 'inventory' | 'financials';
 export type MarketSubTab = 'exchange' | 'contracts' | 'bank' | 'manufacturing';
-export type ProfileSubTab = 'overview' | 'skills' | 'missions' | 'rankings' | 'settings' | 'diagnostics';
+export type ProfileSubTab = 'overview' | 'skills' | 'missions' | 'achievements' | 'rankings' | 'settings' | 'diagnostics';
 
 export type SkillKey =
   | 'trade'
@@ -21,6 +21,7 @@ export interface PlayerStats {
   tradesCount: number;
   companiesOwned: number;
   totalProduced: number;
+  propertiesOwned?: number;
 }
 
 export interface PlayerProfile {
@@ -313,7 +314,7 @@ export interface MissionDefinition {
   rewardXp: number;
   rewardReputation: number;
   targetCount: number;
-  metric: 'trades' | 'companies' | 'produced' | 'level' | 'org';
+  metric: 'trades' | 'companies' | 'produced' | 'level' | 'org' | 'properties';
 }
 
 export interface PlayerMissionClaim {
@@ -332,8 +333,10 @@ export interface AchievementDefinition {
   titleEn: string;
   descriptionAr: string;
   descriptionEn: string;
-  metric: 'trades' | 'companies' | 'produced' | 'level' | 'reputation';
+  metric: 'trades' | 'companies' | 'produced' | 'level' | 'reputation' | 'spent';
   threshold: number;
+  tier?: 'bronze' | 'silver' | 'gold' | 'platinum';
+  rewardCredits?: number;
 }
 
 export type WorldEventEffectType =
