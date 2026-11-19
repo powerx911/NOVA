@@ -409,6 +409,8 @@ declare
   v_slot integer;
   v_event record;
   v_event_slot integer;
+  v_event_offer_count integer;
+  v_event_index integer;
   v_claims integer;
 begin
   select * into v_profile from nexora.player_profiles where user_id=p_uid for update;
@@ -436,8 +438,12 @@ begin
     select coalesce(max(slot_no),0) into v_event_slot from nexora.contract_offers
       where scope='personal' and user_id=p_uid and board_date=v_today and event_id=v_event.id;
     if v_event_slot=0 then
-      perform nexora.generate_dynamic_contract('personal',p_uid,null,1000+
-        (select count(*) from nexora.world_events e2 where e2.id<=v_event.id),v_today,null,null,v_event.id);
+      v_event_offer_count:=1+floor(random()*2)::integer;
+      for v_event_index in 1..v_event_offer_count loop
+        perform nexora.generate_dynamic_contract('personal',p_uid,null,
+          1000+((select count(*) from nexora.world_events e2 where e2.id<=v_event.id)-1)*2+v_event_index,
+          v_today,null,null,v_event.id);
+      end loop;
     end if;
   end loop;
   select coalesce(jsonb_agg(to_jsonb(o) order by o.slot_no,o.slot_generation),'[]'::jsonb)
@@ -479,6 +485,8 @@ declare
   v_contract nexora.contract_offers%rowtype;
   v_org nexora.organizations%rowtype;
   v_active integer;
+  v_today date:=(now() at time zone 'UTC')::date;
+  v_used integer;
   v_now timestamptz:=now();
   v_hours integer;
 begin
@@ -522,8 +530,15 @@ begin
       where scope='personal' and user_id=p_uid and status in ('accepted','processing','ready');
     if v_active>=3 then raise exception 'ACTIVE_CONTRACT_LIMIT'; end if;
   end if;
+  insert into nexora.contract_daily_limits(user_id,date_key,used_count) values(p_uid,v_today,0)
+    on conflict(user_id,date_key) do nothing;
+  select used_count into v_used from nexora.contract_daily_limits
+    where user_id=p_uid and date_key=v_today for update;
+  if v_used>=5 then raise exception 'DAILY_CONTRACT_LIMIT_REACHED'; end if;
+  update nexora.contract_daily_limits set used_count=used_count+1,updated_at=v_now
+    where user_id=p_uid and date_key=v_today;
   update nexora.contract_offers set status='accepted',accepted_at=v_now,
-    deadline_at=v_now+make_interval(hours=>v_contract.processing_minutes*0+(
+    deadline_at=v_now+make_interval(hours=>(
       (select (config_value->'tier_rules'->v_contract.tier->>'min_hours')::integer
        from nexora.contract_config where config_key='tier_rules')
       +floor(random()*(
@@ -534,7 +549,7 @@ begin
     claimed_by=case when v_contract.scope='organization' then p_uid else null end,
     updated_at=v_now where id=p_contract_id;
   return jsonb_build_object('ok',true,'deadline_at',(
-    select deadline_at from nexora.contract_offers where id=p_contract_id));
+    select deadline_at from nexora.contract_offers where id=p_contract_id),'daily_used',v_used+1);
 end;
 $$;
 
@@ -635,21 +650,15 @@ begin
     end if;
     return jsonb_build_object('ok',false,'error','CONTRACT_EXPIRED');
   end if;
-  insert into nexora.contract_daily_limits(user_id,date_key,used_count) values(p_uid,v_today,0)
-    on conflict(user_id,date_key) do nothing;
-  select used_count into v_used from nexora.contract_daily_limits where user_id=p_uid and date_key=v_today for update;
-  if v_used>=5 then raise exception 'DAILY_CONTRACT_LIMIT_REACHED'; end if;
-  update nexora.contract_daily_limits set used_count=used_count+1,updated_at=now()
-    where user_id=p_uid and date_key=v_today;
   update nexora.contract_offers set status='abandoned',completed_at=now(),updated_at=now() where id=p_contract_id;
   if v_contract.event_id is null or exists(select 1 from nexora.world_events e where e.id=v_contract.event_id
     and e.active=true and e.starts_at<=now() and e.ends_at>now()) then
     perform nexora.generate_dynamic_contract(v_contract.scope,v_contract.user_id,v_contract.org_id,
       v_contract.slot_no,v_today,v_contract.item_id,v_contract.tier,v_contract.event_id);
   end if;
-  return jsonb_build_object('ok',true,'daily_used',v_used+1);
+  return jsonb_build_object('ok',true,'daily_used',v_used);
 end;
-$$;
+$;
 
 create or replace function nexora.claim_dynamic_contract(p_uid text,p_contract_id text)
 returns jsonb language plpgsql security definer set search_path = '' as $$
@@ -659,7 +668,6 @@ declare
   v_contract nexora.contract_offers%rowtype;
   v_org nexora.organizations%rowtype;
   v_today date:=(now() at time zone 'UTC')::date;
-  v_used integer;
   v_xp integer;
   v_level integer:=1;
   v_remaining bigint;
@@ -695,12 +703,6 @@ begin
     raise exception 'CONTRACT_NOT_CLAIMABLE';
   end if;
   if v_contract.ready_at>now() then raise exception 'CONTRACT_NOT_READY'; end if;
-  insert into nexora.contract_daily_limits(user_id,date_key,used_count) values(p_uid,v_today,0)
-    on conflict(user_id,date_key) do nothing;
-  select used_count into v_used from nexora.contract_daily_limits where user_id=p_uid and date_key=v_today for update;
-  if v_used>=5 then raise exception 'DAILY_CONTRACT_LIMIT_REACHED'; end if;
-  update nexora.contract_daily_limits set used_count=used_count+1,updated_at=now()
-    where user_id=p_uid and date_key=v_today;
   v_xp:=least(400,round(v_contract.payout*0.17)::integer);
   v_new_xp:=v_profile.xp+v_xp;
   v_remaining:=v_new_xp;
@@ -731,9 +733,9 @@ begin
       v_contract.slot_no,v_today,v_contract.item_id,v_contract.tier,v_contract.event_id);
   end if;
   return jsonb_build_object('ok',true,'payout',v_contract.payout,'xp',v_xp,
-    'reputation',round(v_contract.reputation_reward*v_leadership),'daily_used',v_used+1);
+    'reputation',round(v_contract.reputation_reward*v_leadership));
 end;
-$$;
+$;
 
 create or replace function nexora.get_org_weekly_goals(p_uid text)
 returns jsonb language plpgsql security definer set search_path = '' as $$
