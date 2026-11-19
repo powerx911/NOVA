@@ -1,11 +1,11 @@
-import { Factory } from 'lucide-react';
-import { useState } from 'react';
+import { Factory, Timer } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useToast } from '../../components/ui/ToastProvider';
 import { ITEM_MAP, MANUFACTURING_RECIPES } from '../../data/catalog';
 import { ResourceIcon } from '../../components/ui/ResourceIcon';
 import { useTranslations } from '../../i18n/translations';
 import { calculateManufacturingCost } from '../../lib/economy';
-import { manufactureRecipe } from '../../services/gameService';
+import { completeManufacturingJob, getManufacturingJob, manufactureRecipe, type ManufacturingJob } from '../../services/gameService';
 import type { InventoryItem, Language, PlayerProfile, Wallet } from '../../types/game';
 
 interface ManufacturingPanelProps {
@@ -16,29 +16,82 @@ interface ManufacturingPanelProps {
   onNavigateToExchange: () => void;
 }
 
+const formatDuration = (seconds: number, isAr: boolean) => {
+  const safe = Math.max(0, Math.ceil(seconds));
+  const minutes = Math.floor(safe / 60);
+  const remaining = safe % 60;
+  return minutes > 0 ? (isAr ? `${minutes}د ${remaining}ث` : `${minutes}m ${remaining}s`) : (isAr ? `${remaining}ث` : `${remaining}s`);
+};
+
 export function ManufacturingPanel({ profile, wallet, inventory, language, onNavigateToExchange }: ManufacturingPanelProps) {
   const t = useTranslations(language);
   const { showToast } = useToast();
+  const isAr = language === 'ar';
   const [quantity, setQuantity] = useState(1);
   const [busyKey, setBusyKey] = useState<string | null>(null);
-  const inventoryMap = new Map<string, number>(inventory.map((item) => [item.itemId, item.quantity] as [string, number]));
+  const [activeJob, setActiveJob] = useState<ManufacturingJob | null>(null);
+  const [nowMs, setNowMs] = useState(() => Date.now());
+  const [jobLoading, setJobLoading] = useState(true);
+  const completionAttempted = useRef<string | null>(null);
+  const inventoryMap = useMemo(() => new Map<string, number>(inventory.map((item) => [item.itemId, item.quantity] as [string, number])), [inventory]);
+
+  useEffect(() => {
+    let mounted = true;
+    void getManufacturingJob()
+      .then((job) => { if (mounted) setActiveJob(job); })
+      .catch(() => { if (mounted) showToast(isAr ? 'تعذر تحميل حالة التصنيع الحالية.' : 'Could not load current manufacturing status.', 'error'); })
+      .finally(() => { if (mounted) setJobLoading(false); });
+    const timer = window.setInterval(() => setNowMs(Date.now()), 1000);
+    return () => { mounted = false; window.clearInterval(timer); };
+  }, [isAr, showToast]);
+
+  async function finishJob(job: ManufacturingJob, silent = false) {
+    if (completionAttempted.current === job.id) return;
+    completionAttempted.current = job.id;
+    try {
+      await completeManufacturingJob(job.id);
+      setActiveJob(null);
+      completionAttempted.current = null;
+      window.dispatchEvent(new Event('nova:refresh-game'));
+      if (!silent) showToast(isAr ? 'اكتمل التصنيع وأضيفت المنتجات إلى مخزونك.' : 'Manufacturing completed and items added to inventory.', 'success');
+    } catch (error) {
+      const code = error instanceof Error ? error.message : '';
+      if (code === 'INVENTORY_CAPACITY_EXCEEDED') {
+        showToast(isAr ? 'اكتمل التصنيع، لكن مخزونك ممتلئ. بع بعض الموارد ثم استلم الإنتاج.' : 'Production is ready, but your inventory is full. Sell some items, then collect it.', 'error');
+      } else if (code !== 'MANUFACTURING_JOB_NOT_FINISHED') {
+        showToast(isAr ? 'تعذر استلام الإنتاج. حاول مجدداً.' : 'Could not collect production. Please try again.', 'error');
+      }
+      if (code !== 'INVENTORY_CAPACITY_EXCEEDED') completionAttempted.current = null;
+    }
+  }
+
+  const jobEndsAt = activeJob ? Date.parse(activeJob.ends_at) : 0;
+  const jobRemainingSeconds = activeJob ? Math.max(0, Math.ceil((jobEndsAt - nowMs) / 1000)) : 0;
+  const jobReady = Boolean(activeJob && jobRemainingSeconds === 0);
+
+  useEffect(() => {
+    if (activeJob && jobReady && completionAttempted.current !== activeJob.id) {
+      void finishJob(activeJob, true);
+    }
+  }, [activeJob, jobReady]);
 
   async function handleManufacture(recipeId: string) {
     const batches = Math.max(1, Math.min(999, Math.floor(quantity || 1)));
     setBusyKey(recipeId);
     try {
-      await manufactureRecipe(profile.uid, recipeId, batches);
-      showToast(language === 'ar' ? 'تم الإنتاج بنجاح!' : 'Production completed!', 'success');
+      const job = await manufactureRecipe(profile.uid, recipeId, batches);
+      completionAttempted.current = null;
+      setActiveJob(job);
+      showToast(isAr ? 'بدأ التصنيع. سيصل الإنتاج بعد انتهاء المؤقت.' : 'Production started. Your items will be ready when the timer ends.', 'success');
     } catch (error) {
       const code = error instanceof Error ? error.message : '';
-      showToast(
-        code === 'MISSING_INPUTS'
-          ? (language === 'ar' ? 'المدخلات غير كافية في المخزون.' : 'Insufficient input materials in inventory.')
-          : code === 'INDUSTRY_SKILL_TOO_LOW'
-            ? (language === 'ar' ? 'مستوى مهارة الصناعة غير كافٍ لهذه الوصفة.' : 'Industry skill level too low for this recipe.')
-            : (language === 'ar' ? 'الرصيد غير كافٍ لتكلفة التشغيل.' : 'Insufficient credits for processing cost.'),
-        'error',
-      );
+      const messages: Record<string, string> = {
+        MISSING_INPUTS: isAr ? 'المدخلات غير كافية في المخزون.' : 'Insufficient input materials in inventory.',
+        INDUSTRY_SKILL_TOO_LOW: isAr ? 'مستوى مهارة الصناعة غير كافٍ لهذه الوصفة.' : 'Industry skill level too low for this recipe.',
+        INSUFFICIENT_FUNDS: isAr ? 'الرصيد غير كافٍ لتكلفة التشغيل.' : 'Insufficient credits for processing cost.',
+        MANUFACTURING_JOB_IN_PROGRESS: isAr ? 'لديك عملية تصنيع جارية بالفعل.' : 'You already have a manufacturing job in progress.',
+      };
+      showToast(messages[code] || (isAr ? 'تعذر بدء التصنيع.' : 'Could not start manufacturing.'), 'error');
     } finally {
       setBusyKey(null);
     }
@@ -49,8 +102,8 @@ export function ManufacturingPanel({ profile, wallet, inventory, language, onNav
       <div className="bg-[#141821] border border-white/8 rounded-2xl p-4 space-y-3">
         <div className="flex items-center justify-between gap-3">
           <div>
-            <h2 className="text-sm font-bold text-[#F4F5F7]">{language === 'ar' ? 'كمية التصنيع' : 'Batch quantity'}</h2>
-            <p className="text-xs text-[#9299A6] mt-1">{language === 'ar' ? 'اختر عدد الدفعات لكل وصفة' : 'Choose how many batches to run per recipe'}</p>
+            <h2 className="text-sm font-bold text-[#F4F5F7]">{isAr ? 'كمية التصنيع' : 'Batch quantity'}</h2>
+            <p className="text-xs text-[#9299A6] mt-1">{isAr ? 'اختر عدد الدفعات. مدة الإنتاج تُحسب لكل وحدة.' : 'Choose batch size. Production time is charged per output unit.'}</p>
           </div>
           <span className="text-sm font-mono-num font-bold text-[#E04455]">×{quantity}</span>
         </div>
@@ -60,11 +113,38 @@ export function ManufacturingPanel({ profile, wallet, inventory, language, onNav
           ))}
         </div>
         <label className="block space-y-1.5">
-          <span className="text-xs text-[#9299A6]">{language === 'ar' ? 'أو أدخل كمية مخصصة (1–999)' : 'Or enter a custom quantity (1–999)'}</span>
+          <span className="text-xs text-[#9299A6]">{isAr ? 'أو أدخل كمية مخصصة (1–999)' : 'Or enter a custom quantity (1–999)'}</span>
           <input type="number" min="1" max="999" step="1" value={quantity} onChange={(event) => setQuantity(Math.max(1, Math.min(999, Number(event.target.value) || 1)))} className="w-full min-h-[44px] px-3.5 rounded-xl bg-[#0B0D12] border border-white/10 text-sm text-[#F4F5F7] focus:outline-none focus:border-[#E04455]" />
         </label>
-        <p className="text-[11px] text-[#9299A6]">{language === 'ar' ? 'التصنيع يستهلك المواد الخام ويحوّلها إلى منتجات وسيطة أو نهائية.' : 'Manufacturing consumes raw materials and turns them into intermediate or final goods.'}</p>
+        <p className="text-[11px] text-[#9299A6]">{isAr ? 'الشراء من السوق فوري، أما التصنيع فيستهلك وقتاً ومدخلات وتكلفة تشغيل.' : 'Market purchases are instant; manufacturing consumes time, inputs, and processing credits.'}</p>
       </div>
+
+      {activeJob && (
+        <div className="rounded-2xl border border-[#397BFF]/40 bg-[#111C2E] p-4 space-y-3">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <Timer className="h-5 w-5 text-[#63A5FF]" />
+              <h3 className="text-sm font-bold text-white">{isAr ? 'عملية تصنيع جارية' : 'Manufacturing in progress'}</h3>
+            </div>
+            <span className="text-xs font-mono-num text-[#9CBFFF]">{jobReady ? (isAr ? 'جاهز للاستلام' : 'Ready to collect') : formatDuration(jobRemainingSeconds, isAr)}</span>
+          </div>
+          <div className="flex items-center gap-3">
+            <ResourceIcon itemId={activeJob.output_item_id} size="lg" />
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-white">{ITEM_MAP[activeJob.output_item_id] ? (isAr ? ITEM_MAP[activeJob.output_item_id].nameAr : ITEM_MAP[activeJob.output_item_id].nameEn) : activeJob.output_item_id} ×{activeJob.output_qty}</p>
+              <p className="text-xs text-[#9AAAC7]">{isAr ? 'تُضاف المنتجات بعد الاستلام، حتى لو أغلقت اللعبة.' : 'Output is credited on collection, even if you close the game.'}</p>
+            </div>
+          </div>
+          {jobReady && (
+            <button type="button" onClick={() => void finishJob(activeJob)} className="w-full min-h-[42px] rounded-xl bg-[#397BFF] hover:bg-[#2F6DE0] text-white text-xs font-semibold">
+              {isAr ? 'استلام الإنتاج' : 'Collect production'}
+            </button>
+          )}
+        </div>
+      )}
+
+      {jobLoading && <p className="text-xs text-[#9299A6]">{isAr ? 'جارٍ تحميل حالة التصنيع…' : 'Loading manufacturing status…'}</p>}
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {MANUFACTURING_RECIPES.map((recipe) => {
           const output = ITEM_MAP[recipe.outputItemId];
@@ -77,14 +157,16 @@ export function ManufacturingPanel({ profile, wallet, inventory, language, onNav
           const outputValue = output.basePrice * recipe.outputQty * quantity;
           const inputValue = recipe.inputs.reduce((sum, input) => sum + (ITEM_MAP[input.itemId]?.basePrice || 0) * input.qty * quantity, 0);
           const margin = outputValue - inputValue - totalCost;
+          const secondsPerUnit = output.tier === 'final' ? 60 : 30;
+          const processingSeconds = secondsPerUnit * recipe.outputQty * quantity;
           return (
             <article key={recipe.id} className="bg-[#141821] border border-white/8 rounded-2xl p-5 flex flex-col justify-between gap-4">
               <div className="flex items-start justify-between gap-3">
                 <div className="flex min-w-0 items-center gap-3">
                   <ResourceIcon itemId={recipe.outputItemId} size="lg" />
                   <div className="min-w-0">
-                    <h3 className="text-base font-bold text-[#EAF1FF]">{language === 'ar' ? output.nameAr : output.nameEn} ×{recipe.outputQty * quantity}</h3>
-                    <p className="text-xs text-[#9AAAC7] mt-0.5">{language === 'ar' ? 'مهارة الصناعة المطلوبة:' : 'Required Industry:'} <span className="font-mono-num text-[#F4F5F7]">Lv.{recipe.requiredIndustrySkill}</span> · +{recipe.xpReward * quantity} XP</p>
+                    <h3 className="text-base font-bold text-[#EAF1FF]">{isAr ? output.nameAr : output.nameEn} ×{recipe.outputQty * quantity}</h3>
+                    <p className="text-xs text-[#9AAAC7] mt-0.5">{isAr ? 'مهارة الصناعة المطلوبة:' : 'Required Industry:'} <span className="font-mono-num text-[#F4F5F7]">Lv.{recipe.requiredIndustrySkill}</span> · +{recipe.xpReward * quantity} XP</p>
                   </div>
                 </div>
                 <Factory className="w-5 h-5 text-[#63A5FF] shrink-0" />
@@ -95,17 +177,18 @@ export function ManufacturingPanel({ profile, wallet, inventory, language, onNav
                   const owned = inventoryMap.get(input.itemId) || 0;
                   const required = input.qty * quantity;
                   const enough = owned >= required;
-                  return <div key={input.itemId} className="flex items-center justify-between text-xs"><span className="flex min-w-0 items-center gap-2 text-[#9AAAC7]">{item && <ResourceIcon itemId={input.itemId} size="sm" />}{item ? (language === 'ar' ? item.nameAr : item.nameEn) : input.itemId}</span><span className={`font-mono-num font-semibold ${enough ? 'text-emerald-400' : 'text-rose-300'}`}>{owned} / {required}</span></div>;
+                  return <div key={input.itemId} className="flex items-center justify-between text-xs"><span className="flex min-w-0 items-center gap-2 text-[#9AAAC7]">{item && <ResourceIcon itemId={input.itemId} size="sm" />}{item ? (isAr ? item.nameAr : item.nameEn) : input.itemId}</span><span className={`font-mono-num font-semibold ${enough ? 'text-emerald-400' : 'text-rose-300'}`}>{owned} / {required}</span></div>;
                 })}
                 <div className="flex items-center justify-between text-xs pt-2 border-t border-white/6"><span className="text-[#9299A6]">{t.processingCost}</span><span className="font-mono-num font-semibold text-[#F4F5F7]">${totalCost.toLocaleString()}</span></div>
+                <div className="flex items-center justify-between text-xs"><span className="text-[#9299A6]">{isAr ? 'مدة التصنيع' : 'Production time'}</span><span className="font-mono-num font-semibold text-[#F4F5F7]">{formatDuration(processingSeconds, isAr)}</span></div>
                 <div className="flex items-center justify-between text-xs"><span className="text-[#9299A6]">{t.estMarketValue}</span><span className="font-mono-num text-[#F4F5F7]">~${outputValue.toLocaleString()}</span></div>
                 <div className="flex items-center justify-between text-xs"><span className="text-[#9299A6]">{t.estNetMargin}</span><span className={`font-mono-num font-semibold ${margin >= 0 ? 'text-emerald-400' : 'text-[#E04455]'}`}>{margin >= 0 ? '+' : ''}{margin.toLocaleString()}</span></div>
               </div>
               <div className="flex items-center gap-2.5">
-                <button type="button" disabled={!hasSkill || !hasInputs || !canAfford || busyKey === recipe.id} onClick={() => void handleManufacture(recipe.id)} className="flex-1 min-h-[44px] px-4 rounded-xl bg-[#397BFF] hover:bg-[#63A5FF] text-white text-xs font-semibold transition-colors disabled:bg-[#162642] disabled:text-[#9AAAC7]">
-                  {busyKey === recipe.id ? '...' : !hasSkill ? (language === 'ar' ? 'مهارة غير كافية' : 'Skill too low') : !hasInputs ? t.missingInputs : !canAfford ? (language === 'ar' ? 'رصيد غير كافٍ' : 'Insufficient balance') : (language === 'ar' ? `تصنيع ×${quantity}` : `Produce ×${quantity}`)}
+                <button type="button" disabled={jobLoading || Boolean(activeJob) || !hasSkill || !hasInputs || !canAfford || busyKey === recipe.id} onClick={() => void handleManufacture(recipe.id)} className="flex-1 min-h-[44px] px-4 rounded-xl bg-[#397BFF] hover:bg-[#63A5FF] text-white text-xs font-semibold transition-colors disabled:bg-[#162642] disabled:text-[#9AAAC7]">
+                  {busyKey === recipe.id ? '...' : activeJob ? (isAr ? 'انتظر انتهاء التصنيع' : 'Manufacturing busy') : !hasSkill ? (isAr ? 'مهارة غير كافية' : 'Skill too low') : !hasInputs ? t.missingInputs : !canAfford ? (isAr ? 'رصيد غير كافٍ' : 'Insufficient balance') : (isAr ? `بدء التصنيع ×${quantity}` : `Start ×${quantity}`)}
                 </button>
-                {!hasInputs && <button type="button" onClick={onNavigateToExchange} className="min-h-[44px] px-3.5 rounded-xl bg-[#1B2230] hover:bg-[#232C3E] text-[#F4F5F7] text-xs font-medium whitespace-nowrap">{language === 'ar' ? 'شراء المواد' : 'Buy materials'}</button>}
+                {!hasInputs && !activeJob && <button type="button" onClick={onNavigateToExchange} className="min-h-[44px] px-3.5 rounded-xl bg-[#1B2230] hover:bg-[#232C3E] text-[#F4F5F7] text-xs font-medium whitespace-nowrap">{isAr ? 'شراء المواد' : 'Buy materials'}</button>}
               </div>
             </article>
           );
