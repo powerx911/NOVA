@@ -8,7 +8,7 @@ import { useToast } from '../../components/ui/ToastProvider';
 import { ITEM_MAP } from '../../data/catalog';
 import { useTranslations } from '../../i18n/translations';
 import {
-  acceptDynamicContract, abandonDynamicContract, claimDynamicContract,
+  acceptDynamicContract, abandonDynamicContract, claimDynamicContract, refreshDynamicContract,
   deliverDynamicContract, getDynamicContractBoard,
 } from '../../services/gameService';
 import type {
@@ -122,15 +122,15 @@ export function DynamicContractsPanel({ profile, inventory, wallet, language }: 
     };
   }, [refresh]);
 
-  async function runAction(contract: DynamicContractOffer, action: 'accept' | 'deliver' | 'abandon' | 'claim') {
+  async function runAction(contract: DynamicContractOffer, action: 'accept' | 'deliver' | 'abandon' | 'claim' | 'refresh') {
     setBusyId(contract.id);
     try {
-      if (action === 'accept') await acceptDynamicContract(contract.id);
+      if (action === 'accept') await acceptDynamicContract(contract.id);\n      if (action === 'refresh') await refreshDynamicContract(contract.id);
       if (action === 'deliver') await deliverDynamicContract(contract.id);
       if (action === 'abandon') await abandonDynamicContract(contract.id);
       if (action === 'claim') await claimDynamicContract(contract.id);
       const messages = {
-        accept: language === 'ar' ? 'تم استلام العقد وبدأت المهلة.' : 'Contract accepted. The deadline has started.',
+        accept: language === 'ar' ? 'تم استلام العقد وبدأت المهلة.' : 'Contract accepted. The deadline has started.',\n        refresh: language === 'ar' ? 'تم تجديد العقد، وستُملأ الخانة بعد 15 دقيقة.' : 'Contract refreshed. The slot will refill in 15 minutes.',
         deliver: language === 'ar' ? 'تم تسليم المواد وبدأت المعالجة.' : 'Materials delivered. Processing has started.',
         abandon: language === 'ar' ? 'تم التخلي عن العقد.' : 'Contract abandoned.',
         claim: language === 'ar' ? 'تم استلام مكافأة العقد.' : 'Contract reward claimed.',
@@ -140,7 +140,7 @@ export function DynamicContractsPanel({ profile, inventory, wallet, language }: 
     } catch (error) {
       const code = error instanceof Error ? error.message : '';
       const messages: Record<string, [string, string]> = {
-        DAILY_CONTRACT_LIMIT_REACHED: ['استهلكت فرص العقود الخمس لهذا اليوم.', 'You have used all five contract attempts today.'],
+        DAILY_CONTRACT_LIMIT_REACHED: ['استهلكت فرص العقود الخمس لهذا اليوم.', 'You have used all five contract attempts today.'],\n        CONTRACT_REFRESH_LIMIT_REACHED: ['استهلكت عدد مرات التجديد المسموح لهذا اليوم.', 'You have used all refreshes allowed for today.'],\n        ORG_REFRESH_PERMISSION_REQUIRED: ['تجديد عقود المنظمة متاح للقائد ونائبه فقط.', 'Only the leader and deputy can refresh organization contracts.'],\n        CONTRACT_NOT_REFRESHABLE: ['لا يمكن تجديد هذا العقد الآن.', 'This contract cannot be refreshed now.'],
         ACTIVE_CONTRACT_LIMIT: ['لديك 3 عقود شخصية نشطة بالفعل.', 'You already have three active personal contracts.'],
         ORG_ACTIVE_CONTRACT_LIMIT: ['لديك عقد منظمة نشط بالفعل.', 'You already have an active organization contract.'],
         ORG_MEMBERSHIP_TOO_NEW: ['يجب أن تمر 8 ساعات على عضويتك في المنظمة.', 'Organization membership must be at least 8 hours old.'],
