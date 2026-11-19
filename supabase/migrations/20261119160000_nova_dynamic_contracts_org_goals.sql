@@ -530,9 +530,13 @@ declare
   v_org nexora.organizations%rowtype;
   v_active integer;
   v_progression jsonb;
+  v_tier_rules jsonb;
   v_daily_limit integer;
   v_active_limit integer;
   v_join_hours integer;
+  v_min_hours integer;
+  v_max_hours integer;
+  v_deadline_hours integer;
   v_today date:=(now() at time zone 'UTC')::date;
   v_used integer;
   v_now timestamptz:=now();
@@ -546,6 +550,7 @@ begin
   v_daily_limit:=coalesce((v_progression->>'daily_claim_limit')::integer,5);
   v_active_limit:=coalesce((v_progression->>'active_personal_limit')::integer,3);
   v_join_hours:=coalesce((v_progression->>'org_join_hours')::integer,8);
+  select config_value into v_tier_rules from nexora.contract_config where config_key='tier_rules';
   select * into v_contract from nexora.contract_offers where id=p_contract_id;
   if not found then raise exception 'CONTRACT_NOT_FOUND'; end if;
   perform nexora.settle_dynamic_contracts(p_uid);
@@ -585,15 +590,11 @@ begin
   if v_used>=v_daily_limit then raise exception 'DAILY_CONTRACT_LIMIT_REACHED'; end if;
   update nexora.contract_daily_limits set used_count=used_count+1,updated_at=v_now
     where user_id=p_uid and date_key=v_today;
+  v_min_hours:=coalesce((v_tier_rules->v_contract.tier->>'min_hours')::integer,3);
+  v_max_hours:=coalesce((v_tier_rules->v_contract.tier->>'max_hours')::integer,v_min_hours);
+  v_deadline_hours:=v_min_hours+floor(random()*greatest(1,v_max_hours-v_min_hours+1))::integer;
   update nexora.contract_offers set status='accepted',accepted_at=v_now,
-    deadline_at=v_now+make_interval(hours=>(
-      (select (config_value->'tier_rules'->v_contract.tier->>'min_hours')::integer
-       from nexora.contract_config where config_key='tier_rules')
-      +floor(random()*(
-        (select (config_value->'tier_rules'->v_contract.tier->>'max_hours')::integer
-         from nexora.contract_config where config_key='tier_rules')
-        -(select (config_value->'tier_rules'->v_contract.tier->>'min_hours')::integer
-         from nexora.contract_config where config_key='tier_rules')+1))::integer),
+    deadline_at=v_now+make_interval(hours=>v_deadline_hours),
     claimed_by=case when v_contract.scope='organization' then p_uid else null end,
     updated_at=v_now where id=p_contract_id;
   if v_contract.scope='personal' and v_contract.board_date=v_today and
