@@ -3,7 +3,7 @@
 create extension if not exists pgtap with schema extensions;
 
 begin;
-select extensions.plan(19);
+select extensions.plan(23);
 
 select extensions.ok(
   not exists (select 1 from nexora.wallets where balance < 0),
@@ -141,6 +141,57 @@ select extensions.ok(
   and position('reputation=reputation+' in lower(pg_get_functiondef('nexora.buy_market_listing(text,text,integer)'::regprocedure)))=0
   and position('influence=influence+' in lower(pg_get_functiondef('nexora.buy_market_listing(text,text,integer)'::regprocedure)))=0,
   'market purchases lock wallets deterministically and grant no XP, reputation, or influence'
+);
+
+
+-- Exercise the auction triggers with isolated fixtures (the surrounding transaction rolls back).
+insert into nexora.wallets(user_id,balance,total_earned,total_spent)
+values ('pgtap_auction_seller',1000,1000,0);
+
+insert into nexora.company_auctions(
+  id,company_name,company_sector,company_level,seller_uid,seller_name,
+  starting_price,current_price,highest_bidder_uid,highest_bidder_name,ends_at,status
+) values (
+  'pgtap_sale_fee','pgTAP sale fee','test',1,'pgtap_auction_seller','Seller',
+  1000,1000,'pgtap_auction_bidder','Bidder',now()-interval '1 minute','active'
+);
+
+update nexora.company_auctions set status='sold',winning_bid=1000
+where id='pgtap_sale_fee';
+
+select extensions.is(
+  (select balance from nexora.wallets where user_id='pgtap_auction_seller'),
+  960::bigint,
+  'auction sale trigger deducts exactly four percent from the seller proceeds'
+);
+
+select extensions.ok(
+  (select last_tx_id like 'tx_%' from nexora.wallets where user_id='pgtap_auction_seller'),
+  'auction seller fee updates the wallet transaction pointer'
+);
+
+select extensions.is(
+  (select amount from nexora.transactions where reference_id='pgtap_sale_fee' and type='auction_fee'),
+  40::bigint,
+  'auction seller fee is recorded in the immutable transaction ledger'
+);
+
+insert into nexora.company_auctions(
+  id,company_name,company_sector,company_level,seller_uid,seller_name,
+  starting_price,current_price,ends_at,status
+) values (
+  'pgtap_anti_sniping','pgTAP anti-sniping','test',1,'pgtap_auction_seller','Seller',
+  100,100,now()+interval '2 minutes','active'
+);
+
+update nexora.company_auctions
+set current_price=101,highest_bidder_uid='pgtap_auction_bidder',highest_bidder_name='Bidder'
+where id='pgtap_anti_sniping';
+
+select extensions.ok(
+  (select ends_at>now()+interval '4 minutes' and ends_at<=now()+interval '5 minutes'
+   from nexora.company_auctions where id='pgtap_anti_sniping'),
+  'a bid in the final five minutes extends the auction close to five minutes from now'
 );
 
 select * from extensions.finish();
