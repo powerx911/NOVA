@@ -33,7 +33,8 @@ do $$
 declare v_def text;
 begin
   select pg_get_functiondef('nexora.ensure_org_weekly_goals(text)'::regprocedure) into v_def;
-  v_def:=replace(v_def,$old$v_count integer;$old$,$new$v_count integer;\n  v_existing text[];$new$);
+  v_def:=replace(v_def,$old$v_count integer;$old$,$new$v_count integer;
+  v_existing text[];$new$);
   v_def:=replace(v_def,
     $old$v_types text[] := array['produce_units','trade_volume','contracts_completed','treasury_donations'];$old$,
     $new$v_types text[] := array['produce_units','trade_volume','treasury_donations','personal_contracts_completed','org_contracts_completed','company_revenue','factory_upgrades','company_upgrades','companies_founded','factories_founded'];$new$);
