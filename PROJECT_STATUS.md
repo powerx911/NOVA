@@ -46,7 +46,7 @@ The inventory screen already renders the shared `ResourceIcon` for each resource
 
 ## Migration safety blocker
 
-The live Supabase migration history contains 42 applied records, while the repository currently contains 31 migration SQL files. Several filenames do not match the version recorded remotely, and some applied records have no corresponding local migration file. **Do not run `supabase db push` or migration repair until the full mapping is reconciled and tested on the isolated branch.** This is a release blocker, not a documentation-only issue.
+A read-only audit found 42 applied Supabase migration records versus 31 local SQL files: 21 names exist on both sides, 14 of those still have timestamp mismatches, 10 local names are not in the applied history, and 21 applied migrations have no local SQL source. PR #57 corrected the known `nova_skill_reset_and_factories` timestamp mismatch. The complete mapping is still unresolved. **Do not run `supabase db push` or migration repair.** The current Supabase branch listing returns the production project reference itself, so it is not treated as an isolated write-safe test database. Recover missing SQL, map every shared migration to its applied version, and verify a genuinely isolated branch before any database rollout.
 
 ## Test and release gates
 

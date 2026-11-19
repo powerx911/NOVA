@@ -77,13 +77,59 @@ The production project currently has **34 tables** in schema `nexora`, all with 
 - A live read-only check on 2026-11-19 found no negative wallets and no difference between reconstructed ledger balances and the three existing wallet balances.
 - Factory pause is server-side: `set_factory_active` synchronizes the elapsed active production before setting `is_active = false`. A subsequent sync while paused must not charge a second operating cost.
 
-## Migrations: do not push until reconciled
+## Migrations: release blocker — do not push
 
-The live Supabase migration history currently contains **42 applied records**, while the repository has **31 SQL files** under `supabase/migrations`. Several local filename versions do not match the corresponding applied versions, and some applied migration records have no corresponding local file. A blind `supabase db push` could replay an already-applied migration or fail on an existing object.
+A read-only comparison on 2026-11-19 found **42 applied records** in Supabase and **31 SQL files** in the repository. Matching by migration name (not timestamp alone) gives:
 
-- The latest migration-history audit was read-only; production was not changed.
-- No migration should be applied to production until every local file is mapped to its live version/name or deliberately archived, missing applied records are reconciled, and the full sequence is tested on the isolated Supabase branch.
-- Do not use `migration repair` or empty placeholder migrations as a shortcut without first proving the SQL content and fresh-database behavior.
+| Audit result | Count |
+|---|---:|
+| Applied migration records | 42 |
+| Local SQL files | 31 |
+| Names present both locally and remotely | 21 |
+| Shared names whose local timestamp still differs from the applied version | 14 |
+| Local-only migration names not found in applied history | 10 |
+| Applied migration names with no local SQL source file | 21 |
+
+The known `nova_skill_reset_and_factories` filename mismatch was corrected in PR #57; the counts above include that correction. The remaining mismatches must be reconciled individually. The 10 local-only names and 21 remote-only names mean the migration folder is not yet a faithful representation of production history. A blind `supabase db push` can replay an already-applied change, apply an unreviewed local migration, or fail on an existing object.
+
+**Local-only names (not present in the applied history):**
+- `nexora_companies_properties`
+- `nexora_company_vault_rpcs`
+- `nexora_contract_rpc`
+- `nexora_economy_rpcs`
+- `nexora_manufacturing_rpc`
+- `nexora_market_rpcs`
+- `nexora_player_settings_notifications`
+- `nexora_seed_world`
+- `nova_advanced_resource_recipes`
+- `nova_factory_business_auctions`
+
+**Applied names missing a local SQL source file:**
+- `20261118151500_harden_player_rpc_schema`
+- `20261118160000_nova_player_core`
+- `add_advanced_resource_manufacturing_recipes`
+- `balance_advanced_resource_recipe_costs`
+- `correct_market_purchase_rewards`
+- `nexora_character_creation_rpc`
+- `nexora_core_schema_v1`
+- `nexora_firebase_identity_boundary`
+- `nexora_username_compatibility`
+- `nova_competitive_core`
+- `nova_competitive_duels`
+- `nova_factory_auction_capacity_reservations`
+- `nova_factory_auction_support`
+- `nova_factory_profit_margin_v2`
+- `nova_factory_warehouse_and_level_100`
+- `nova_market_fk_indexes`
+- `nova_remove_property_achievement_path`
+- `nova_shared_market`
+- `remove_legacy_nova_functions`
+- `remove_legacy_nova_game_tables`
+- `remove_market_purchase_reputation_influence`
+
+- The migration-history audit was read-only; production was not changed.
+- Do not run `supabase db push`, `migration repair`, or create empty placeholder migrations until the missing SQL is recovered or explicitly accounted for, every shared migration is mapped to its applied version, and the complete sequence is tested on a genuinely isolated branch.
+- The Supabase branch listing currently reports the same project reference as production, so it is **not considered safe for writes or pgTAP execution**. Do not use it as a test target until Supabase confirms a separate branch project reference.
 
 ## Testing
 
