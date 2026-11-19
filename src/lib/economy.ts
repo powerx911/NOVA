@@ -474,7 +474,7 @@ export function sanitizePositiveInt(raw: unknown, fallback = 1, max = Number.MAX
 }
 
 export function getMissionProgress(
-  metric: 'trades' | 'companies' | 'produced' | 'level' | 'org',
+  metric: 'trades' | 'companies' | 'produced' | 'level' | 'org' | 'properties',
   profile: {
     level: number;
     orgId?: string | null;
@@ -494,6 +494,8 @@ export function getMissionProgress(
       return profile.stats.totalProduced;
     case 'org':
       return profile.orgId ? 1 : 0;
+    case 'properties':
+      return profile.stats.propertiesOwned ?? 0;
     case 'level':
     default:
       return profile.level;
