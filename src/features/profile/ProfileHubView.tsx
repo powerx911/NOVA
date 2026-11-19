@@ -659,7 +659,7 @@ export function ProfileHubView({
                   return (
                     <article key={ach.id} className={`rounded-xl border p-3.5 space-y-3 ${unlocked ? 'bg-[#1B2230] border-emerald-400/30' : 'bg-[#0B0D12] border-white/8'}`}>
                       <div className="flex items-center gap-3">
-                        <div className={`w-12 h-12 shrink-0 rounded-2xl border flex flex-col items-center justify-center ${medalColor}`}>
+                        <div className={`w-12 h-12 shrink-0 rounded-2xl border flex flex-col items-center justify-center ${unlocked ? medalColor : 'text-[#77808F] border-white/10 bg-[#141821]'}`}>
                           <Medal className="w-6 h-6" />
                           <span className="text-[9px] font-black leading-none">{roman}</span>
                         </div>
