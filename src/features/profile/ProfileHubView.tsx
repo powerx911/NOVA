@@ -23,6 +23,7 @@ import {
   updatePlayerSettings,
   upgradeSkill,
   resetSkills,
+  refreshPlayerAchievements,
 } from '../../services/gameService';
 import type {
   Company,
@@ -33,6 +34,7 @@ import type {
   ProfileSubTab,
   SkillKey,
   UserPrivate,
+  Wallet,
 } from '../../types/game';
 
 const DiagnosticsView = lazy(() =>
@@ -41,6 +43,7 @@ const DiagnosticsView = lazy(() =>
 
 interface ProfileHubViewProps {
   profile: PlayerProfile;
+  wallet: Wallet | null;
   userPrivate: UserPrivate | null;
   claimedMissions: PlayerMissionClaim[];
   unlockedAchievements: Set<string>;
@@ -52,6 +55,7 @@ interface ProfileHubViewProps {
 
 export function ProfileHubView({
   profile,
+  wallet,
   userPrivate,
   claimedMissions,
   unlockedAchievements,
@@ -64,6 +68,7 @@ export function ProfileHubView({
   const { showToast } = useToast();
 
   const [subTab, setSubTab] = useState<ProfileSubTab>('overview');
+  const [nowMs, setNowMs] = useState(() => Date.now());
   const [isOwnerAuthorized, setIsOwnerAuthorized] = useState(false);
   const [busyKey, setBusyKey] = useState<string | null>(null);
   const [lbTab, setLbTab] = useState<'players' | 'companies' | 'orgs'>('players');
@@ -85,6 +90,17 @@ export function ProfileHubView({
   const [buttonSoundEnabled, setButtonSoundEnabled] = useState(() => {
     try { return window.localStorage.getItem('nexora-button-sound') !== 'off'; } catch { return true; }
   });
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setNowMs(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
+    if (subTab === 'achievements') {
+      void refreshPlayerAchievements().catch(() => undefined);
+    }
+  }, [subTab, profile.uid]);
 
   const claimedSet = new Set(claimedMissions.filter((m) => (m.periodKey ?? 'lifetime') === getMissionPeriodKey(m.missionId)).map((m) => m.missionId));
   const getProgress = (mission: (typeof MISSIONS)[number]) => mission.id === 'daily_active_trader'
@@ -312,6 +328,7 @@ export function ProfileHubView({
     { id: 'overview', label: t.subOverview },
     { id: 'skills', label: t.subSkills },
     { id: 'missions', label: t.subMissions },
+    { id: 'achievements', label: t.achievementsTitle },
     { id: 'rankings', label: t.subRankings },
     { id: 'settings', label: t.subSettings },
     ...(isOwnerAuthorized ? [{ id: 'diagnostics' as const, label: t.subDiagnostics }] : []),
@@ -455,51 +472,6 @@ export function ProfileHubView({
             })()}
           </div>
 
-          <div className="bg-[#141821] border border-white/8 rounded-2xl p-5 space-y-3">
-            <div className="flex items-center justify-between">
-              <h2 className="text-base font-semibold text-[#F4F5F7]">{t.achievementsTitle}</h2>
-              <Trophy className="w-4 h-4 text-[#E04455]" />
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {ACHIEVEMENTS.map((ach) => {
-                const unlocked = unlockedAchievements.has(ach.id);
-                const val = getAchievementProgress(ach.metric, profile);
-                const pct = Math.min(100, Math.round((Math.min(val, ach.threshold) / ach.threshold) * 100));
-                return (
-                  <div
-                    key={ach.id}
-                    className={`p-3.5 rounded-xl border space-y-2 ${
-                      unlocked
-                        ? 'bg-[#1B2230] border-[#B91C32]/40'
-                        : 'bg-[#0B0D12] border-white/6'
-                    }`}
-                  >
-                    <div className="flex items-start justify-between gap-2">
-                      <div>
-                        <p className="text-sm font-semibold text-[#F4F5F7]">
-                          {language === 'ar' ? ach.titleAr : ach.titleEn}
-                        </p>
-                        <p className="text-xs text-[#9299A6] mt-0.5">
-                          {language === 'ar' ? ach.descriptionAr : ach.descriptionEn}
-                        </p>
-                      </div>
-                      <span className="text-xs font-mono-num text-[#9299A6] shrink-0">
-                        {Math.min(val, ach.threshold)}/{ach.threshold}
-                      </span>
-                    </div>
-                    <div className="h-1.5 rounded-full bg-[#141821] overflow-hidden">
-                      <div
-                        className={`h-full rounded-full transition-all duration-300 ${
-                          unlocked ? 'bg-emerald-500' : 'bg-[#B91C32]'
-                        }`}
-                        style={{ width: `${pct}%` }}
-                      />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
         </div>
       )}
 
@@ -568,58 +540,645 @@ export function ProfileHubView({
 
       {/* 3. MISSIONS */}
       {subTab === 'missions' && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {MISSIONS.map((m) => {
-            const isClaimed = claimedSet.has(m.id);
-            const val = getProgress(m);
-            const pct = Math.min(100, Math.round((Math.min(val, m.targetCount) / m.targetCount) * 100));
-            const ready = val >= m.targetCount && !isClaimed;
-
+        <div className="space-y-6">
+          {(['daily', 'weekly', 'seasonal', 'tutorial'] as const).map((category) => {
+            const missions = MISSIONS.filter((mission) =>
+              mission.category === category && !(category === 'tutorial' && claimedSet.has(mission.id))
+            );
+            if (!missions.length) return null;
+            const nextDaily = new Date(nowMs);
+            const dailyReset = Date.UTC(nextDaily.getUTCFullYear(), nextDaily.getUTCMonth(), nextDaily.getUTCDate() + 1);
+            const weekday = new Date(nowMs).getUTCDay();
+            const daysToMonday = (8 - weekday) % 7 || 7;
+            const weeklyReset = Date.UTC(nextDaily.getUTCFullYear(), nextDaily.getUTCMonth(), nextDaily.getUTCDate() + daysToMonday);
+            const nextQuarterMonth = (Math.floor(nextDaily.getUTCMonth() / 3) + 1) * 3;
+            const seasonalReset = Date.UTC(nextDaily.getUTCFullYear(), nextQuarterMonth, 1);
+            const resetAt = category === 'daily' ? dailyReset : category === 'weekly' ? weeklyReset : seasonalReset;
+            const remaining = Math.max(0, resetAt - nowMs);
+            const seconds = Math.floor(remaining / 1000);
+            const days = Math.floor(seconds / 86400);
+            const hours = Math.floor((seconds % 86400) / 3600);
+            const minutes = Math.floor((seconds % 3600) / 60);
+            const secs = seconds % 60;
+            const countdown = [days ? `${days}d` : '', `${String(hours).padStart(2, '0')}h`, `${String(minutes).padStart(2, '0')}m`, `${String(secs).padStart(2, '0')}s`].filter(Boolean).join(' ');
+            const heading = category === 'daily' ? (language === 'ar' ? 'المهام اليومية' : 'Daily Missions')
+              : category === 'weekly' ? (language === 'ar' ? 'المهام الأسبوعية' : 'Weekly Missions')
+              : category === 'seasonal' ? (language === 'ar' ? 'المهام الموسمية' : 'Seasonal Missions')
+              : (language === 'ar' ? 'المهام التعليمية' : 'Tutorial Missions');
             return (
-              <div
-                key={m.id}
-                className="bg-[#141821] border border-white/8 rounded-2xl p-5 flex flex-col justify-between gap-4"
-              >
-                <div className="space-y-1.5">
-                  <div className="flex items-center justify-between gap-2">
-                    <h3 className="text-base font-bold text-[#F4F5F7]">
-                      {language === 'ar' ? m.titleAr : m.titleEn}
-                    </h3>
-                    <Award className="w-4 h-4 text-[#E04455] shrink-0" />
+              <section key={category} className="space-y-3">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <h2 className="text-base font-bold text-[#F4F5F7]">{heading}</h2>
+                  {(category === 'daily' || category === 'weekly' || category === 'seasonal') && (
+                    <span className="text-xs text-amber-200 font-mono-num">
+                      {language === 'ar' ? 'تجدد المهام بعد: ' : 'Resets in: '}{countdown}
+                    </span>
+                  )}
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {missions.map((m) => {
+                    const isClaimed = claimedSet.has(m.id);
+                    const val = getProgress(m);
+                    const pct = Math.min(100, Math.round((Math.min(val, m.targetCount) / m.targetCount) * 100));
+                    const ready = val >= m.targetCount && !isClaimed;
+                    return (
+                      <div key={m.id} className="bg-[#141821] border border-white/8 rounded-2xl p-5 flex flex-col justify-between gap-4">
+                        <div className="space-y-1.5">
+                          <div className="flex items-center justify-between gap-2">
+                            <h3 className="text-base font-bold text-[#F4F5F7]">{language === 'ar' ? m.titleAr : m.titleEn}</h3>
+                            <Award className="w-4 h-4 text-[#E04455] shrink-0" />
+                          </div>
+                          <p className="text-xs text-[#9299A6]">{formatMissionCategory(m.category, language)} · <span className="font-mono-num">{Math.min(val, m.targetCount)}/{m.targetCount}</span></p>
+                          <p className="text-xs text-[#9299A6] pt-0.5 leading-relaxed">{language === 'ar' ? m.descriptionAr : m.descriptionEn}</p>
+                          <div className="h-1.5 rounded-full bg-[#0B0D12] overflow-hidden">
+                            <div className={`h-full rounded-full transition-all duration-300 ${isClaimed || ready ? 'bg-emerald-500' : 'bg-[#B91C32]'}`} style={{ width: `${pct}%` }} />
+                          </div>
+                        </div>
+                        <div className="flex items-center justify-between gap-3 pt-2 border-t border-white/6">
+                          <span className="text-xs font-mono-num text-[#F4F5F7]">+${m.rewardCredits} · +{m.rewardXp} XP · +{m.rewardReputation} {t.reputation}</span>
+                          <button type="button" disabled={!ready || busyKey === `mis_${m.id}`} onClick={() => handleClaimMission(m.id)} className="min-h-[40px] px-4 rounded-xl bg-[#B91C32] hover:bg-[#E04455] text-white text-xs font-semibold disabled:bg-[#1B2230] disabled:text-[#9299A6]">
+                            {isClaimed ? t.claimed : ready ? t.claimReward : t.inProgress}
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </section>
+            );
+          })}
+        </div>
+      )}
+
+      {/* 4. MEDAL ACHIEVEMENTS */}
+      {subTab === 'achievements' && (
+        <div className="space-y-4">
+          <div className="rounded-2xl border border-white/8 bg-[#141821] p-4">
+            <div className="flex items-center gap-2"><Trophy className="w-5 h-5 text-amber-300" /><h2 className="text-base font-bold text-[#F4F5F7]">{t.achievementsTitle}</h2></div>
+            <p className="mt-1 text-xs text-[#9299A6]">{language === 'ar' ? 'كل ميدالية تُمنح مرة واحدة فقط، وتُضاف مكافأتها تلقائياً عند تحقيق الشرط. الميداليات تتدرج من البرونزية حتى البلاتينية.' : 'Each medal and its reward are granted once only when its requirement is reached. Medal tiers progress from Bronze to Platinum.'}</p>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {ACHIEVEMENTS.map((ach) => {
+              const unlocked = unlockedAchievements.has(ach.id);
+              const val = ach.metric === 'spent' ? (wallet?.totalSpent ?? 0) : getAchievementProgress(ach.metric, profile);
+              const pct = Math.min(100, Math.round((Math.min(val, ach.threshold) / ach.threshold) * 100));
+              const medalColor = ach.tier === 'platinum' ? 'text-cyan-200 border-cyan-300/30' : ach.tier === 'gold' ? 'text-amber-300 border-amber-300/30' : ach.tier === 'silver' ? 'text-slate-200 border-slate-300/30' : 'text-orange-300 border-orange-300/30';
+              return (
+                <article key={ach.id} className={`rounded-2xl border p-4 space-y-3 ${unlocked ? 'bg-[#1B2230] border-emerald-400/30' : 'bg-[#141821] border-white/8'}`}>
+                  <div className="flex items-start gap-3">
+                    <div className={`w-11 h-11 shrink-0 rounded-full border flex items-center justify-center ${unlocked ? medalColor : 'text-[#77808F] border-white/10'}`}><Award className="w-5 h-5" /></div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center justify-between gap-2"><h3 className="text-sm font-bold text-[#F4F5F7]">{language === 'ar' ? ach.titleAr : ach.titleEn}</h3><span className={`text-[10px] uppercase ${unlocked ? medalColor.split(' ')[0] : 'text-[#77808F]'}`}>{unlocked ? (language === 'ar' ? 'مكتملة' : 'Earned') : (language === 'ar' ? 'قيد التقدم' : 'In progress')}</span></div>
+                      <p className="mt-1 text-xs text-[#9299A6]">{language === 'ar' ? ach.descriptionAr : ach.descriptionEn}</p>
+                    </div>
                   </div>
-                  <p className="text-xs text-[#9299A6]">
-                    {formatMissionCategory(m.category, language)} ·{' '}
-                    <span className="font-mono-num">{Math.min(val, m.targetCount)}/{m.targetCount}</span>
-                  </p>
-                  <p className="text-xs text-[#9299A6] pt-0.5 leading-relaxed">
-                    {language === 'ar' ? m.descriptionAr : m.descriptionEn}
-                  </p>
-                  <div className="h-1.5 rounded-full bg-[#0B0D12] overflow-hidden pt-0">
+                  <div className="flex items-center justify-between text-xs"><span className="font-mono-num text-[#C2C8D2]">{Math.min(val, ach.threshold).toLocaleString()} / {ach.threshold.toLocaleString()}</span><span className="text-emerald-300">{ach.rewardCredits ? `+${ach.rewardCredits.toLocaleString()} import { Activity, Award, Globe, Lightbulb, LogOut, MessageSquareWarning, ShieldCheck, Sliders, Trash2, Trophy, Volume2, Zap } from 'lucide-react';
+import { lazy, Suspense, useCallback, useEffect, useState } from 'react';
+import { EmailAuthProvider, reauthenticateWithCredential, reauthenticateWithPopup } from 'firebase/auth';
+import { auth, googleAuthProvider } from '../../lib/firebase';
+import { useToast } from '../../components/ui/ToastProvider';
+import { ACHIEVEMENTS, AVATARS, MISSIONS, SKILL_DEFINITIONS } from '../../data/catalog';
+import { formatMissionCategory, useTranslations } from '../../i18n/translations';
+import { getMissionPeriodKey } from '../../lib/missionPeriods';
+import {
+  getAchievementProgress,
+  getMissionProgress,
+  getNextReputationTier,
+  getReputationTier,
+} from '../../lib/economy';
+import {
+  verifyDiagnosticsOwnerAccess,
+  type ClientSnapshotContext,
+} from '../../services/diagnosticsService';
+import {
+  claimMissionReward,
+  fetchLeaderboards,
+  updatePlayerAvatar,
+  updatePlayerSettings,
+  upgradeSkill,
+  resetSkills,
+  refreshPlayerAchievements,
+} from '../../services/gameService';
+import type {
+  Company,
+  Language,
+  Organization,
+  PlayerMissionClaim,
+  PlayerProfile,
+  ProfileSubTab,
+  SkillKey,
+  UserPrivate,
+  Wallet,
+} from '../../types/game';
+
+const DiagnosticsView = lazy(() =>
+  import('../diagnostics/DiagnosticsView').then((m) => ({ default: m.DiagnosticsView }))
+);
+
+interface ProfileHubViewProps {
+  profile: PlayerProfile;
+  wallet: Wallet | null;
+  userPrivate: UserPrivate | null;
+  claimedMissions: PlayerMissionClaim[];
+  unlockedAchievements: Set<string>;
+  diagnosticsContext: ClientSnapshotContext;
+  language: Language;
+  onLanguageChange: (lang: Language) => void;
+  onLogout: () => Promise<void>;
+}
+
+export function ProfileHubView({
+  profile,
+  wallet,
+  userPrivate,
+  claimedMissions,
+  unlockedAchievements,
+  diagnosticsContext,
+  language,
+  onLanguageChange,
+  onLogout,
+}: ProfileHubViewProps) {
+  const t = useTranslations(language);
+  const { showToast } = useToast();
+
+  const [subTab, setSubTab] = useState<ProfileSubTab>('overview');
+  const [nowMs, setNowMs] = useState(() => Date.now());
+  const [isOwnerAuthorized, setIsOwnerAuthorized] = useState(false);
+  const [busyKey, setBusyKey] = useState<string | null>(null);
+  const [lbTab, setLbTab] = useState<'players' | 'companies' | 'orgs'>('players');
+  const [leaderboards, setLeaderboards] = useState<{
+    players: PlayerProfile[];
+    companies: Company[];
+    organizations: Organization[];
+  }>({ players: [], companies: [], organizations: [] });
+  const [lbLoading, setLbLoading] = useState(false);
+  const [lbError, setLbError] = useState(false);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [deletePassword, setDeletePassword] = useState('');
+  const [deleteBusy, setDeleteBusy] = useState(false);
+  const [feedbackText, setFeedbackText] = useState('');
+  const [feedbackBusy, setFeedbackBusy] = useState(false);
+  const [musicVolume, setMusicVolume] = useState(() => {
+    try { const stored = window.localStorage.getItem('nexora-music-volume'); return stored === null ? 22 : Math.round(Math.max(0, Math.min(1, Number(stored))) * 100); } catch { return 22; }
+  });
+  const [buttonSoundEnabled, setButtonSoundEnabled] = useState(() => {
+    try { return window.localStorage.getItem('nexora-button-sound') !== 'off'; } catch { return true; }
+  });
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setNowMs(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
+    if (subTab === 'achievements') {
+      void refreshPlayerAchievements().catch(() => undefined);
+    }
+  }, [subTab, profile.uid]);
+
+  const claimedSet = new Set(claimedMissions.filter((m) => (m.periodKey ?? 'lifetime') === getMissionPeriodKey(m.missionId)).map((m) => m.missionId));
+  const getProgress = (mission: (typeof MISSIONS)[number]) => mission.id === 'daily_active_trader'
+    ? (profile.dailyTradesCount ?? 0)
+    : getMissionProgress(mission.metric, profile);
+  const avatar = AVATARS.find((a) => a.id === profile.avatarId) || AVATARS[0];
+
+  useEffect(() => {
+    verifyDiagnosticsOwnerAccess()
+      .then((res) => setIsOwnerAuthorized(res.authorized))
+      .catch(() => setIsOwnerAuthorized(false));
+  }, [profile.uid]);
+
+  const loadLeaderboards = useCallback(() => {
+    setLbLoading(true);
+    setLbError(false);
+    fetchLeaderboards()
+      .then((res) => setLeaderboards(res))
+      .catch(() => setLbError(true))
+      .finally(() => setLbLoading(false));
+  }, []);
+
+  useEffect(() => {
+    if (subTab !== 'rankings') return;
+    loadLeaderboards();
+  }, [subTab, loadLeaderboards]);
+
+  async function handleAvatarChange(avatarId: string) {
+    if (profile.avatarId === avatarId) return;
+    setBusyKey(`av_${avatarId}`);
+    try {
+      await updatePlayerAvatar(profile.uid, avatarId);
+      showToast(language === 'ar' ? 'تم تحديث الصورة الشخصية.' : 'Avatar updated.', 'success');
+    } catch {
+      showToast(
+        language === 'ar' ? 'تعذر تحديث الصورة الشخصية.' : 'Could not update avatar.',
+        'error'
+      );
+    } finally {
+      setBusyKey(null);
+    }
+  }
+
+  async function handleUpgradeSkill(key: SkillKey) {
+    setBusyKey(`sk_${key}`);
+    try {
+      await upgradeSkill(profile.uid, key);
+      showToast(language === 'ar' ? 'تم تطوير المهارة بنجاح.' : 'Skill upgraded.', 'success');
+    } catch (err) {
+      const code = err instanceof Error ? err.message : '';
+      showToast(
+        code === 'SKILL_MAXED'
+          ? language === 'ar'
+            ? 'وصلت هذه المهارة إلى الحد الأقصى.'
+            : 'This skill is already at maximum level.'
+          : code === 'NO_SKILL_POINTS'
+          ? language === 'ar'
+            ? 'لا توجد نقاط مهارة متاحة.'
+            : 'No skill points available.'
+          : language === 'ar'
+          ? 'تعذر تطوير المهارة.'
+          : 'Could not upgrade skill.',
+        'error'
+      );
+    } finally {
+      setBusyKey(null);
+    }
+  }
+
+  async function handleResetSkills() {
+    if (!window.confirm(language === 'ar'
+      ? 'إعادة تعيين جميع المهارات مقابل 2,500؟ ستعود نقاط المهارات التي أنفقتها إلى رصيدك.'
+      : 'Reset all skills for 2,500? All spent skill points will be refunded.')) return;
+    setBusyKey('reset_skills');
+    try {
+      await resetSkills(profile.uid);
+      showToast(language === 'ar' ? 'تمت إعادة تعيين المهارات وإرجاع النقاط.' : 'Skills reset and points refunded.', 'success');
+    } catch (err) {
+      const code = err instanceof Error ? err.message : '';
+      showToast(code === 'INSUFFICIENT_FUNDS'
+        ? (language === 'ar' ? 'تحتاج إلى 2,500 لإعادة تعيين المهارات.' : 'You need 2,500 credits to reset skills.')
+        : code === 'NO_SKILLS_TO_RESET'
+        ? (language === 'ar' ? 'لا توجد مهارات مطوّرة لإعادة تعيينها.' : 'There are no upgraded skills to reset.')
+        : (language === 'ar' ? 'تعذر إعادة تعيين المهارات.' : 'Could not reset skills.'), 'error');
+    } finally {
+      setBusyKey(null);
+    }
+  }
+
+  async function handleClaimMission(missionId: string) {
+    setBusyKey(`mis_${missionId}`);
+    try {
+      await claimMissionReward(profile.uid, missionId);
+      showToast(language === 'ar' ? 'تم استلام المكافأة.' : 'Reward claimed.', 'success');
+    } catch (err) {
+      const code = err instanceof Error ? err.message : '';
+      showToast(
+        code === 'MISSION_ALREADY_CLAIMED'
+          ? language === 'ar'
+            ? 'تم استلام مكافأة هذه المهمة بالفعل.'
+            : 'Mission reward already claimed.'
+          : code === 'MISSION_NOT_COMPLETE'
+          ? language === 'ar'
+            ? 'المهمة لم تكتمل بعد.'
+            : 'Mission requirements not yet met.'
+          : language === 'ar'
+          ? 'تعذر استلام المكافأة.'
+          : 'Could not claim reward.',
+        'error'
+      );
+    } finally {
+      setBusyKey(null);
+    }
+  }
+
+  async function handleLanguageToggle(nextLang: Language) {
+    onLanguageChange(nextLang);
+    try {
+      await updatePlayerSettings(
+        profile.uid,
+        nextLang,
+        userPrivate?.notificationsEnabled ?? true
+      );
+    } catch {
+      // Persisted locally as fallback
+    }
+  }
+
+
+
+  async function handleDeleteAccount() {
+    const user = auth.currentUser;
+    if (!user) return;
+    const providers = user.providerData.map((provider) => provider.providerId);
+    if (!user.isAnonymous && providers.includes('password') && !deletePassword) {
+      showToast(language === 'ar' ? 'أدخل كلمة المرور لتأكيد هويتك.' : 'Enter your password to confirm your identity.', 'error');
+      return;
+    }
+    setDeleteBusy(true);
+    try {
+      if (user.isAnonymous) {
+        // A newly-created anonymous session is already the active identity.
+      } else if (providers.includes('password') && user.email) {
+        await reauthenticateWithCredential(user, EmailAuthProvider.credential(user.email, deletePassword));
+      } else if (providers.includes('google.com')) {
+        await reauthenticateWithPopup(user, googleAuthProvider);
+      } else {
+        throw new Error('REAUTHENTICATION_REQUIRED');
+      }
+      const token = await user.getIdToken(true);
+      const response = await fetch('/api/account-delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+        body: JSON.stringify({ confirm: true }),
+      });
+      const result = await response.json().catch(() => ({})) as { error?: string };
+      if (!response.ok) throw new Error(result.error || 'ACCOUNT_DELETE_FAILED');
+      setDeleteConfirmOpen(false);
+      showToast(language === 'ar' ? 'تم حذف الحساب وبيانات اللعب.' : 'Your account and game data have been deleted.', 'success');
+      await onLogout();
+    } catch (error) {
+      const code = error instanceof Error ? error.message : '';
+      const message = code === 'LEADER_MUST_TRANSFER'
+        ? (language === 'ar' ? 'انقل قيادة منظمتك أولاً قبل حذف الحساب.' : 'Transfer your organization leadership before deleting this account.')
+        : code === 'REAUTHENTICATION_REQUIRED' || code.includes('auth/requires-recent-login')
+        ? (language === 'ar' ? 'سجّل الدخول من جديد ثم أعد محاولة الحذف.' : 'Sign in again, then retry account deletion.')
+        : (language === 'ar' ? 'تعذر حذف الحساب بالكامل. لم يتم تأكيد الحذف.' : 'Account deletion could not be completed. No success was reported.');
+      showToast(message, 'error');
+    } finally {
+      setDeleteBusy(false);
+    }
+  }
+
+  async function handleFeedbackSubmit(type: 'issue' | 'suggestion') {
+    const message = feedbackText.trim();
+    if (message.length < 10 || message.length > 3000) {
+      showToast(language === 'ar' ? 'اكتب وصفاً من 10 إلى 3000 حرف.' : 'Enter 10–3000 characters.', 'error');
+      return;
+    }
+    setFeedbackBusy(true);
+    try {
+      const response = await fetch('/api/game-feedback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type, message }),
+      });
+      const result = await response.json().catch(() => ({})) as { error?: string };
+      if (!response.ok) throw new Error(result.error || 'FEEDBACK_DELIVERY_FAILED');
+      setFeedbackText('');
+      showToast(language === 'ar' ? 'تم إرسال رسالتك بنجاح. شكراً لمساعدتنا في تحسين NOVA.' : 'Your message was sent. Thank you for helping improve NOVA.', 'success');
+    } catch {
+      showToast(language === 'ar' ? 'تعذر إرسال الرسالة حالياً. حاول لاحقاً.' : 'Could not send your message right now. Try again later.', 'error');
+    } finally {
+      setFeedbackBusy(false);
+    }
+  }
+
+  function handleMusicVolumeChange(rawValue: string) {
+    const next = Math.max(0, Math.min(100, Number(rawValue) || 0));
+    setMusicVolume(next);
+    try { window.localStorage.setItem('nexora-music-volume', String(next / 100)); } catch { /* Keep the preference for this session. */ }
+    window.dispatchEvent(new CustomEvent('nexora-music-volume-change', { detail: next / 100 }));
+  }
+
+  function handleButtonSoundToggle() {
+    const next = !buttonSoundEnabled;
+    setButtonSoundEnabled(next);
+    try { window.localStorage.setItem('nexora-button-sound', next ? 'on' : 'off'); } catch { /* Keep the preference for this session. */ }
+  }
+
+  async function handleNotifToggle() {
+    const nextVal = !(userPrivate?.notificationsEnabled ?? true);
+    try {
+      await updatePlayerSettings(profile.uid, language, nextVal);
+      showToast(
+        language === 'ar' ? 'تم تحديث إعدادات الإشعارات.' : 'Notification preferences saved.',
+        'success'
+      );
+    } catch {
+      showToast(language === 'ar' ? 'تعذر الحفظ.' : 'Save failed.', 'error');
+    }
+  }
+
+  const subTabs: { id: ProfileSubTab; label: string }[] = [
+    { id: 'overview', label: t.subOverview },
+    { id: 'skills', label: t.subSkills },
+    { id: 'missions', label: t.subMissions },
+    { id: 'achievements', label: t.achievementsTitle },
+    { id: 'rankings', label: t.subRankings },
+    { id: 'settings', label: t.subSettings },
+    ...(isOwnerAuthorized ? [{ id: 'diagnostics' as const, label: t.subDiagnostics }] : []),
+  ];
+
+  return (
+    <div className="space-y-5">
+      <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
+        {subTabs.map((tab) => (
+          <button
+            key={tab.id}
+            type="button"
+            onClick={() => setSubTab(tab.id)}
+            className={`min-h-[40px] px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap shrink-0 transition-colors ${
+              subTab === tab.id
+                ? 'bg-[#B91C32] text-white'
+                : 'bg-[#141821] text-[#9299A6] border border-white/8 hover:text-[#F4F5F7]'
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {/* 1. OVERVIEW */}
+      {subTab === 'overview' && (
+        <div className="space-y-5">
+          <div className="bg-[#141821] border border-white/8 rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <img
+                src={avatar.src}
+                alt={profile.username}
+                referrerPolicy="no-referrer"
+                className="w-16 h-16 rounded-2xl object-cover border border-white/10"
+              />
+              <div>
+                <h1 className="text-lg font-bold text-[#F4F5F7]">{profile.username}</h1>
+                <p className="text-xs text-[#9299A6] mt-0.5">
+                  {profile.title} · {t.level} {profile.level} · {profile.xp.toLocaleString()} XP
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              {AVATARS.map((av) => (
+                <button
+                  key={av.id}
+                  type="button"
+                  disabled={busyKey === `av_${av.id}`}
+                  onClick={() => handleAvatarChange(av.id)}
+                  className={`w-10 h-10 rounded-xl overflow-hidden border transition-colors disabled:opacity-50 ${
+                    profile.avatarId === av.id ? 'border-[#E04455]' : 'border-white/10 opacity-70 hover:opacity-100'
+                  }`}
+                >
+                  <img
+                    src={av.src}
+                    alt={language === 'ar' ? av.labelAr : av.labelEn}
+                    referrerPolicy="no-referrer"
+                    className="w-full h-full object-cover"
+                  />
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {[
+              { label: language === 'ar' ? 'الصفقات' : 'Trades', val: profile.stats.tradesCount },
+              { label: language === 'ar' ? 'الإنتاج' : 'Produced', val: profile.stats.totalProduced },
+              { label: t.subCompanies, val: profile.stats.companiesOwned },
+              { label: t.subMissions, val: profile.stats.missionsCompleted },
+            ].map((s) => (
+              <div key={s.label} className="bg-[#141821] border border-white/8 rounded-2xl p-4">
+                <p className="text-xs text-[#9299A6]">{s.label}</p>
+                <p className="text-lg font-bold font-mono-num text-[#F4F5F7] mt-1">{s.val}</p>
+              </div>
+            ))}
+          </div>
+
+          <div className="bg-[#141821] border border-white/8 rounded-2xl p-5 space-y-3">
+            {(() => {
+              const repTier = getReputationTier(profile.reputation);
+              const nextTier = getNextReputationTier(profile.reputation);
+              const baseMin = repTier.minReputation;
+              const nextMin = nextTier ? nextTier.minReputation : Math.max(profile.reputation, 700);
+              const pct = nextTier
+                ? Math.min(
+                    100,
+                    Math.max(0, Math.round(((profile.reputation - baseMin) / (nextMin - baseMin)) * 100))
+                  )
+                : 100;
+
+              return (
+                <>
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                      <h2 className="text-base font-semibold text-[#F4F5F7]">
+                        {t.reputationTier}:{' '}
+                        <span className="text-[#E04455]">
+                          {language === 'ar' ? repTier.titleAr : repTier.titleEn}
+                        </span>
+                      </h2>
+                      <p className="text-xs text-[#9299A6] mt-0.5">{t.repInfluenceSources}</p>
+                    </div>
+                    <span className="text-xs font-mono-num text-[#F4F5F7]">
+                      {nextTier
+                        ? `${t.nextTier}: ${language === 'ar' ? nextTier.titleAr : nextTier.titleEn} (${profile.reputation}/${nextTier.minReputation})`
+                        : t.maxTierReached}
+                    </span>
+                  </div>
+
+                  <div className="h-2 rounded-full bg-[#0B0D12] overflow-hidden border border-white/6">
                     <div
-                      className={`h-full rounded-full transition-all duration-300 ${
-                        isClaimed || ready ? 'bg-emerald-500' : 'bg-[#B91C32]'
-                      }`}
+                      className="h-full bg-[#B91C32] rounded-full transition-all duration-300"
                       style={{ width: `${pct}%` }}
                     />
                   </div>
-                </div>
 
-                <div className="flex items-center justify-between gap-3 pt-2 border-t border-white/6">
-                  <span className="text-xs font-mono-num text-[#F4F5F7]">
-                    +${m.rewardCredits} · +{m.rewardXp} XP · +{m.rewardReputation} {t.reputation}
-                  </span>
+                  <div className="flex flex-wrap items-center gap-4 text-xs text-[#9299A6]">
+                    <span>
+                      {t.contractBonus}:{' '}
+                      <span className="font-mono-num text-emerald-400">
+                        +{(repTier.contractBonusRate * 100).toFixed(0)}%
+                      </span>
+                    </span>
+                    <span>
+                      {t.companyYieldBonus}:{' '}
+                      <span className="font-mono-num text-emerald-400">
+                        +{(repTier.companyYieldBonusRate * 100).toFixed(0)}%
+                      </span>
+                    </span>
+                    <span>
+                      {t.influence}:{' '}
+                      <span className="font-mono-num text-[#F4F5F7]">
+                        {profile.influence.toLocaleString()}
+                      </span>
+                    </span>
+                  </div>
+                </>
+              );
+            })()}
+          </div>
+
+        </div>
+      )}
+
+      {/* 2. SKILLS TREE */}
+      {subTab === 'skills' && (
+        <div className="space-y-4">
+          <div className="bg-[#141821] border border-white/8 rounded-2xl p-4 flex items-center justify-between">
+            <span className="text-sm font-medium text-[#F4F5F7]">{t.skillPoints}</span>
+            <span className="text-lg font-bold font-mono-num text-[#E04455]">
+              {profile.skillPoints}
+            </span>
+          </div>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-2xl border border-rose-500/20 bg-[#141821] p-4">
+            <div>
+              <p className="text-sm font-semibold text-[#F4F5F7]">{language === 'ar' ? 'إعادة توزيع المهارات' : 'Respec skills'}</p>
+              <p className="mt-1 text-xs text-[#9299A6]">{language === 'ar' ? 'التكلفة 2,500، وتُعاد جميع النقاط التي أنفقتها إلى رصيد نقاط المهارة.' : 'Costs 2,500 credits and refunds all skill points you have spent.'}</p>
+            </div>
+            <button type="button" disabled={busyKey === 'reset_skills'} onClick={() => void handleResetSkills()} className="min-h-[42px] shrink-0 rounded-xl bg-[#B91C32] px-4 text-xs font-semibold text-white hover:bg-[#E04455] disabled:opacity-50">{busyKey === 'reset_skills' ? '...' : (language === 'ar' ? 'إعادة التعيين · 2,500' : 'Reset · 2,500')}</button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {SKILL_DEFINITIONS.map((sk) => {
+              const cur = profile.skills[sk.key] || 0;
+              const maxed = cur >= sk.maxLevel;
+              return (
+                <div
+                  key={sk.key}
+                  className="bg-[#141821] border border-white/8 rounded-2xl p-5 flex flex-col justify-between gap-4"
+                >
+                  <div>
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-base font-bold text-[#F4F5F7]">
+                        {language === 'ar' ? sk.nameAr : sk.nameEn}
+                      </h3>
+                      <span className="font-mono-num text-sm font-semibold text-[#E04455]">
+                        {cur} / {sk.maxLevel}
+                      </span>
+                    </div>
+                    <p className="text-xs text-[#9299A6] mt-1.5 leading-relaxed">
+                      {language === 'ar' ? sk.effectAr : sk.effectEn}
+                    </p>
+                  </div>
+
+                  <div className="h-1.5 rounded-full bg-[#0B0D12] overflow-hidden">
+                    <div
+                      className="h-full bg-[#B91C32] rounded-full"
+                      style={{ width: `${(cur / sk.maxLevel) * 100}%` }}
+                    />
+                  </div>
+
                   <button
                     type="button"
-                    disabled={!ready || busyKey === `mis_${m.id}`}
-                    onClick={() => handleClaimMission(m.id)}
-                    className="min-h-[40px] px-4 rounded-xl bg-[#B91C32] hover:bg-[#E04455] text-white text-xs font-semibold disabled:bg-[#1B2230] disabled:text-[#9299A6]"
+                    disabled={maxed || profile.skillPoints < 1 || busyKey === `sk_${sk.key}`}
+                    onClick={() => handleUpgradeSkill(sk.key)}
+                    className="w-full min-h-[42px] px-4 rounded-xl bg-[#B91C32] hover:bg-[#E04455] text-white text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors disabled:bg-[#1B2230] disabled:text-[#9299A6]"
                   >
-                    {isClaimed ? t.claimed : ready ? t.claimReward : t.inProgress}
+                    <Zap className="w-3.5 h-3.5" />
+                    <span>{maxed ? 'MAX' : t.upgradeSkill}</span>
                   </button>
                 </div>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+ : ''}</span></div>
+                  <div className="h-1.5 rounded-full bg-[#0B0D12] overflow-hidden"><div className={`h-full rounded-full ${unlocked ? 'bg-emerald-500' : 'bg-[#B91C32]'}`} style={{ width: `${pct}%` }} /></div>
+                  {unlocked && <p className="text-[10px] text-emerald-300">{language === 'ar' ? 'تم استلام المكافأة — مرة واحدة' : 'Reward granted — one time only'}</p>}
+                </article>
+              );
+            })}
+          </div>
         </div>
       )}
 
