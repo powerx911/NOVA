@@ -1,0 +1,142 @@
+alter table nexora.org_weekly_goals
+  drop constraint if exists org_weekly_goals_goal_type_check;
+alter table nexora.org_weekly_goals
+  add constraint org_weekly_goals_goal_type_check check (goal_type = any (array[
+    'produce_units','trade_volume','contracts_completed','treasury_donations',
+    'personal_contracts_completed','org_contracts_completed','company_revenue',
+    'factory_upgrades','company_upgrades','companies_founded','factories_founded'
+  ]));
+
+update nexora.contract_config
+set config_value = jsonb_set(config_value,'{goal_count}','10'::jsonb,true),
+    updated_at=now()
+where config_key='weekly_goal_scaling';
+
+insert into nexora.contract_config(config_key,config_value)
+values ('weekly_goal_bases', '{
+  "produce_units":250,
+  "trade_volume":5000,
+  "contracts_completed":8,
+  "treasury_donations":2500,
+  "personal_contracts_completed":5,
+  "org_contracts_completed":3,
+  "company_revenue":10000,
+  "factory_upgrades":2,
+  "company_upgrades":2,
+  "companies_founded":1,
+  "factories_founded":1
+}'::jsonb)
+on conflict(config_key) do update
+set config_value=excluded.config_value,updated_at=now();
+
+do $$
+declare v_def text;
+begin
+  select pg_get_functiondef('nexora.ensure_org_weekly_goals(text)'::regprocedure) into v_def;
+  v_def:=replace(v_def,
+    "v_types text[] := array['produce_units','trade_volume','contracts_completed','treasury_donations'];",
+    "v_types text[] := array['produce_units','trade_volume','contracts_completed','treasury_donations','personal_contracts_completed','org_contracts_completed','company_revenue','factory_upgrades','company_upgrades','companies_founded','factories_founded'];");
+  v_def:=replace(v_def,"coalesce((v_scaling->>'goal_count')::integer,3)","coalesce((v_scaling->>'goal_count')::integer,10)");
+  v_def:=replace(v_def,
+    "v_difficulty:=case v_type when 'produce_units' then 'easy' when 'trade_volume' then 'medium' when 'contracts_completed' then 'hard' else 'medium' end;",
+    "v_difficulty:=case when v_type in ('produce_units','companies_founded','factories_founded') then 'easy' when v_type in ('trade_volume','treasury_donations','company_revenue') then 'medium' else 'hard' end;");
+  if position("personal_contracts_completed" in v_def)=0 then
+    raise exception 'WEEKLY_GOAL_GENERATOR_PATCH_FAILED';
+  end if;
+  execute v_def;
+end;
+$$;
+
+do $$
+declare v_def text;
+begin
+  select pg_get_functiondef('nexora.record_org_goal_progress(text,text,numeric)'::regprocedure) into v_def;
+  v_def:=replace(v_def,
+    "('produce_units','trade_volume','contracts_completed','treasury_donations')",
+    "('produce_units','trade_volume','contracts_completed','treasury_donations','personal_contracts_completed','org_contracts_completed','company_revenue','factory_upgrades','company_upgrades','companies_founded','factories_founded')");
+  if position("personal_contracts_completed" in v_def)=0 then
+    raise exception 'WEEKLY_GOAL_PROGRESS_PATCH_FAILED';
+  end if;
+  execute v_def;
+end;
+$$;
+
+do $$
+declare v_def text;
+begin
+  select pg_get_functiondef('nexora.claim_dynamic_contract(text,text)'::regprocedure) into v_def;
+  v_def:=replace(v_def,
+    "perform nexora.record_org_goal_progress(p_uid,'contracts_completed',1);",
+    "perform nexora.record_org_goal_progress(p_uid,'contracts_completed',1);\n  if v_contract.scope='personal' then\n    perform nexora.record_org_goal_progress(p_uid,'personal_contracts_completed',1);\n  else\n    perform nexora.record_org_goal_progress(p_uid,'org_contracts_completed',1);\n  end if;");
+  if position("personal_contracts_completed" in v_def)=0 then
+    raise exception 'CONTRACT_GOAL_PROGRESS_PATCH_FAILED';
+  end if;
+  execute v_def;
+end;
+$$;
+
+create or replace function nexora.record_org_goal_from_company_revenue()
+returns trigger language plpgsql security definer set search_path = '' as $$
+declare v_delta numeric;
+begin
+  v_delta:=new.total_revenue-old.total_revenue;
+  if v_delta>0 then perform nexora.record_org_goal_progress(new.owner_uid,'company_revenue',v_delta); end if;
+  return new;
+end;
+$$;
+drop trigger if exists nova_org_goal_company_revenue on nexora.companies;
+create trigger nova_org_goal_company_revenue after update of total_revenue on nexora.companies
+for each row when (new.total_revenue>old.total_revenue)
+execute function nexora.record_org_goal_from_company_revenue();
+
+create or replace function nexora.record_org_goal_from_factory_upgrade()
+returns trigger language plpgsql security definer set search_path = '' as $$
+begin
+  if new.level>old.level then perform nexora.record_org_goal_progress(new.owner_uid,'factory_upgrades',1); end if;
+  return new;
+end;
+$$;
+drop trigger if exists nova_org_goal_factory_upgrade on nexora.factories;
+create trigger nova_org_goal_factory_upgrade after update of level on nexora.factories
+for each row when (new.level>old.level)
+execute function nexora.record_org_goal_from_factory_upgrade();
+
+create or replace function nexora.record_org_goal_from_company_upgrade()
+returns trigger language plpgsql security definer set search_path = '' as $$
+begin
+  if new.level>old.level then perform nexora.record_org_goal_progress(new.owner_uid,'company_upgrades',1); end if;
+  return new;
+end;
+$$;
+drop trigger if exists nova_org_goal_company_upgrade on nexora.companies;
+create trigger nova_org_goal_company_upgrade after update of level on nexora.companies
+for each row when (new.level>old.level)
+execute function nexora.record_org_goal_from_company_upgrade();
+
+create or replace function nexora.record_org_goal_from_company_founding()
+returns trigger language plpgsql security definer set search_path = '' as $$
+begin
+  perform nexora.record_org_goal_progress(new.owner_uid,'companies_founded',1);
+  return new;
+end;
+$$;
+drop trigger if exists nova_org_goal_company_founding on nexora.companies;
+create trigger nova_org_goal_company_founding after insert on nexora.companies
+for each row execute function nexora.record_org_goal_from_company_founding();
+
+create or replace function nexora.record_org_goal_from_factory_founding()
+returns trigger language plpgsql security definer set search_path = '' as $$
+begin
+  perform nexora.record_org_goal_progress(new.owner_uid,'factories_founded',1);
+  return new;
+end;
+$$;
+drop trigger if exists nova_org_goal_factory_founding on nexora.factories;
+create trigger nova_org_goal_factory_founding after insert on nexora.factories
+for each row execute function nexora.record_org_goal_from_factory_founding();
+
+revoke all on function nexora.record_org_goal_from_company_revenue() from public,anon,authenticated;
+revoke all on function nexora.record_org_goal_from_factory_upgrade() from public,anon,authenticated;
+revoke all on function nexora.record_org_goal_from_company_upgrade() from public,anon,authenticated;
+revoke all on function nexora.record_org_goal_from_company_founding() from public,anon,authenticated;
+revoke all on function nexora.record_org_goal_from_factory_founding() from public,anon,authenticated;
