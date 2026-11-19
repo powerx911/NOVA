@@ -3,7 +3,7 @@
 create extension if not exists pgtap with schema extensions;
 
 begin;
-select extensions.plan(22);
+select extensions.plan(23);
 
 select extensions.ok(
   not exists (select 1 from nexora.wallets where balance < 0),
@@ -137,6 +137,12 @@ select extensions.is(
   (select max_price from nexora.market_price_bounds('microchips')),
   290::bigint,
   'market listings have a maximum price at twice the catalog reference value'
+);
+
+select extensions.ok(
+  exists(select 1 from pg_trigger where tgname = 'market_listing_price_bounds' and not tgisinternal)
+  and exists(select 1 from pg_trigger where tgname = 'market_order_price_bounds' and not tgisinternal),
+  'market price limits are enforced on listing creation and completed purchases'
 );
 
 insert into nexora.player_profiles(user_id, username, username_lower, skills, stats)
