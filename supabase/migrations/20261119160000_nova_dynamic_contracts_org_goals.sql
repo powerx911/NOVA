@@ -386,7 +386,11 @@ begin
   loop
     update nexora.contract_offers set status='expired',updated_at=now() where id=v_row.id;
     v_count:=v_count+1;
-    if v_row.board_date=v_today and
+    if v_row.board_date=v_today and not exists(select 1 from nexora.contract_offers replacement
+        where replacement.scope=v_row.scope and replacement.board_date=v_today
+          and replacement.slot_no=v_row.slot_no and replacement.status='offered'
+          and ((v_row.scope='personal' and replacement.user_id=v_row.user_id)
+            or (v_row.scope='organization' and replacement.org_id=v_row.org_id))) and
       (v_row.event_id is null or exists(select 1 from nexora.world_events e where e.id=v_row.event_id
         and e.active=true and e.starts_at<=now() and e.ends_at>now())) then
       perform nexora.generate_dynamic_contract(v_row.scope,v_row.user_id,v_row.org_id,
@@ -562,6 +566,12 @@ begin
          from nexora.contract_config where config_key='tier_rules')+1))::integer),
     claimed_by=case when v_contract.scope='organization' then p_uid else null end,
     updated_at=v_now where id=p_contract_id;
+  if v_contract.scope='personal' and v_contract.board_date=v_today and
+    (v_contract.event_id is null or exists(select 1 from nexora.world_events e where e.id=v_contract.event_id
+      and e.active=true and e.starts_at<=v_now and e.ends_at>v_now)) then
+    perform nexora.generate_dynamic_contract('personal',p_uid,null,v_contract.slot_no,v_today,
+      v_contract.item_id,v_contract.tier,v_contract.event_id);
+  end if;
   return jsonb_build_object('ok',true,'deadline_at',(
     select deadline_at from nexora.contract_offers where id=p_contract_id),'daily_used',v_used+1);
 end;
@@ -665,7 +675,12 @@ begin
   end if;
   update nexora.contract_offers set status='abandoned',completed_at=now(),updated_at=now() where id=p_contract_id;
   if v_contract.board_date=v_today and
-    (v_contract.event_id is null or exists(select 1 from nexora.world_events e where e.id=v_contract.event_id
+    not exists(select 1 from nexora.contract_offers replacement
+      where replacement.scope=v_contract.scope and replacement.board_date=v_today
+        and replacement.slot_no=v_contract.slot_no and replacement.status='offered'
+        and ((v_contract.scope='personal' and replacement.user_id=v_contract.user_id)
+          or (v_contract.scope='organization' and replacement.org_id=v_contract.org_id)))
+    and (v_contract.event_id is null or exists(select 1 from nexora.world_events e where e.id=v_contract.event_id
       and e.active=true and e.starts_at<=now() and e.ends_at>now())) then
     perform nexora.generate_dynamic_contract(v_contract.scope,v_contract.user_id,v_contract.org_id,
       v_contract.slot_no,v_today,v_contract.item_id,v_contract.tier,v_contract.event_id);
@@ -742,7 +757,12 @@ begin
   update nexora.contract_offers set status='completed',completed_at=now(),updated_at=now() where id=p_contract_id;
   perform nexora.record_org_goal_progress(p_uid,'contracts_completed',1);
   if v_contract.board_date=v_today and
-    (v_contract.event_id is null or exists(select 1 from nexora.world_events e where e.id=v_contract.event_id
+    not exists(select 1 from nexora.contract_offers replacement
+      where replacement.scope=v_contract.scope and replacement.board_date=v_today
+        and replacement.slot_no=v_contract.slot_no and replacement.status='offered'
+        and ((v_contract.scope='personal' and replacement.user_id=v_contract.user_id)
+          or (v_contract.scope='organization' and replacement.org_id=v_contract.org_id)))
+    and (v_contract.event_id is null or exists(select 1 from nexora.world_events e where e.id=v_contract.event_id
       and e.active=true and e.starts_at<=now() and e.ends_at>now())) then
     perform nexora.generate_dynamic_contract(v_contract.scope,v_contract.user_id,v_contract.org_id,
       v_contract.slot_no,v_today,v_contract.item_id,v_contract.tier,v_contract.event_id);
