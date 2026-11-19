@@ -3,7 +3,7 @@
 create extension if not exists pgtap with schema extensions;
 
 begin;
-select extensions.plan(60);
+select extensions.plan(61);
 
 select extensions.ok(
   exists(select 1 from nexora.contract_config where config_key='catalog_prices'),
@@ -85,6 +85,16 @@ select extensions.is(
 select extensions.lives_ok(
   $$select nexora.accept_dynamic_contract('pgtap_active',(select id from nexora.contract_offers where user_id='pgtap_active' and status='offered' and slot_no=1 order by slot_generation desc limit 1))$$,
   'first personal contract can be accepted'
+);
+select extensions.ok(
+  exists(select 1 from nexora.contract_offers accepted
+    join nexora.contract_offers replacement on replacement.user_id=accepted.user_id
+      and replacement.scope=accepted.scope and replacement.board_date=accepted.board_date
+      and replacement.slot_no=accepted.slot_no and replacement.slot_generation>accepted.slot_generation
+    where accepted.user_id='pgtap_active' and accepted.slot_no=1 and accepted.status='accepted'
+      and replacement.status='offered'
+      and (replacement.item_id<>accepted.item_id or replacement.tier<>accepted.tier)),
+  'personal slot is immediately refilled with a different offer after acceptance'
 );
 select extensions.lives_ok(
   $$select nexora.accept_dynamic_contract('pgtap_active',(select id from nexora.contract_offers where user_id='pgtap_active' and status='offered' and slot_no=2 order by slot_generation desc limit 1))$$,
