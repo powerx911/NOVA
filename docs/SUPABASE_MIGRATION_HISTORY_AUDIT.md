@@ -296,3 +296,36 @@ On branch head `9ff51e68ba75d169fcfb08470af6a382137c41a8`, App CI completed succ
 - Isolated PostgreSQL 17 + pgTAP passed: [44512952175](https://github.com/powerx911/NOVA/actions/runs/44512952175). The job log reports `Files=2, Tests=33` and `Result: PASS`; `economy_abuse_guards.test.sql` passed all 23 assertions, including the 4% seller debit, `last_tx_id`, `auction_fee` transaction, and anti-sniping extension checks.
 - Full recovered-history replay passed: [44512952138](https://github.com/powerx911/NOVA/actions/runs/44512952138). The job replayed 42 tracked migration sources plus 13 untracked SQL events in timestamp order, compiled the local presence/ranking SQL, applied the three PR migrations, ran pgTAP, and stopped the disposable Supabase stack successfully.
 - These are disposable CI results only. The live production database remains unchanged; the active migration directory still is not certified for `supabase db push`. PR #83 remains Draft and unmerged pending a separately reconciled clean release chain.
+
+## Release execution update — 2026-11-19 (supersedes prior pending-deployment notes)
+
+The user's explicit release direction was received. After reviewing the exact three PR migration bodies against the live production catalog/schema, the three targeted migrations were applied to the healthy NOVA production project through the Supabase migration operation. The previous statements in this historical audit saying "no production DDL", "not deployed", or "keep Draft pending a release chain" describe the state **before this section** and are superseded for these three migrations only.
+
+### Applied production migration records
+
+| Remote version | Migration | Result |
+|---|---|---|
+| 20261119112257 | `nova_economy_abuse_guards` | Applied |
+| 20261119112311 | `nova_recurring_mission_periods` | Applied |
+| 20261119112320 | `nova_market_wallet_lock_order` | Applied |
+
+The three resulting records were confirmed in the remote migration ledger (45 records total). The repository migration filenames and both isolated database workflows were updated to use these exact remote versions, preventing a later CLI push from treating the same changes as pending under their previous local timestamps.
+
+### Post-application production catalog verification
+
+A read-only catalog check after applying the migrations confirmed:
+
+- `collect_company_revenue`: cumulative XP threshold logic is present and the old reputation reward marker is absent.
+- `transfer_credits`: level-10 gate, 3% fee, and daily transfer-cap guard are present.
+- `buy_market_listing`: post-lock seller/listing recheck is present.
+- Both auction triggers are installed on `nexora.company_auctions`.
+- `player_missions.period_key` exists and the primary key is now `(user_id, mission_id, period_key)`.
+
+This was metadata/function-definition verification only. No player rows or business records were read or modified as part of the release operation. No seed-world SQL or the unrelated divergent local migration files were applied.
+
+### Remaining release work
+
+- The database hardening migrations are live. The application/UI changes in this PR are **not yet live** until the PR is merged and the frontend deployment completes.
+- The local active migration directory still contains inherited historical files with unresolved differences; this release did not run a wholesale `supabase db push`, bulk repair, or replay of those files.
+- The three deployed migration filenames now match the exact remote versions. Isolated CI workflows were updated accordingly and must be green again on the new branch head before merging.
+- Do not change or deploy the separate agent branch `fix/nova-urgent-economy-quality`.
