@@ -413,9 +413,35 @@ create trigger market_listing_price_bounds
 before insert or update of item_id, unit_price on nexora.market_listings
 for each row execute function nexora.enforce_market_listing_price_bounds();
 
+-- Also reject purchases of legacy listings that were posted outside the new bounds.
+create or replace function nexora.enforce_market_order_price_bounds()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_min bigint;
+  v_max bigint;
+begin
+  select min_price, max_price into v_min, v_max
+  from nexora.market_price_bounds(new.item_id);
+  if v_min is null or v_max is null then raise exception 'INVALID_ITEM'; end if;
+  if new.unit_price < v_min then raise exception 'PRICE_BELOW_MINIMUM'; end if;
+  if new.unit_price > v_max then raise exception 'PRICE_ABOVE_MAXIMUM'; end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists market_order_price_bounds on nexora.market_orders;
+create trigger market_order_price_bounds
+before insert on nexora.market_orders
+for each row execute function nexora.enforce_market_order_price_bounds();
+
 revoke all on function nexora.prepare_manufacturing_job() from public, anon, authenticated;
 revoke all on function nexora.cancel_manufacturing_job(text, text) from public, anon, authenticated;
 revoke all on function nexora.market_price_bounds(text) from public, anon, authenticated;
 revoke all on function nexora.enforce_market_listing_price_bounds() from public, anon, authenticated;
+revoke all on function nexora.enforce_market_order_price_bounds() from public, anon, authenticated;
 grant execute on function nexora.cancel_manufacturing_job(text, text) to service_role;
 grant execute on function nexora.market_price_bounds(text) to service_role;
