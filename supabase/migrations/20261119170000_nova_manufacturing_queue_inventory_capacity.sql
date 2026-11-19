@@ -39,9 +39,8 @@ end;
 $$;
 
 drop trigger if exists inventory_capacity_guard on nexora.inventory;
-create constraint trigger inventory_capacity_guard
+create trigger inventory_capacity_guard
 after insert or update of quantity on nexora.inventory
-deferrable initially immediate
 for each row execute function nexora.enforce_player_inventory_capacity();
 
 create table if not exists nexora.manufacturing_jobs (
