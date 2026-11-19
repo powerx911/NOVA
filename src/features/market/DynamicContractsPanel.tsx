@@ -33,6 +33,16 @@ function remainingLabel(target: string | null | undefined, now: number): string 
     : `${minutes}:${String(secs).padStart(2, '0')}`;
 }
 
+function secondsLabel(value: number | null): string {
+  const seconds = Math.max(0, value ?? 0);
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const secs = seconds % 60;
+  return hours > 0
+    ? `${hours}:${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`
+    : `${minutes}:${String(secs).padStart(2, '0')}`;
+}
+
 function statusText(status: DynamicContractOffer['status'], t: ReturnType<typeof useTranslations>) {
   const map: Record<DynamicContractOffer['status'], string> = {
     offered: t.contractOffered,
@@ -171,7 +181,7 @@ export function DynamicContractsPanel({ profile, inventory, wallet, language }: 
       ? contract.deadline_at
       : contract.status === 'processing'
         ? contract.ready_at
-        : contract.offer_expires_at;
+        : contract.status === 'offered' ? contract.offer_expires_at : null;
     const countdownLabel = contract.status === 'accepted'
       ? t.deadline
       : contract.status === 'processing'
@@ -213,10 +223,18 @@ export function DynamicContractsPanel({ profile, inventory, wallet, language }: 
           <span className="text-[#8FA1BF]">{t.contractStatus ?? (language === 'ar' ? 'الحالة' : 'Status')}</span>
           <span className="text-[#EAF1FF] font-semibold">{statusText(contract.status, t)}</span>
         </div>
-        <div className="flex items-center justify-between gap-2 text-[11px]">
-          <span className="text-[#8FA1BF]">{countdownLabel}</span>
-          <span className="flex items-center gap-1.5 text-[#D7E5FF] font-mono-num"><Timer className="w-3.5 h-3.5" />{remainingLabel(countdownTarget, now)}</span>
-        </div>
+        {countdownTarget && (
+          <div className="flex items-center justify-between gap-2 text-[11px]">
+            <span className="text-[#8FA1BF]">{countdownLabel}</span>
+            <span className="flex items-center gap-1.5 text-[#D7E5FF] font-mono-num"><Timer className="w-3.5 h-3.5" />{remainingLabel(countdownTarget, now)}</span>
+          </div>
+        )}
+        {contract.status === 'processing' && contract.deadline_remaining_secs !== null && (
+          <div className="flex items-center justify-between gap-2 text-[10px]">
+            <span className="text-[#8192AD]">{t.deadlineFrozen}</span>
+            <span className="text-[#9FB1CC] font-mono-num">{secondsLabel(contract.deadline_remaining_secs)}</span>
+          </div>
+        )}
         {contract.event_premium > 0 && (
           <p className="text-[10px] text-amber-300">{t.contractEventBonus}: +{(contract.event_premium * 100).toFixed(1)}%</p>
         )}
