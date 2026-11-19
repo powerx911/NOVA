@@ -621,11 +621,11 @@ export function ProfileHubView({
                         </div>
                         <div className="flex items-center justify-between gap-3 pt-2 border-t border-white/6">
                           <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs font-semibold text-[#F4F5F7]" dir="ltr">
-                            <span className="font-mono-num">${m.rewardCredits.toLocaleString()}</span>
+                            <span className="inline-flex items-center whitespace-nowrap font-mono-num">${m.rewardCredits.toLocaleString()}</span>
                             <span className="text-[#667080]">•</span>
-                            <span className="font-mono-num">+{m.rewardXp} XP</span>
+                            <span className="inline-flex items-center whitespace-nowrap font-mono-num">+{m.rewardXp} XP</span>
                             <span className="text-[#667080]">•</span>
-                            <span dir={language === 'ar' ? 'rtl' : 'ltr'}>+{m.rewardReputation} {t.reputation}</span>
+                            <span className="inline-flex items-center gap-1 whitespace-nowrap"><span className="font-mono-num">+{m.rewardReputation}</span><span dir={language === 'ar' ? 'rtl' : 'ltr'}>{t.reputation}</span></span>
                           </div>
                           <button type="button" disabled={!ready || busyKey === `mis_${m.id}`} onClick={() => handleClaimMission(m.id)} className="min-h-[40px] px-4 rounded-xl bg-[#B91C32] hover:bg-[#E04455] text-white text-xs font-semibold disabled:bg-[#1B2230] disabled:text-[#9299A6]">
                             {isClaimed ? t.claimed : ready ? t.claimReward : t.inProgress}
