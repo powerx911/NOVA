@@ -34,13 +34,13 @@ declare v_def text;
 begin
   select pg_get_functiondef('nexora.ensure_org_weekly_goals(text)'::regprocedure) into v_def;
   v_def:=replace(v_def,
-    "v_types text[] := array['produce_units','trade_volume','contracts_completed','treasury_donations'];",
-    "v_types text[] := array['produce_units','trade_volume','contracts_completed','treasury_donations','personal_contracts_completed','org_contracts_completed','company_revenue','factory_upgrades','company_upgrades','companies_founded','factories_founded'];");
-  v_def:=replace(v_def,"coalesce((v_scaling->>'goal_count')::integer,3)","coalesce((v_scaling->>'goal_count')::integer,10)");
+    $old$v_types text[] := array['produce_units','trade_volume','contracts_completed','treasury_donations'];$old$,
+    $new$v_types text[] := array['produce_units','trade_volume','contracts_completed','treasury_donations','personal_contracts_completed','org_contracts_completed','company_revenue','factory_upgrades','company_upgrades','companies_founded','factories_founded'];$new$);
+  v_def:=replace(v_def,$old$coalesce((v_scaling->>'goal_count')::integer,3)$old$,$new$coalesce((v_scaling->>'goal_count')::integer,10)$new$);
   v_def:=replace(v_def,
-    "v_difficulty:=case v_type when 'produce_units' then 'easy' when 'trade_volume' then 'medium' when 'contracts_completed' then 'hard' else 'medium' end;",
-    "v_difficulty:=case when v_type in ('produce_units','companies_founded','factories_founded') then 'easy' when v_type in ('trade_volume','treasury_donations','company_revenue') then 'medium' else 'hard' end;");
-  if position("personal_contracts_completed" in v_def)=0 then
+    $old$v_difficulty:=case v_type when 'produce_units' then 'easy' when 'trade_volume' then 'medium' when 'contracts_completed' then 'hard' else 'medium' end;$old$,
+    $new$v_difficulty:=case when v_type in ('produce_units','companies_founded','factories_founded') then 'easy' when v_type in ('trade_volume','treasury_donations','company_revenue') then 'medium' else 'hard' end;$new$);
+  if position('personal_contracts_completed' in v_def)=0 then
     raise exception 'WEEKLY_GOAL_GENERATOR_PATCH_FAILED';
   end if;
   execute v_def;
@@ -52,9 +52,9 @@ declare v_def text;
 begin
   select pg_get_functiondef('nexora.record_org_goal_progress(text,text,numeric)'::regprocedure) into v_def;
   v_def:=replace(v_def,
-    "('produce_units','trade_volume','contracts_completed','treasury_donations')",
-    "('produce_units','trade_volume','contracts_completed','treasury_donations','personal_contracts_completed','org_contracts_completed','company_revenue','factory_upgrades','company_upgrades','companies_founded','factories_founded')");
-  if position("personal_contracts_completed" in v_def)=0 then
+    $old$('produce_units','trade_volume','contracts_completed','treasury_donations')$old$,
+    $new$('produce_units','trade_volume','contracts_completed','treasury_donations','personal_contracts_completed','org_contracts_completed','company_revenue','factory_upgrades','company_upgrades','companies_founded','factories_founded')$new$);
+  if position('personal_contracts_completed' in v_def)=0 then
     raise exception 'WEEKLY_GOAL_PROGRESS_PATCH_FAILED';
   end if;
   execute v_def;
@@ -66,14 +66,20 @@ declare v_def text;
 begin
   select pg_get_functiondef('nexora.claim_dynamic_contract(text,text)'::regprocedure) into v_def;
   v_def:=replace(v_def,
-    "perform nexora.record_org_goal_progress(p_uid,'contracts_completed',1);",
-    "perform nexora.record_org_goal_progress(p_uid,'contracts_completed',1);\n  if v_contract.scope='personal' then\n    perform nexora.record_org_goal_progress(p_uid,'personal_contracts_completed',1);\n  else\n    perform nexora.record_org_goal_progress(p_uid,'org_contracts_completed',1);\n  end if;");
-  if position("personal_contracts_completed" in v_def)=0 then
+    $old$perform nexora.record_org_goal_progress(p_uid,'contracts_completed',1);$old$,
+    $new$perform nexora.record_org_goal_progress(p_uid,'contracts_completed',1);
+  if v_contract.scope='personal' then
+    perform nexora.record_org_goal_progress(p_uid,'personal_contracts_completed',1);
+  else
+    perform nexora.record_org_goal_progress(p_uid,'org_contracts_completed',1);
+  end if;$new$);
+  if position('personal_contracts_completed' in v_def)=0 then
     raise exception 'CONTRACT_GOAL_PROGRESS_PATCH_FAILED';
   end if;
   execute v_def;
 end;
 $$;
+
 
 create or replace function nexora.record_org_goal_from_company_revenue()
 returns trigger language plpgsql security definer set search_path = '' as $$
