@@ -664,8 +664,7 @@ export function ProfileHubView({
                           <span className="text-[9px] font-black leading-none">{roman}</span>
                         </div>
                         <div className="min-w-0 flex-1">
-                          <div className="text-sm font-bold text-[#F4F5F7]">{language === 'ar' ? ach.titleAr : ach.titleEn}</div>
-                          <div className={`text-[10px] mt-0.5 ${unlocked ? 'text-emerald-300' : 'text-[#77808F]'}`}>{unlocked ? (language === 'ar' ? 'مكتملة' : 'Earned') : (language === 'ar' ? 'قيد التقدم' : 'In progress')}</div>
+                          <div className={`text-xs font-semibold ${unlocked ? 'text-emerald-300' : 'text-[#77808F]'}`}>{unlocked ? (language === 'ar' ? 'مكتملة' : 'Earned') : (language === 'ar' ? 'قيد التقدم' : 'In progress')}</div>
                         </div>
                       </div>
                       <p className="text-xs leading-relaxed text-[#9299A6]">{language === 'ar' ? ach.descriptionAr : ach.descriptionEn}</p>
