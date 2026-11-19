@@ -167,7 +167,7 @@ describe('NEXORA Core Economy & Security Invariants', () => {
 
     expect(prices[0]).toBeGreaterThan(prices.at(-1)!);
     for (let index = 1; index < prices.length; index += 1) {
-      expect(Math.abs(prices[index] - prices[index - 1])).toBeLessThanOrEqual(2);
+      expect(Math.abs(prices[index] - prices[index - 1])).toBeLessThanOrEqual(Math.ceil(ITEM_MAP.microchips.basePrice * 0.0015) + 1);
     }
   });
 
