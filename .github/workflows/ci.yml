@@ -77,7 +77,7 @@ jobs:
   e2e-smoke:
     name: Playwright onboarding, market and company smoke test
     needs: validate
-    if: github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main'
+    if: github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main' || github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
