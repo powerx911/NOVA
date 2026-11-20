@@ -3,7 +3,7 @@
   "captured_at": "2026-11-20",
   "repository": "powerx911/NOVA",
   "production_project_id": "hmrprnjhyzyefocdmnxf",
-  "production_ledger_records": 82,
+  "production_ledger_records": 83,
   "tracked_migration_files": 80,
   "recovered_history_sql_files": 55,
   "production_schema_inventory": {
@@ -11,16 +11,16 @@
     "functions": 151,
     "security_definer_functions": 138,
     "triggers": 40,
-    "indexes": 100,
+    "indexes": 102,
     "constraints": 169,
     "active_cron_jobs": 8
   },
   "matching_summary": {
-    "records_with_source": 82,
+    "records_with_source": 83,
     "records_missing_source": 0,
     "records_recovered_only": 21,
     "records_with_additional_variants": 21,
-    "local_migration_files_not_mapped_to_applied_record": 19
+    "local_migration_files_not_mapped_to_applied_record": 18
   },
   "entries": [
     {
@@ -782,6 +782,14 @@
       "source_status": "tracked",
       "canonical_source": "supabase/migrations/20261121005000_nova_company_revenue_minimum_rewards.sql",
       "canonical_git_blob_sha": "ada74d96e04a7fd2d10f91d7898aeabd488a66ce",
+      "additional_variants": []
+    },
+    {
+      "version": "20261120202341",
+      "name": "nova_manufacturing_rls_auction_fk_indexes",
+      "source_status": "tracked",
+      "canonical_source": "supabase/migrations/20261121006000_nova_manufacturing_rls_auction_fk_indexes.sql",
+      "canonical_git_blob_sha": "e0411ec656281d87d4d7501812c2319b37dcc0ef",
       "additional_variants": []
     }
   ],
