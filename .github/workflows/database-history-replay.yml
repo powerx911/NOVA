@@ -19,6 +19,7 @@ on:
       - "supabase/recovered-history/**"
       - "supabase/ci/**"
       - "scripts/validate_migration_manifest.py"
+      - "scripts/validate_recovered_sql.py"
       - "supabase/migrations/**"
       - ".github/workflows/database-history-replay.yml"
 
