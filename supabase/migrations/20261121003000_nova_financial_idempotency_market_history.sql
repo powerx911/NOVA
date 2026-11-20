@@ -9,6 +9,24 @@ create table if not exists nexora.idempotency_requests (
 );
 create index if not exists idempotency_requests_created_at_idx on nexora.idempotency_requests (created_at desc);
 create index if not exists market_orders_created_at_item_idx on nexora.market_orders (created_at desc, item_id);
+
+-- Account deletion anonymizes durable ledgers and removes private player state. Clean
+-- the new retry receipts at the same boundary so deleted accounts leave no request data.
+create or replace function nexora.cleanup_deleted_player_idempotency()
+returns trigger language plpgsql security definer set search_path = ''
+as $function$
+begin
+  delete from nexora.idempotency_requests where user_id = old.user_id;
+  return old;
+end;
+$function$;
+revoke all on function nexora.cleanup_deleted_player_idempotency() from public, anon, authenticated;
+grant execute on function nexora.cleanup_deleted_player_idempotency() to service_role;
+drop trigger if exists player_profiles_cleanup_idempotency_requests on nexora.player_profiles;
+create trigger player_profiles_cleanup_idempotency_requests
+before delete on nexora.player_profiles
+for each row execute function nexora.cleanup_deleted_player_idempotency();
+create index if not exists market_orders_created_at_item_idx on nexora.market_orders (created_at desc, item_id);
 alter table nexora.idempotency_requests enable row level security;
 revoke all on table nexora.idempotency_requests from public, anon, authenticated;
 grant select, insert, update, delete on table nexora.idempotency_requests to service_role;
