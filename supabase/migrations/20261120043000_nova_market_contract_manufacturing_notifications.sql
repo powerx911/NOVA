@@ -209,8 +209,10 @@ revoke all on function nexora.settle_finished_manufacturing_jobs() from public,a
 grant execute on function nexora.settle_finished_manufacturing_jobs() to service_role;
 revoke all on function nexora.notify_full_company_vaults() from public,anon,authenticated;
 revoke all on function nexora.sync_all_factory_production() from public,anon,authenticated;
+revoke all on function nexora.notify_full_factory_warehouses() from public,anon,authenticated;
 grant execute on function nexora.notify_full_company_vaults() to service_role;
 grant execute on function nexora.sync_all_factory_production() to service_role;
+grant execute on function nexora.notify_full_factory_warehouses() to service_role;
 
 -- Notify when a mission first becomes claimable. The event key includes the mission period,
 -- so a daily/weekly/seasonal mission can notify again in its next period.
@@ -362,11 +364,16 @@ set search_path = ''
 as $function$
 declare
   v_capacity bigint;
+  v_event_key text;
 begin
   v_capacity:=nexora.factory_warehouse_capacity(new.resource_id,new.warehouse_level);
-  if coalesce(old.warehouse_qty,0)<v_capacity and coalesce(new.warehouse_qty,0)>=v_capacity then
+  v_event_key:='factory-warehouse-full:'||new.id||':'||new.warehouse_level;
+  if coalesce(new.warehouse_qty,0)<v_capacity then
+    delete from nexora.notification_events
+    where user_id=new.owner_uid and event_key=v_event_key;
+  elsif coalesce(old.warehouse_qty,0)<v_capacity and coalesce(new.warehouse_qty,0)>=v_capacity then
     perform nexora.emit_notification_once(
-      new.owner_uid,'factory-warehouse-full:'||new.id||':'||to_char(coalesce(new.updated_at,now()) at time zone 'UTC','YYYYMMDDHH24MISSMS'),
+      new.owner_uid,v_event_key,
       'مستودع المصنع ممتلئ','Factory warehouse is full',
       'امتلأ مستودع مصنع «'||new.name||'». اسحب الموارد إلى مخزونك أو وسّع المستودع لاستئناف الإنتاج.',
       'The warehouse for "'||new.name||'" is full. Withdraw resources or expand the warehouse to resume production.','economy'
@@ -380,6 +387,7 @@ drop trigger if exists nova_factory_warehouse_full_notification on nexora.factor
 create trigger nova_factory_warehouse_full_notification
 after update of warehouse_qty on nexora.factories
 for each row execute function nexora.notify_factory_warehouse_full();
+
 
 -- Only personal standard slots use the 15-minute completion/expiry cooldown.
 -- Organization slots remain consumed for the rest of the UTC day; manual refreshes
@@ -698,6 +706,35 @@ begin
 end;
 $function$;
 
+-- Also detect warehouses that were already full before this migration.
+create or replace function nexora.notify_full_factory_warehouses()
+returns integer
+language plpgsql
+security definer
+set search_path = ''
+as $function$
+declare
+  v_factory record;
+  v_count integer:=0;
+begin
+  for v_factory in
+    select id,owner_uid,name,resource_id,warehouse_level,warehouse_qty
+    from nexora.factories
+    where warehouse_qty>=nexora.factory_warehouse_capacity(resource_id,warehouse_level)
+    order by id
+  loop
+    perform nexora.emit_notification_once(
+      v_factory.owner_uid,'factory-warehouse-full:'||v_factory.id||':'||v_factory.warehouse_level,
+      'مستودع المصنع ممتلئ','Factory warehouse is full',
+      'امتلأ مستودع مصنع «'||v_factory.name||'». اسحب الموارد إلى مخزونك أو وسّع المستودع لاستئناف الإنتاج.',
+      'The warehouse for "'||v_factory.name||'" is full. Withdraw resources or expand the warehouse to resume production.','economy'
+    );
+    v_count:=v_count+1;
+  end loop;
+  return v_count;
+end;
+$function$;
+
 -- Keep factory production synchronized on the server even when no player has
 -- the factories screen open. The existing RPC locks each factory and wallet.
 create or replace function nexora.sync_all_factory_production()
@@ -719,6 +756,7 @@ begin
       raise warning 'Could not synchronize factory %: %',v_factory.id,sqlerrm;
     end;
   end loop;
+  perform nexora.notify_full_factory_warehouses();
   return v_count;
 end;
 $function$;
