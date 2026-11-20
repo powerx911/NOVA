@@ -604,6 +604,10 @@ export async function depositToOrgTreasury(
   await nexoraApi('org_treasury_deposit', { orgId, amount: Math.floor(amountRaw) });
 }
 
+export async function deletePlayerAccount(): Promise<void> {
+  await nexoraApi('delete_account');
+}
+
 export async function updatePlayerSettings(
   _uid: string,
   language: Language,
