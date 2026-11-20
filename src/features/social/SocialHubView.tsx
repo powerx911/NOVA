@@ -18,6 +18,8 @@ import {
   searchPlayers,
   sendDirectMessage,
   sendGlobalChatMessage,
+  listOrganizationChatMessages,
+  sendOrganizationChatMessage,
   unblockPlayer as unblockPlayerOnSupabase,
   getPlayersPresence,
 } from '../../services/socialService';
@@ -26,6 +28,7 @@ import type {
   SocialConversation as Conversation,
   SocialDirectMessage as DirectMessage,
   SocialGlobalMessage as GlobalMessage,
+  SocialOrganizationMessage,
   SocialOrgInvite as OrgInvite,
   SocialPresence,
 } from '../../services/socialService';
@@ -40,7 +43,8 @@ interface SocialHubViewProps {
 
 export function SocialHubView({ profile, myOrgMember, organizations, language, onUnreadCountChange }: SocialHubViewProps) {
   const ar = language === 'ar';
-  const [mode, setMode] = useState<'players' | 'messages' | 'global'>('players');
+  const [section, setSection] = useState<'players' | 'communication'>('players');
+  const [mode, setMode] = useState<'messages' | 'global' | 'organization'>('messages');
   const [search, setSearch] = useState('');
   const [players, setPlayers] = useState<PublicPlayer[]>([]);
   const [selectedPlayer, setSelectedPlayer] = useState<PublicPlayer | null>(null);
@@ -48,6 +52,8 @@ export function SocialHubView({ profile, myOrgMember, organizations, language, o
   const [selectedConversation, setSelectedConversation] = useState<string | null>(null);
   const [directMessages, setDirectMessages] = useState<DirectMessage[]>([]);
   const [globalMessages, setGlobalMessages] = useState<GlobalMessage[]>([]);
+  const [organizationMessages, setOrganizationMessages] = useState<SocialOrganizationMessage[]>([]);
+  const [orgChatReadAt, setOrgChatReadAt] = useState(() => { try { return Number(window.localStorage.getItem(`nova:org-chat-read:${profile.uid}:${profile.orgId || 'none'}`) || 0); } catch { return 0; } });
   const [invites, setInvites] = useState<OrgInvite[]>([]);
   const [blockedUids, setBlockedUids] = useState<string[]>([]);
   const [reportReason, setReportReason] = useState<'harassment' | 'spam' | 'inappropriate' | 'impersonation' | 'other'>('other');
@@ -118,7 +124,7 @@ export function SocialHubView({ profile, myOrgMember, organizations, language, o
     try {
       const result = await getPublicPlayerProfile(targetUid);
       setSelectedPlayer(result);
-      setMode('players');
+      setSection('players');
     } catch (error) {
       setError(socialErrorMessage(error, ar ? 'تعذر فتح الملف الشخصي الآن.' : 'Could not open player profile right now.'));
     }
@@ -133,8 +139,31 @@ export function SocialHubView({ profile, myOrgMember, organizations, language, o
   const selectedConversationData = conversations.find((item) => item.id === selectedConversation) || null;
   const unreadConversations = conversations.filter((item) => item.lastSenderUid !== profile.uid && (!dismissedUnread[item.id] || timestampToMs(item.lastMessageAt, 0) > dismissedUnread[item.id]));
   useEffect(() => { try { window.localStorage.setItem(`nova:dm-read:${profile.uid}`, JSON.stringify(dismissedUnread)); } catch { /* Keep the current-session unread state if storage is unavailable. */ } }, [dismissedUnread, profile.uid]);
-  useEffect(() => { onUnreadCountChange(unreadConversations.length); }, [unreadConversations.length, onUnreadCountChange]);
+  const unreadOrganizationMessages = organizationMessages.filter((message) => message.senderUid !== profile.uid && timestampToMs(message.createdAt, 0) > orgChatReadAt);
+  useEffect(() => { onUnreadCountChange(unreadConversations.length + (section === 'communication' && mode === 'organization' ? 0 : unreadOrganizationMessages.length)); }, [unreadConversations.length, unreadOrganizationMessages.length, section, mode, onUnreadCountChange]);
+  useEffect(() => {
+    if (section !== 'communication' || mode !== 'organization') return;
+    const latest = Date.now();
+    setOrgChatReadAt(latest);
+    try { window.localStorage.setItem(`nova:org-chat-read:${profile.uid}:${profile.orgId || 'none'}`, String(latest)); } catch { /* Keep this session's read state. */ }
+  }, [section, mode, profile.uid, profile.orgId, organizationMessages.length]);
   const targetUid = selectedConversationData?.participants.find((uid) => uid !== profile.uid) || '';
+
+  useEffect(() => {
+    if (!profile.orgId) { setOrganizationMessages([]); return; }
+    let active = true;
+    const refresh = async () => {
+      try {
+        const messages = await listOrganizationChatMessages(profile.orgId!);
+        if (active) setOrganizationMessages(messages);
+      } catch (error) {
+        if (active) setError(socialErrorMessage(error, ar ? 'تعذر تحميل دردشة المنظمة.' : 'Could not load organization chat.'));
+      }
+    };
+    void refresh();
+    const timer = window.setInterval(() => { void refresh(); }, 3000);
+    return () => { active = false; window.clearInterval(timer); };
+  }, [profile.orgId, ar]);
 
   useEffect(() => {
     const ids = [...new Set([...conversations.flatMap((item) => item.participants), ...globalMessages.map((item) => item.senderUid), ...(selectedPlayer ? [selectedPlayer.uid] : [])])].filter(Boolean);
@@ -226,6 +255,7 @@ export function SocialHubView({ profile, myOrgMember, organizations, language, o
       setSelectedPlayer(player);
       setSelectedConversation(result.conversationId);
       setDismissedUnread((previous) => ({ ...previous, [result.conversationId]: timestampToMs(conversations.find((item) => item.id === result.conversationId)?.lastMessageAt, Date.now()) }));
+      setSection('communication');
       setMode('messages');
     } catch (error) {
       setError(socialErrorMessage(error, ar ? 'تعذر فتح المحادثة الآن.' : 'Could not open conversation right now.'));
@@ -248,6 +278,21 @@ export function SocialHubView({ profile, myOrgMember, organizations, language, o
       setConversations(nextConversations);
     } catch (error) {
       setError(socialErrorMessage(error, ar ? 'تعذر إرسال الرسالة الآن. تحقق من الاتصال وحاول مجدداً.' : 'Could not send the message. Check your connection and retry.'));
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function sendOrganization() {
+    const text = draft.trim();
+    if (!text || !profile.orgId) return;
+    setBusy('send_org');
+    try {
+      await sendOrganizationChatMessage(profile.orgId, text);
+      setDraft('');
+      setOrganizationMessages(await listOrganizationChatMessages(profile.orgId));
+    } catch (error) {
+      setError(socialErrorMessage(error, ar ? 'تعذر إرسال رسالة المنظمة الآن.' : 'Could not send organization message.'));
     } finally {
       setBusy(null);
     }
@@ -326,9 +371,9 @@ export function SocialHubView({ profile, myOrgMember, organizations, language, o
   }
 
   const tabs = [
-    { id: 'players' as const, label: ar ? 'اللاعبون' : 'Players', icon: UserRound },
     { id: 'messages' as const, label: ar ? 'الرسائل' : 'Messages', icon: MessageCircle },
     { id: 'global' as const, label: ar ? 'الدردشة العامة' : 'Global chat', icon: Globe2 },
+    { id: 'organization' as const, label: ar ? 'دردشة المنظمة' : 'Organization chat', icon: Users },
   ];
 
   return (
@@ -353,22 +398,29 @@ export function SocialHubView({ profile, myOrgMember, organizations, language, o
         </section>
       )}
 
-      <nav className="grid grid-cols-3 gap-1 rounded-xl bg-[#141821] p-1">
+      <nav className="grid grid-cols-2 gap-2 rounded-xl bg-[#141821] p-1">
+        <button type="button" onClick={() => { setSection('players'); setError(''); }} className={'min-h-[44px] rounded-lg text-xs font-bold ' + (section === 'players' ? 'bg-[#B91C32] text-white' : 'text-[#9299A6]')}>
+          <UserRound className="inline w-4 h-4 me-1.5" />{ar ? 'اللاعبون' : 'Players'}
+        </button>
+        <button type="button" onClick={() => { setSection('communication'); setError(''); }} className={'min-h-[44px] rounded-lg text-xs font-bold ' + (section === 'communication' ? 'bg-[#B91C32] text-white' : 'text-[#9299A6]')}>
+          <MessageCircle className="inline w-4 h-4 me-1.5" />{ar ? 'التواصل' : 'Communication'}
+          {(unreadConversations.length + unreadOrganizationMessages.length) > 0 && <span className="ms-2 inline-flex min-w-5 h-5 px-1 rounded-full bg-red-600 text-white text-[10px] font-bold items-center justify-center">{unreadConversations.length + unreadOrganizationMessages.length}</span>}
+        </button>
+      </nav>
+      {section === 'communication' && <nav className="grid grid-cols-3 gap-1 rounded-xl bg-[#141821] p-1">
         {tabs.map((tab) => {
           const Icon = tab.icon;
-          return (
-            <button key={tab.id} type="button" onClick={() => { setMode(tab.id); setError(''); }}
-              className={'min-h-[42px] flex items-center justify-center gap-1.5 rounded-lg text-xs font-semibold ' + (mode === tab.id ? 'bg-[#B91C32] text-white' : 'text-[#9299A6]')}>
-              <Icon className="w-4 h-4" />{tab.label}{tab.id === 'messages' && unreadConversations.length > 0 && <span className="ms-1 min-w-5 h-5 px-1 rounded-full bg-red-600 text-white text-[10px] font-bold flex items-center justify-center">{unreadConversations.length}</span>}
-            </button>
-          );
+          return <button key={tab.id} type="button" onClick={() => { setMode(tab.id); setError(''); }} className={'min-h-[42px] flex items-center justify-center gap-1 rounded-lg text-[11px] font-semibold ' + (mode === tab.id ? 'bg-[#B91C32] text-white' : 'text-[#9299A6]')}>
+            <Icon className="w-4 h-4" />{tab.label}
+            {tab.id === 'messages' && unreadConversations.length > 0 && <span className="ms-1 inline-flex h-2 w-2 rounded-full bg-red-500" />}
+            {tab.id === 'organization' && unreadOrganizationMessages.length > 0 && <span className="ms-1 inline-flex h-2 w-2 rounded-full bg-red-500" />}
+          </button>;
         })}
-      </nav>
-
+      </nav>}
       {mode === 'messages' && unreadConversations.length > 0 && <div className="flex items-center justify-between gap-3 rounded-xl border border-red-500/20 bg-red-500/5 px-3 py-2"><p className="text-xs text-[#F4F5F7]">{ar ? `${unreadConversations.length} محادثة فيها رسائل جديدة` : `${unreadConversations.length} conversation(s) with new messages`}</p><button type="button" onClick={() => setDismissedUnread((previous) => ({ ...previous, ...Object.fromEntries(unreadConversations.map((item) => [item.id, timestampToMs(item.lastMessageAt, Date.now())])) }))} className="text-[11px] text-red-300 underline underline-offset-2">{ar ? 'إغلاق الإشعارات' : 'Dismiss notifications'}</button></div>}
       {error && <p className="rounded-xl border border-white/10 bg-[#141821] px-3 py-2 text-xs text-[#F4C66A]">{error}</p>}
 
-      {mode === 'players' && (
+      {section === 'players' && (
         <section className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <div className="space-y-3">
             <div className="relative">
@@ -449,7 +501,7 @@ export function SocialHubView({ profile, myOrgMember, organizations, language, o
         </section>
       )}
 
-      {mode === 'messages' && (
+      {section === 'communication' && mode === 'messages' && (
         <section className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-3 min-h-[420px]">
           <div className={(selectedConversation ? 'hidden lg:block ' : '') + 'rounded-2xl border border-white/8 bg-[#141821] p-3 space-y-2'}>
             <div className="flex items-center justify-between gap-2 px-2 py-1"><h2 className="text-xs font-semibold text-[#9299A6]">{ar ? 'المحادثات' : 'Conversations'}</h2>{unreadConversations.length > 0 && <button type="button" onClick={() => setDismissedUnread((previous) => ({ ...previous, ...Object.fromEntries(unreadConversations.map((item) => [item.id, timestampToMs(item.lastMessageAt, Date.now())])) }))} className="text-[10px] font-semibold text-red-300 hover:text-red-200">{ar ? 'إغلاق إشعارات الرسائل' : 'Dismiss message alerts'}</button>}</div>
@@ -502,7 +554,25 @@ export function SocialHubView({ profile, myOrgMember, organizations, language, o
 
       {selectedOrganization && <div className="fixed inset-0 z-50 bg-black/70 p-4 flex items-center justify-center" role="dialog" aria-modal="true"><div className="w-full max-w-md rounded-2xl border border-white/10 bg-[#141821] p-5 space-y-4"><div className="flex items-start justify-between gap-3"><div><p className="text-xs text-amber-200">[{selectedOrganization.tag}]</p><h2 className="text-lg font-bold text-[#F4F5F7]">{selectedOrganization.name}</h2><p className="text-xs text-[#9299A6] mt-1">{selectedOrganization.description || (ar ? 'لا يوجد وصف' : 'No description')}</p></div><button type="button" onClick={() => setSelectedOrganization(null)} className="rounded-lg bg-[#252B36] px-3 py-2 text-xs">{ar ? 'إغلاق' : 'Close'}</button></div><div className="grid grid-cols-2 gap-2">{[[ar ? 'المستوى' : 'Level', selectedOrganization.level],[ar ? 'الأعضاء' : 'Members', selectedOrganization.memberCount],[ar ? 'السمعة' : 'Reputation', selectedOrganization.reputation],[ar ? 'قائد المنظمة' : 'Leader', selectedOrganization.leaderName],[ar ? 'الخزينة' : 'Treasury', `${selectedOrganization.treasuryBalance.toLocaleString()}`]].map(([label,value]) => <div key={String(label)} className="rounded-xl bg-[#0B0D12] p-3"><p className="text-[11px] text-[#9299A6]">{label}</p><p className="mt-1 text-sm font-semibold text-[#F4F5F7]">{value}</p></div>)}</div></div></div>}
 
-      {mode === 'global' && (
+      {section === 'communication' && mode === 'organization' && (
+        <section className="rounded-2xl border border-white/8 bg-[#141821] p-3 flex flex-col min-h-[520px]">
+          <div className="flex items-center gap-2 border-b border-white/8 px-2 pb-3"><Users className="w-4 h-4 text-amber-200" /><h2 className="text-sm font-semibold">{ar ? 'دردشة المنظمة' : 'Organization chat'}</h2><span className="ms-auto text-[10px] text-[#9299A6]">{ar ? 'للأعضاء فقط' : 'Members only'}</span></div>
+          {!profile.orgId ? <p className="flex-1 py-12 text-center text-xs text-[#9299A6]">{ar ? 'يجب أن تنضم إلى منظمة لاستخدام هذه الدردشة.' : 'Join an organization to use this chat.'}</p> : <>
+            <div className="flex-1 min-h-[360px] max-h-[60vh] overflow-y-auto py-3 space-y-2">
+              {organizationMessages.map((message) => <div key={message.id} className={'max-w-[85%] rounded-xl p-3 text-xs ' + (message.senderUid === profile.uid ? 'ms-auto bg-[#54202B]' : 'me-auto bg-[#0B0D12]')}>
+                <p className="mb-1 text-[10px] text-[#D2A8AF]">{message.senderName} · {dateLabel(message.createdAt)}</p><p className="whitespace-pre-wrap break-words">{message.text}</p>
+              </div>)}
+              {organizationMessages.length === 0 && <p className="py-12 text-center text-xs text-[#9299A6]">{ar ? 'لا توجد رسائل بعد. ابدأ المحادثة مع أعضاء منظمتك.' : 'No messages yet. Start chatting with your organization.'}</p>}
+            </div>
+            <div className="flex gap-2 pt-3 border-t border-white/8">
+              <input value={draft} onChange={(event) => setDraft(event.target.value)} maxLength={280} onKeyDown={(event) => { if (event.key === 'Enter') { event.preventDefault(); void sendOrganization(); } }} placeholder={ar ? 'اكتب لأعضاء المنظمة...' : 'Message your organization...'} className="flex-1 min-w-0 min-h-[44px] rounded-xl bg-[#0B0D12] border border-white/10 px-3 text-sm" />
+              <button type="button" disabled={!draft.trim() || busy === 'send_org' || !profile.orgId} onClick={() => void sendOrganization()} className="min-w-[44px] rounded-xl bg-[#B91C32] flex items-center justify-center disabled:opacity-40"><Send className="w-4 h-4" /></button>
+            </div>
+          </>}
+        </section>
+      )}
+
+      {section === 'communication' && mode === 'global' && (
         <section className="rounded-2xl border border-white/8 bg-[#141821] p-3 flex flex-col min-h-[520px]">
           <div className="flex items-center gap-2 border-b border-white/8 px-2 pb-3"><Globe2 className="w-4 h-4 text-amber-200" /><h2 className="text-sm font-semibold">{ar ? 'الدردشة العامة' : 'Global chat'}</h2><span className="ms-auto text-[10px] text-[#9299A6]">{ar ? 'حد الإرسال: رسالة كل 3 ثوانٍ' : 'Rate limit: one message every 3 seconds'}</span></div>
           <div className="flex-1 min-h-[360px] max-h-[60vh] overflow-y-auto py-3 space-y-2">
