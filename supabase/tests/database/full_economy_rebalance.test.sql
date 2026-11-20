@@ -6,7 +6,7 @@ select extensions.plan(8);
 
 select extensions.is(
   nexora.company_upgrade_cost('trade', 1),
-  341::bigint,
+  394::bigint,
   'trade company level 1 upgrade uses the incremental-profit cost curve'
 );
 
@@ -47,8 +47,9 @@ select extensions.ok(
 
 select extensions.ok(
   position('power(greatest(2, least(100' in lower(pg_get_functiondef('nexora.company_upgrade_duration_seconds(integer)'::regprocedure))) > 0
-  and position('1.05' in lower(pg_get_functiondef('nexora.company_upgrade_duration_seconds(integer)'::regprocedure))) > 0,
-  'company duration function uses the shortened progressive curve'
+  and position('11 * power' in lower(pg_get_functiondef('nexora.company_upgrade_duration_seconds(integer)'::regprocedure))) > 0
+  and position('.85' in lower(pg_get_functiondef('nexora.company_upgrade_duration_seconds(integer)'::regprocedure))) > 0,
+  'company duration function uses the level 13 eleven-minute anchor'
 );
 
 select * from extensions.finish();

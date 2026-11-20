@@ -17,8 +17,8 @@ describe('business and factory economy curves', () => {
     expect(companyLevelMultiplier(5)).toBeGreaterThan(companyLevelMultiplier(1));
     expect(companyLevelMultiplier(100)).toBeLessThan(10);
     expect(companyUpgradeCost(4200, 2)).toBeGreaterThan(companyUpgradeCost(4200, 1));
-    expect(companyUpgradeCost(9000, 12, getCompanySectorLevelGain('tech'))).toBe(1956);
-    expect(companyUpgradeDurationMs(12)).toBe(6_522_011);
+    expect(companyUpgradeCost(9000, 12, getCompanySectorLevelGain('tech'))).toBe(3612);
+    expect(companyUpgradeDurationMs(13)).toBe(660_000);
     expect(companyUpgradeDurationMs(5)).toBeGreaterThan(companyUpgradeDurationMs(2));
   });
 

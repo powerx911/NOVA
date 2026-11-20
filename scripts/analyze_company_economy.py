@@ -23,8 +23,8 @@ def old_server_cost(gain: float, level: int) -> int:
 
 
 def proposed_cost(gain: float, level: int) -> int:
-    # Targets roughly one day of payback while preserving incremental-profit scaling.
-    return math.ceil(gain * (8 + level))
+    # Anchor tech level 12 -> 13 at 3,612 credits while preserving sector scaling.
+    return math.ceil(gain * (8 + 2.411 * level))
 
 
 def net_income(base: int, expense: int, gain: float, level: int) -> int:
@@ -34,7 +34,7 @@ def net_income(base: int, expense: int, gain: float, level: int) -> int:
 
 
 def duration_minutes(target_level: int) -> int:
-    return round(8 * target_level**1.05)
+    return round(11 * (target_level / 13) ** 0.85)
 
 
 def cumulative_hours_to_level(base: int, expense: int, gain: float, target: int) -> float:
@@ -64,8 +64,8 @@ def main() -> None:
         "",
         "- دخل الشركة: دخل أساسي + زيادة قطاعية خطية لكل مستوى.",
         "- المصروف: نمو 8% لكل مستوى بدل 20%، حتى لا تلتهم التكاليف الزيادة في الدخل.",
-        "- تكلفة الترقية: `ceil(الزيادة القطاعية × (8 + المستوى الحالي))`، بهدف استرداد يقارب يومًا من دخل الشركة.",
-        "- مدة الترقية: `8 دقائق × المستوى المستهدف^1.05` لتقليل الانتظار مع الحفاظ على التدرج.",
+        "- تكلفة الترقية: `ceil(الزيادة القطاعية × (8 + 2.411 × المستوى الحالي))`؛ تكلفة التقنية من المستوى 12 إلى 13 هي 3,612.",
+        "- مدة الترقية: `11 دقيقة × (المستوى المستهدف ÷ 13)^0.85`؛ مدة المستوى 12 إلى 13 هي 11 دقيقة.",
         "- الهدف: استرداد تكلفة الترقية من الزيادة في صافي الربح خلال فترة معقولة، بدل ربطها بتكلفة التأسيس.",
         "",
         "## مقارنة المستوى 12",
