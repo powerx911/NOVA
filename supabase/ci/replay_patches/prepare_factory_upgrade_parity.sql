@@ -30,5 +30,21 @@ begin
   end if;
 
   execute v_definition;
+
+  -- Normalize the guarded factory production function to the exact precondition
+  -- expected by the immutable production migration. The migration itself then
+  -- performs the final 0.025 -> 0.018 adjustment.
+  select pg_get_functiondef('nexora.sync_factory_production(text,text)'::regprocedure)
+    into v_definition;
+  v_definition := regexp_replace(
+    v_definition,
+    'v_expense[[:space:]]*:=[^;]*;',
+    'v_expense:=v_cfg.operating_cost*(1+greatest(0,v_factory.level-1)*0.025)*(1-v_factory.skill_level*0.005);',
+    'g'
+  );
+  if position('greatest(0,v_factory.level-1)*0.025' in v_definition) = 0 then
+    raise exception 'FACTORY_OPERATING_REPLAY_PRECONDITION_NOT_FOUND';
+  end if;
+  execute v_definition;
 end
 $patch$;
