@@ -102,7 +102,14 @@ jobs:
             sleep 1
           done
           uid="$(printf '%s' "$response" | jq -r '.localId // empty')"
-          test -n "$uid" || { echo "Firebase Auth emulator failed to create the disposable account"; exit 1; }
+          id_token="$(printf '%s' "$response" | jq -r '.idToken // empty')"
+          test -n "$uid" && test -n "$id_token" || { echo "Firebase Auth emulator failed to create the disposable account"; exit 1; }
+          # NOVA's sign-in UX requires verified email; mark only this emulator user verified.
+          curl -fsS -X POST \
+            'http://127.0.0.1:9099/identitytoolkit.googleapis.com/v1/accounts:update?key=fake-api-key' \
+            -H 'Content-Type: application/json' \
+            -d "$(jq -n --arg idToken "$id_token" '{idToken:$idToken,emailVerified:true,returnSecureToken:true}')" \
+            >/dev/null
           token="$(openssl rand -hex 32)"
           {
             echo "NOVA_E2E_EMAIL=$email"
