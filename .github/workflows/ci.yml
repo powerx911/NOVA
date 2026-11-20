@@ -13,7 +13,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: nova-ci-${{ github.workflow }}-${{ github.ref }}
@@ -46,8 +46,29 @@ jobs:
           cache-dependency-path: |
             functions/package-lock.json
 
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Regenerate root Bun lockfile
+        run: bun install --ignore-scripts
+
+      - name: Commit regenerated root Bun lockfile
+        if: github.event_name == 'push'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if git diff --quiet -- bun.lock; then
+            echo "bun.lock is already in sync."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add bun.lock
+          git commit -m "chore: regenerate root Bun lockfile"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
+
       - name: Install root dependencies
-        run: npm install --no-audit --no-fund --package-lock=false
+        run: bun install --frozen-lockfile
 
       - name: Install Cloud Functions dependencies
         run: npm ci --prefix functions --no-audit --no-fund
