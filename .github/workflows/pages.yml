@@ -31,6 +31,8 @@ jobs:
         run: npm run build
         env:
           GITHUB_PAGES: 'true'
+      - name: Verify published version manifest
+        run: node --input-type=module -e "import { readFileSync } from 'node:fs'; const { version } = JSON.parse(readFileSync('dist/version.json', 'utf8')); if (version !== process.env.GITHUB_SHA) throw new Error('Version manifest does not match this deployment commit'); console.log('Verified deployment version:', version);"
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
