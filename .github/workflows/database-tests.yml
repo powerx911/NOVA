@@ -88,7 +88,11 @@ jobs:
             supabase/migrations/20261119160209_nova_ten_org_weekly_goals.sql \
             supabase/migrations/20261119160214_nova_independent_contract_claim_limits.sql \
             supabase/migrations/20261119164015_nova_manufacturing_queue_inventory_capacity.sql \
-            supabase/migrations/20261119171452_nova_market_price_bounds_manufacturing_cancel.sql
+            supabase/migrations/20261119171452_nova_market_price_bounds_manufacturing_cancel.sql \
+            supabase/migrations/20261119210000_nova_factory_automatic_operations_progression.sql \
+            supabase/migrations/20261119211000_nova_factory_progression_curve_calibration.sql \
+            supabase/migrations/20261119212000_nova_factory_operating_margin_calibration.sql \
+            supabase/migrations/20261120000000_nova_factory_resource_specific_growth_curves.sql
           do
             psql "$DB_URL" -v ON_ERROR_STOP=1 -f "$migration"
           done
