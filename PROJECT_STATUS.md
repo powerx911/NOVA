@@ -17,7 +17,7 @@ NOVA is the player-facing game and brand name. The current database schema remai
 - Identity: Firebase Authentication.
 - Game data/economy: Supabase PostgreSQL project hmrprnjhyzyefocdmnxf, schema nexora.
 - API boundary: Supabase Edge Function nexora-api; it verifies Firebase ID tokens and uses a server-side service-role client.
-- Firestore/Cloud Functions: legacy diagnostics and older server code remain in the repository. They are not the authoritative game economy. Inventory deployed functions and callers before retiring them.
+- Firestore/Cloud Functions: legacy diagnostics and older server code remain in the repository. They are not the authoritative game economy. The source currently exports upgradeCompanyProfitVault, collectCompanyRevenueSecure, nexoraDiagnostics and rotateWorldEvents; deployed inventory and caller verification are still required before retirement.
 - api/*: legacy serverless endpoint sources remain in the repository. GitHub Pages publishes only the static dist directory; the owner-only diagnostics service currently calls /api/company-vault for a health check; the current Vercel deployment status is not verified.
 
 ## Production database inventory — read-only catalog verification, 2026-11-20
