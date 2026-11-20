@@ -1,0 +1,14 @@
+begin;
+select extensions.plan(10);
+select extensions.ok(to_regclass('nexora.idempotency_requests') is not null, 'private idempotency ledger exists');
+select extensions.ok((select relrowsecurity from pg_class where oid = 'nexora.idempotency_requests'::regclass), 'idempotency ledger has RLS enabled');
+select extensions.ok(not has_table_privilege('anon', 'nexora.idempotency_requests', 'SELECT'), 'anon cannot read idempotency responses');
+select extensions.ok(not has_table_privilege('authenticated', 'nexora.idempotency_requests', 'SELECT'), 'players cannot read idempotency responses');
+select extensions.ok(has_table_privilege('service_role', 'nexora.idempotency_requests', 'SELECT') and has_table_privilege('service_role', 'nexora.idempotency_requests', 'INSERT') and has_table_privilege('service_role', 'nexora.idempotency_requests', 'UPDATE'), 'service role has ledger access');
+select extensions.ok(has_function_privilege('service_role', 'nexora.transfer_credits_idempotent(text,text,bigint,text,text)', 'EXECUTE'), 'service role can execute idempotent transfers');
+select extensions.ok(not has_function_privilege('authenticated', 'nexora.transfer_credits_idempotent(text,text,bigint,text,text)', 'EXECUTE'), 'players cannot call privileged transfer wrapper');
+select extensions.ok(has_function_privilege('service_role', 'nexora.deposit_org_treasury_idempotent(text,text,bigint,text)', 'EXECUTE'), 'service role can execute idempotent treasury deposits');
+select extensions.ok(has_function_privilege('service_role', 'nexora.buy_market_listings_at_quote_idempotent(text,jsonb,text)', 'EXECUTE'), 'service role can execute quote-checked market batches');
+select extensions.ok(not has_function_privilege('authenticated', 'nexora.buy_market_listings_at_quote_idempotent(text,jsonb,text)', 'EXECUTE'), 'players cannot bypass quote confirmation or idempotency');
+select * from extensions.finish();
+rollback;
