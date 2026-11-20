@@ -214,7 +214,7 @@ export function DynamicContractsPanel({ profile, inventory, wallet, language, no
     const canRefresh = organization ? canRefreshOrgContracts && orgRefreshUsed < orgRefreshLimit : personalRefreshUsed < personalRefreshLimit;
     const canDeliver = contract.status === 'accepted' && isOwnedContract && owned >= contract.quantity && (wallet?.balance ?? 0) >= fee;
     const isBusy = busyId === contract.id;
-    const hasReadyNotification = notifications.some((notification) => !notification.read && notification.eventKey === `contract-ready:${contract.id}`);
+    const hasReadyNotification = notifications.some((notification) => notification.eventKey === `contract-ready:${contract.id}` || (!notification.read && (notification.title === 'العقد جاهز للاستلام' || notification.title === 'Contract ready to claim' || notification.title === 'CONTRACT_READY')));
     const tierColor: Record<DynamicContractOffer['tier'], string> = {
       common: 'text-slate-300 border-slate-400/25 bg-slate-400/10',
       uncommon: 'text-sky-300 border-sky-400/25 bg-sky-400/10',
