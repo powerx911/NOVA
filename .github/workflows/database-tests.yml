@@ -9,6 +9,7 @@ on:
       - "supabase/ci/**"
       - "supabase/migrations/**"
       - "supabase/tests/**"
+      - "scripts/validate_migration_manifest.py"
       - ".github/workflows/database-tests.yml"
   pull_request:
     branches:
@@ -34,6 +35,9 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Validate production migration source manifest
+        run: python scripts/validate_migration_manifest.py
 
       - name: Setup Supabase CLI
         uses: supabase/setup-cli@v3
