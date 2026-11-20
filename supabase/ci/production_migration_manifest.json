@@ -19,7 +19,8 @@
     "records_with_source": 74,
     "records_missing_source": 0,
     "records_recovered_only": 21,
-    "records_with_additional_variants": 21
+    "records_with_additional_variants": 21,
+    "local_migration_files_not_mapped_to_applied_record": 20
   },
   "entries": [
     {
@@ -719,5 +720,29 @@
       "canonical_git_blob_sha": "f89246280237824ab6f82cd5eb31fb28a8d9e952",
       "additional_variants": []
     }
+  ],
+  "tracked_migration_files_on_branch": 73,
+  "tracked_migration_files_on_main": 70,
+  "pending_migrations_not_in_production": [
+    "supabase/migrations/20261118180000_nexora_economy_rpcs.sql",
+    "supabase/migrations/20261118183000_nexora_market_rpcs.sql",
+    "supabase/migrations/20261118190000_nexora_manufacturing_rpc.sql",
+    "supabase/migrations/20261118193000_nexora_contract_rpc.sql",
+    "supabase/migrations/20261118200000_nexora_player_settings_notifications.sql",
+    "supabase/migrations/20261118201000_nexora_seed_world.sql",
+    "supabase/migrations/20261118203000_nexora_companies_properties.sql",
+    "supabase/migrations/20261118210000_nexora_company_vault_rpcs.sql",
+    "supabase/migrations/20261119003000_nova_factory_business_auctions.sql",
+    "supabase/migrations/20261119011000_nova_advanced_resource_recipes.sql",
+    "supabase/migrations/20261120133000_nova_full_economy_rebalance.sql",
+    "supabase/migrations/20261120170000_nova_company_factory_audit_guards.sql",
+    "supabase/migrations/20261120200000_nova_economy_curves_auto_settlement.sql",
+    "supabase/migrations/20261120220000_nova_company_economy_rebalance_v2.sql",
+    "supabase/migrations/20261120230000_nova_company_upgrade_duration_rebalance.sql",
+    "supabase/migrations/20261120231000_nova_company_upgrade_cost_rebalance.sql",
+    "supabase/migrations/20261120232000_nova_company_upgrade_anchor_rebalance.sql",
+    "supabase/migrations/20261120233000_nova_company_upgrade_charge_reconciliation.sql",
+    "supabase/migrations/20261121000000_nova_treasury_withdrawal_lock_and_auction_refund.sql",
+    "supabase/migrations/20261121001000_nova_unified_account_deletion.sql"
   ]
 }
