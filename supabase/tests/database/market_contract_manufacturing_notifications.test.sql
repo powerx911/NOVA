@@ -1,7 +1,7 @@
 -- Run with: supabase test db
 begin;
 create extension if not exists pgtap with schema extensions;
-select extensions.plan(11);
+select extensions.plan(13);
 
 select extensions.ok(
   to_regprocedure('nexora.player_inventory_usage(text)') is not null,
@@ -63,6 +63,16 @@ select extensions.ok(
 select extensions.ok(
   to_regprocedure('nexora.emit_notification_once(text,text,text,text,text,text,text)') is not null,
   'notification delivery is deduplicated by event key'
+);
+
+select extensions.ok(
+  (select provolatile='v' from pg_proc where oid='nexora.player_inventory_usage(text)'::regprocedure),
+  'inventory usage reads a fresh snapshot inside after triggers'
+);
+
+select extensions.ok(
+  position('nexora.allow_inventory_refund' in pg_get_functiondef('nexora.cancel_market_listing(text,text)'::regprocedure)) > 0,
+  'cancelling a listing always restores its escrowed units even for legacy over-capacity accounts'
 );
 
 select * from extensions.finish();
