@@ -4,6 +4,7 @@ import {
   ShieldCheck, Timer,
 } from 'lucide-react';
 import { ResourceIcon } from '../../components/ui/ResourceIcon';
+import { NotificationBadge } from '../../components/ui/NotificationBadge';
 import { useToast } from '../../components/ui/ToastProvider';
 import { ITEM_MAP } from '../../data/catalog';
 import { useTranslations } from '../../i18n/translations';
@@ -174,7 +175,7 @@ export function DynamicContractsPanel({ profile, inventory, wallet, language, no
         ORG_REFRESH_PERMISSION_REQUIRED: ['تجديد عقود المنظمة متاح للقائد ونائبه فقط.', 'Only the leader and deputy can refresh organization contracts.'],
         CONTRACT_NOT_REFRESHABLE: ['لا يمكن تجديد هذا العقد الآن.', 'This contract cannot be refreshed now.'],
         ACTIVE_CONTRACT_LIMIT: ['لديك 3 عقود شخصية نشطة بالفعل.', 'You already have three active personal contracts.'],
-        ORG_ACTIVE_CONTRACT_LIMIT: ['لديك عقد منظمة نشط بالفعل.', 'You already have an active organization contract.'],
+        ORG_ACTIVE_CONTRACT_LIMIT: ['لديك ثلاثة عقود منظمة نشطة بالفعل.', 'You already have three active organization contracts.'],
         ORG_MEMBERSHIP_TOO_NEW: ['يجب أن تمر 8 ساعات على عضويتك في المنظمة.', 'Organization membership must be at least 8 hours old.'],
         MISSING_INPUTS: ['المواد المطلوبة غير متوفرة في المخزون.', 'Required materials are missing from inventory.'],
         INSUFFICIENT_FUNDS: ['رصيدك لا يكفي لرسوم المعالجة.', 'Your balance cannot cover the processing fee.'],
@@ -210,7 +211,7 @@ export function DynamicContractsPanel({ profile, inventory, wallet, language, no
         ? t.readyIn
         : t.offerEndsIn;
     const canAccept = contract.status === 'offered' && !isReservedByOther
-      && (organization ? orgDailyUsed < orgDailyLimit : dailyUsed < dailyLimit) && (organization || activePersonal < 3);
+      && (organization ? orgDailyUsed < orgDailyLimit : dailyUsed < dailyLimit) && (organization ? orgContracts.filter((item) => item.claimed_by === profile.uid && ['accepted','processing','ready'].includes(item.status)).length < 3 : activePersonal < 3);
     const canRefresh = organization ? canRefreshOrgContracts && orgRefreshUsed < orgRefreshLimit : personalRefreshUsed < personalRefreshLimit;
     const canDeliver = contract.status === 'accepted' && isOwnedContract && owned >= contract.quantity && (wallet?.balance ?? 0) >= fee;
     const isBusy = busyId === contract.id;
@@ -352,13 +353,13 @@ export function DynamicContractsPanel({ profile, inventory, wallet, language, no
       {!loading && (
         <>
           <div className="flex gap-2 rounded-xl border border-white/10 bg-[#0B1425] p-1.5" role="tablist" aria-label={language === 'ar' ? 'أنواع العقود' : 'Contract types'}>
-            <button type="button" role="tab" aria-selected={activeContractTab === 'personal'} onClick={() => setActiveContractTab('personal')} className={`flex-1 min-h-10 rounded-lg px-3 text-xs font-bold transition-colors ${activeContractTab === 'personal' ? 'bg-[#2468D8] text-white' : 'text-[#9AAEC9] hover:text-white'}`}>{t.personalContracts}{contracts.some((contract) => contract.status === 'ready' && (!contract.claimed_by || contract.claimed_by === profile.uid)) && <span className="ms-2 inline-flex h-2 w-2 rounded-full bg-red-500" />}</button>
-            {profile.orgId && <button type="button" role="tab" aria-selected={activeContractTab === 'organization'} onClick={() => setActiveContractTab('organization')} className={`flex-1 min-h-10 rounded-lg px-3 text-xs font-bold transition-colors ${activeContractTab === 'organization' ? 'bg-[#2468D8] text-white' : 'text-[#9AAEC9] hover:text-white'}`}>{t.organizationContracts}{orgContracts.some((contract) => contract.status === 'ready' && contract.claimed_by === profile.uid) && <span className="ms-2 inline-flex h-2 w-2 rounded-full bg-red-500" />}</button>}
+            <button type="button" role="tab" aria-selected={activeContractTab === 'personal'} onClick={() => setActiveContractTab('personal')} className={`flex-1 min-h-10 rounded-lg px-3 text-xs font-bold transition-colors ${activeContractTab === 'personal' ? 'bg-[#2468D8] text-white' : 'text-[#9AAEC9] hover:text-white'}`}>{t.personalContracts}{contracts.filter((contract) => contract.status === 'ready' && (!contract.claimed_by || contract.claimed_by === profile.uid)).length > 0 && <NotificationBadge className="ms-2" count={contracts.filter((contract) => contract.status === 'ready' && (!contract.claimed_by || contract.claimed_by === profile.uid)).length} />}</button>
+            {profile.orgId && <button type="button" role="tab" aria-selected={activeContractTab === 'organization'} onClick={() => setActiveContractTab('organization')} className={`flex-1 min-h-10 rounded-lg px-3 text-xs font-bold transition-colors ${activeContractTab === 'organization' ? 'bg-[#2468D8] text-white' : 'text-[#9AAEC9] hover:text-white'}`}>{t.organizationContracts}{orgContracts.filter((contract) => contract.status === 'ready' && contract.claimed_by === profile.uid).length > 0 && <NotificationBadge className="ms-2" count={orgContracts.filter((contract) => contract.status === 'ready' && contract.claimed_by === profile.uid).length} />}</button>}
           </div>
           {activeContractTab === 'personal' && (
           <section className="space-y-3">
             <div className="flex items-center justify-between gap-2">
-              <h3 className="text-base font-bold text-white flex items-center gap-2"><ShieldCheck className="w-4 h-4 text-sky-300" />{t.personalContracts}{contracts.some((contract) => contract.status === 'ready' && (!contract.claimed_by || contract.claimed_by === profile.uid)) && <span className="inline-flex h-2 w-2 rounded-full bg-red-500" />}</h3>
+              <h3 className="text-base font-bold text-white flex items-center gap-2"><ShieldCheck className="w-4 h-4 text-sky-300" />{t.personalContracts}{contracts.some((contract) => contract.status === 'ready' && (!contract.claimed_by || contract.claimed_by === profile.uid)) && <NotificationBadge count={1} />}</h3>
               <span className="text-[10px] text-[#8192AD]">{contracts.filter((contract) => contract.status === 'offered' && contract.slot_no >= 1 && contract.slot_no <= 5).length + personalCooldowns.filter((slot) => slot.slot_no >= 1 && slot.slot_no <= 5).length} / 5</span>
             </div>
             <p className="text-xs text-[#A9B9D4]">{t.dailyRemaining}: {Math.max(0, dailyLimit - dailyUsed)} / {dailyLimit} · {t.activeContractLimit}: {activePersonal} / 3</p>
@@ -370,7 +371,7 @@ export function DynamicContractsPanel({ profile, inventory, wallet, language, no
           {profile.orgId && activeContractTab === 'organization' && (
             <>
               <section className="space-y-3">
-                <h3 className="text-base font-bold text-white flex items-center gap-2"><Building2 className="w-4 h-4 text-amber-300" />{t.organizationContracts}{orgContracts.some((contract) => contract.status === 'ready' && contract.claimed_by === profile.uid) && <span className="inline-flex h-2 w-2 rounded-full bg-red-500" />}</h3>
+                <h3 className="text-base font-bold text-white flex items-center gap-2"><Building2 className="w-4 h-4 text-amber-300" />{t.organizationContracts}{orgContracts.some((contract) => contract.status === 'ready' && contract.claimed_by === profile.uid) && <NotificationBadge count={1} />}</h3>
                 <p className="text-[11px] text-[#8192AD]">{language === "ar" ? "الخانات المفتوحة حسب مستوى المنظمة: " : "Slots unlocked by organization level: "}<b className="font-mono-num text-white">{orgUnlockedSlots} / 100</b></p>
                 <p className="text-[11px] text-[#A9B9D4]">{language === "ar" ? "فرص استلام عقود المنظمة المتبقية اليوم: " : "Organization contract claims remaining today: "}<b className="font-mono-num text-white">{Math.max(0, orgDailyLimit - orgDailyUsed)} / {orgDailyLimit}</b></p>
                 {canRefreshOrgContracts && <p className="text-[11px] text-[#8FA1BF]">{language === "ar" ? "تجديدات المنظمة المتبقية اليوم: " : "Organization refreshes left today: "}<b className="font-mono-num text-white">{Math.max(0, orgRefreshLimit - orgRefreshUsed)} / {orgRefreshLimit}</b></p>}
