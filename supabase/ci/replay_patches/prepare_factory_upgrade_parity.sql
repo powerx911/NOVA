@@ -48,3 +48,46 @@ begin
   execute v_definition;
 end
 $patch$;
+
+-- Normalize the company-vault function's historical formatting for the immutable
+-- production migration that follows. This does not change the final business logic;
+-- it only makes the precondition text deterministic for the original patch.
+do $patch$
+declare
+  v_definition text;
+begin
+  select pg_get_functiondef('nexora.upgrade_company_vault(text,text)'::regprocedure)
+    into v_definition;
+
+  v_definition := regexp_replace(v_definition,
+    'when 1 then v_cost[[:space:]]*:=[[:space:]]*1500;',
+    'when 1 then v_cost:=1500;', 'g');
+  v_definition := regexp_replace(v_definition,
+    'when 2 then v_cost[[:space:]]*:=[[:space:]]*4000;',
+    'when 2 then v_cost:=4000;', 'g');
+  v_definition := regexp_replace(v_definition,
+    'when 3 then v_cost[[:space:]]*:=[[:space:]]*10000;',
+    'when 3 then v_cost:=10000;', 'g');
+  v_definition := regexp_replace(v_definition,
+    'when 4 then v_cost[[:space:]]*:=[[:space:]]*25000;',
+    'when 4 then v_cost:=25000;', 'g');
+
+  v_definition := regexp_replace(v_definition,
+    'if[[:space:]]+v_target[[:space:]]*<=[[:space:]]*50[[:space:]]+then[[:space:]]*v_duration[[:space:]]*:=[^;]*;[[:space:]]*else[[:space:]]*v_duration[[:space:]]*:=[^;]*;[[:space:]]*end if;',
+    'if v_target<=50 then v_duration:=round(2000*power(43200::numeric,(v_target-2)::numeric/48)); else v_duration:=round(86400000*power(15::numeric,(v_target-50)::numeric/50)); end if;',
+    'g');
+
+  v_definition := regexp_replace(v_definition,
+    'make_interval\\(secs[[:space:]]*=>[[:space:]]*greatest\\(1,[[:space:]]*v_duration[[:space:]]*/[[:space:]]*1000\\)\\)',
+    'make_interval(secs=>greatest(1,v_duration/2000))',
+    'g');
+
+  if position('when 1 then v_cost:=1500;' in v_definition) = 0
+     or position('when 4 then v_cost:=25000;' in v_definition) = 0
+     or position('v_duration/2000' in v_definition) = 0 then
+    raise exception 'COMPANY_VAULT_REPLAY_PRECONDITION_NOT_FOUND';
+  end if;
+
+  execute v_definition;
+end
+$patch$;
