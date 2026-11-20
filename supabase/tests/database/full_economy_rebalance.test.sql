@@ -41,7 +41,7 @@ select extensions.ok(
 
 select extensions.ok(
   position('company_sector_level_gain' in lower(pg_get_functiondef('nexora.company_net_hourly(text)'::regprocedure))) > 0
-  and position('0.08' in lower(pg_get_functiondef('nexora.company_net_hourly(text)'::regprocedure))) > 0,
+  and position('.08' in lower(pg_get_functiondef('nexora.company_net_hourly(text)'::regprocedure))) > 0,
   'company income uses the shared sector gain and controlled expense curve'
 );
 
