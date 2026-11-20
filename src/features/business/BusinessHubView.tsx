@@ -134,8 +134,8 @@ export function BusinessHubView({
     return () => { active = false; window.clearInterval(timer); };
   }, []);
   const visibleCompanies = companies.filter((company) => !deletedCompanyIds.includes(company.id)).sort((a, b) => b.level - a.level || a.name.localeCompare(b.name));
-  const companyVaultAlert = notifications.some((n) => !n.read && (n.title === 'خزنة الشركة ممتلئة' || n.title === 'Company vault is full'));
-  const factoryWarehouseAlert = notifications.some((n) => !n.read && (n.title === 'مستودع المصنع ممتلئ' || n.title === 'Factory warehouse is full'));
+  const companyVaultAlert = notifications.some((n) => !n.read && (n.eventKey?.startsWith('company-vault-full:') || n.title === 'خزنة الشركة ممتلئة' || n.title === 'Company vault is full'));
+  const factoryWarehouseAlert = notifications.some((n) => !n.read && (n.eventKey?.startsWith('factory-warehouse-full:') || n.title === 'مستودع المصنع ممتلئ' || n.title === 'Factory warehouse is full'));
   const activeAuctions = auctions.filter((auction) => auction.status === 'active');
   const companyBidReservations = activeAuctions.filter((auction) => auction.assetType !== 'factory' && auction.highestBidderUid === profile.uid).length;
   const factoryBidReservations = activeAuctions.filter((auction) => auction.assetType === 'factory' && auction.highestBidderUid === profile.uid).length;
