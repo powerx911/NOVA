@@ -142,7 +142,7 @@ jobs:
             supabase/migrations/20261120231000_nova_company_upgrade_cost_rebalance.sql \
             supabase/migrations/20261120232000_nova_company_upgrade_anchor_rebalance.sql \
             supabase/migrations/20261120233000_nova_company_upgrade_charge_reconciliation.sql \
-            supabase/migrations/20261120234000_nova_production_economy_parity_repair.sql \
+            supabase/migrations/20261120135718_nova_production_economy_parity_repair.sql \
             supabase/migrations/20261120235000_nova_company_founding_parity_repair.sql \
             supabase/migrations/20261120235500_nova_factory_operating_wallet_reserve.sql \
             supabase/migrations/20261120235600_nova_company_server_collectable_quote.sql \
@@ -154,7 +154,7 @@ jobs:
             supabase/migrations/20261120191611_nova_live_player_skill_effects.sql \
             supabase/migrations/20261120192229_nova_org_contract_negotiation_bonus.sql
           do
-            if [ "$migration" = "supabase/migrations/20261120234000_nova_production_economy_parity_repair.sql" ]; then
+            if [ "$migration" = "supabase/migrations/20261120135718_nova_production_economy_parity_repair.sql" ]; then
               psql "$DB_URL" -v ON_ERROR_STOP=1 -f supabase/ci/replay_patches/prepare_factory_upgrade_parity.sql
             fi
             if [ "$migration" = "supabase/migrations/20261120235000_nova_company_founding_parity_repair.sql" ]; then

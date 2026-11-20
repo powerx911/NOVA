@@ -38,6 +38,9 @@ jobs:
           python -m pip install --disable-pip-version-check pglast
           python scripts/validate_supabase_sql.py
 
+      - name: Validate unique Supabase migration versions
+        run: python scripts/validate_unique_migration_versions.py
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:

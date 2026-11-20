@@ -684,7 +684,7 @@
       "version": "20261120135718",
       "name": "nova_production_economy_parity_repair",
       "source_status": "tracked",
-      "canonical_source": "supabase/migrations/20261120234000_nova_production_economy_parity_repair.sql",
+      "canonical_source": "supabase/migrations/20261120135718_nova_production_economy_parity_repair.sql",
       "canonical_git_blob_sha": "04af907eb21e8d76ff1fe5b973054fb7b7a12b3e",
       "additional_variants": []
     },
