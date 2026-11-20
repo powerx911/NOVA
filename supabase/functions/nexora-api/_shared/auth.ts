@@ -7,11 +7,11 @@ const FIREBASE_KEYS = createRemoteJWKSet(
   new URL("https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com"),
 );
 export function getAdminClient() {
-  const url = Deno.env.get("SUPABASE_URL");
+  const url = Deno.env.get("SUPABASE_URL") || Deno.env.get("NOVA_E2E_SUPABASE_URL");
   if (!url) throw new Error("SUPABASE_URL_MISSING");
   // Prefer the legacy JWT service_role key with supabase-js v2. The newer
   // sb_secret_* key is not a JWT and must be sent via apikey-only headers.
-  let key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+  let key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || Deno.env.get("NOVA_E2E_SERVICE_ROLE_KEY") || "";
   if (!key) {
     const secrets = Deno.env.get("SUPABASE_SECRET_KEYS");
     if (secrets) {
@@ -33,7 +33,7 @@ export async function authenticate(req: Request) {
   // The E2E identity override is accepted only by an explicitly enabled local
   // Supabase stack. HTTPS/hosted deployments can never use this bypass.
   const e2eToken = Deno.env.get("NOVA_E2E_AUTH_TOKEN") ?? "";
-  const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+  const supabaseUrl = Deno.env.get("SUPABASE_URL") || Deno.env.get("NOVA_E2E_SUPABASE_URL") || "";
   let localE2EEnabled = false;
   try {
     const parsed = new URL(supabaseUrl);
