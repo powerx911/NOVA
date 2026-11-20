@@ -3,6 +3,7 @@ import {
   companyLevelMultiplier,
   companyUpgradeCost,
   companyUpgradeDurationMs,
+  getCompanySectorLevelGain,
   factoryOutputMultiplier,
   factoryOperatingCostMultiplier,
   factoryUpgradeCost,
@@ -16,6 +17,8 @@ describe('business and factory economy curves', () => {
     expect(companyLevelMultiplier(5)).toBeGreaterThan(companyLevelMultiplier(1));
     expect(companyLevelMultiplier(100)).toBeLessThan(10);
     expect(companyUpgradeCost(4200, 2)).toBeGreaterThan(companyUpgradeCost(4200, 1));
+    expect(companyUpgradeCost(9000, 12, getCompanySectorLevelGain('tech'))).toBe(1370);
+    expect(companyUpgradeDurationMs(12)).toBe(13_846_560);
     expect(companyUpgradeDurationMs(5)).toBeGreaterThan(companyUpgradeDurationMs(2));
   });
 

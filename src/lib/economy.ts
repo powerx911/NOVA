@@ -5,7 +5,7 @@ import {
   REPUTATION_TIERS,
   ROLE_DEFAULT_PERMISSIONS,
 } from '../data/catalog';
-import { companyLevelMultiplier } from './businessEconomy';
+import { getCompanySectorLevelGain } from './businessEconomy';
 import type {
   Company,
   MarketListing,
@@ -254,7 +254,8 @@ export function calculateCompanyHourlyNet(
   sectorEventMultiplier: number;
   reputationBonus: number;
 } {
-  const levelMultiplier = companyLevelMultiplier(company.level);
+  const levelGain = getCompanySectorLevelGain(company.sector);
+  const levelMultiplier = (company.baseRevenuePerHour + (company.level - 1) * levelGain) / Math.max(1, company.baseRevenuePerHour);
   const mgmtBonus = 1 + Math.max(0, skills.management) * 0.08;
   const repTier = getReputationTier(reputation);
   const reputationBonus = 1 + repTier.companyYieldBonusRate;
@@ -270,15 +271,14 @@ export function calculateCompanyHourlyNet(
   const sectorEventMultiplier = Number(Math.max(0.75, Math.min(1.4, rawEventMult)).toFixed(3));
 
   const grossHourly = Math.round(
-    company.baseRevenuePerHour *
-      levelMultiplier *
+    (company.baseRevenuePerHour + (company.level - 1) * levelGain) *
       mgmtBonus *
       sectorEventMultiplier *
       reputationBonus * (1 + Math.max(0, Math.min(0.05, organizationIncomeBonusRate)))
   );
 
   const rawExpense =
-    company.expensePerHour * (1 + (company.level - 1) * 0.2);
+    company.expensePerHour * (1 + (company.level - 1) * 0.08);
   const financeReduction = Math.min(0.45, Math.max(0, skills.finance) * 0.05);
   const expenseHourly = Math.round(rawExpense * (1 - financeReduction));
 
@@ -294,21 +294,12 @@ export function calculateCompanyHourlyNet(
   };
 }
 
-/** Sector gains used by both the client preview and the server company curve. */
-export const COMPANY_SECTOR_LEVEL_GAINS: Record<string, number> = {
-  trade: 37.8, services: 47, logistics: 60, manufacturing: 76.8, tech: 97.8,
-};
-
-export function getCompanySectorLevelGain(sector?: string): number {
-  return COMPANY_SECTOR_LEVEL_GAINS[sector ?? ''] ?? COMPANY_SECTOR_LEVEL_GAINS.trade;
-}
-
 export function calculateCompanyUpgradeCost(sector: string | undefined, level: number): number {
-  return Math.ceil(getCompanySectorLevelGain(sector) * (20 + 2.5 * Math.max(1, Math.floor(level))));
+  return Math.ceil(getCompanySectorLevelGain(sector) * (5 + 0.75 * Math.max(1, Math.floor(level))));
 }
 
 export function calculateCompanyUpgradeDurationMs(targetLevel: number): number {
-  return Math.round(1.2 * Math.pow(Math.max(2, Math.floor(targetLevel)), 1.2) * 60_000);
+  return Math.round(15 * Math.pow(Math.max(2, Math.floor(targetLevel)), 1.1) * 60_000);
 }
 
 /**
@@ -587,5 +578,3 @@ export function getAchievementProgress(
       return profile.level;
   }
 }
-
-

@@ -6,8 +6,8 @@ select extensions.plan(8);
 
 select extensions.is(
   nexora.company_upgrade_cost('trade', 1),
-  360::bigint,
-  'trade company level 1 upgrade uses the rebalance cost curve'
+  218::bigint,
+  'trade company level 1 upgrade uses the incremental-profit cost curve'
 );
 
 select extensions.ok(

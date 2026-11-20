@@ -2,6 +2,17 @@ export const COMPANY_LEVEL_MAX = 100;
 export const FACTORY_LEVEL_MAX = 100;
 export const VAULT_LEVEL_MAX = 5;
 export const WAREHOUSE_LEVEL_MAX = 5;
+export const COMPANY_SECTOR_LEVEL_GAINS: Record<string, number> = {
+  trade: 37.8,
+  services: 47,
+  logistics: 60,
+  manufacturing: 76.8,
+  tech: 97.8,
+};
+
+export function getCompanySectorLevelGain(sector?: string): number {
+  return COMPANY_SECTOR_LEVEL_GAINS[sector ?? ''] ?? COMPANY_SECTOR_LEVEL_GAINS.trade;
+}
 
 /** Smooth income growth: meaningful early upgrades, controlled late-game scaling. */
 export function companyLevelMultiplier(level: number): number {
@@ -9,14 +20,16 @@ export function companyLevelMultiplier(level: number): number {
   return 1 + 0.12 * Math.pow(safeLevel - 1, 0.9);
 }
 
-export function companyUpgradeCost(foundingCost: number, currentLevel: number): number {
+export function companyUpgradeCost(foundingCost: number, currentLevel: number, levelGain?: number): number {
   const level = Math.max(1, Math.min(COMPANY_LEVEL_MAX - 1, Math.floor(currentLevel)));
-  return Math.ceil(foundingCost * 0.3 * Math.pow(level, 1.18));
+  const inferredGain = Math.max(37.8, foundingCost * 0.011);
+  const gain = Math.max(1, levelGain ?? inferredGain);
+  return Math.ceil(gain * (5 + 0.75 * level));
 }
 
 export function companyUpgradeDurationMs(targetLevel: number): number {
   const level = Math.max(2, Math.min(COMPANY_LEVEL_MAX, Math.floor(targetLevel)));
-  return Math.round(8 * 60_000 * Math.pow(level, 1.3));
+  return Math.round(15 * 60_000 * Math.pow(level, 1.1));
 }
 
 export function factoryOutputMultiplier(level: number): number {
