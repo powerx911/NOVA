@@ -93,6 +93,12 @@ Deno.serve(async (req: Request) => {
       })) }, 200, origin);
     }
 
+    if (body.action === "fetch_inventory_capacity_usage") {
+      const { data, error } = await db.rpc("player_inventory_usage", { p_uid: identity.uid });
+      if (error) throw error;
+      return json({ ok: true, data: Number(data ?? 0) }, 200, origin);
+    }
+
     if (body.action === "bootstrap") {
       // A signed-in Firebase user may not have created a game character yet.
       // Only unlock achievements after a player profile exists; otherwise the
