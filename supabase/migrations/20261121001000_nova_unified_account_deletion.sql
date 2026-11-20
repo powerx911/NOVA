@@ -84,6 +84,7 @@ declare
   v_tx text;
   v_refunds integer := 0;
   v_asset_type text;
+  v_had_data boolean;
   v_archived_companies integer := 0;
   v_archived_factories integer := 0;
 begin
@@ -91,11 +92,9 @@ begin
     raise exception 'INVALID_ACCOUNT';
   end if;
 
-  if not exists(select 1 from nexora.player_profiles where user_id=p_uid)
-     and not exists(select 1 from nexora.wallets where user_id=p_uid)
-     and not exists(select 1 from nexora.player_private where user_id=p_uid) then
-    return jsonb_build_object('ok',true,'already_deleted',true);
-  end if;
+  v_had_data := exists(select 1 from nexora.player_profiles where user_id=p_uid)
+    or exists(select 1 from nexora.wallets where user_id=p_uid)
+    or exists(select 1 from nexora.player_private where user_id=p_uid);
 
   perform 1 from nexora.player_profiles where user_id=p_uid for update;
   perform 1 from nexora.wallets where user_id=p_uid for update;
@@ -325,7 +324,7 @@ begin
 
   return jsonb_build_object(
     'ok',true,
-    'already_deleted',false,
+    'already_deleted',not v_had_data,
     'auction_refunds',v_refunds,
     'archived_companies',v_archived_companies,
     'archived_factories',v_archived_factories
