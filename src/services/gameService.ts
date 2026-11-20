@@ -604,15 +604,6 @@ export async function depositToOrgTreasury(
   await nexoraApi('org_treasury_deposit', { orgId, amount: Math.floor(amountRaw) });
 }
 
-export async function withdrawFromOrgTreasury(
-  _uid: string,
-  _username: string,
-  orgId: string,
-  amountRaw: number
-): Promise<void> {
-  await nexoraApi('org_treasury_withdraw', { orgId, amount: Math.floor(amountRaw) });
-}
-
 export async function updatePlayerSettings(
   _uid: string,
   language: Language,
