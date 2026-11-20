@@ -32,10 +32,10 @@ NOVA is the player-facing game and brand name. The current database schema remai
 
 ## Snapshot and test status
 
-- `supabase/ci/nexora_schema_snapshot.sql` has been refreshed from the live production catalog using read-only queries on 2026-11-20. It is data-free and contains 45 tables, 144 functions, 37 triggers, 97 indexes and 167 constraints.
-- The snapshot also captures the current 44/45 RLS-enabled state and zero RLS policies in the private `nexora` schema.
-- `database-tests.yml` now restores the complete production snapshot and applies only the pending PR migrations (treasury hardening and account deletion), rather than replaying historical migrations over a current snapshot.
-- `database-history-replay.yml` independently replays the recovered SQL archive in global filename/timestamp order, then validates the curated migration chain on disposable PostgreSQL.
+- `supabase/ci/nexora_schema_snapshot.sql` remains the historical CI baseline used to replay the curated migration chain.
+- `supabase/ci/nexora_production_schema_snapshot.sql` is the new data-free snapshot exported read-only from production on 2026-11-20: 45 tables, 144 functions (131 SECURITY DEFINER), 37 triggers, 97 indexes and 167 constraints. It also captures the current 44/45 RLS-enabled state.
+- `database-tests.yml` restores the historical baseline, applies the ordered migration chain and runs the gameplay regression suites; it then resets only the disposable schema and verifies the full production snapshot inventory.
+- `database-history-replay.yml` independently replays the recovered SQL archive in global filename/timestamp order and runs regression tests against disposable PostgreSQL.
 - The production migration manifest validator checks all 74 applied ledger records against their source paths and Git blob hashes. Applied production migration files remain byte-for-byte unchanged.
 - Do not run `supabase db push`, migration repair, or production DDL to paper over drift.
 
