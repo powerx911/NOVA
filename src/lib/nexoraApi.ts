@@ -5,7 +5,23 @@ const SUPABASE_URL =
 const SUPABASE_PUBLISHABLE_KEY =
   import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || 'sb_publishable_T0zWZ-2mi1K5CW7nVlWy5w_TL9AMWAj';
 const API_URL = `${SUPABASE_URL}/functions/v1/nexora-api`;
-const READ_ONLY_ACTIONS = new Set(['bootstrap', 'username_available', 'fetch_org_pending_requests', 'fetch_leaderboards', 'get_public_player_profile', 'search_players', 'list_blocked_players', 'list_direct_conversations', 'list_direct_messages', 'list_global_chat_messages', 'list_organization_invites', 'get_players_presence', 'touch_player_presence', 'get_org_donation_ranking', 'validate_transfer_recipient', 'get_dynamic_contract_board', 'get_org_weekly_goals', 'get_manufacturing_job']);
+const READ_ONLY_ACTIONS = new Set(['bootstrap', 'username_available', 'fetch_org_pending_requests', 'fetch_leaderboards', 'get_public_player_profile', 'search_players', 'list_blocked_players', 'list_direct_conversations', 'list_direct_messages', 'list_global_chat_messages', 'list_organization_invites', 'get_players_presence', 'touch_player_presence', 'get_org_donation_ranking', 'validate_transfer_recipient', 'get_dynamic_contract_board', 'get_org_weekly_goals', 'get_manufacturing_job', 'fetch_market_price_history']);
+const IDEMPOTENT_ACTIONS = new Set(['transfer_credits', 'buy_market_listing', 'buy_missing_resources', 'org_treasury_deposit']);
+
+function payloadFingerprint(payload: Record<string, unknown>): string {
+  const source = JSON.stringify(payload);
+  let hash = 2166136261;
+  for (let index = 0; index < source.length; index += 1) {
+    hash ^= source.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+  return (hash >>> 0).toString(36);
+}
+
+function createRequestId(): string {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') return crypto.randomUUID();
+  return `${Date.now()}-${Math.random().toString(36).slice(2)}-${Math.random().toString(36).slice(2)}`;
+}
 
 type ApiEnvelope<T> = { ok?: boolean; data?: T; error?: string } & Record<string, unknown>;
 
@@ -29,6 +45,18 @@ export async function nexoraApi<T>(
   if (!user) throw new NexoraApiError('UNAUTHENTICATED', 401);
 
   const token = await user.getIdToken();
+  let requestStorageKey: string | null = null;
+  let requestPayload = payload;
+  if (IDEMPOTENT_ACTIONS.has(action) && typeof window !== 'undefined') {
+    requestStorageKey = `nova:idempotency:${user.uid}:${action}:${payloadFingerprint(payload)}`;
+    let requestId: string | null = null;
+    try { requestId = window.sessionStorage.getItem(requestStorageKey); } catch { /* Session storage may be disabled. */ }
+    if (!requestId) {
+      requestId = createRequestId();
+      try { window.sessionStorage.setItem(requestStorageKey, requestId); } catch { /* Retry protection remains active for this attempt. */ }
+    }
+    requestPayload = { ...payload, requestId };
+  }
   const response = await fetch(API_URL, {
     method: 'POST',
     headers: {
@@ -36,7 +64,7 @@ export async function nexoraApi<T>(
       apikey: SUPABASE_PUBLISHABLE_KEY,
       Authorization: `Bearer ${token}`,
     },
-    body: JSON.stringify({ action, ...payload }),
+    body: JSON.stringify({ action, ...requestPayload }),
   });
 
   const result = (await response.json().catch(() => ({}))) as ApiEnvelope<T>;
@@ -47,6 +75,9 @@ export async function nexoraApi<T>(
     );
   }
   if (result.ok !== true) throw new NexoraApiError('INVALID_API_RESPONSE', 502);
+  if (requestStorageKey && typeof window !== 'undefined') {
+    try { window.sessionStorage.removeItem(requestStorageKey); } catch { /* Ignore storage cleanup failures. */ }
+  }
   if (!READ_ONLY_ACTIONS.has(action) && action !== 'delete_account' && typeof window !== 'undefined') {
     window.dispatchEvent(new Event('nova:refresh-game'));
   }
