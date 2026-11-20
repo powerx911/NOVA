@@ -246,7 +246,7 @@ export function BusinessHubView({
       profile.reputation,
       organizationIncomeBonusRate
     );
-    return sum + netHourly;
+    return sum + (Number.isFinite(c.serverNetHourly) ? c.serverNetHourly! : netHourly);
   }, 0);
 
   async function handleFoundCompany(e: React.FormEvent) {
@@ -493,8 +493,11 @@ export function BusinessHubView({
                   profile.reputation,
                   organizationIncomeBonusRate
                 );
-                const { netHourly, grossHourly, expenseHourly, sectorEventMultiplier } = breakdown;
-                const accrued = calculateCompanyVaultBalance(c, netHourly, nowMs);
+                const { grossHourly, expenseHourly, sectorEventMultiplier } = breakdown;
+                const netHourly = Number.isFinite(c.serverNetHourly) ? c.serverNetHourly! : breakdown.netHourly;
+                const accrued = Number.isFinite(c.serverCollectable)
+                  ? c.serverCollectable!
+                  : calculateCompanyVaultBalance(c, netHourly, nowMs);
                 const vaultLevel = getCompanyVaultLevel(c);
                 const vaultCapacity = getCompanyVaultCapacity(vaultLevel);
                 const vaultUpgrade = COMPANY_VAULT_UPGRADES[vaultLevel - 1];

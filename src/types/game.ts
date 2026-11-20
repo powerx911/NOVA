@@ -194,6 +194,8 @@ export interface Company {
   totalRevenue: number;
   vaultLevel?: number;
   vaultBalance?: number;
+  serverNetHourly?: number;
+  serverCollectable?: number;
   levelUpgradeStartedAt?: number;
   levelUpgradeEndsAt?: number;
   levelUpgradeTargetLevel?: number;
