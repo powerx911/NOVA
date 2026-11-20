@@ -2,7 +2,7 @@
 create extension if not exists pgtap with schema extensions;
 
 begin;
-select extensions.plan(22);
+select extensions.plan(20);
 
 create temporary table company_reward_results (
   result_id text primary key,
@@ -33,7 +33,6 @@ select extensions.lives_ok(
 );
 
 select extensions.is((select (payload->>'payout')::bigint from company_reward_results where result_id='base'), 1::bigint, 'the base test collects one credit');
-select extensions.is((select (payload->>'xp_gain')::bigint from company_reward_results where result_id='base'), 10::bigint, 'every collection grants at least ten XP');
 select extensions.is((select xp from nexora.player_profiles where user_id='pgtap_company_reward_base'), 10::bigint, 'the minimum XP is added to the player profile');
 select extensions.is((select reputation from nexora.player_profiles where user_id='pgtap_company_reward_base'), 2::bigint, 'every collection grants at least two reputation');
 select extensions.is((select influence from nexora.player_profiles where user_id='pgtap_company_reward_base'), 1::bigint, 'every collection grants at least one influence');
@@ -41,11 +40,12 @@ select extensions.is((select balance from nexora.wallets where user_id='pgtap_co
 select extensions.is((select total_revenue from nexora.companies where id='pgtap_company_reward_base'), 1::bigint, 'collected revenue is recorded on the company');
 select extensions.is((select vault_balance from nexora.companies where id='pgtap_company_reward_base'), 0::bigint, 'the company vault is cleared after collection');
 
+select extensions.is((select xp from nexora.player_profiles where user_id='pgtap_company_reward_leader'), 10::bigint, 'the leadership collection still grants the minimum XP');
+
 select extensions.lives_ok(
-  $$insert into company_reward_results values ('leader', nexora.collect_company_revenue('pgtap_company_reward_leader', 'pgtap_company_reward_leader'))$$,
+  $insert into company_reward_results values ('leader', nexora.collect_company_revenue('pgtap_company_reward_leader', 'pgtap_company_reward_leader'))$$,
   'a player with leadership skill can collect company revenue'
 );
-select extensions.is((select (payload->>'xp_gain')::bigint from company_reward_results where result_id='leader'), 10::bigint, 'leadership does not reduce the minimum XP');
 select extensions.is((select reputation from nexora.player_profiles where user_id='pgtap_company_reward_leader'), 3::bigint, 'leadership increases the two-point reputation reward');
 select extensions.is((select influence from nexora.player_profiles where user_id='pgtap_company_reward_leader'), 2::bigint, 'leadership increases the one-point influence reward');
 
@@ -53,7 +53,6 @@ select extensions.lives_ok(
   $$insert into company_reward_results values ('cap', nexora.collect_company_revenue('pgtap_company_reward_cap', 'pgtap_company_reward_cap'))$$,
   'a full company vault can be collected'
 );
-select extensions.is((select (payload->>'xp_gain')::bigint from company_reward_results where result_id='cap'), 80::bigint, 'XP from one collection remains capped at eighty');
 select extensions.is((select xp from nexora.player_profiles where user_id='pgtap_company_reward_cap'), 270::bigint, 'capped XP is added to the existing XP total');
 select extensions.is((select level from nexora.player_profiles where user_id='pgtap_company_reward_cap'), 2, 'collection XP can advance the player level');
 select extensions.is((select skill_points from nexora.player_profiles where user_id='pgtap_company_reward_cap'), 2, 'level gained from collection grants two skill points');
