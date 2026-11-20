@@ -127,9 +127,8 @@ jobs:
           : "${ANON_KEY:?Supabase local ANON_KEY is required}"
           : "${SERVICE_ROLE_KEY:?Supabase local SERVICE_ROLE_KEY is required}"
           cat > /tmp/nova-e2e-edge.env <<EOF
-          SUPABASE_URL=http://kong:8000
-          SUPABASE_ANON_KEY=$ANON_KEY
-          SUPABASE_SERVICE_ROLE_KEY=$SERVICE_ROLE_KEY
+          NOVA_E2E_SUPABASE_URL=http://kong:8000
+          NOVA_E2E_SERVICE_ROLE_KEY=$SERVICE_ROLE_KEY
           NOVA_E2E_ALLOW_LOCAL_AUTH=true
           NOVA_E2E_AUTH_TOKEN=$NOVA_E2E_AUTH_TOKEN
           NOVA_E2E_UID=$NOVA_E2E_UID
