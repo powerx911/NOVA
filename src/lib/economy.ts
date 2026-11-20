@@ -295,7 +295,7 @@ export function calculateCompanyHourlyNet(
 }
 
 export function calculateCompanyUpgradeCost(sector: string | undefined, level: number): number {
-  return Math.ceil(getCompanySectorLevelGain(sector) * (5 + 0.75 * Math.max(1, Math.floor(level))));
+  return Math.ceil(getCompanySectorLevelGain(sector) * (8 + Math.max(1, Math.floor(level))));
 }
 
 export function calculateCompanyUpgradeDurationMs(targetLevel: number): number {
