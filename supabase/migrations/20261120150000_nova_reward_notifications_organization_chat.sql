@@ -6,6 +6,36 @@ alter table nexora.notifications
 -- history as claimed so the new claim flow never pays legacy achievements twice.
 alter table nexora.player_achievements
   add column if not exists claimed_at timestamptz;
+
+-- Achievement identity/progress remains immutable; only the claim timestamp may
+-- transition once from NULL to a timestamp.
+drop trigger if exists player_achievements_immutable on nexora.player_achievements;
+drop trigger if exists player_achievements_delete_immutable on nexora.player_achievements;
+create trigger player_achievements_delete_immutable
+before delete on nexora.player_achievements
+for each row execute function nexora.reject_immutable_mutation();
+
+create or replace function nexora.guard_player_achievement_claim_update()
+returns trigger
+language plpgsql
+set search_path = 'pg_catalog','nexora'
+as $function$
+begin
+  if (to_jsonb(new) - 'claimed_at') is distinct from (to_jsonb(old) - 'claimed_at') then
+    raise exception 'NEXORA immutable achievement records cannot be modified';
+  end if;
+  if old.claimed_at is not null and new.claimed_at is distinct from old.claimed_at then
+    raise exception 'NEXORA achievement reward claim is immutable';
+  end if;
+  return new;
+end;
+$function$;
+drop trigger if exists player_achievements_claim_guard on nexora.player_achievements;
+create trigger player_achievements_claim_guard
+before update on nexora.player_achievements
+for each row execute function nexora.guard_player_achievement_claim_update();
+revoke all on function nexora.guard_player_achievement_claim_update() from public,anon,authenticated;
+
 update nexora.player_achievements
 set claimed_at = coalesce(claimed_at, unlocked_at, now())
 where claimed_at is null;
