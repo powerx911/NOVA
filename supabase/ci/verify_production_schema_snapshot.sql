@@ -41,14 +41,41 @@ BEGIN
   JOIN pg_namespace n ON n.oid = c.relnamespace
   WHERE n.nspname = 'nexora' AND c.relkind = 'r';
 
+
+  IF NOT (SELECT relrowsecurity FROM pg_class WHERE oid='nexora.manufacturing_jobs'::regclass)
+     OR NOT EXISTS (SELECT 1 FROM pg_indexes WHERE schemaname='nexora' AND indexname='company_auctions_company_id_idx')
+     OR NOT EXISTS (SELECT 1 FROM pg_indexes WHERE schemaname='nexora' AND indexname='company_auctions_factory_id_idx') THEN
+    RAISE EXCEPTION 'Manufacturing RLS or auction foreign-key indexes are missing from the production snapshot';
+  END IF;
+
+  IF position('ORG_TREASURY_WITHDRAWALS_DISABLED' in pg_get_functiondef('nexora.withdraw_org_treasury(text,text,bigint)'::regprocedure)) = 0 THEN
+    RAISE EXCEPTION 'Organization treasury withdrawals are not disabled in the production snapshot';
+  END IF;
+
+  IF position('v_cost:=320; v_xp:=16; v_required:=2' in pg_get_functiondef('nexora.manufacture_recipe(text,text,integer)'::regprocedure)) = 0
+     OR position('v_cost:=60; v_xp:=18; v_required:=3' in pg_get_functiondef('nexora.manufacture_recipe(text,text,integer)'::regprocedure)) > 0 THEN
+    RAISE EXCEPTION 'Biotechnology manufacturing recipe is not canonical in the production snapshot';
+  END IF;
+
+  IF position('least(80,greatest(10,floor(v_payout/15)::integer))' in pg_get_functiondef('nexora.collect_company_revenue(text,text)'::regprocedure)) = 0
+     OR position('reputation=reputation+round(2*v_leadership)::bigint' in pg_get_functiondef('nexora.collect_company_revenue(text,text)'::regprocedure)) = 0
+     OR position('influence=influence+round(1*v_leadership)::bigint' in pg_get_functiondef('nexora.collect_company_revenue(text,text)'::regprocedure)) = 0 THEN
+    RAISE EXCEPTION 'Company revenue minimum rewards are missing from the production snapshot';
+  END IF;
+
+  IF position('0.046::numeric' in pg_get_functiondef('nexora.factory_progression_multiplier(text,integer)'::regprocedure)) = 0
+     OR position('0.028::numeric' in pg_get_functiondef('nexora.factory_progression_multiplier(text,integer)'::regprocedure)) = 0 THEN
+    RAISE EXCEPTION 'Resource-specific factory progression curves are missing from the production snapshot';
+  END IF;
+
   IF v_tables <> 46
      OR v_functions <> 151
      OR v_security_definer <> 138
      OR v_triggers <> 40
-     OR v_indexes <> 100
+     OR v_indexes <> 102
      OR v_constraints <> 169
-     OR v_rls_enabled <> 45
-     OR v_rls_disabled <> 1 THEN
+     OR v_rls_enabled <> 46
+     OR v_rls_disabled <> 0 THEN
     RAISE EXCEPTION
       'Production schema snapshot mismatch: tables %, functions %, SECURITY DEFINER %, triggers %, indexes %, constraints %, RLS enabled %, RLS disabled %',
       v_tables, v_functions, v_security_definer, v_triggers, v_indexes, v_constraints, v_rls_enabled, v_rls_disabled;

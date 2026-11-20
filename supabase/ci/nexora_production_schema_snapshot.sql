@@ -1,4 +1,4 @@
--- CI-ONLY, DATA-FREE snapshot generated from the live NOVA production catalog on 2026-11-20.
+-- CI-ONLY, DATA-FREE snapshot synchronized from the live NOVA production catalog on 2026-11-20 after migrations through 20261120202341.
 -- Never apply this file to production. It is an isolated-test baseline only.
 SET check_function_bodies = off;
 CREATE SCHEMA IF NOT EXISTS nexora;
@@ -1069,9 +1069,8 @@ begin
     if not found then raise exception 'UNAUTHORIZED'; end if;
     if v_hours<v_join_hours then raise exception 'ORG_MEMBERSHIP_TOO_NEW'; end if;
     if v_contract.claimed_by is not null then raise exception 'CONTRACT_ALREADY_CLAIMED'; end if;
-    select count(*) into v_active from nexora.contract_offers
-      where scope='organization' and claimed_by=p_uid and status in ('accepted','processing','ready');
-    if v_active>=3 then raise exception 'ORG_ACTIVE_CONTRACT_LIMIT'; end if;
+    if exists(select 1 from nexora.contract_offers where scope='organization' and claimed_by=p_uid
+      and status in ('accepted','processing','ready')) then raise exception 'ORG_ACTIVE_CONTRACT_LIMIT'; end if;
   else
     select count(*) into v_active from nexora.contract_offers
       where scope='personal' and user_id=p_uid and status in ('accepted','processing','ready');
@@ -1671,7 +1670,7 @@ declare
   v_xp bigint;
   v_level_after integer:=1;
   v_remaining bigint;
-  v_step bigint;
+  v_step bigint; v_leadership numeric;
 begin
   select * into v_company from nexora.companies where id=p_company_id for update;
   if not found then raise exception 'COMPANY_NOT_FOUND'; end if;
@@ -1690,7 +1689,7 @@ begin
   if v_payout<1 then raise exception 'NOTHING_TO_COLLECT'; end if;
   update nexora.wallets set balance=balance+v_payout,total_earned=total_earned+v_payout,last_tx_id=v_tx,updated_at=now() where user_id=p_uid;
   update nexora.companies set total_revenue=total_revenue+v_payout,vault_balance=0,last_collected_at=v_now,updated_at=now() where id=p_company_id;
-  v_xp_gain:=floor((v_company.total_revenue+v_payout)::numeric/15)::bigint-floor(v_company.total_revenue::numeric/15)::bigint;
+  v_xp_gain:=least(80,greatest(10,floor(v_payout/15)::integer));
   v_xp:=v_profile.xp+v_xp_gain;
   v_remaining:=v_xp;
   while v_level_after<200 loop
@@ -1699,7 +1698,7 @@ begin
     v_remaining:=v_remaining-v_step;
     v_level_after:=v_level_after+1;
   end loop;
-  update nexora.player_profiles set xp=v_xp,level=v_level_after,updated_at=now() where user_id=p_uid;
+  v_leadership:=1+coalesce((v_profile.skills->>'leadership')::numeric,0)*0.1; update nexora.player_profiles set xp=v_xp,level=v_level_after,reputation=reputation+round(2*v_leadership)::bigint,influence=influence+round(1*v_leadership)::bigint,updated_at=now() where user_id=p_uid;
   insert into nexora.transactions(id,from_uid,to_uid,amount,fee,net_amount,type,reference_id,description,status)
     values(v_tx,'SYSTEM',p_uid,v_payout,0,v_payout,'company_collect',p_company_id,'Company revenue collected: '||v_company.name,'completed');
   insert into nexora.company_logs(id,company_id,owner_uid,action,amount,details)
@@ -2557,8 +2556,39 @@ CREATE OR REPLACE FUNCTION nexora.factory_progression_multiplier(p_resource_id t
  IMMUTABLE
  SET search_path TO ''
 AS $function$
-  select 1 + 0.04 * greatest(0, coalesce(p_level, 1) - 1)
-    + 0.0003 * power(greatest(0, coalesce(p_level, 1) - 1)::numeric, 2)
+  with curve as (
+    select
+      case p_resource_id
+        when 'copper_wire' then 0.028::numeric
+        when 'silicon_ore' then 0.030::numeric
+        when 'energy_cells' then 0.032::numeric
+        when 'crude_alloy' then 0.034::numeric
+        when 'carbon_fiber' then 0.036::numeric
+        when 'rare_minerals' then 0.038::numeric
+        when 'titanium_ore' then 0.040::numeric
+        when 'polymer_resin' then 0.042::numeric
+        when 'biotech_gel' then 0.044::numeric
+        when 'quantum_dust' then 0.046::numeric
+        else 0.028::numeric
+      end as linear_growth,
+      case p_resource_id
+        when 'copper_wire' then 0.00020::numeric
+        when 'silicon_ore' then 0.00022::numeric
+        when 'energy_cells' then 0.00024::numeric
+        when 'crude_alloy' then 0.00026::numeric
+        when 'carbon_fiber' then 0.00028::numeric
+        when 'rare_minerals' then 0.00030::numeric
+        when 'titanium_ore' then 0.00032::numeric
+        when 'polymer_resin' then 0.00034::numeric
+        when 'biotech_gel' then 0.00036::numeric
+        when 'quantum_dust' then 0.00038::numeric
+        else 0.00020::numeric
+      end as quadratic_growth
+  )
+  select 1
+    + linear_growth * greatest(0, coalesce(p_level, 1) - 1)
+    + quadratic_growth * power(greatest(0, coalesce(p_level, 1) - 1)::numeric, 2)
+  from curve
 $function$
 ;
 
@@ -3645,7 +3675,7 @@ begin
     when 'rec_bio_module' then v_output:='bio_module'; v_output_qty:=1; v_cost:=125; v_xp:=15; v_required:=2; v_inputs:='[{"itemId":"synth_polymer","qty":2},{"itemId":"rare_minerals","qty":2}]'::jsonb;
     when 'rec_titanium_frame' then v_output:='precision_frame'; v_output_qty:=2; v_cost:=80; v_xp:=11; v_required:=1; v_inputs:='[{"itemId":"titanium_ore","qty":2},{"itemId":"carbon_fiber","qty":1}]'::jsonb;
     when 'rec_polymer_composite' then v_output:='synth_polymer'; v_output_qty:=2; v_cost:=90; v_xp:=12; v_required:=1; v_inputs:='[{"itemId":"polymer_resin","qty":2},{"itemId":"energy_cells","qty":1}]'::jsonb;
-    when 'rec_biotech_module' then v_output:='bio_module'; v_output_qty:=1; v_cost:=320; v_xp:=16; v_required:=2; v_inputs:='[{"itemId":"biotech_gel","qty":2},{"itemId":"quantum_dust","qty":1}]'::jsonb; v_output_qty:=1; v_cost:=60; v_xp:=18; v_required:=3; v_inputs:='[{"itemId":"quantum_dust","qty":2},{"itemId":"microchips","qty":1}]'::jsonb;
+    when 'rec_biotech_module' then v_output:='bio_module'; v_output_qty:=1; v_cost:=320; v_xp:=16; v_required:=2; v_inputs:='[{"itemId":"biotech_gel","qty":2},{"itemId":"quantum_dust","qty":1}]'::jsonb;
     else raise exception 'INVALID_RECIPE';
   end case;
 
@@ -5200,8 +5230,29 @@ begin
 
   select * into v_company from nexora.companies where id=v_auction.company_id for update;
   if not found then
+    if v_auction.highest_bidder_uid is not null then
+      perform 1 from nexora.wallets where user_id=v_auction.highest_bidder_uid for update;
+      if not found then raise exception 'AUCTION_REFUND_WALLET_MISSING'; end if;
+      select * into v_escrow from nexora.company_auction_escrows
+        where auction_id=p_auction_id and bidder_uid=v_auction.highest_bidder_uid and status='reserved'
+        for update;
+      if found then
+        update nexora.wallets
+        set balance=balance+v_escrow.amount,
+            total_spent=greatest(0,total_spent-v_escrow.amount),
+            updated_at=now()
+        where user_id=v_auction.highest_bidder_uid;
+        update nexora.company_auction_escrows
+        set status='refunded',updated_at=now()
+        where auction_id=p_auction_id and bidder_uid=v_auction.highest_bidder_uid;
+        v_tx:='tx_'||gen_random_uuid()::text;
+        insert into nexora.transactions(id,from_uid,to_uid,amount,fee,net_amount,type,reference_id,description,status)
+        values(v_tx,'SYSTEM',v_auction.highest_bidder_uid,v_escrow.amount,0,v_escrow.amount,
+          'company_auction_refund',p_auction_id,'Refund because the auction company no longer exists','completed');
+      end if;
+    end if;
     update nexora.company_auctions set status='cancelled',settled_at=now(),updated_at=now() where id=p_auction_id;
-    return jsonb_build_object('settled',true,'status','cancelled');
+    return jsonb_build_object('settled',true,'status','cancelled','reason','AUCTION_ASSET_MISSING');
   end if;
 
   if v_auction.highest_bidder_uid is null then
@@ -5396,8 +5447,29 @@ begin
   if v_a.status<>'active' or v_a.ends_at>now() then return jsonb_build_object('settled',false,'reason','NOT_EXPIRED'); end if;
   select * into v_f from nexora.factories where id=v_a.factory_id for update;
   if not found then
+    if v_a.highest_bidder_uid is not null then
+      perform 1 from nexora.wallets where user_id=v_a.highest_bidder_uid for update;
+      if not found then raise exception 'AUCTION_REFUND_WALLET_MISSING'; end if;
+      select * into v_e from nexora.company_auction_escrows
+        where auction_id=p_auction_id and bidder_uid=v_a.highest_bidder_uid and status='reserved'
+        for update;
+      if found then
+        update nexora.wallets
+        set balance=balance+v_e.amount,
+            total_spent=greatest(0,total_spent-v_e.amount),
+            updated_at=now()
+        where user_id=v_a.highest_bidder_uid;
+        update nexora.company_auction_escrows
+        set status='refunded',updated_at=now()
+        where auction_id=p_auction_id and bidder_uid=v_a.highest_bidder_uid;
+        v_tx:='tx_'||gen_random_uuid()::text;
+        insert into nexora.transactions(id,from_uid,to_uid,amount,fee,net_amount,type,reference_id,description,status)
+        values(v_tx,'SYSTEM',v_a.highest_bidder_uid,v_e.amount,0,v_e.amount,
+          'factory_auction_refund',p_auction_id,'Refund because the auction factory no longer exists','completed');
+      end if;
+    end if;
     update nexora.company_auctions set status='cancelled',settled_at=now(),updated_at=now() where id=p_auction_id;
-    return jsonb_build_object('settled',true,'status','cancelled');
+    return jsonb_build_object('settled',true,'status','cancelled','reason','AUCTION_ASSET_MISSING');
   end if;
   if v_a.highest_bidder_uid is null then
     update nexora.company_auctions set status='unsold',settled_at=now(),updated_at=now() where id=p_auction_id;
@@ -6176,8 +6248,8 @@ begin
   if not found then raise exception 'FACTORY_NOT_FOUND'; end if;
   if v_factory.owner_uid<>p_uid then raise exception 'UNAUTHORIZED'; end if;
   if v_factory.warehouse_level>=5 then raise exception 'WAREHOUSE_MAX_LEVEL'; end if;
-  if v_factory.warehouse_upgrade_ends_at is not null and v_factory.warehouse_upgrade_ends_at>now() then raise exception 'UPGRADE_IN_PROGRESS'; end if;
-  if v_factory.upgrade_ends_at is not null and v_factory.upgrade_ends_at>now() then raise exception 'UPGRADE_IN_PROGRESS'; end if;
+  if v_factory.warehouse_upgrade_ends_at is not null then raise exception 'UPGRADE_NOT_FINISHED'; end if;
+  if v_factory.upgrade_ends_at is not null then raise exception 'UPGRADE_NOT_FINISHED'; end if;
   v_target:=greatest(1,v_factory.warehouse_level)+1;
   v_cost:=v_costs[v_factory.warehouse_level];
   select * into v_wallet from nexora.wallets where user_id=p_uid for update;
@@ -6247,20 +6319,12 @@ CREATE OR REPLACE FUNCTION nexora.withdraw_org_treasury(p_uid text, p_org_id tex
  SECURITY DEFINER
  SET search_path TO ''
 AS $function$
-declare v_wallet nexora.wallets%rowtype;v_org nexora.organizations%rowtype;v_member nexora.organization_members%rowtype;v_tx text:='tx_'||gen_random_uuid()::text;v_otx text:='otx_'||gen_random_uuid()::text;
 begin
- if p_amount<=0 or p_amount>10000000 then raise exception 'INVALID_AMOUNT';end if;
- select * into v_wallet from nexora.wallets where user_id=p_uid for update;if not found then raise exception 'NOT_FOUND';end if;
- select * into v_org from nexora.organizations where id=p_org_id for update;if not found then raise exception 'NOT_FOUND';end if;
- select * into v_member from nexora.organization_members where org_id=p_org_id and user_id=p_uid;
- if not found or not (v_member.permissions ? 'manage_treasury') then raise exception 'UNAUTHORIZED';end if;
- if v_org.treasury_balance<p_amount then raise exception 'INSUFFICIENT_TREASURY';end if;
- update nexora.wallets set balance=balance+p_amount,total_earned=total_earned+p_amount,last_tx_id=v_tx,updated_at=now() where user_id=p_uid;
- update nexora.organizations set treasury_balance=treasury_balance-p_amount,updated_at=now() where id=p_org_id;
- insert into nexora.transactions(id,from_uid,to_uid,amount,fee,net_amount,type,reference_id,description,status) values(v_tx,'ORG',p_uid,p_amount,0,p_amount,'org_withdraw',p_org_id,'Org treasury withdrawal ['||v_org.tag||']','completed');
- insert into nexora.organization_transactions(id,org_id,user_id,username,type,amount,note) values(v_otx,p_org_id,p_uid,v_member.username,'withdraw',p_amount,'Withdrawal by '||v_member.username);
- return jsonb_build_object('ok',true);
-end;$function$
+  -- The treasury is a one-way organization fund. No role may withdraw,
+  -- transfer, or route its balance back into a personal wallet.
+  raise exception 'ORG_TREASURY_WITHDRAWALS_DISABLED';
+end;
+$function$
 ;
 
 CREATE TRIGGER audit_logs_immutable BEFORE DELETE OR UPDATE ON nexora.audit_logs FOR EACH ROW EXECUTE FUNCTION nexora.reject_immutable_mutation();
@@ -6687,6 +6751,12 @@ begin
 end;
 $function$
 ;
+
+CREATE INDEX company_auctions_company_id_idx ON nexora.company_auctions USING btree (company_id) WHERE (company_id IS NOT NULL);
+
+CREATE INDEX company_auctions_factory_id_idx ON nexora.company_auctions USING btree (factory_id) WHERE (factory_id IS NOT NULL);
+
+ALTER TABLE nexora.manufacturing_jobs ENABLE ROW LEVEL SECURITY;
 
 REVOKE ALL ON SCHEMA nexora FROM PUBLIC, anon, authenticated;
 GRANT USAGE ON SCHEMA nexora TO service_role;
