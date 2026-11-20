@@ -21,12 +21,42 @@ language sql immutable set search_path = '' as $function$
   where cfg.resource_id = p_resource_id;
 $function$;
 
--- UI: 1 + 4% per level + 0.03% quadratic growth.
+-- Preserve the ten distinct, accelerating resource curves requested by the factory progression system.
 create or replace function nexora.factory_progression_multiplier(p_resource_id text, p_level integer)
 returns numeric language sql immutable set search_path = '' as $function$
+  with curve as (
+    select
+      case p_resource_id
+        when 'copper_wire' then 0.028::numeric
+        when 'silicon_ore' then 0.030::numeric
+        when 'energy_cells' then 0.032::numeric
+        when 'crude_alloy' then 0.034::numeric
+        when 'carbon_fiber' then 0.036::numeric
+        when 'rare_minerals' then 0.038::numeric
+        when 'titanium_ore' then 0.040::numeric
+        when 'polymer_resin' then 0.042::numeric
+        when 'biotech_gel' then 0.044::numeric
+        when 'quantum_dust' then 0.046::numeric
+        else 0.028::numeric
+      end as linear_growth,
+      case p_resource_id
+        when 'copper_wire' then 0.00020::numeric
+        when 'silicon_ore' then 0.00022::numeric
+        when 'energy_cells' then 0.00024::numeric
+        when 'crude_alloy' then 0.00026::numeric
+        when 'carbon_fiber' then 0.00028::numeric
+        when 'rare_minerals' then 0.00030::numeric
+        when 'titanium_ore' then 0.00032::numeric
+        when 'polymer_resin' then 0.00034::numeric
+        when 'biotech_gel' then 0.00036::numeric
+        when 'quantum_dust' then 0.00038::numeric
+        else 0.00020::numeric
+      end as quadratic_growth
+  )
   select 1
-    + 0.04 * greatest(0, coalesce(p_level, 1) - 1)
-    + 0.0003 * power(greatest(0, coalesce(p_level, 1) - 1)::numeric, 2)
+    + linear_growth * greatest(0, coalesce(p_level, 1) - 1)
+    + quadratic_growth * power(greatest(0, coalesce(p_level, 1) - 1)::numeric, 2)
+  from curve
 $function$;
 
 -- Preserve the existing guarded factory-upgrade RPC; replace only its price and timer formulas.
@@ -64,8 +94,8 @@ begin
   if not found then raise exception 'FACTORY_NOT_FOUND'; end if;
   if v_factory.owner_uid<>p_uid then raise exception 'UNAUTHORIZED'; end if;
   if v_factory.warehouse_level>=5 then raise exception 'WAREHOUSE_MAX_LEVEL'; end if;
-  if v_factory.warehouse_upgrade_ends_at is not null and v_factory.warehouse_upgrade_ends_at>now() then raise exception 'UPGRADE_IN_PROGRESS'; end if;
-  if v_factory.upgrade_ends_at is not null and v_factory.upgrade_ends_at>now() then raise exception 'UPGRADE_IN_PROGRESS'; end if;
+  if v_factory.warehouse_upgrade_ends_at is not null then raise exception 'UPGRADE_NOT_FINISHED'; end if;
+  if v_factory.upgrade_ends_at is not null then raise exception 'UPGRADE_NOT_FINISHED'; end if;
   v_target:=greatest(1,v_factory.warehouse_level)+1;
   v_cost:=v_costs[v_factory.warehouse_level];
   select * into v_wallet from nexora.wallets where user_id=p_uid for update;
@@ -129,23 +159,17 @@ begin
 end
 $patch$;
 
--- Organization contract reservations: enforce the UI's three-active-contract limit.
+-- Keep the one-active-organization-contract-per-member rule consistent with
+-- the partial unique index and the regression contract lifecycle tests.
 do $patch$
 declare
   v_definition text;
-  v_old text := $old$if exists(select 1 from nexora.contract_offers where scope='organization' and claimed_by=p_uid
-      and status in ('accepted','processing','ready')) then raise exception 'ORG_ACTIVE_CONTRACT_LIMIT'; end if;$old$;
-  v_new text := $new$select count(*) into v_active from nexora.contract_offers
-      where scope='organization' and claimed_by=p_uid and status in ('accepted','processing','ready');
-    if v_active>=3 then raise exception 'ORG_ACTIVE_CONTRACT_LIMIT'; end if;$new$;
 begin
-  select pg_get_functiondef('nexora.accept_dynamic_contract(text,text)'::regprocedure) into v_definition;
-  if position('v_active>=3' in v_definition)>0 then return; end if;
-  v_definition:=replace(v_definition,v_old,v_new);
-  if position('v_active>=3' in v_definition)=0 then
-    raise exception 'ORG_CONTRACT_LIMIT_PARITY_PATCH_FAILED';
+  select pg_get_functiondef('nexora.accept_dynamic_contract(text,text)'::regprocedure)
+    into v_definition;
+  if position('ORG_ACTIVE_CONTRACT_LIMIT' in v_definition)=0 then
+    raise exception 'ORG_CONTRACT_LIMIT_GUARD_MISSING';
   end if;
-  execute v_definition;
 end
 $patch$;
 
