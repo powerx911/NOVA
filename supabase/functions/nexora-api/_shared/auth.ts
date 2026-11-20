@@ -29,6 +29,36 @@ export async function authenticate(req: Request) {
   const header = req.headers.get("Authorization") ?? "";
   const token = header.startsWith("Bearer ") ? header.slice(7) : "";
   if (!token) throw new Error("UNAUTHENTICATED");
+
+  // The E2E identity override is accepted only by an explicitly enabled local
+  // Supabase stack. HTTPS/hosted deployments can never use this bypass.
+  const e2eToken = Deno.env.get("NOVA_E2E_AUTH_TOKEN") ?? "";
+  const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+  let localE2EEnabled = false;
+  try {
+    const parsed = new URL(supabaseUrl);
+    localE2EEnabled =
+      Deno.env.get("NOVA_E2E_ALLOW_LOCAL_AUTH") === "true" &&
+      parsed.protocol === "http:" &&
+      ["localhost", "127.0.0.1", "kong"].includes(parsed.hostname) &&
+      e2eToken.length >= 32 &&
+      token === e2eToken;
+  } catch {
+    localE2EEnabled = false;
+  }
+  if (localE2EEnabled) {
+    const uid = Deno.env.get("NOVA_E2E_UID") ?? "";
+    if (!uid) throw new Error("NOVA_E2E_UID_MISSING");
+    return {
+      uid,
+      email: Deno.env.get("NOVA_E2E_EMAIL") ?? "",
+      emailVerified: true,
+      isAnonymous: false,
+      authTime: Math.floor(Date.now() / 1000),
+      isE2E: true,
+    };
+  }
+
   const { payload } = await jwtVerify(token, FIREBASE_KEYS, {
     issuer: FIREBASE_ISSUER,
     audience: FIREBASE_PROJECT_ID,
@@ -48,5 +78,6 @@ export async function authenticate(req: Request) {
     emailVerified: payload.email_verified === true,
     isAnonymous,
     authTime: typeof payload.auth_time === "number" ? payload.auth_time : null,
+    isE2E: false,
   };
 }
