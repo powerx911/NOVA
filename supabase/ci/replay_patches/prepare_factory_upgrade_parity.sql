@@ -46,6 +46,31 @@ begin
     raise exception 'FACTORY_OPERATING_REPLAY_PRECONDITION_NOT_FOUND';
   end if;
   execute v_definition;
+
+  -- Restore the legacy founding values only in the disposable replay database.
+  -- The immutable production migration immediately after this patch upgrades them
+  -- to the current sector baselines.
+  select pg_get_functiondef('nexora.found_company(text,text,text)'::regprocedure)
+    into v_definition;
+  v_definition := replace(v_definition,
+    'when ''trade'' then v_cost:=1200; v_revenue:=160; v_expense:=30;',
+    'when ''trade'' then v_cost:=900; v_revenue:=140; v_expense:=35;');
+  v_definition := replace(v_definition,
+    'when ''services'' then v_cost:=2200; v_revenue:=220; v_expense:=60;',
+    'when ''services'' then v_cost:=1100; v_revenue:=175; v_expense:=45;');
+  v_definition := replace(v_definition,
+    'when ''logistics'' then v_cost:=3800; v_revenue:=300; v_expense:=85;',
+    'when ''logistics'' then v_cost:=1400; v_revenue:=225; v_expense:=60;');
+  v_definition := replace(v_definition,
+    'when ''manufacturing'' then v_cost:=6000; v_revenue:=410; v_expense:=120;',
+    'when ''manufacturing'' then v_cost:=1800; v_revenue:=290; v_expense:=80;');
+  v_definition := replace(v_definition,
+    'when ''tech'' then v_cost:=9000; v_revenue:=550; v_expense:=160;',
+    'when ''tech'' then v_cost:=2200; v_revenue:=365; v_expense:=95;');
+  if position('v_cost:=900; v_revenue:=140; v_expense:=35;' in v_definition) = 0 then
+    raise exception 'COMPANY_FOUNDING_REPLAY_PRECONDITION_NOT_FOUND';
+  end if;
+  execute v_definition;
 end
 $patch$;
 
