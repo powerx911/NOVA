@@ -3,6 +3,9 @@ import { camelRow, queryData } from "./serialization.ts";
 
 export async function bootstrap(admin: ReturnType<typeof getAdminClient>, uid: string) {
   const db = admin.schema("nexora");
+  // Daily operating rewards are claimable as soon as the UTC day rolls over.
+  // Keep bootstrap available even if this auxiliary notification check fails.
+  try { await db.rpc("notify_daily_stipend_ready_for_user", { p_uid: uid }); } catch { /* Notification is retried by the server cron. */ }
   const [profile, userPrivate, wallet, inventory, sent, received, marketListings,
     marketOrders, companies, factories, organizations,
     organizationMembers, organizationRequests, playerMissions, dailyClaims, missionProgress,
