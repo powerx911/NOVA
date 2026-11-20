@@ -171,6 +171,13 @@ export function FactoriesPanel({ factories, inventory, profile, wallet, language
   const remainingMs = selectedUpgradeEnd ? Math.max(0, selectedUpgradeEnd - now) : 0;
   const remainingSeconds = Math.ceil(remainingMs / 1000);
   const remainingLabel = `${Math.floor(remainingSeconds / 60)}:${String(remainingSeconds % 60).padStart(2, '0')}`;
+  const warehouseRemainingMs = selectedWarehouseUpgradeEnd > 0 ? Math.max(0, selectedWarehouseUpgradeEnd - now) : 0;
+  const warehouseRemainingSeconds = Math.ceil(warehouseRemainingMs / 1000);
+  const warehouseRemainingLabel = `${Math.floor(warehouseRemainingSeconds / 60)}:${String(warehouseRemainingSeconds % 60).padStart(2, '0')}`;
+  const warehouseUpgradeDurationMinutes = warehouseUpgradeCosts[warehouseLevel - 1] === undefined ? 0 : [20, 60, 180, 480][warehouseLevel - 1];
+  const warehouseDurationLabel = warehouseUpgradeDurationMinutes < 60
+    ? (isAr ? `${warehouseUpgradeDurationMinutes} دقيقة` : `${warehouseUpgradeDurationMinutes} min`)
+    : (isAr ? `${warehouseUpgradeDurationMinutes / 60} ساعة` : `${warehouseUpgradeDurationMinutes / 60} hr`);
   const selectedWarehousePercent = selected && warehouseCapacity > 0 ? Math.min(100, selected.warehouseQty / warehouseCapacity * 100) : 0;
 
   return (
@@ -219,7 +226,7 @@ export function FactoriesPanel({ factories, inventory, profile, wallet, language
                 <div><p className="text-xs font-semibold text-[#F4F5F7]">{isAr ? 'توسعة المستودع' : 'Warehouse expansion'} · Lv.{warehouseLevel}/5</p><p className="mt-1 text-[11px] text-[#9299A6]">{isAr ? 'السعة مرتبطة بقيمة المورد مثل خزينة أرباح الشركات.' : 'Capacity follows resource value, like company profit vault tiers.'}</p></div>
                 <span className="text-xs font-mono-num text-emerald-300">{warehouseLevel < 5 ? '+' + Math.max(0, Math.floor(warehouseValueCaps[warehouseLevel] / warehouseUnitPrice) - warehouseCapacity) : 'MAX'}</span>
               </div>
-              {selectedWarehouseUpgradeEnd > 0 && <p className="text-xs text-amber-300">{selectedWarehouseUpgradeEnd > now ? (isAr ? 'توسعة المستودع قيد التنفيذ…' : 'Warehouse expansion in progress…') : (isAr ? 'اكتمل الوقت، جارٍ إنهاء التوسعة.' : 'Timer complete; finalizing expansion.')}</p>}
+              {selectedWarehouseUpgradeEnd > 0 ? <p className="text-xs text-amber-300">{warehouseRemainingMs > 0 ? (isAr ? `توسعة المستودع قيد التنفيذ · المتبقي ${warehouseRemainingLabel}` : `Warehouse expansion in progress · ${warehouseRemainingLabel} left`) : (isAr ? 'اكتمل الوقت، جارٍ إنهاء التوسعة.' : 'Timer complete; finalizing expansion.')}</p> : warehouseLevel < 5 ? <p className="text-xs text-[#A9B9D4]">{isAr ? `مدة التوسعة القادمة: ${warehouseDurationLabel}` : `Next expansion duration: ${warehouseDurationLabel}`}</p> : null}
               <button type="button" disabled={warehouseLevel >= 5 || selectedWarehouseUpgradeEnd > now || selectedUpgradeEnd > now || (wallet?.balance ?? 0) < warehouseUpgradeCost || busyKey === `warehouse_${selected.id}`} onClick={() => void runAction(`warehouse_${selected.id}`, () => upgradeFactoryWarehouse(selected.id), isAr ? 'بدأت توسعة المستودع.' : 'Warehouse expansion started.')} className="w-full min-h-[40px] rounded-lg border border-white/10 bg-[#0B0D12] px-3 text-xs font-semibold text-[#F4F5F7] disabled:opacity-40">{warehouseLevel >= 5 ? (isAr ? 'وصل المستودع إلى المستوى الأقصى' : 'Warehouse max level reached') : (isAr ? `توسعة المستودع · ${warehouseUpgradeCost.toLocaleString()} $` : `Expand warehouse · ${warehouseUpgradeCost.toLocaleString()} $`)}</button>
             </div>
             {selectedUpgradeEnd > 0 && <p className="text-xs text-amber-300">{remainingMs > 0 ? (isAr ? `التطوير جارٍ · متبقٍ ${remainingLabel}` : `Upgrade in progress · ${remainingLabel} left`) : (isAr ? 'اكتمل الوقت، جارٍ إنهاء التطوير.' : 'Timer complete; finalizing upgrade.')}</p>}
