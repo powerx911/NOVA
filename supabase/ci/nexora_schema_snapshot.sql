@@ -904,7 +904,7 @@ begin
     when 'rec_bio_module' then v_output:='bio_module'; v_output_qty:=1; v_cost:=125; v_xp:=140; v_required:=2; v_inputs:='[{"itemId":"synth_polymer","qty":2},{"itemId":"rare_minerals","qty":2}]'::jsonb;
     when 'rec_titanium_frame' then v_output:='precision_frame'; v_output_qty:=2; v_cost:=80; v_xp:=75; v_required:=1; v_inputs:='[{"itemId":"titanium_ore","qty":2},{"itemId":"carbon_fiber","qty":1}]'::jsonb;
     when 'rec_polymer_composite' then v_output:='synth_polymer'; v_output_qty:=2; v_cost:=90; v_xp:=85; v_required:=1; v_inputs:='[{"itemId":"polymer_resin","qty":2},{"itemId":"energy_cells","qty":1}]'::jsonb;
-    when 'rec_biotech_module' then v_output:='bio_module'; v_output_qty:=1; v_cost:=320; v_xp:=155; v_required:=2; v_inputs:='[{"itemId":"biotech_gel","qty":2},{"itemId":"rare_minerals","qty":1}]'::jsonb;
+    when 'rec_biotech_module' then v_output:='bio_module'; v_output_qty:=1; v_cost:=320; v_xp:=16; v_required:=2; v_inputs:='[{"itemId":"biotech_gel","qty":2},{"itemId":"quantum_dust","qty":1}]'::jsonb;
     when 'rec_quantum_server_advanced' then v_output:='quantum_server'; v_output_qty:=1; v_cost:=60; v_xp:=180; v_required:=3; v_inputs:='[{"itemId":"quantum_dust","qty":2},{"itemId":"microchips","qty":1}]'::jsonb;
     else raise exception 'INVALID_RECIPE';
   end case;
