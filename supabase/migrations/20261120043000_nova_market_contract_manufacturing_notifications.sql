@@ -499,7 +499,7 @@ begin
         update nexora.contract_offers
         set status='expired',updated_at=now()
         where scope='personal' and user_id=v_owner_id and slot_no=new.slot_no
-          and board_date=new.board_date and id<>new.id and status='offered';
+          and id<>new.id and status='offered';
       end if;
     end if;
   end if;
