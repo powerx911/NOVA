@@ -96,6 +96,8 @@ function NovaAppContent() {
       activeTab={activeTab}
       onTabChange={setActiveTab}
       socialUnreadCount={socialUnreadCount}
+      unclaimedAchievementCount={[...game.unlockedAchievements].filter((id) => !game.claimedAchievements.has(id)).length}
+      dailyStipendReady={!game.claimedDailyToday}
       profile={game.profile}
       wallet={game.wallet}
       notifications={game.notifications}
@@ -150,6 +152,7 @@ function NovaAppContent() {
           inventory={game.inventory}
           marketListings={game.marketListings}
           worldEvents={game.worldEvents}
+          notifications={game.notifications}
           language={game.language}
         />
       )}
@@ -179,6 +182,7 @@ function NovaAppContent() {
           userPrivate={game.userPrivate}
           claimedMissions={game.claimedMissions}
           unlockedAchievements={game.unlockedAchievements}
+          claimedAchievements={game.claimedAchievements}
           diagnosticsContext={{
             profile: game.profile,
             wallet: game.wallet,
