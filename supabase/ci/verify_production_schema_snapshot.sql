@@ -52,6 +52,23 @@ BEGIN
     RAISE EXCEPTION 'Organization treasury withdrawals are not disabled in the production snapshot';
   END IF;
 
+  IF position('AUCTION_ASSET_MISSING' in pg_get_functiondef('nexora.settle_company_auction(text)'::regprocedure)) = 0
+     OR position('company_auction_refund' in pg_get_functiondef('nexora.settle_company_auction(text)'::regprocedure)) = 0
+     OR position('AUCTION_ASSET_MISSING' in pg_get_functiondef('nexora.settle_factory_auction(text)'::regprocedure)) = 0
+     OR position('factory_auction_refund' in pg_get_functiondef('nexora.settle_factory_auction(text)'::regprocedure)) = 0 THEN
+    RAISE EXCEPTION 'Missing-asset auction escrow refunds are absent from the production snapshot';
+  END IF;
+
+  IF position('v_archived_companies' in pg_get_functiondef('nexora.delete_player_account(text)'::regprocedure)) = 0
+     OR position('v_archived_factories' in pg_get_functiondef('nexora.delete_player_account(text)'::regprocedure)) = 0 THEN
+    RAISE EXCEPTION 'Unified account deletion archive behavior is absent from the production snapshot';
+  END IF;
+
+  IF position('ORG_ACTIVE_CONTRACT_LIMIT' in pg_get_functiondef('nexora.accept_dynamic_contract(text,text)'::regprocedure)) = 0
+     OR position('UPGRADE_NOT_FINISHED' in pg_get_functiondef('nexora.upgrade_factory_warehouse(text,text)'::regprocedure)) = 0 THEN
+    RAISE EXCEPTION 'Factory and organization contract guard fixes are absent from the production snapshot';
+  END IF;
+
   IF position('v_cost:=320; v_xp:=16; v_required:=2' in pg_get_functiondef('nexora.manufacture_recipe(text,text,integer)'::regprocedure)) = 0
      OR position('v_cost:=60; v_xp:=18; v_required:=3' in pg_get_functiondef('nexora.manufacture_recipe(text,text,integer)'::regprocedure)) > 0 THEN
     RAISE EXCEPTION 'Biotechnology manufacturing recipe is not canonical in the production snapshot';
