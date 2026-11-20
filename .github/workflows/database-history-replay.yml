@@ -10,6 +10,7 @@ on:
       - "supabase/ci/**"
       - "scripts/validate_migration_manifest.py"
       - "supabase/migrations/**"
+      - "supabase/tests/**"
       - ".github/workflows/database-history-replay.yml"
   pull_request:
     branches:
@@ -19,6 +20,7 @@ on:
       - "supabase/ci/**"
       - "scripts/validate_migration_manifest.py"
       - "supabase/migrations/**"
+      - "supabase/tests/**"
       - ".github/workflows/database-history-replay.yml"
 
 permissions:
