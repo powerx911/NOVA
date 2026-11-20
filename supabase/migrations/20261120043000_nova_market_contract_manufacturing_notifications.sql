@@ -231,23 +231,20 @@ begin
   for v_mission in
     select * from (values
       ('tut_first_trade','tutorial','trades',1::bigint,'دخول السوق','Enter the Market'),
-      ('tut_first_production','tutorial','produced',1::bigint,'أول إنتاج','First Production'),
-      ('tut_first_company','tutorial','companies',1::bigint,'تأسيس شركة','Found Your Company'),
-      ('daily_active_trader','daily','dailyTradesCount',3::bigint,'متداول نشط','Active Market Trader'),
+      ('tut_first_production','tutorial','produced',1::bigint,'بداية الإنتاج','First Production'),
+      ('tut_first_company','tutorial','companies',1::bigint,'تأسيس الشركة','Found Your Company'),
       ('daily_market_orders','daily','dailyTradesCount',5::bigint,'نشاط السوق','Market Activity'),
-      ('daily_factory_shift','daily','dailyManufacturingCount',3::bigint,'وردية الإنتاج','Production Shift'),
+      ('daily_factory_shift','daily','dailyManufacturingCount',3::bigint,'وردية إنتاج','Production Shift'),
       ('daily_market_volume','daily','dailyMarketSpend',2500::bigint,'حركة رأس المال','Capital in Motion'),
       ('daily_company_cycle','daily','dailyCompanyCollectionsCount',2::bigint,'دورة تشغيل','Operating Cycle'),
-      ('weekly_market_mogul','weekly','weeklyTradesCount',20::bigint,'عملاق السوق الأسبوعي','Weekly Market Mogul'),
-      ('weekly_market_network','weekly','weeklyTradesCount',35::bigint,'شبكة الإمداد','Supply Network'),
+      ('weekly_market_network','weekly','weeklyTradesCount',35::bigint,'شبكة التوريد','Supply Network'),
       ('weekly_industrial_output','weekly','weeklyManufacturingCount',25::bigint,'إنتاج متواصل','Sustained Output'),
-      ('weekly_capital_flow','weekly','weeklyMarketSpend',30000::bigint,'تدفق الاستثمار','Investment Flow'),
-      ('weekly_corporate_returns','weekly','weeklyCompanyCollectionsCount',12::bigint,'عوائد الشركات','Corporate Returns'),
-      ('seasonal_syndicate','seasonal','org',1::bigint,'تحالف اقتصادي','Economic Syndicate Alliance'),
-      ('seasonal_market_leadership','seasonal','seasonalMarketBuys',250::bigint,'ريادة السوق','Market Leadership'),
-      ('seasonal_industry_scale','seasonal','seasonalManufacturingCount',180::bigint,'التوسع الصناعي','Industrial Scale'),
-      ('seasonal_capital_commitment','seasonal','seasonalMarketSpend',500000::bigint,'التزام رأس المال','Capital Commitment'),
-      ('seasonal_corporate_scale','seasonal','seasonalCompanyCollectionsCount',75::bigint,'إدارة المحفظة','Portfolio Management')
+      ('weekly_capital_flow','weekly','weeklyMarketSpend',30000::bigint,'تدفق استثماري','Investment Flow'),
+      ('weekly_corporate_returns','weekly','weeklyCompanyCollectionsCount',12::bigint,'عوائد مؤسسية','Corporate Returns'),
+      ('seasonal_market_leadership','seasonal','seasonalMarketBuys',250::bigint,'قيادة السوق','Market Leadership'),
+      ('seasonal_industry_scale','seasonal','seasonalManufacturingCount',180::bigint,'توسع صناعي','Industrial Scale'),
+      ('seasonal_capital_commitment','seasonal','seasonalMarketSpend',500000::bigint,'التزام رأسمالي','Capital Commitment'),
+      ('seasonal_corporate_scale','seasonal','seasonalCompanyCollectionsCount',75::bigint,'إدارة المحافظ','Portfolio Management')
     ) as missions(mission_id,category,metric,target,title_ar,title_en)
   loop
     v_period:=case v_mission.category
