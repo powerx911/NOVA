@@ -844,24 +844,7 @@ export function MarketHubView({
                       </div>
                     </div>
                     <div className="ms-auto text-end">
-                      <p className={isSale ? "font-mono-num text-sm font-bold text-emerald-300" : "font-mono-num text-sm font-bold text-[#F4F5F7]"}>{isSale ? '+' : '−'}{'      <ConfirmDialog
-        open={confirmTransferOpen}
-        title={t.confirmTitle}
-        description={
-          language === 'ar'
-            ? `سيتم خصم ${transferAmount.toLocaleString()} $ من رصيدك، ويصل إلى ${recipientName} مبلغ ${transferNetPreview.toLocaleString()} $ بعد رسوم 3% (${transferFeePreview.toLocaleString()} $). لا يمكن استرجاع التحويل.`
-            : `Send ${transferAmount.toLocaleString()} credits to ${recipientName}? A 3% fee (${transferFeePreview.toLocaleString()}) applies, so they receive ${transferNetPreview.toLocaleString()} credits.`
-        }
-        confirmLabel={t.confirmBtn}
-        cancelLabel={t.cancelBtn}
-        busy={busyKey === 'transfer'}
-        onConfirm={executeTransfer}
-        onCancel={() => setConfirmTransferOpen(false)}
-      />
-    </div>
-  );
-}
-}{total.toLocaleString()}</p>
+                      <p className={isSale ? "font-mono-num text-sm font-bold text-emerald-300" : "font-mono-num text-sm font-bold text-[#F4F5F7]"}>{isSale ? '+' : '−'}{total.toLocaleString()} {language === 'ar' ? 'رصيد' : 'credits'}</p>
                       <p className="text-[10px] text-[#9299A6]">{record.unitPrice.toLocaleString()} {language === 'ar' ? 'للوحدة' : 'per unit'}</p>
                     </div>
                   </article>
