@@ -594,7 +594,7 @@ begin
         select slot_no,max(board_date) as board_date,max(cooldown_until) as cooldown_until
         from nexora.contract_slot_cooldowns
         where scope='personal' and owner_id=p_uid and slot_no between 1 and 5
-          and board_date=(now() at time zone 'UTC')::date and cooldown_until>now()
+          and cooldown_until>now()
         group by slot_no
       ) c
     ),'[]'::jsonb),
