@@ -75,7 +75,7 @@ The production migration ledger contains **83 applied records**. The repository 
 Two data-free snapshots serve different purposes:
 
 - supabase/ci/nexora_schema_snapshot.sql is the historical starting baseline for replaying the curated migration chain.
-- supabase/ci/nexora_production_schema_snapshot.sql is synchronized to the current live production catalog and is used by the strict catalog verifier.
+- supabase/ci/nexora_production_schema_snapshot.sql is refreshed against the current live production inventory and migration-sensitive function definitions; the strict verifier checks catalog counts and selected critical invariants.
 
 The isolated database workflow restores the historical baseline, applies the ordered migration chain and runs pgTAP. The production snapshot verification runs separately against a disposable schema and checks the current live catalog shape and key function definitions.
 
