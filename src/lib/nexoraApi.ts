@@ -76,6 +76,7 @@ export async function nexoraApi<T>(
   }
   if (result.ok !== true) throw new NexoraApiError('INVALID_API_RESPONSE', 502);
   if (requestStorageKey && typeof window !== 'undefined') {
+    inMemoryRequestIds.delete(requestStorageKey);
     try { window.sessionStorage.removeItem(requestStorageKey); } catch { /* Ignore storage cleanup failures. */ }
   }
   if (!READ_ONLY_ACTIONS.has(action) && action !== 'delete_account' && typeof window !== 'undefined') {
