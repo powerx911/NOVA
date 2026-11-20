@@ -547,8 +547,8 @@ select extensions.is(
    where scope='organization' and org_id='pgtap_org'
      and board_date=(now() at time zone 'UTC')::date
      and slot_no between 1 and 100 and status='offered'),
-  100,
-  'level ten organization board fills all one hundred unlocked contract slots'
+  99,
+  'level ten organization board fills every remaining slot without replenishing the completed slot'
 );
 
 
