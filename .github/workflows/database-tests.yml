@@ -119,7 +119,7 @@ jobs:
             supabase/migrations/20261121002000_nova_factory_contract_upgrade_guard_fixes.sql \
             supabase/migrations/20261120184839_nova_financial_idempotency_market_history.sql \
             supabase/migrations/20261120191611_nova_live_player_skill_effects.sql \
-            supabase/migrations/20261120200000_nova_org_contract_negotiation_bonus.sql
+            supabase/migrations/20261120200100_nova_org_contract_negotiation_bonus.sql
           do
             if [ "$migration" = "supabase/migrations/20261120234000_nova_production_economy_parity_repair.sql" ]; then
               psql "$DB_URL" -v ON_ERROR_STOP=1 -f supabase/ci/replay_patches/prepare_factory_upgrade_parity.sql
