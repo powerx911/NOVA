@@ -292,7 +292,11 @@ begin
   where owner_uid=p_uid and not is_deleted;
   get diagnostics v_archived_factories = row_count;
 
-  update nexora.contract_offers set claimed_by=null where claimed_by=p_uid;
+  update nexora.contract_offers
+  set claimed_by=null,
+      status=case when scope='organization' and status in ('accepted','processing','ready') then 'abandoned' else status end,
+      updated_at=now()
+  where claimed_by=p_uid;
   delete from nexora.contract_offers where scope='personal' and user_id=p_uid;
   delete from nexora.contract_daily_limits where user_id=p_uid;
   delete from nexora.organization_requests where user_id=p_uid;
