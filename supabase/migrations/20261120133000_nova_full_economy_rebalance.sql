@@ -22,7 +22,7 @@ $function$;
 create or replace function nexora.factory_resource_config(p_resource_id text)
 returns table(founding_cost bigint, production_rate numeric, operating_cost numeric, rarity_factor numeric)
 language sql immutable set search_path = '' as $function$
-  select * from (values
+  select cfg.founding_cost, cfg.production_rate, cfg.operating_cost, cfg.rarity_factor from (values
     ('copper_wire',1800::bigint,20.000::numeric,500.00::numeric,1.00::numeric),
     ('silicon_ore',2800::bigint,18.000::numeric,520.00::numeric,1.20::numeric),
     ('energy_cells',4200::bigint,16.000::numeric,630.00::numeric,1.40::numeric),
