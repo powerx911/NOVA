@@ -26,9 +26,13 @@ Project: `hmrprnjhyzyefocdmnxf`
 
 ## Isolated replay
 
-The historical replay workflow replays the recovered SQL archive on a disposable GitHub Actions Supabase stack, then applies a curated set of canonical migrations and runs pgTAP. Both database workflows validate the production migration source manifest before replay.
+The historical replay workflow replays the 42 tracked recovery sources from the archive on a disposable PostgreSQL stack. The 13 untracked files are direct SQL statement events, not migration-ledger entries. They are syntax-validated with pglast but deliberately not executed against the current snapshot: some were executed against an earlier schema state where `nexora.properties` existed, before the later property-removal migrations. The current 34-table snapshot represents a later state and does not contain that table. Replaying those one-off statements against it would not be a valid historical replay.
 
-The workflow's curated migration list is not a substitute for a complete fresh-project replay. The CI schema baseline still contains 34 tables and 78 functions, versus 45 tables and 144 functions in the live production inventory. The schema-count parity test is intended to expose any remaining replay gap.
+The workflow then applies the curated canonical migrations in their verified dependency order. In particular, `20261119190000_nova_market_system_raw_scope_factory_duration.sql` supplies the factory upgrade function expected by the later economy parity repair. The full-economy migration runs before the recovered `20261120132839` company hotfix because the hotfix depends on the function shape produced by the full-economy migration; filename timestamps alone are not sufficient to infer this dependency order. The five latest production migrations and the pending hardening migrations are included in isolated CI.
+
+Both database workflows validate the production migration source manifest before replay. The schema-count parity test checks the resulting branch schema against the live inventory (45 tables, 144 production functions plus the pending account-deletion RPC, 37 triggers, 97 indexes and 167 constraints).
+
+The workflow's curated migration list is not a substitute for a full fresh-project replay. The checked-in schema snapshot remains a historical baseline until a verified schema-only refresh is completed.
 
 ## Safety
 
