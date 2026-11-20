@@ -33,9 +33,10 @@ NOVA is the player-facing game and brand name. The current database schema remai
 ## Snapshot and test status
 
 - `supabase/ci/nexora_schema_snapshot.sql` currently contains 34 table definitions and 78 function definitions. It is a historical baseline, not a complete snapshot of current production.
-- A new pgTAP schema-count parity test checks the isolated result against 45 tables, 144 functions, 37 triggers, 97 indexes and 167 constraints.
-- Both database workflows now include the five latest production economy migrations, the restored hotfix and the new hardening migrations in chronological order.
+- A new pgTAP schema-count parity test checks the branch result against 45 tables, 145 functions (144 live production functions plus the pending account-deletion RPC), 37 triggers, 97 indexes and 167 constraints.
+- Both database workflows include the five latest production economy migrations, the restored hotfix and the hardening migrations in verified dependency order. The missing factory-upgrade prerequisite `20261119190000` is included.
 - A manifest validator checks that every mapped production source and historical variant still exists with the recorded Git blob hash.
+- The historical replay executes 42 tracked recovery sources; 13 untracked direct SQL events are syntax-validated but not executed because they depend on an earlier schema state that included the now-removed `nexora.properties` table.
 - The snapshot itself still requires a verified schema-only refresh; do not call it current until the parity test passes against the full canonical replay.
 - Do not run `supabase db push`, migration repair, or production DDL to paper over drift.
 
