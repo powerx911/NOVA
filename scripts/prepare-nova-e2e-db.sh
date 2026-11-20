@@ -32,6 +32,8 @@ while IFS= read -r -d '' migration; do
   psql "$DB_URL" -v ON_ERROR_STOP=1 -f "$migration"
 done < <(find supabase/migrations -maxdepth 1 -type f -name '*.sql' -print0 | sort -z)
 
+# The API gateway started before the snapshot created nexora; refresh PostgREST's schema cache.
+psql "$DB_URL" -v ON_ERROR_STOP=1 -c "NOTIFY pgrst, 'reload schema';"
 psql "$DB_URL" -v ON_ERROR_STOP=1 -f supabase/ci/verify_production_schema_snapshot.sql
 
 # pgTAP migration-chain suites run in the dedicated NOVA database-test workflow;
