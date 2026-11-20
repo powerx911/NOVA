@@ -52,9 +52,11 @@ select extensions.ok(
 );
 
 select extensions.ok(
-  position('v_duration / 1000' in lower(pg_get_functiondef('nexora.upgrade_company_vault(text,text)'::regprocedure))) > 0
-  and position('v_duration / 2000' in lower(pg_get_functiondef('nexora.upgrade_company_vault(text,text)'::regprocedure))) = 0,
-  'company vault upgrade duration converts milliseconds to seconds exactly once'
+  position('v_duration:=case v_target when 2 then 1200 when 3 then 4500 when 4 then 14400 else 43200 end' in lower(pg_get_functiondef('nexora.upgrade_company_vault(text,text)'::regprocedure))) > 0
+  and position('make_interval(secs=>greatest(1,v_duration))' in lower(pg_get_functiondef('nexora.upgrade_company_vault(text,text)'::regprocedure))) > 0
+  and position('v_duration/1000' in lower(pg_get_functiondef('nexora.upgrade_company_vault(text,text)'::regprocedure))) = 0
+  and position('v_duration/2000' in lower(pg_get_functiondef('nexora.upgrade_company_vault(text,text)'::regprocedure))) = 0,
+  'company vault upgrade uses the approved second-based durations without a second conversion'
 );
 
 select * from extensions.finish();

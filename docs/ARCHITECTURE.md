@@ -1,40 +1,81 @@
-# NEXORA Technical Architecture
+# NOVA Technical Architecture
 
-## 1. Official Platform Stack
-- **Frontend**: React 19, TypeScript, Vite 8, Tailwind CSS v4, Lucide Icons, Motion.
-- **Authentication**: Firebase Authentication (`GoogleAuthProvider` via `signInWithPopup`).
-- **Database & Persistence**: Cloud Firestore Enterprise Edition (`ai-studio-74843d9e-8228-49b7-a616-317cadd90bff`), configured via `firebase-applet-config.json`.
-- **Backend Functions**: Firebase Cloud Functions Gen 2 (`functions/`, Node 22) providing owner-restricted read-only diagnostics aggregations (`nexoraDiagnostics`).
-- **Server-Enforced Integrity**: `firestore.rules` (compiled and deployed via Firebase Rules Engine, validated with `@firebase/eslint-plugin-security-rules`).
+**Last verified:** 2026-11-20  
+**Repository:** https://github.com/powerx911/NOVA  
+**Production URL:** https://powerx911.github.io/NOVA/
 
----
+## 1. Canonical production stack
 
-## 2. Layered Codebase Structure
-- `src/types/game.ts`: TypeScript domain interfaces for profiles, private user data, wallets, transactions, inventory items, recipes, market listings/orders, companies, properties, organizations, missions, achievements, notifications, and world events.
-- `src/data/catalog.ts`: Deterministic game constants, commodity tiers, 3-tier manufacturing recipes, 5 company sectors, 3 property tiers, trade contracts, missions, achievements, and starter world events.
-- `src/lib/economy.ts`: Pure deterministic calculation engine for XP/level curves, market tax rates, dynamic item pricing, hourly company and property net yields, manufacturing cost discounts, daily stipends, progression bounds, transfer validation, and RBAC permission helpers.
-- `src/lib/firebase.ts`: Initializes Firebase App, Firebase Auth, Cloud Firestore (`firebaseConfig.firestoreDatabaseId`), and Cloud Functions (`us-central1`). Runs `testFirestoreConnection()` (`getDocFromServer`) at startup and routes errors through `handleFirestoreError()` + sanitized diagnostic monitor.
-- `src/services/gameService.ts`: Implements atomic Firestore `runTransaction` mutations so balance updates, ledger records, inventory changes, asset updates, and organization treasury changes commit together or roll back atomically.
-- `src/services/diagnosticsService.ts`: Owner-gated, read-only client diagnostics runner interfacing with `nexoraDiagnostics` Gen 2 callable and rules-compliant read-only fallbacks.
-- `src/hooks/useGameData.ts`: Manages `onAuthStateChanged` lifecycle, resets all scoped state on sign-out, refreshes UTC date key across midnight, guards org-membership profile synchronization with `orgMemberLoaded`, and scopes `organization_requests` subscriptions to applicants and authorized member managers.
-- `src/features/*`: Modular portrait-first views (`auth`, `home`, `business`, `market`, `organization`, `profile`, and lazy-loaded `diagnostics`).
-- `src/components/ui/*`: Shared UI primitives (`AppShell`, `EconomicChart`, `ConfirmDialog`, `ToastProvider`).
-- `functions/src/*`: Cloud Functions Gen 2 (`nexoraDiagnostics`) with ID Token verification, `diagnosticsOwner` / `diagnostics_admins/{uid}` authorization, rate limiting, and secret/PII redaction.
+- **Frontend:** React 19, TypeScript, Vite 8 and Tailwind CSS v4. The static build is published to GitHub Pages by GitHub Actions.
+- **Identity:** Firebase Authentication. The browser obtains a Firebase ID token; it does not receive database service credentials.
+- **Game database:** Supabase PostgreSQL project `hmrprnjhyzyefocdmnxf`, private schema `nexora`.
+- **Game API:** Supabase Edge Function `nexora-api`. It validates Firebase ID tokens (issuer, audience, RS256 signature and verified-email policy) and uses a server-side service-role client for database operations.
+- **Legacy Firestore:** Not the authoritative game economy or player-state database. Firebase/Firestore Cloud Functions and API files still exist in the repository and must be inventoried before retirement; the owner diagnostics workflow is the remaining documented legacy use.
+- **Deployment:** GitHub Pages only for the player-facing static app. Files under `api/` are not deployed as serverless functions by the Pages workflow.
 
----
+## 2. Production database inventory
 
-## 3. Authentication & Session Lifecycle
-1. `onAuthStateChanged` resolves user session state (`authReady`).
-2. Unauthenticated users see Google Sign-In (`AuthOnboardingView` in `signin` mode) with localized error feedback for popup/network issues.
-3. Authenticated users without `profiles/{uid}` enter character onboarding (`onboarding` mode), reserving a unique lowercase username in `usernames/{usernameLower}` and atomically creating `profiles/{uid}`, `users_private/{uid}`, `wallets/{uid}` (`2,500 N-Credits`), and an initial notification.
-4. `firestore.rules` rejects all read/write operations (except `test/connection`) unless `request.auth != null && request.auth.token.email_verified == true`.
+The latest read-only inventory recorded on 2026-11-20:
 
----
+| Object | Production count |
+|---|---:|
+| Tables in `nexora` | 45 |
+| Functions in `nexora` | 144 |
+| SECURITY DEFINER functions | 131 |
+| Triggers | 37 |
+| Indexes | 97 |
+| Constraints | 167 |
+| Active pg_cron jobs | 8 |
+| Applied Supabase migration records | 74 |
 
-## 4. Server-Enforced Atomic Operations (Firestore Rules + `runTransaction`)
-Because NEXORA runs directly on Cloud Firestore without a separate custom API server, critical state invariants are enforced server-side by Google's Firestore Security Rules engine on every transaction commit:
-- **Wallets & Ledger**: `wallets/{uid}` cannot be edited directly; every balance delta must reference a newly created `transactions/{txId}` in the same transaction (`getAfter`), and `isWalletDeltaValid` verifies exact arithmetic (`oldBalance - amount` or `oldBalance + netAmount`).
-- **Inventory & Market Escrow**: Creating a listing atomically deducts seller inventory; buying atomically updates `remainingQty`, debits buyer wallet, credits seller wallet (with bounded tax `0 <= fee <= 12% + 0.5`), creates `transactions/{txId}` + `market_orders/{orderId}` (linked by `txId`), and credits buyer inventory matching listing item & quantity delta; cancelling atomically refunds seller inventory using `lastListingId`.
-- **Companies & Properties**: Upgrades, staff hiring (`company_hire` at 250 N-Credits), and revenue/rent collections must pair with matching atomic wallet transactions and enforce immutable base revenue/rent/expense parameters plus time-proportional collection caps (`request.time - lastCollectedAt`).
-- **Organizations (RBAC & Treasury)**: Role changes, join approvals, and treasury withdrawals check `organization_members/{orgId}_{request.auth.uid}` permissions via `get()` on Firestore servers. Join request listing is restricted to applicants and `manage_members` managers. Treasury deposits/withdrawals require exact matching `org_deposit` / `org_withdraw` wallet transactions.
-- **No Duplicate Claims**: `daily_claims`, `player_missions`, and `contract_claims` use deterministic IDs and immutable `allow update, delete: if false` rules.
+These counts describe the live project at the audit timestamp. They are not a promise that a checked-in SQL snapshot already contains every object.
+
+## 3. Request and trust boundaries
+
+1. Firebase Authentication establishes the player identity.
+2. The client calls `/functions/v1/nexora-api` with the Firebase ID token and Supabase publishable key.
+3. `supabase/functions/nexora-api/_shared/auth.ts` verifies the Firebase token. The function derives the UID from the verified token; it does not trust a client-supplied UID for authorization.
+4. The Edge Function calls `nexora` RPCs and reads through a server-side Supabase client.
+5. Wallet, inventory, company, factory, organization, auction, contract and manufacturing invariants belong in PostgreSQL transactions and server-side functions—not in client-only checks.
+
+## 4. Important database invariants
+
+- Wallet changes and their transaction-ledger records must be committed atomically.
+- Transaction rows and selected audit/history tables are immutable. Account deletion must preserve financial/legal history while removing or pseudonymizing personal game data through a narrowly scoped server-side operation.
+- Auction bids reserve funds in `company_auction_escrows`; settlement must either release the winning escrow or refund it. An auction must never be marked cancelled while leaving a bidder's reserved escrow stranded.
+- Organization treasury funding is one-way. Treasury deposits may count toward reputation and organization goals; withdrawals are disabled so the treasury cannot be used as a player-to-player transfer intermediary.
+- Notification events use stable event keys to avoid duplicate rewards and alerts.
+- All SECURITY DEFINER functions must pin `search_path` and be callable only through intended server roles.
+
+## 5. Repository and CI layout
+
+- `src/`: Player-facing React application.
+- `supabase/functions/nexora-api/`: Authenticated gameplay API.
+- `supabase/migrations/`: Canonical local SQL migration sources.
+- `supabase/recovered-history/`: Forensic/recovery SQL; not automatically a canonical replacement for a tracked migration with a different checksum.
+- `supabase/tests/database/`: pgTAP database regression tests.
+- `supabase/ci/nexora_schema_snapshot.sql`: Data-free PostgreSQL baseline used by isolated CI tests.
+
+## 6. Migration and snapshot status
+
+The production migration ledger currently contains 74 applied records. The repository contains 70 tracked migration files, and the audit identified one applied production hotfix whose exact SQL is retained in the production migration ledger but has no matching canonical file in the repository. There are also historical/recovered copies with differing Git blob hashes; they must remain explicitly classified rather than silently treated as identical.
+
+The checked-in CI baseline currently contains 34 table definitions and 78 function definitions. It is therefore a historical baseline, not a complete export of the current 45-table / 144-function production schema. CI applies an explicit migration subset on top of that baseline. The migration list must stay synchronized with the latest production migrations, and the baseline must be regenerated from an isolated, verified schema export before it can be called a current production snapshot.
+
+Never run `supabase db push`, migration repair, or a production migration merely to make local history match. Validate migration order, SQL sources, schema state and tests in a disposable PostgreSQL environment first.
+
+## 7. Legacy retirement policy
+
+- Do not delete Firebase/Firestore diagnostics or old API code until the owner-only diagnostics capability and any required retention records have a verified replacement.
+- Do not treat `api/*` as live Pages endpoints.
+- Keep the deployed `nexora-api` name and schema `nexora` until a dedicated compatibility migration is approved.
+- Remove old Cloud Functions only after checking the deployed Firebase function list and confirming no production client invokes them.
+
+## 8. Release gates
+
+1. TypeScript, unit tests, SQL grammar validation and production build pass.
+2. pgTAP tests run against a disposable PostgreSQL instance with the current snapshot baseline and selected migrations.
+3. Account deletion, auctions, wallet transfers and organization operations have isolated integration coverage.
+4. CI is green before merge.
+5. The GitHub Pages deployment workflow succeeds and the published version manifest matches the merged commit.
+6. Production database migrations are not considered deployed until an explicitly isolated rollout path and migration-history reconciliation have been verified.

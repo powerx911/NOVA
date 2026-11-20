@@ -650,14 +650,19 @@ Deno.serve(async (req: Request) => {
       return json({ ok: true, data }, 200, origin);
     }
 
-    if (body.action === "org_treasury_deposit" || body.action === "org_treasury_withdraw") {
+    if (body.action === "org_treasury_withdraw") {
+      return json({ error: "ORG_TREASURY_WITHDRAWALS_DISABLED" }, 403, origin);
+    }
+
+    if (body.action === "org_treasury_deposit") {
       const orgId = typeof body.orgId === "string" ? body.orgId : "";
       const amount = Number(body.amount);
-      const rpcName = body.action === "org_treasury_deposit" ? "deposit_org_treasury" : "withdraw_org_treasury";
-      const { data, error } = await db.rpc(rpcName, { p_uid: identity.uid, p_org_id: orgId, p_amount: Math.floor(amount) });
+      const { data, error } = await db.rpc("deposit_org_treasury", {
+        p_uid: identity.uid, p_org_id: orgId, p_amount: Math.floor(amount),
+      });
       if (error) {
-        const known = ["INVALID_AMOUNT","NOT_FOUND","UNAUTHORIZED","INSUFFICIENT_FUNDS","INSUFFICIENT_TREASURY"].find((x) => error.message.includes(x));
-        return json({ error: known ?? "ORG_TREASURY_ACTION_FAILED" }, 409, origin);
+        const known = ["INVALID_AMOUNT","NOT_FOUND","UNAUTHORIZED","INSUFFICIENT_FUNDS"].find((x) => error.message.includes(x));
+        return json({ error: known ?? "ORG_TREASURY_DEPOSIT_FAILED" }, 409, origin);
       }
       return json({ ok: true, data }, 200, origin);
     }

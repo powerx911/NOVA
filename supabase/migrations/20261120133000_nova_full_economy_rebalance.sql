@@ -106,17 +106,46 @@ begin
 end;
 $function$;
 
--- Patch existing guarded upgrade RPCs to the same cost and duration curves.
+-- Patch the existing guarded company-upgrade RPC without altering its DECLARE section.
 do $patch$
-declare v_definition text;
+declare
+  v_definition text;
+  v_body text;
+  v_begin_marker text := E'\nbegin\n';
+  v_body_start integer;
 begin
-  select pg_get_functiondef('nexora.start_company_upgrade(text,text)'::regprocedure) into v_definition;
-  v_definition:=replace(v_definition,'v_cost := nexora.company_upgrade_cost(v_company.sector, v_company.level);','v_cost := nexora.company_upgrade_cost(v_company.sector, v_company.level);');
-  v_definition:=regexp_replace(v_definition,'v_duration_ms[^\n;]*;','v_duration_ms := nexora.company_upgrade_duration_seconds(v_target) * 1000;','g');
-  v_definition:=regexp_replace(v_definition,'v_duration[[:space:]]*:=[^\n;]*;','v_duration := nexora.company_upgrade_duration_seconds(v_target) * 1000;','g');
+  select pg_get_functiondef('nexora.start_company_upgrade(text,text)'::regprocedure)
+    into v_definition;
+
+  v_body_start := strpos(lower(v_definition), v_begin_marker);
+  if v_body_start = 0 then
+    raise exception 'COMPANY_UPGRADE_FUNCTION_BODY_NOT_FOUND';
+  end if;
+
+  v_body := substr(v_definition, v_body_start + length(v_begin_marker));
+  if position('v_duration_ms' in v_body) > 0 then
+    v_body := regexp_replace(
+      v_body,
+      'v_duration_ms[[:space:]]*:=[^;]*;',
+      'v_duration_ms := nexora.company_upgrade_duration_seconds(v_target) * 1000;',
+      'g'
+    );
+  elsif position('v_duration' in v_body) > 0 then
+    v_body := regexp_replace(
+      v_body,
+      'v_duration[[:space:]]*:=[^;]*;',
+      'v_duration := nexora.company_upgrade_duration_seconds(v_target) * 1000;',
+      'g'
+    );
+  end if;
+
+  if position('company_upgrade_duration_seconds(v_target) * 1000' in v_body) = 0 then
+    raise exception 'COMPANY_UPGRADE_DURATION_PATCH_FAILED';
+  end if;
+
+  v_definition := substr(v_definition, 1, v_body_start - 1) || v_begin_marker || v_body;
   execute v_definition;
 end $patch$;
-
 do $patch$
 declare v_definition text;
 begin
@@ -131,8 +160,8 @@ do $patch$
 declare v_definition text;
 begin
   select pg_get_functiondef('nexora.upgrade_factory(text,text)'::regprocedure) into v_definition;
-  v_definition:=regexp_replace(v_definition,'v_cost :=.*?;','v_cost := ceil(v_cfg.founding_cost * 0.22 * power(v_factory.level::numeric, 1.22))::bigint;');
-  v_definition:=regexp_replace(v_definition,'v_duration_seconds :=.*?;','v_duration_seconds := 10 * 60 * power(v_target::numeric, 1.35);');
+  v_definition:=regexp_replace(v_definition,'v_cost :=[^;]*;','v_cost := ceil(v_cfg.founding_cost * 0.22 * power(v_factory.level::numeric, 1.22))::bigint;');
+  v_definition:=regexp_replace(v_definition,'v_duration_seconds :=[^;]*;','v_duration_seconds := 10 * 60 * power(v_target::numeric, 1.35);');
   execute v_definition;
 end $patch$;
 
