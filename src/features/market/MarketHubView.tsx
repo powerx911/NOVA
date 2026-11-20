@@ -3,6 +3,9 @@ import {
   Send,
   ShoppingBag,
   Tag,
+  History,
+  ArrowDownLeft,
+  ArrowUpRight,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
@@ -26,6 +29,7 @@ import {
   cancelMarketListing,
   createMarketListing,
   fetchMarketListings,
+  fetchMarketActivity,
   transferCredits,
   validateTransferRecipient,
 } from '../../services/gameService';
@@ -33,6 +37,7 @@ import type {
   InventoryItem,
   Language,
   MarketListing,
+  MarketActivityRecord,
   MarketSubTab,
   PlayerProfile,
   Wallet,
@@ -65,6 +70,9 @@ export function MarketHubView({
   const [buyQuantities, setBuyQuantities] = useState<Record<string, number>>({});
   const [busyKey, setBusyKey] = useState<string | null>(null);
   const [liveListings, setLiveListings] = useState(marketListings);
+  const [marketActivity, setMarketActivity] = useState<MarketActivityRecord[]>([]);
+  const [activityLoading, setActivityLoading] = useState(false);
+  const [activityFilter, setActivityFilter] = useState<'all' | 'purchases' | 'sales'>('all');
 
   useEffect(() => {
     let active = true;
@@ -77,6 +85,21 @@ export function MarketHubView({
   }, []);
 
   useEffect(() => { setLiveListings(marketListings); }, [marketListings]);
+
+  useEffect(() => {
+    if (subTab !== 'records') return;
+    let active = true;
+    const refresh = () => {
+      setActivityLoading(true);
+      void fetchMarketActivity()
+        .then((rows) => { if (active) setMarketActivity(rows); })
+        .catch(() => undefined)
+        .finally(() => { if (active) setActivityLoading(false); });
+    };
+    refresh();
+    window.addEventListener('nova:refresh-game', refresh);
+    return () => { active = false; window.removeEventListener('nova:refresh-game', refresh); };
+  }, [subTab]);
 
   async function refreshListings() {
     const rows = await fetchMarketListings();
@@ -328,6 +351,7 @@ export function MarketHubView({
     { id: 'contracts', label: t.subContracts },
     { id: 'bank', label: t.subBank },
     { id: 'manufacturing', label: t.subManufacturing },
+    { id: 'records', label: language === 'ar' ? 'السجلات' : 'Records' },
   ];
 
   return (
@@ -775,6 +799,77 @@ export function MarketHubView({
           language={language}
           onNavigateToExchange={() => setSubTab('exchange')}
         />
+      )}
+
+      {subTab === 'records' && (
+        <section className="rounded-2xl border border-white/8 bg-[#141821] p-4 sm:p-5 space-y-4">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <h2 className="flex items-center gap-2 text-base font-bold text-[#F4F5F7]"><History className="h-4 w-4 text-[#63A5FF]" />{language === 'ar' ? 'سجلات السوق' : 'Market records'}</h2>
+              <p className="mt-1 text-[11px] text-[#9299A6]">{language === 'ar' ? 'تُسجل هنا عمليات الشراء المكتملة والموارد التي اشتراها الآخرون منك فقط.' : 'Only completed purchases and sales to other players appear here.'}</p>
+            </div>
+            <span className="rounded-lg bg-[#0B0D12] px-2.5 py-1 text-[10px] font-mono-num text-[#A9B9D4]">{marketActivity.length}</span>
+          </div>
+          <div className="flex gap-2">
+            {([
+              ['all', language === 'ar' ? 'الكل' : 'All'],
+              ['purchases', language === 'ar' ? 'مشترياتي' : 'Purchases'],
+              ['sales', language === 'ar' ? 'مبيعاتي' : 'Sales'],
+            ] as const).map(([value, label]) => (
+              <button key={value} type="button" onClick={() => setActivityFilter(value)} className={activityFilter === value ? "min-h-9 rounded-lg px-3 text-xs font-semibold bg-[#2468D8] text-white" : "min-h-9 rounded-lg px-3 text-xs font-semibold border border-white/8 bg-[#0B0D12] text-[#9299A6] hover:text-white"}>{label}</button>
+            ))}
+          </div>
+          {activityLoading && marketActivity.length === 0 ? (
+            <p className="py-8 text-center text-xs text-[#9299A6]">{language === 'ar' ? 'جارٍ تحميل السجلات...' : 'Loading records...'}</p>
+          ) : marketActivity.filter((record) => activityFilter === 'all' || (activityFilter === 'sales' ? record.sellerUid === profile.uid : record.buyerUid === profile.uid)).length === 0 ? (
+            <div className="rounded-xl border border-white/8 bg-[#0B0D12] p-8 text-center text-xs text-[#9299A6]">{language === 'ar' ? 'لا توجد عمليات شراء أو بيع مكتملة بعد.' : 'No completed purchases or sales yet.'}</div>
+          ) : (
+            <div className="space-y-2">
+              {marketActivity.filter((record) => activityFilter === 'all' || (activityFilter === 'sales' ? record.sellerUid === profile.uid : record.buyerUid === profile.uid)).map((record) => {
+                const isSale = record.sellerUid === profile.uid;
+                const item = ITEM_MAP[record.itemId];
+                const otherParty = isSale ? record.buyerName : record.sellerName;
+                const total = isSale ? Math.max(0, record.totalPrice - record.taxAmount) : record.totalPrice;
+                const date = new Date(String(record.createdAt));
+                const dateLabel = Number.isNaN(date.getTime()) ? '—' : date.toLocaleString(language === 'ar' ? 'ar' : 'en', { dateStyle: 'medium', timeStyle: 'short' });
+                return (
+                  <article key={record.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-white/8 bg-[#0B0D12] p-3">
+                    <div className="flex min-w-0 items-center gap-3">
+                      <span className={isSale ? "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-300" : "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-sky-500/10 text-sky-300"}>
+                        {isSale ? <ArrowUpRight className="h-4 w-4" /> : <ArrowDownLeft className="h-4 w-4" />}
+                      </span>
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-semibold text-[#F4F5F7]">{item ? (language === 'ar' ? item.nameAr : item.nameEn) : record.itemId} · ×{record.quantity.toLocaleString()}</p>
+                        <p className="mt-0.5 text-[10px] text-[#9299A6]">{isSale ? (language === 'ar' ? 'بيع إلى' : 'Sold to') : (language === 'ar' ? 'شراء من' : 'Bought from')} {otherParty} · {dateLabel}</p>
+                      </div>
+                    </div>
+                    <div className="ms-auto text-end">
+                      <p className={isSale ? "font-mono-num text-sm font-bold text-emerald-300" : "font-mono-num text-sm font-bold text-[#F4F5F7]"}>{isSale ? '+' : '−'}{'      <ConfirmDialog
+        open={confirmTransferOpen}
+        title={t.confirmTitle}
+        description={
+          language === 'ar'
+            ? `سيتم خصم ${transferAmount.toLocaleString()} $ من رصيدك، ويصل إلى ${recipientName} مبلغ ${transferNetPreview.toLocaleString()} $ بعد رسوم 3% (${transferFeePreview.toLocaleString()} $). لا يمكن استرجاع التحويل.`
+            : `Send ${transferAmount.toLocaleString()} credits to ${recipientName}? A 3% fee (${transferFeePreview.toLocaleString()}) applies, so they receive ${transferNetPreview.toLocaleString()} credits.`
+        }
+        confirmLabel={t.confirmBtn}
+        cancelLabel={t.cancelBtn}
+        busy={busyKey === 'transfer'}
+        onConfirm={executeTransfer}
+        onCancel={() => setConfirmTransferOpen(false)}
+      />
+    </div>
+  );
+}
+}{total.toLocaleString()}</p>
+                      <p className="text-[10px] text-[#9299A6]">{record.unitPrice.toLocaleString()} {language === 'ar' ? 'للوحدة' : 'per unit'}</p>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          )}
+        </section>
       )}
 
       <ConfirmDialog
