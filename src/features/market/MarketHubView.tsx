@@ -97,8 +97,9 @@ export function MarketHubView({
         .finally(() => { if (active) setActivityLoading(false); });
     };
     refresh();
+    const timer = window.setInterval(refresh, 15_000);
     window.addEventListener('nova:refresh-game', refresh);
-    return () => { active = false; window.removeEventListener('nova:refresh-game', refresh); };
+    return () => { active = false; window.clearInterval(timer); window.removeEventListener('nova:refresh-game', refresh); };
   }, [subTab]);
 
   async function refreshListings() {
