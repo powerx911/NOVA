@@ -1,7 +1,7 @@
 -- Run with: supabase test db
 begin;
 create extension if not exists pgtap with schema extensions;
-select extensions.plan(12);
+select extensions.plan(14);
 
 select extensions.ok(
   exists(select 1 from information_schema.columns where table_schema='nexora' and table_name='notifications' and column_name='event_key'),
@@ -70,6 +70,20 @@ select extensions.ok(
   to_regprocedure('nexora.emit_notification_once(text,text,text,text,text,text,text)') is not null
   and position('event_key' in pg_get_functiondef('nexora.emit_notification_once(text,text,text,text,text,text,text)'::regprocedure)) > 0,
   'deduplicated notification creation stores the event key on the notification'
+);
+
+
+select extensions.ok(
+  position('contract-ready:' in pg_get_functiondef('nexora.claim_dynamic_contract(text,text)'::regprocedure)) > 0
+  and position('event_key=' in pg_get_functiondef('nexora.claim_dynamic_contract(text,text)'::regprocedure)) > 0,
+  'contract settlement creates and clears the same event-key notification'
+);
+
+select extensions.ok(
+  exists(select 1 from pg_trigger where tgrelid='nexora.player_missions'::regclass and tgname='nova_mark_mission_reward_notification_claimed' and not tgisinternal)
+  and exists(select 1 from pg_trigger where tgrelid='nexora.companies'::regclass and tgname='nova_mark_company_vault_notification_claimed' and not tgisinternal)
+  and exists(select 1 from pg_trigger where tgrelid='nexora.factories'::regclass and tgname='nova_mark_factory_warehouse_notification_claimed' and not tgisinternal),
+  'mission, company vault and factory warehouse alerts clear when their reward or capacity is handled'
 );
 
 select * from extensions.finish();
