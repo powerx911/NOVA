@@ -207,6 +207,10 @@ $function$;
 
 revoke all on function nexora.settle_finished_manufacturing_jobs() from public,anon,authenticated;
 grant execute on function nexora.settle_finished_manufacturing_jobs() to service_role;
+revoke all on function nexora.notify_full_company_vaults() from public,anon,authenticated;
+revoke all on function nexora.sync_all_factory_production() from public,anon,authenticated;
+grant execute on function nexora.notify_full_company_vaults() to service_role;
+grant execute on function nexora.sync_all_factory_production() to service_role;
 
 -- Notify when a mission first becomes claimable. The event key includes the mission period,
 -- so a daily/weekly/seasonal mission can notify again in its next period.
@@ -335,7 +339,7 @@ begin
   v_capacity:=v_caps[greatest(1,least(5,coalesce(new.vault_level,1)))];
   if coalesce(old.vault_balance,0)<v_capacity and coalesce(new.vault_balance,0)>=v_capacity then
     perform nexora.emit_notification_once(
-      new.owner_uid,'company-vault-full:'||new.id||':'||to_char(coalesce(new.updated_at,now()) at time zone 'UTC','YYYYMMDDHH24MISSMS'),
+      new.owner_uid,'company-vault-full:'||new.id||':'||coalesce(new.last_collected_at,new.created_at,now())::text,
       'خزنة الشركة ممتلئة','Company vault is full',
       'وصلت خزنة أرباح شركة «'||new.name||'» إلى سعتها القصوى. حصّل الإيرادات لتجنب ضياع الدخل القادم.',
       'The profit vault for "'||new.name||'" is full. Collect revenue so future income is not lost.','economy'
@@ -651,6 +655,74 @@ begin
 end;
 $do$;
 
+-- Company vaults accrue while the player is offline. Calculate the displayed capped
+-- balance without mutating revenue timestamps, and notify once per collection cycle.
+create or replace function nexora.notify_full_company_vaults()
+returns integer
+language plpgsql
+security definer
+set search_path = ''
+as $function$
+declare
+  v_company record;
+  v_caps bigint[]:=array[3500,7000,14000,25000,40000];
+  v_capacity bigint;
+  v_elapsed numeric;
+  v_hourly bigint;
+  v_balance bigint;
+  v_count integer:=0;
+begin
+  for v_company in
+    select id,owner_uid,name,vault_level,vault_balance,last_collected_at,created_at
+    from nexora.companies
+    where is_deleted=false
+    order by id
+  loop
+    v_capacity:=v_caps[greatest(1,least(5,coalesce(v_company.vault_level,1)))];
+    v_elapsed:=greatest(0,extract(epoch from (now()-coalesce(v_company.last_collected_at,v_company.created_at))));
+    v_hourly:=greatest(0,nexora.company_net_hourly(v_company.id));
+    v_balance:=least(v_capacity,coalesce(v_company.vault_balance,0)
+      + floor(v_hourly*v_elapsed/3600)::bigint);
+    if v_balance>=v_capacity then
+      perform nexora.emit_notification_once(
+        v_company.owner_uid,
+        'company-vault-full:'||v_company.id||':'||coalesce(v_company.last_collected_at,v_company.created_at,now())::text,
+        'خزنة الشركة ممتلئة','Company vault is full',
+        'وصلت خزنة أرباح شركة «'||v_company.name||'» إلى سعتها القصوى. حصّل الإيرادات لتجنب ضياع الدخل القادم.',
+        'The profit vault for "'||v_company.name||'" is full. Collect revenue so future income is not lost.','economy'
+      );
+      v_count:=v_count+1;
+    end if;
+  end loop;
+  return v_count;
+end;
+$function$;
+
+-- Keep factory production synchronized on the server even when no player has
+-- the factories screen open. The existing RPC locks each factory and wallet.
+create or replace function nexora.sync_all_factory_production()
+returns integer
+language plpgsql
+security definer
+set search_path = ''
+as $function$
+declare
+  v_factory record;
+  v_count integer:=0;
+begin
+  for v_factory in select id,owner_uid from nexora.factories order by id
+  loop
+    begin
+      perform nexora.sync_factory_production(v_factory.owner_uid,v_factory.id);
+      v_count:=v_count+1;
+    exception when others then
+      raise warning 'Could not synchronize factory %: %',v_factory.id,sqlerrm;
+    end;
+  end loop;
+  return v_count;
+end;
+$function$;
+
 -- Register the server-side manufacturing settlement worker (pg_cron is enabled
 -- on production; keep migration replay portable when the extension is absent).
 do $do$
@@ -660,6 +732,16 @@ begin
       'nova-manufacturing-auto-completion',
       '15 seconds',
       'select nexora.settle_finished_manufacturing_jobs();'
+    );
+    perform cron.schedule(
+      'nova-factory-auto-production',
+      '* * * * *',
+      'select nexora.sync_all_factory_production();'
+    );
+    perform cron.schedule(
+      'nova-company-vault-full-alerts',
+      '* * * * *',
+      'select nexora.notify_full_company_vaults();'
     );
   end if;
 end;
