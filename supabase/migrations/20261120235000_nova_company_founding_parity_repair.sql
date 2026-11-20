@@ -12,28 +12,43 @@ begin
 
   v_old := 'when ''trade'' then v_cost:=900; v_revenue:=140; v_expense:=35;';
   v_new := 'when ''trade'' then v_cost:=1200; v_revenue:=160; v_expense:=30;';
-  if position(v_old in v_definition)=0 then raise exception 'COMPANY_FOUNDING_TRADE_PATCH_NOT_MATCHED'; end if;
-  v_definition := replace(v_definition,v_old,v_new);
+  if position(v_old in v_definition)>0 then
+    v_definition := replace(v_definition,v_old,v_new);
+  elsif position(v_new in v_definition)=0 then
+    raise exception 'COMPANY_FOUNDING_TRADE_PATCH_NOT_MATCHED';
+  end if;
 
   v_old := 'when ''services'' then v_cost:=1100; v_revenue:=175; v_expense:=45;';
   v_new := 'when ''services'' then v_cost:=2200; v_revenue:=220; v_expense:=60;';
-  if position(v_old in v_definition)=0 then raise exception 'COMPANY_FOUNDING_SERVICES_PATCH_NOT_MATCHED'; end if;
-  v_definition := replace(v_definition,v_old,v_new);
+  if position(v_old in v_definition)>0 then
+    v_definition := replace(v_definition,v_old,v_new);
+  elsif position(v_new in v_definition)=0 then
+    raise exception 'COMPANY_FOUNDING_SERVICES_PATCH_NOT_MATCHED';
+  end if;
 
   v_old := 'when ''logistics'' then v_cost:=1400; v_revenue:=225; v_expense:=60;';
   v_new := 'when ''logistics'' then v_cost:=3800; v_revenue:=300; v_expense:=85;';
-  if position(v_old in v_definition)=0 then raise exception 'COMPANY_FOUNDING_LOGISTICS_PATCH_NOT_MATCHED'; end if;
-  v_definition := replace(v_definition,v_old,v_new);
+  if position(v_old in v_definition)>0 then
+    v_definition := replace(v_definition,v_old,v_new);
+  elsif position(v_new in v_definition)=0 then
+    raise exception 'COMPANY_FOUNDING_LOGISTICS_PATCH_NOT_MATCHED';
+  end if;
 
   v_old := 'when ''manufacturing'' then v_cost:=1800; v_revenue:=290; v_expense:=80;';
   v_new := 'when ''manufacturing'' then v_cost:=6000; v_revenue:=410; v_expense:=120;';
-  if position(v_old in v_definition)=0 then raise exception 'COMPANY_FOUNDING_MANUFACTURING_PATCH_NOT_MATCHED'; end if;
-  v_definition := replace(v_definition,v_old,v_new);
+  if position(v_old in v_definition)>0 then
+    v_definition := replace(v_definition,v_old,v_new);
+  elsif position(v_new in v_definition)=0 then
+    raise exception 'COMPANY_FOUNDING_MANUFACTURING_PATCH_NOT_MATCHED';
+  end if;
 
   v_old := 'when ''tech'' then v_cost:=2200; v_revenue:=365; v_expense:=95;';
   v_new := 'when ''tech'' then v_cost:=9000; v_revenue:=550; v_expense:=160;';
-  if position(v_old in v_definition)=0 then raise exception 'COMPANY_FOUNDING_TECH_PATCH_NOT_MATCHED'; end if;
-  v_definition := replace(v_definition,v_old,v_new);
+  if position(v_old in v_definition)>0 then
+    v_definition := replace(v_definition,v_old,v_new);
+  elsif position(v_new in v_definition)=0 then
+    raise exception 'COMPANY_FOUNDING_TECH_PATCH_NOT_MATCHED';
+  end if;
 
   if position('v_cost:=900;' in v_definition)>0
      or position('v_revenue:=365;' in v_definition)>0 then
