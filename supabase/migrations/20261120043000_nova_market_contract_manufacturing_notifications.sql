@@ -42,9 +42,11 @@ begin
   v_capacity := nexora.player_inventory_capacity(v_level);
   v_total := nexora.player_inventory_usage(new.user_id);
 
-  if v_total > v_capacity and (tg_op='INSERT' or new.quantity > old.quantity) then
-    raise exception 'INVENTORY_CAPACITY_EXCEEDED'
-      using detail = format('Inventory capacity is %s units including active market offers; attempted total is %s units.',v_capacity,v_total);
+  if v_total > v_capacity then
+    if tg_op='INSERT' or new.quantity > old.quantity then
+      raise exception 'INVENTORY_CAPACITY_EXCEEDED'
+        using detail = format('Inventory capacity is %s units including active market offers; attempted total is %s units.',v_capacity,v_total);
+    end if;
   end if;
   return null;
 end;
