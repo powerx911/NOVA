@@ -44,7 +44,7 @@ $function$;
 do $migration$
 declare
   v_definition text;
-  v_pattern text := 'v_rate := v_cfg[.]production_rate[[:space:]]*[*][[:space:]]*[(]1[[:space:]]*[+][[:space:]]*0[.]018[[:space:]]*[*][[:space:]]*greatest[(]0,[[:space:]]*v_factory[.]level[[:space:]]*-[[:space:]]*1[)][[:space:]]*[+][[:space:]]*0[.]00012[[:space:]]*[*][[:space:]]*power[(]greatest[(]0,[[:space:]]*v_factory[.]level[[:space:]]*-[[:space:]]*1[)]::numeric,[[:space:]]*2[)][)][[:space:]]*[*][[:space:]]*[(]1[[:space:]]*[+][[:space:]]*v_factory[.]skill_level[[:space:]]*[*][[:space:]]*0[.]01[)][[:space:]]*;';
+  v_pattern text := 'v_rate[[:space:]]*:=[[:space:]]*v_cfg[.]production_rate[[:space:]]*[*][[:space:]]*[(]1[[:space:]]*[+][[:space:]]*0[.]018[[:space:]]*[*][[:space:]]*greatest[(]0,[[:space:]]*v_factory[.]level[[:space:]]*-[[:space:]]*1[)][[:space:]]*[+][[:space:]]*0[.]00012[[:space:]]*[*][[:space:]]*power[(]greatest[(]0,[[:space:]]*v_factory[.]level[[:space:]]*-[[:space:]]*1[)]::numeric,[[:space:]]*2[)][)][[:space:]]*[*][[:space:]]*[(]1[[:space:]]*[+][[:space:]]*v_factory[.]skill_level[[:space:]]*[*][[:space:]]*0[.]01[)][[:space:]]*;';
 begin
   select pg_get_functiondef('nexora.sync_factory_production(text,text)'::regprocedure)
     into v_definition;
