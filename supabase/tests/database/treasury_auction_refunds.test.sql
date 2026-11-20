@@ -20,9 +20,9 @@ insert into nexora.company_auctions(
   starting_price,current_price,highest_bidder_uid,highest_bidder_name,ends_at,status,asset_type
 ) values
   ('pgtap-missing-company-auction',null,'Missing Company','tech',1,'pgtap-company-seller','Seller',
-   100,200,'pgtap-company-auction-bidder','Bidder',now()-interval '1 minute','active','company'),
+   100,200,'pgtap-company-auction-bidder','Bidder',now()-interval '1 minute','active','company',50),
   ('pgtap-missing-factory-auction',null,'Missing Factory','tech',1,'pgtap-factory-seller','Seller',
-   100,300,'pgtap-factory-auction-bidder','Bidder',now()-interval '1 minute','active','factory');
+   100,300,'pgtap-factory-auction-bidder','Bidder',now()-interval '1 minute','active','factory',50);
 
 insert into nexora.company_auction_escrows(auction_id,bidder_uid,amount,status)
 values
