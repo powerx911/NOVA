@@ -31,34 +31,34 @@ begin
       if tg_table_name = 'transactions'
          and (to_jsonb(new) - 'from_uid' - 'to_uid' - 'description')
              = (to_jsonb(old) - 'from_uid' - 'to_uid' - 'description')
-         and ((old.from_uid = v_uid and new.from_uid is null)
-              or (old.from_uid is distinct from v_uid and new.from_uid is not distinct from old.from_uid))
-         and ((old.to_uid = v_uid and new.to_uid is null)
-              or (old.to_uid is distinct from v_uid and new.to_uid is not distinct from old.to_uid))
-         and new.description = 'Historical transaction (anonymized)' then
+         and (((to_jsonb(old)->>'from_uid') = v_uid and (to_jsonb(new)->>'from_uid') is null)
+              or ((to_jsonb(old)->>'from_uid') is distinct from v_uid and (to_jsonb(new)->>'from_uid') is not distinct from (to_jsonb(old)->>'from_uid'))))
+         and (((to_jsonb(old)->>'to_uid') = v_uid and (to_jsonb(new)->>'to_uid') is null)
+              or ((to_jsonb(old)->>'to_uid') is distinct from v_uid and (to_jsonb(new)->>'to_uid') is not distinct from (to_jsonb(old)->>'to_uid'))))
+         and (to_jsonb(new)->>'description') = 'Historical transaction (anonymized)' then
         return new;
       end if;
 
       if tg_table_name = 'audit_logs'
-         and old.user_id = v_uid
-         and new.user_id is null
-         and new.details = jsonb_build_object('redacted', 'account_deleted')
+         and (to_jsonb(old)->>'user_id') = v_uid
+         and (to_jsonb(new)->>'user_id') is null
+         and (to_jsonb(new)->'details') = jsonb_build_object('redacted', 'account_deleted')
          and (to_jsonb(new) - 'user_id' - 'details') = (to_jsonb(old) - 'user_id' - 'details') then
         return new;
       end if;
 
       if tg_table_name = 'company_logs'
-         and old.owner_uid = v_uid
-         and new.owner_uid = v_pseudonym
+         and (to_jsonb(old)->>'owner_uid') = v_uid
+         and (to_jsonb(new)->>'owner_uid') = v_pseudonym
          and (to_jsonb(new) - 'owner_uid') = (to_jsonb(old) - 'owner_uid') then
         return new;
       end if;
 
       if tg_table_name = 'organization_transactions'
-         and old.user_id = v_uid
-         and new.user_id = v_pseudonym
-         and new.username = 'Deleted Player'
-         and new.note = 'Historical organization transaction (anonymized)'
+         and (to_jsonb(old)->>'user_id') = v_uid
+         and (to_jsonb(new)->>'user_id') = v_pseudonym
+         and (to_jsonb(new)->>'username') = 'Deleted Player'
+         and (to_jsonb(new)->>'note') = 'Historical organization transaction (anonymized)'
          and (to_jsonb(new) - 'user_id' - 'username' - 'note')
              = (to_jsonb(old) - 'user_id' - 'username' - 'note') then
         return new;
