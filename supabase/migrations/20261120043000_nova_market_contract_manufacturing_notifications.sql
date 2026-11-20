@@ -67,6 +67,9 @@ declare
   v_level integer;
   v_capacity bigint;
   v_total bigint;
+  v_previous_total bigint;
+  v_new_contribution bigint;
+  v_old_contribution bigint;
 begin
   if new.seller_uid='SYSTEM' or new.status <> 'active' or new.remaining_qty <= 0 then return null; end if;
   perform pg_advisory_xact_lock(hashtextextended(new.seller_uid,0));
@@ -75,8 +78,18 @@ begin
   v_capacity:=nexora.player_inventory_capacity(v_level);
   v_total:=nexora.player_inventory_usage(new.seller_uid);
   if v_total>v_capacity then
-    raise exception 'INVENTORY_CAPACITY_EXCEEDED'
-      using detail=format('Inventory capacity is %s units including active market offers; attempted total is %s units.',v_capacity,v_total);
+    if tg_op='INSERT' then
+      raise exception 'INVENTORY_CAPACITY_EXCEEDED'
+        using detail=format('Inventory capacity is %s units including active market offers; attempted total is %s units.',v_capacity,v_total);
+    else
+      v_new_contribution:=case when new.status='active' then greatest(0,new.remaining_qty) else 0 end;
+      v_old_contribution:=case when old.status='active' then greatest(0,old.remaining_qty) else 0 end;
+      v_previous_total:=v_total-v_new_contribution+v_old_contribution;
+      if v_total>v_previous_total then
+        raise exception 'INVENTORY_CAPACITY_EXCEEDED'
+          using detail=format('Inventory capacity is %s units including active market offers; attempted total is %s units.',v_capacity,v_total);
+      end if;
+    end if;
   end if;
   return null;
 end;
