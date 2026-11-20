@@ -52,6 +52,7 @@ import type {
   CompanyLog,
   CompanySector,
   InventoryItem,
+  MarketListing,
   Language,
   PlayerProfile,
   Wallet,
@@ -65,6 +66,7 @@ interface BusinessHubViewProps {
   factories: Factory[];
   companyLogs: CompanyLog[];
   inventory: InventoryItem[];
+  marketListings: MarketListing[];
   worldEvents: WorldEvent[];
   language: Language;
   onGoToMarket: () => void;
@@ -78,6 +80,7 @@ export function BusinessHubView({
   factories,
   companyLogs,
   inventory,
+  marketListings,
   worldEvents,
   language,
   onGoToMarket,
@@ -692,6 +695,8 @@ export function BusinessHubView({
       {subTab === 'inventory' && (
         <InventoryPanel
           inventory={inventory}
+          marketListings={marketListings}
+          uid={profile.uid}
           language={language}
           title={t.subInventory}
           marketLabel={t.navMarket}
