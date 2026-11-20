@@ -3,7 +3,7 @@
 create extension if not exists pgtap with schema extensions;
 
 begin;
-select extensions.plan(30);
+select extensions.plan(31);
 
 select extensions.ok(
   not exists (select 1 from nexora.wallets where balance < 0),
