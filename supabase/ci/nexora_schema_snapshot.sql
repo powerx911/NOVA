@@ -1,15 +1,25 @@
--- CI-ONLY, DATA-FREE snapshot generated from the live NOVA production catalog on 2026-11-20.\n-- Never apply this file to production. It is an isolated-test baseline only.\nSET check_function_bodies = off;\nCREATE SCHEMA IF NOT EXISTS nexora;\n\nCREATE TABLE nexora.audit_logs (\n  id text NOT NULL,
+-- CI-ONLY, DATA-FREE snapshot generated from the live NOVA production catalog on 2026-11-20.
+-- Never apply this file to production. It is an isolated-test baseline only.
+SET check_function_bodies = off;
+CREATE SCHEMA IF NOT EXISTS nexora;
+
+CREATE TABLE nexora.audit_logs (
+  id text NOT NULL,
   user_id text,
   action text NOT NULL,
   entity_type text DEFAULT ''::text NOT NULL,
   entity_id text DEFAULT ''::text NOT NULL,
   details jsonb DEFAULT '{}'::jsonb NOT NULL,
-  created_at timestamp with time zone DEFAULT now() NOT NULL\n);
+  created_at timestamp with time zone DEFAULT now() NOT NULL
+);
 
-CREATE TABLE nexora.chat_rate_limits (\n  id text NOT NULL,
-  last_sent_at timestamp with time zone\n);
+CREATE TABLE nexora.chat_rate_limits (
+  id text NOT NULL,
+  last_sent_at timestamp with time zone
+);
 
-CREATE TABLE nexora.companies (\n  id text NOT NULL,
+CREATE TABLE nexora.companies (
+  id text NOT NULL,
   owner_uid text NOT NULL,
   owner_name text NOT NULL,
   name text NOT NULL,
@@ -36,22 +46,28 @@ CREATE TABLE nexora.companies (\n  id text NOT NULL,
   created_at timestamp with time zone DEFAULT now() NOT NULL,
   updated_at timestamp with time zone DEFAULT now() NOT NULL,
   is_deleted boolean DEFAULT false NOT NULL,
-  deleted_at timestamp with time zone\n);
+  deleted_at timestamp with time zone
+);
 
-CREATE TABLE nexora.company_auction_bids (\n  id text NOT NULL,
+CREATE TABLE nexora.company_auction_bids (
+  id text NOT NULL,
   auction_id text NOT NULL,
   bidder_uid text NOT NULL,
   bidder_name text NOT NULL,
   amount bigint NOT NULL,
-  created_at timestamp with time zone DEFAULT now() NOT NULL\n);
+  created_at timestamp with time zone DEFAULT now() NOT NULL
+);
 
-CREATE TABLE nexora.company_auction_escrows (\n  auction_id text NOT NULL,
+CREATE TABLE nexora.company_auction_escrows (
+  auction_id text NOT NULL,
   bidder_uid text NOT NULL,
   amount bigint NOT NULL,
   status text DEFAULT 'reserved'::text NOT NULL,
-  updated_at timestamp with time zone DEFAULT now() NOT NULL\n);
+  updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
 
-CREATE TABLE nexora.company_auctions (\n  id text NOT NULL,
+CREATE TABLE nexora.company_auctions (
+  id text NOT NULL,
   company_id text,
   company_name text NOT NULL,
   company_sector text NOT NULL,
@@ -70,33 +86,43 @@ CREATE TABLE nexora.company_auctions (\n  id text NOT NULL,
   created_at timestamp with time zone DEFAULT now() NOT NULL,
   updated_at timestamp with time zone DEFAULT now() NOT NULL,
   asset_type text DEFAULT 'company'::text NOT NULL,
-  factory_id text\n);
+  factory_id text
+);
 
-CREATE TABLE nexora.company_logs (\n  id text NOT NULL,
+CREATE TABLE nexora.company_logs (
+  id text NOT NULL,
   company_id text NOT NULL,
   owner_uid text NOT NULL,
   action text NOT NULL,
   amount bigint DEFAULT 0 NOT NULL,
   details text DEFAULT ''::text NOT NULL,
-  created_at timestamp with time zone DEFAULT now() NOT NULL\n);
+  created_at timestamp with time zone DEFAULT now() NOT NULL
+);
 
-CREATE TABLE nexora.contract_claims (\n  user_id text NOT NULL,
+CREATE TABLE nexora.contract_claims (
+  user_id text NOT NULL,
   contract_id text NOT NULL,
   amount bigint NOT NULL,
-  claimed_at timestamp with time zone DEFAULT now() NOT NULL\n);
+  claimed_at timestamp with time zone DEFAULT now() NOT NULL
+);
 
-CREATE TABLE nexora.contract_config (\n  config_key text NOT NULL,
+CREATE TABLE nexora.contract_config (
+  config_key text NOT NULL,
   config_value jsonb NOT NULL,
-  updated_at timestamp with time zone DEFAULT now() NOT NULL\n);
+  updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
 
-CREATE TABLE nexora.contract_daily_limits (\n  user_id text NOT NULL,
+CREATE TABLE nexora.contract_daily_limits (
+  user_id text NOT NULL,
   date_key date NOT NULL,
   used_count integer DEFAULT 0 NOT NULL,
   updated_at timestamp with time zone DEFAULT now() NOT NULL,
   personal_used_count integer DEFAULT 0 NOT NULL,
-  org_used_count integer DEFAULT 0 NOT NULL\n);
+  org_used_count integer DEFAULT 0 NOT NULL
+);
 
-CREATE TABLE nexora.contract_offers (\n  id text NOT NULL,
+CREATE TABLE nexora.contract_offers (
+  id text NOT NULL,
   scope text NOT NULL,
   user_id text,
   org_id text,
@@ -126,29 +152,37 @@ CREATE TABLE nexora.contract_offers (\n  id text NOT NULL,
   claimed_by text,
   fee_paid bigint DEFAULT 0 NOT NULL,
   created_at timestamp with time zone DEFAULT now() NOT NULL,
-  updated_at timestamp with time zone DEFAULT now() NOT NULL\n);
+  updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
 
-CREATE TABLE nexora.contract_slot_cooldowns (\n  scope text NOT NULL,
+CREATE TABLE nexora.contract_slot_cooldowns (
+  scope text NOT NULL,
   owner_id text NOT NULL,
   slot_no integer NOT NULL,
   board_date date NOT NULL,
   cooldown_until timestamp with time zone NOT NULL,
-  updated_at timestamp with time zone DEFAULT now() NOT NULL\n);
+  updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
 
-CREATE TABLE nexora.contract_slot_refresh_usage (\n  scope text NOT NULL,
+CREATE TABLE nexora.contract_slot_refresh_usage (
+  scope text NOT NULL,
   owner_id text NOT NULL,
   date_key date NOT NULL,
   used_count integer DEFAULT 0 NOT NULL,
-  updated_at timestamp with time zone DEFAULT now() NOT NULL\n);
+  updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
 
-CREATE TABLE nexora.conversation_messages (\n  id text NOT NULL,
+CREATE TABLE nexora.conversation_messages (
+  id text NOT NULL,
   conversation_id text NOT NULL,
   sender_uid text NOT NULL,
   sender_name text NOT NULL,
   message_text text NOT NULL,
-  created_at timestamp with time zone DEFAULT now() NOT NULL\n);
+  created_at timestamp with time zone DEFAULT now() NOT NULL
+);
 
-CREATE TABLE nexora.conversations (\n  id text NOT NULL,
+CREATE TABLE nexora.conversations (
+  id text NOT NULL,
   participants text[] NOT NULL,
   participant_names jsonb DEFAULT '{}'::jsonb NOT NULL,
   participant_avatars jsonb DEFAULT '{}'::jsonb NOT NULL,
@@ -156,18 +190,24 @@ CREATE TABLE nexora.conversations (\n  id text NOT NULL,
   last_message_at timestamp with time zone DEFAULT now() NOT NULL,
   last_sender_uid text DEFAULT ''::text NOT NULL,
   created_at timestamp with time zone DEFAULT now() NOT NULL,
-  updated_at timestamp with time zone DEFAULT now() NOT NULL\n);
+  updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
 
-CREATE TABLE nexora.daily_claims (\n  user_id text NOT NULL,
+CREATE TABLE nexora.daily_claims (
+  user_id text NOT NULL,
   date_key text NOT NULL,
   amount bigint NOT NULL,
-  claimed_at timestamp with time zone DEFAULT now() NOT NULL\n);
+  claimed_at timestamp with time zone DEFAULT now() NOT NULL
+);
 
-CREATE TABLE nexora.diagnostics_admins (\n  user_id text NOT NULL,
+CREATE TABLE nexora.diagnostics_admins (
+  user_id text NOT NULL,
   role text DEFAULT 'owner'::text NOT NULL,
-  created_at timestamp with time zone DEFAULT now() NOT NULL\n);
+  created_at timestamp with time zone DEFAULT now() NOT NULL
+);
 
-CREATE TABLE nexora.factories (\n  id text NOT NULL,
+CREATE TABLE nexora.factories (
+  id text NOT NULL,
   owner_uid text NOT NULL,
   owner_name text NOT NULL,
   name text NOT NULL,
@@ -192,22 +232,28 @@ CREATE TABLE nexora.factories (\n  id text NOT NULL,
   warehouse_upgrade_cost bigint,
   auction_id text,
   auction_ends_at timestamp with time zone,
-  auction_status text\n);
+  auction_status text
+);
 
-CREATE TABLE nexora.global_chat_messages (\n  id text NOT NULL,
+CREATE TABLE nexora.global_chat_messages (
+  id text NOT NULL,
   sender_uid text NOT NULL,
   sender_name text NOT NULL,
   avatar_id text DEFAULT 'strategist'::text NOT NULL,
   message_text text NOT NULL,
-  created_at timestamp with time zone DEFAULT now() NOT NULL\n);
+  created_at timestamp with time zone DEFAULT now() NOT NULL
+);
 
-CREATE TABLE nexora.inventory (\n  user_id text NOT NULL,
+CREATE TABLE nexora.inventory (
+  user_id text NOT NULL,
   item_id text NOT NULL,
   quantity bigint DEFAULT 0 NOT NULL,
   last_listing_id text,
-  updated_at timestamp with time zone DEFAULT now() NOT NULL\n);
+  updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
 
-CREATE TABLE nexora.manufacturing_jobs (\n  id text NOT NULL,
+CREATE TABLE nexora.manufacturing_jobs (
+  id text NOT NULL,
   user_id text NOT NULL,
   recipe_id text NOT NULL,
   output_item_id text NOT NULL,
@@ -220,9 +266,11 @@ CREATE TABLE nexora.manufacturing_jobs (\n  id text NOT NULL,
   created_at timestamp with time zone DEFAULT now() NOT NULL,
   input_snapshot jsonb DEFAULT '[]'::jsonb NOT NULL,
   batch_count integer DEFAULT 1 NOT NULL,
-  cancelled_at timestamp with time zone\n);
+  cancelled_at timestamp with time zone
+);
 
-CREATE TABLE nexora.market_listings (\n  id text NOT NULL,
+CREATE TABLE nexora.market_listings (
+  id text NOT NULL,
   seller_uid text NOT NULL,
   seller_name text NOT NULL,
   item_id text NOT NULL,
@@ -231,9 +279,11 @@ CREATE TABLE nexora.market_listings (\n  id text NOT NULL,
   unit_price bigint NOT NULL,
   status text DEFAULT 'active'::text NOT NULL,
   created_at timestamp with time zone DEFAULT now() NOT NULL,
-  updated_at timestamp with time zone DEFAULT now() NOT NULL\n);
+  updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
 
-CREATE TABLE nexora.market_orders (\n  id text NOT NULL,
+CREATE TABLE nexora.market_orders (
+  id text NOT NULL,
   listing_id text NOT NULL,
   buyer_uid text NOT NULL,
   seller_uid text NOT NULL,
@@ -243,32 +293,42 @@ CREATE TABLE nexora.market_orders (\n  id text NOT NULL,
   total_price bigint NOT NULL,
   tax_amount bigint DEFAULT 0 NOT NULL,
   tx_id text,
-  created_at timestamp with time zone DEFAULT now() NOT NULL\n);
+  created_at timestamp with time zone DEFAULT now() NOT NULL
+);
 
-CREATE TABLE nexora.market_system_restock_runs (\n  restock_date date NOT NULL,
-  created_at timestamp with time zone DEFAULT now() NOT NULL\n);
+CREATE TABLE nexora.market_system_restock_runs (
+  restock_date date NOT NULL,
+  created_at timestamp with time zone DEFAULT now() NOT NULL
+);
 
-CREATE TABLE nexora.notification_events (\n  user_id text NOT NULL,
+CREATE TABLE nexora.notification_events (
+  user_id text NOT NULL,
   event_key text NOT NULL,
-  created_at timestamp with time zone DEFAULT now() NOT NULL\n);
+  created_at timestamp with time zone DEFAULT now() NOT NULL
+);
 
-CREATE TABLE nexora.notifications (\n  id text NOT NULL,
+CREATE TABLE nexora.notifications (
+  id text NOT NULL,
   user_id text NOT NULL,
   title text NOT NULL,
   body text DEFAULT ''::text NOT NULL,
   type text NOT NULL,
   is_read boolean DEFAULT false NOT NULL,
   created_at timestamp with time zone DEFAULT now() NOT NULL,
-  event_key text\n);
+  event_key text
+);
 
-CREATE TABLE nexora.org_goal_contributions (\n  id text NOT NULL,
+CREATE TABLE nexora.org_goal_contributions (
+  id text NOT NULL,
   goal_id text NOT NULL,
   org_id text NOT NULL,
   user_id text NOT NULL,
   amount numeric(18,2) DEFAULT 0 NOT NULL,
-  updated_at timestamp with time zone DEFAULT now() NOT NULL\n);
+  updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
 
-CREATE TABLE nexora.org_weekly_goals (\n  id text NOT NULL,
+CREATE TABLE nexora.org_weekly_goals (
+  id text NOT NULL,
   org_id text NOT NULL,
   week_start date NOT NULL,
   goal_type text NOT NULL,
@@ -278,16 +338,20 @@ CREATE TABLE nexora.org_weekly_goals (\n  id text NOT NULL,
   reward_reputation bigint NOT NULL,
   status text DEFAULT 'active'::text NOT NULL,
   completed_at timestamp with time zone,
-  created_at timestamp with time zone DEFAULT now() NOT NULL\n);
+  created_at timestamp with time zone DEFAULT now() NOT NULL
+);
 
-CREATE TABLE nexora.organization_chat_messages (\n  id text NOT NULL,
+CREATE TABLE nexora.organization_chat_messages (
+  id text NOT NULL,
   org_id text NOT NULL,
   sender_uid text NOT NULL,
   sender_name text NOT NULL,
   message_text text NOT NULL,
-  created_at timestamp with time zone DEFAULT now() NOT NULL\n);
+  created_at timestamp with time zone DEFAULT now() NOT NULL
+);
 
-CREATE TABLE nexora.organization_invites (\n  id text NOT NULL,
+CREATE TABLE nexora.organization_invites (
+  id text NOT NULL,
   org_id text NOT NULL,
   org_name text NOT NULL,
   org_tag text NOT NULL,
@@ -296,33 +360,41 @@ CREATE TABLE nexora.organization_invites (\n  id text NOT NULL,
   inviter_name text NOT NULL,
   status text NOT NULL,
   created_at timestamp with time zone DEFAULT now() NOT NULL,
-  responded_at timestamp with time zone\n);
+  responded_at timestamp with time zone
+);
 
-CREATE TABLE nexora.organization_members (\n  org_id text NOT NULL,
+CREATE TABLE nexora.organization_members (
+  org_id text NOT NULL,
   user_id text NOT NULL,
   username text NOT NULL,
   role text NOT NULL,
   permissions jsonb DEFAULT '[]'::jsonb NOT NULL,
-  joined_at timestamp with time zone DEFAULT now() NOT NULL\n);
+  joined_at timestamp with time zone DEFAULT now() NOT NULL
+);
 
-CREATE TABLE nexora.organization_requests (\n  id text NOT NULL,
+CREATE TABLE nexora.organization_requests (
+  id text NOT NULL,
   org_id text NOT NULL,
   user_id text NOT NULL,
   username text NOT NULL,
   status text DEFAULT 'pending'::text NOT NULL,
   created_at timestamp with time zone DEFAULT now() NOT NULL,
-  updated_at timestamp with time zone DEFAULT now() NOT NULL\n);
+  updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
 
-CREATE TABLE nexora.organization_transactions (\n  id text NOT NULL,
+CREATE TABLE nexora.organization_transactions (
+  id text NOT NULL,
   org_id text NOT NULL,
   user_id text NOT NULL,
   username text NOT NULL,
   type text NOT NULL,
   amount bigint NOT NULL,
   note text DEFAULT ''::text NOT NULL,
-  created_at timestamp with time zone DEFAULT now() NOT NULL\n);
+  created_at timestamp with time zone DEFAULT now() NOT NULL
+);
 
-CREATE TABLE nexora.organizations (\n  id text NOT NULL,
+CREATE TABLE nexora.organizations (
+  id text NOT NULL,
   name text NOT NULL,
   tag text NOT NULL,
   description text DEFAULT ''::text NOT NULL,
@@ -339,33 +411,43 @@ CREATE TABLE nexora.organizations (\n  id text NOT NULL,
   upgrade_ends_at timestamp with time zone,
   upgrade_target_level integer,
   created_at timestamp with time zone DEFAULT now() NOT NULL,
-  updated_at timestamp with time zone DEFAULT now() NOT NULL\n);
+  updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
 
-CREATE TABLE nexora.player_achievements (\n  user_id text NOT NULL,
+CREATE TABLE nexora.player_achievements (
+  user_id text NOT NULL,
   achievement_id text NOT NULL,
   unlocked_at timestamp with time zone DEFAULT now() NOT NULL,
-  claimed_at timestamp with time zone\n);
+  claimed_at timestamp with time zone
+);
 
-CREATE TABLE nexora.player_missions (\n  user_id text NOT NULL,
+CREATE TABLE nexora.player_missions (
+  user_id text NOT NULL,
   mission_id text NOT NULL,
   category text NOT NULL,
   reward_credits bigint DEFAULT 0 NOT NULL,
   reward_xp bigint DEFAULT 0 NOT NULL,
   claimed_at timestamp with time zone DEFAULT now() NOT NULL,
-  period_key text DEFAULT 'lifetime'::text NOT NULL\n);
+  period_key text DEFAULT 'lifetime'::text NOT NULL
+);
 
-CREATE TABLE nexora.player_presence (\n  user_id text NOT NULL,
+CREATE TABLE nexora.player_presence (
+  user_id text NOT NULL,
   online_since timestamp with time zone DEFAULT now() NOT NULL,
-  last_seen_at timestamp with time zone DEFAULT now() NOT NULL\n);
+  last_seen_at timestamp with time zone DEFAULT now() NOT NULL
+);
 
-CREATE TABLE nexora.player_private (\n  user_id text NOT NULL,
+CREATE TABLE nexora.player_private (
+  user_id text NOT NULL,
   email text DEFAULT ''::text NOT NULL,
   language text DEFAULT 'ar'::text NOT NULL,
   notifications_enabled boolean DEFAULT true NOT NULL,
   created_at timestamp with time zone DEFAULT now() NOT NULL,
-  updated_at timestamp with time zone DEFAULT now() NOT NULL\n);
+  updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
 
-CREATE TABLE nexora.player_profiles (\n  user_id text NOT NULL,
+CREATE TABLE nexora.player_profiles (
+  user_id text NOT NULL,
   username text NOT NULL,
   username_lower text NOT NULL,
   avatar_id text DEFAULT 'strategist'::text NOT NULL,
@@ -379,16 +461,20 @@ CREATE TABLE nexora.player_profiles (\n  user_id text NOT NULL,
   stats jsonb DEFAULT '{}'::jsonb NOT NULL,
   org_id text,
   created_at timestamp with time zone DEFAULT now() NOT NULL,
-  updated_at timestamp with time zone DEFAULT now() NOT NULL\n);
+  updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
 
-CREATE TABLE nexora.player_reports (\n  id text NOT NULL,
+CREATE TABLE nexora.player_reports (
+  id text NOT NULL,
   reporter_uid text NOT NULL,
   target_uid text NOT NULL,
   reason text NOT NULL,
   status text DEFAULT 'open'::text NOT NULL,
-  created_at timestamp with time zone DEFAULT now() NOT NULL\n);
+  created_at timestamp with time zone DEFAULT now() NOT NULL
+);
 
-CREATE TABLE nexora.transactions (\n  id text NOT NULL,
+CREATE TABLE nexora.transactions (
+  id text NOT NULL,
   from_uid text,
   to_uid text,
   amount bigint NOT NULL,
@@ -398,27 +484,35 @@ CREATE TABLE nexora.transactions (\n  id text NOT NULL,
   reference_id text DEFAULT ''::text NOT NULL,
   description text DEFAULT ''::text NOT NULL,
   status text DEFAULT 'completed'::text NOT NULL,
-  created_at timestamp with time zone DEFAULT now() NOT NULL\n);
+  created_at timestamp with time zone DEFAULT now() NOT NULL
+);
 
-CREATE TABLE nexora.user_blocks (\n  id text NOT NULL,
+CREATE TABLE nexora.user_blocks (
+  id text NOT NULL,
   owner_uid text NOT NULL,
   target_uid text NOT NULL,
-  created_at timestamp with time zone DEFAULT now() NOT NULL\n);
+  created_at timestamp with time zone DEFAULT now() NOT NULL
+);
 
-CREATE TABLE nexora.usernames (\n  username_lower text NOT NULL,
+CREATE TABLE nexora.usernames (
+  username_lower text NOT NULL,
   uid text NOT NULL,
   username text NOT NULL,
-  created_at timestamp with time zone DEFAULT now() NOT NULL\n);
+  created_at timestamp with time zone DEFAULT now() NOT NULL
+);
 
-CREATE TABLE nexora.wallets (\n  user_id text NOT NULL,
+CREATE TABLE nexora.wallets (
+  user_id text NOT NULL,
   balance bigint DEFAULT 2500 NOT NULL,
   total_earned bigint DEFAULT 0 NOT NULL,
   total_spent bigint DEFAULT 0 NOT NULL,
   last_tx_id text,
   created_at timestamp with time zone DEFAULT now() NOT NULL,
-  updated_at timestamp with time zone DEFAULT now() NOT NULL\n);
+  updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
 
-CREATE TABLE nexora.world_events (\n  id text NOT NULL,
+CREATE TABLE nexora.world_events (
+  id text NOT NULL,
   title_ar text NOT NULL,
   title_en text NOT NULL,
   description_ar text NOT NULL,
@@ -433,7 +527,8 @@ CREATE TABLE nexora.world_events (\n  id text NOT NULL,
   starts_at timestamp with time zone,
   ends_at timestamp with time zone,
   active boolean DEFAULT false NOT NULL,
-  created_at timestamp with time zone DEFAULT now() NOT NULL\n);
+  created_at timestamp with time zone DEFAULT now() NOT NULL
+);
 
 ALTER TABLE nexora.audit_logs ADD CONSTRAINT audit_logs_pkey PRIMARY KEY (id);
 
