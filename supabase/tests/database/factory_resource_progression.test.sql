@@ -1,7 +1,7 @@
 -- Run with: supabase test db
 begin;
 create extension if not exists pgtap with schema extensions;
-select extensions.plan(5);
+select extensions.plan(6);
 
 select extensions.is(
   nexora.factory_progression_multiplier('copper_wire', 1),
@@ -59,6 +59,19 @@ select extensions.ok(
      ('biotech_gel'), ('quantum_dust')
    ) as resources(resource_id)),
   'every resource continues to gain production through level 100'
+);
+
+select extensions.ok(
+  (select bool_and(position(quote_literal(resource_id) in pg_get_constraintdef(oid)) > 0)
+   from pg_constraint
+   cross join (values
+     ('copper_wire'), ('silicon_ore'), ('energy_cells'), ('crude_alloy'),
+     ('carbon_fiber'), ('rare_minerals'), ('titanium_ore'), ('polymer_resin'),
+     ('biotech_gel'), ('quantum_dust')
+   ) as resources(resource_id)
+   where conrelid = 'nexora.factories'::regclass
+     and conname = 'factories_resource_id_check'),
+  'factory founding accepts all ten resources exposed by the factory catalog'
 );
 
 select * from extensions.finish();
