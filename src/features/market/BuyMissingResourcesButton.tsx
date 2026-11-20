@@ -75,7 +75,7 @@ export function BuyMissingResourcesButton({ uid, requirements, inventory, wallet
         setQuoteChanged(true);
         showToast(isAr
           ? 'تغيرت الأسعار أو الكميات. راجع الملخص الجديد ثم أكد الشراء مرة أخرى.'
-          : 'Prices or quantities changed. Review the updated quote and confirm again.', 'warning');
+          : 'Prices or quantities changed. Review the updated quote and confirm again.', 'info');
         return;
       }
       await buyMissingResources(plan.map(({ listingId, itemId, quantity, expectedUnitPrice }) => ({ listingId, itemId, quantity, expectedUnitPrice })));
@@ -91,7 +91,7 @@ export function BuyMissingResourcesButton({ uid, requirements, inventory, wallet
         } catch { setPlan([]); }
         showToast(isAr
           ? 'تغير أحد عروض السوق أثناء التأكيد. تم تحديث الملخص؛ راجعه وأكد من جديد.'
-          : 'A market offer changed during confirmation. The quote was refreshed; review and confirm again.', 'warning');
+          : 'A market offer changed during confirmation. The quote was refreshed; review and confirm again.', 'info');
       } else {
         showToast(code === 'INSUFFICIENT_FUNDS'
           ? (isAr ? 'رصيدك لا يكفي لإتمام الشراء مع ضريبة السوق.' : 'Your balance is not enough for the purchase and market tax.')
