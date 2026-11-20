@@ -112,7 +112,7 @@ begin
     loop
       select quantity into v_owned from nexora.inventory where user_id=p_uid and item_id=v_requirement.item_id for update;
       if not found then v_owned:=0; end if;
-      select coalesce(sum(x.quantity),0)::integer into v_planned
+      select coalesce(sum(x.quantity),0)::bigint into v_planned
       from jsonb_to_recordset(p_items) as x(listing_id text, quantity integer, expected_unit_price bigint)
       join nexora.market_listings l on l.id=x.listing_id where l.item_id=v_requirement.item_id;
       if v_owned + v_planned <> v_requirement.required_quantity then raise exception 'INVENTORY_REQUIREMENT_CHANGED'; end if;
