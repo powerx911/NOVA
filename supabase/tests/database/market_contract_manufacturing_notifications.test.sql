@@ -1,7 +1,7 @@
 -- Run with: supabase test db
 begin;
 create extension if not exists pgtap with schema extensions;
-select extensions.plan(14);
+select extensions.plan(15);
 
 select extensions.ok(
   to_regprocedure('nexora.player_inventory_usage(text)') is not null,
@@ -78,6 +78,13 @@ select extensions.ok(
 select extensions.ok(
   position('nexora.market_listing_transfer' in pg_get_functiondef('nexora.create_market_listing(text,text,integer,bigint)'::regprocedure)) > 0,
   'listing creation is treated as an inventory-to-market escrow transfer, not extra capacity use'
+);
+
+select extensions.ok(
+  has_function_privilege('service_role','nexora.notify_ready_missions(text)','EXECUTE')
+  and has_function_privilege('service_role','nexora.notify_ready_contracts(text)','EXECUTE')
+  and has_function_privilege('service_role','nexora.settle_dynamic_contracts(text)','EXECUTE'),
+  'bootstrap service-role RPCs can emit and settle claimable rewards'
 );
 
 select * from extensions.finish();
