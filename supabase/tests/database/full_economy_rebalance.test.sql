@@ -40,13 +40,14 @@ select extensions.ok(
 );
 
 select extensions.ok(
-  position('company_level_multiplier' in lower(pg_get_functiondef('nexora.company_net_hourly(text)'::regprocedure))) > 0,
-  'company income uses the smooth level multiplier'
+  position('company_sector_level_gain' in lower(pg_get_functiondef('nexora.company_net_hourly(text)'::regprocedure))) > 0
+  and position('0.08' in lower(pg_get_functiondef('nexora.company_net_hourly(text)'::regprocedure))) > 0,
+  'company income uses the shared sector gain and controlled expense curve'
 );
 
 select extensions.ok(
-  position('nexora.company_upgrade_duration_seconds' in lower(pg_get_functiondef('nexora.start_company_upgrade(text,text)'::regprocedure))) > 0,
-  'company upgrade RPC uses the shared duration curve'
+  position('power(v_target::numeric, 1.1)' in lower(pg_get_functiondef('nexora.start_company_upgrade(text,text)'::regprocedure))) > 0,
+  'company upgrade RPC uses the v2 duration curve'
 );
 
 select * from extensions.finish();
