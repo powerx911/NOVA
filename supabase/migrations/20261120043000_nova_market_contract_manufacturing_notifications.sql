@@ -71,7 +71,8 @@ declare
   v_new_contribution bigint;
   v_old_contribution bigint;
 begin
-  if new.seller_uid='SYSTEM' or new.status <> 'active' or new.remaining_qty <= 0 then return null; end if;
+  if new.seller_uid='SYSTEM' or current_setting('nexora.market_listing_transfer',true)='true'
+    or new.status <> 'active' or new.remaining_qty <= 0 then return null; end if;
   perform pg_advisory_xact_lock(hashtextextended(new.seller_uid,0));
   select level into v_level from nexora.player_profiles where user_id=new.seller_uid;
   if not found then raise exception 'ACCOUNT_NOT_FOUND'; end if;
@@ -149,6 +150,39 @@ $function$;
 revoke all on function nexora.emit_notification_once(text,text,text,text,text,text,text) from public,anon,authenticated;
 grant execute on function nexora.emit_notification_once(text,text,text,text,text,text,text) to service_role;
 
+
+-- Creating a listing is an escrow transfer, not additional storage. The RPC
+-- debits inventory first, then marks the insert as that same transfer so legacy
+-- over-capacity players can list stock and sell down without creating more units.
+do $do$
+declare
+  v_def text;
+begin
+  select pg_get_functiondef('nexora.create_market_listing(text,text,integer,bigint)'::regprocedure) into v_def;
+  v_def:=replace(v_def,
+    'v_id text := ''lst_'' || gen_random_uuid()::text;',
+    'v_id text := ''lst_'' || gen_random_uuid()::text; v_previous_transfer_setting text;');
+  v_def:=replace(v_def,
+    '  update nexora.inventory set quantity=quantity-p_qty,updated_at=now() where user_id=p_uid and item_id=p_item_id;' || chr(10) ||
+    '  insert into nexora.market_listings',
+    '  update nexora.inventory set quantity=quantity-p_qty,updated_at=now() where user_id=p_uid and item_id=p_item_id;' || chr(10) ||
+    '  v_previous_transfer_setting:=coalesce(current_setting(''nexora.market_listing_transfer'',true),''false'');' || chr(10) ||
+    '  perform set_config(''nexora.market_listing_transfer'',''true'',true);' || chr(10) ||
+    '  insert into nexora.market_listings');
+  v_def:=replace(v_def,
+    '  values(v_id,p_uid,v_username,p_item_id,p_qty,p_qty,p_unit_price,''active'');' || chr(10) ||
+    '  return jsonb_build_object',
+    '  values(v_id,p_uid,v_username,p_item_id,p_qty,p_qty,p_unit_price,''active'');' || chr(10) ||
+    '  perform set_config(''nexora.market_listing_transfer'',v_previous_transfer_setting,true);' || chr(10) ||
+    '  return jsonb_build_object');
+  if position('v_previous_transfer_setting' in v_def)=0
+    or position('perform set_config(''nexora.market_listing_transfer'',''true'',true)' in v_def)=0
+    or position('perform set_config(''nexora.market_listing_transfer'',v_previous_transfer_setting,true)' in v_def)=0 then
+    raise exception 'MARKET_LISTING_ESCROW_TRANSFER_PATCH_FAILED';
+  end if;
+  execute v_def;
+end;
+$do$;
 
 -- Cancelling a listing returns the same escrowed units to inventory; allow this
 -- transfer even for legacy accounts that are already over the new combined cap.
