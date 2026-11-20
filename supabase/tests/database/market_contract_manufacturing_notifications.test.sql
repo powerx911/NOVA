@@ -1,7 +1,7 @@
 -- Run with: supabase test db
 begin;
 create extension if not exists pgtap with schema extensions;
-select extensions.plan(13);
+select extensions.plan(14);
 
 select extensions.ok(
   to_regprocedure('nexora.player_inventory_usage(text)') is not null,
@@ -73,6 +73,11 @@ select extensions.ok(
 select extensions.ok(
   position('nexora.allow_inventory_refund' in pg_get_functiondef('nexora.cancel_market_listing(text,text)'::regprocedure)) > 0,
   'cancelling a listing always restores its escrowed units even for legacy over-capacity accounts'
+);
+
+select extensions.ok(
+  position('nexora.market_listing_transfer' in pg_get_functiondef('nexora.create_market_listing(text,text,integer,bigint)'::regprocedure)) > 0,
+  'listing creation is treated as an inventory-to-market escrow transfer, not extra capacity use'
 );
 
 select * from extensions.finish();
