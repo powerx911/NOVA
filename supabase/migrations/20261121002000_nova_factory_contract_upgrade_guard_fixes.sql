@@ -58,14 +58,12 @@ begin
   select pg_get_functiondef('nexora.accept_dynamic_contract(text,text)'::regprocedure)
     into v_definition;
 
-  if position(v_new in v_definition)>0 then
-    return;
+  if position(v_new in v_definition)=0 then
+    if position(v_old in v_definition)=0 then
+      raise exception 'ORG_ACTIVE_CONTRACT_GUARD_PATCH_ANCHOR_NOT_FOUND';
+    end if;
+    v_definition := replace(v_definition,v_old,v_new);
   end if;
-  if position(v_old in v_definition)=0 then
-    raise exception 'ORG_ACTIVE_CONTRACT_GUARD_PATCH_ANCHOR_NOT_FOUND';
-  end if;
-
-  v_definition := replace(v_definition,v_old,v_new);
   execute v_definition;
 end
 $patch$;
