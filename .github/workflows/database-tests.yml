@@ -80,14 +80,60 @@ jobs:
           set -euo pipefail
           eval "$(supabase status -o env)"
           for migration in \
+            supabase/migrations/20261119112257_nova_economy_abuse_guards.sql \
+            supabase/migrations/20261119112311_nova_recurring_mission_periods.sql \
+            supabase/migrations/20261119112320_nova_market_wallet_lock_order.sql \
+            supabase/migrations/20261119140000_nova_tiered_medal_rewards.sql \
+            supabase/migrations/20261119141305_20261119160000_nova_dynamic_contracts_org_goals.sql \
+            supabase/migrations/20261119141731_20261119142000_nova_org_goal_contribution_org_index.sql \
+            supabase/migrations/20261119143000_nova_weekly_market_mogul.sql \
+            supabase/migrations/20261119150000_nova_mission_achievement_rebuild.sql \
+            supabase/migrations/20261119160154_nova_contract_slot_cooldowns.sql \
+            supabase/migrations/20261119160205_nova_contract_slot_refresh_limits.sql \
+            supabase/migrations/20261119160209_nova_ten_org_weekly_goals.sql \
+            supabase/migrations/20261119160214_nova_independent_contract_claim_limits.sql \
+            supabase/migrations/20261119164015_nova_manufacturing_queue_inventory_capacity.sql \
+            supabase/migrations/20261119171452_nova_market_price_bounds_manufacturing_cancel.sql \
+            supabase/migrations/20261119210000_nova_factory_automatic_operations_progression.sql \
+            supabase/migrations/20261119211000_nova_factory_progression_curve_calibration.sql \
+            supabase/migrations/20261119212000_nova_factory_operating_margin_calibration.sql \
+            supabase/migrations/20261120000000_nova_factory_resource_specific_growth_curves.sql \
+            supabase/migrations/20261120043000_nova_market_contract_manufacturing_notifications.sql \
+            supabase/migrations/20261120132839_nova_production_company_parity_hotfix_20261120.sql \
+            supabase/migrations/20261120133000_nova_full_economy_rebalance.sql \
+            supabase/migrations/20261120150000_nova_reward_notifications_organization_chat.sql \
+            supabase/migrations/20261120160000_nova_factory_support_all_raw_resources.sql \
+            supabase/migrations/20261120170000_nova_company_factory_audit_guards.sql \
+            supabase/migrations/20261120220000_nova_company_economy_rebalance_v2.sql \
+            supabase/migrations/20261120230000_nova_company_upgrade_duration_rebalance.sql \
+            supabase/migrations/20261120231000_nova_company_upgrade_cost_rebalance.sql \
+            supabase/migrations/20261120232000_nova_company_upgrade_anchor_rebalance.sql \
+            supabase/migrations/20261120233000_nova_company_upgrade_charge_reconciliation.sql \
+            supabase/migrations/20261120234000_nova_production_economy_parity_repair.sql \
+            supabase/migrations/20261120235000_nova_company_founding_parity_repair.sql \
+            supabase/migrations/20261120235500_nova_factory_operating_wallet_reserve.sql \
+            supabase/migrations/20261120235600_nova_company_server_collectable_quote.sql \
+            supabase/migrations/20261120235700_nova_remove_hidden_quantum_server_recipe.sql \
             supabase/migrations/20261121000000_nova_treasury_withdrawal_lock_and_auction_refund.sql \
             supabase/migrations/20261121001000_nova_unified_account_deletion.sql
           do
+            if [ "$migration" = "supabase/migrations/20261120234000_nova_production_economy_parity_repair.sql" ]; then
+              psql "$DB_URL" -v ON_ERROR_STOP=1 -f supabase/ci/replay_patches/prepare_factory_upgrade_parity.sql
+            fi
             psql "$DB_URL" -v ON_ERROR_STOP=1 -f "$migration"
           done
 
       - name: Execute database regression suites
         run: supabase test db
+
+      - name: Verify the complete production schema snapshot
+        shell: bash
+        run: |
+          set -euo pipefail
+          eval "$(supabase status -o env)"
+          psql "$DB_URL" -v ON_ERROR_STOP=1 -c 'DROP SCHEMA IF EXISTS nexora CASCADE;'
+          psql "$DB_URL" -v ON_ERROR_STOP=1 -f supabase/ci/nexora_production_schema_snapshot.sql
+          psql "$DB_URL" -v ON_ERROR_STOP=1 -f supabase/ci/verify_production_schema_snapshot.sql
 
       - name: Stop disposable database
         if: always()
