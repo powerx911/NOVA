@@ -12,7 +12,7 @@ import {
   deliverDynamicContract, getDynamicContractBoard,
 } from '../../services/gameService';
 import type {
-  DynamicContractOffer, Language, PlayerProfile, InventoryItem, Wallet,
+  DynamicContractOffer, Language, PlayerProfile, InventoryItem, Wallet, GameNotification,
 } from '../../types/game';
 
 interface DynamicContractsPanelProps {
@@ -20,6 +20,7 @@ interface DynamicContractsPanelProps {
   inventory: InventoryItem[];
   wallet: Wallet | null;
   language: Language;
+  notifications: GameNotification[];
 }
 
 function remainingLabel(target: string | null | undefined, now: number): string {
@@ -66,7 +67,7 @@ function tierText(tier: DynamicContractOffer['tier'], t: ReturnType<typeof useTr
   return map[tier];
 }
 
-export function DynamicContractsPanel({ profile, inventory, wallet, language }: DynamicContractsPanelProps) {
+export function DynamicContractsPanel({ profile, inventory, wallet, language, notifications }: DynamicContractsPanelProps) {
   const t = useTranslations(language);
   const { showToast } = useToast();
   const [contracts, setContracts] = useState<DynamicContractOffer[]>([]);
@@ -225,7 +226,7 @@ export function DynamicContractsPanel({ profile, inventory, wallet, language }: 
           <div className="flex items-center gap-3 min-w-0">
             <ResourceIcon itemId={contract.item_id} size="md" />
             <div className="min-w-0">
-              <h3 className="text-sm font-bold text-[#EAF1FF] truncate">{language === 'ar' ? item.nameAr : item.nameEn}</h3>
+              <h3 className="text-sm font-bold text-[#EAF1FF] truncate flex items-center gap-2">{language === 'ar' ? item.nameAr : item.nameEn}{contract.status === 'ready' && isOwnedContract && <span className="inline-flex h-2.5 w-2.5 rounded-full bg-red-500 shrink-0" aria-label={language === 'ar' ? 'المكافأة جاهزة' : 'Reward ready'} />}</h3>
               <p className="text-[11px] text-[#8FA1BF]">{t.requiredQuantity}: <b className="text-white font-mono-num">{contract.quantity.toLocaleString()}</b></p>
             </div>
           </div>
@@ -350,13 +351,13 @@ export function DynamicContractsPanel({ profile, inventory, wallet, language }: 
       {!loading && (
         <>
           <div className="flex gap-2 rounded-xl border border-white/10 bg-[#0B1425] p-1.5" role="tablist" aria-label={language === 'ar' ? 'أنواع العقود' : 'Contract types'}>
-            <button type="button" role="tab" aria-selected={activeContractTab === 'personal'} onClick={() => setActiveContractTab('personal')} className={`flex-1 min-h-10 rounded-lg px-3 text-xs font-bold transition-colors ${activeContractTab === 'personal' ? 'bg-[#2468D8] text-white' : 'text-[#9AAEC9] hover:text-white'}`}>{t.personalContracts}</button>
-            {profile.orgId && <button type="button" role="tab" aria-selected={activeContractTab === 'organization'} onClick={() => setActiveContractTab('organization')} className={`flex-1 min-h-10 rounded-lg px-3 text-xs font-bold transition-colors ${activeContractTab === 'organization' ? 'bg-[#2468D8] text-white' : 'text-[#9AAEC9] hover:text-white'}`}>{t.organizationContracts}</button>}
+            <button type="button" role="tab" aria-selected={activeContractTab === 'personal'} onClick={() => setActiveContractTab('personal')} className={`flex-1 min-h-10 rounded-lg px-3 text-xs font-bold transition-colors ${activeContractTab === 'personal' ? 'bg-[#2468D8] text-white' : 'text-[#9AAEC9] hover:text-white'}`}>{t.personalContracts}{contracts.some((contract) => contract.status === 'ready' && (!contract.claimed_by || contract.claimed_by === profile.uid)) && <span className="ms-2 inline-flex h-2 w-2 rounded-full bg-red-500" />}</button>
+            {profile.orgId && <button type="button" role="tab" aria-selected={activeContractTab === 'organization'} onClick={() => setActiveContractTab('organization')} className={`flex-1 min-h-10 rounded-lg px-3 text-xs font-bold transition-colors ${activeContractTab === 'organization' ? 'bg-[#2468D8] text-white' : 'text-[#9AAEC9] hover:text-white'}`}>{t.organizationContracts}{orgContracts.some((contract) => contract.status === 'ready' && contract.claimed_by === profile.uid) && <span className="ms-2 inline-flex h-2 w-2 rounded-full bg-red-500" />}</button>}
           </div>
           {activeContractTab === 'personal' && (
           <section className="space-y-3">
             <div className="flex items-center justify-between gap-2">
-              <h3 className="text-base font-bold text-white flex items-center gap-2"><ShieldCheck className="w-4 h-4 text-sky-300" />{t.personalContracts}</h3>
+              <h3 className="text-base font-bold text-white flex items-center gap-2"><ShieldCheck className="w-4 h-4 text-sky-300" />{t.personalContracts}{contracts.some((contract) => contract.status === 'ready' && (!contract.claimed_by || contract.claimed_by === profile.uid)) && <span className="inline-flex h-2 w-2 rounded-full bg-red-500" />}</h3>
               <span className="text-[10px] text-[#8192AD]">{contracts.filter((contract) => contract.status === 'offered' && contract.slot_no >= 1 && contract.slot_no <= 5).length + personalCooldowns.filter((slot) => slot.slot_no >= 1 && slot.slot_no <= 5).length} / 5</span>
             </div>
             <p className="text-xs text-[#A9B9D4]">{t.dailyRemaining}: {Math.max(0, dailyLimit - dailyUsed)} / {dailyLimit} · {t.activeContractLimit}: {activePersonal} / 3</p>
@@ -368,7 +369,7 @@ export function DynamicContractsPanel({ profile, inventory, wallet, language }: 
           {profile.orgId && activeContractTab === 'organization' && (
             <>
               <section className="space-y-3">
-                <h3 className="text-base font-bold text-white flex items-center gap-2"><Building2 className="w-4 h-4 text-amber-300" />{t.organizationContracts}</h3>
+                <h3 className="text-base font-bold text-white flex items-center gap-2"><Building2 className="w-4 h-4 text-amber-300" />{t.organizationContracts}{orgContracts.some((contract) => contract.status === 'ready' && contract.claimed_by === profile.uid) && <span className="inline-flex h-2 w-2 rounded-full bg-red-500" />}</h3>
                 <p className="text-[11px] text-[#8192AD]">{language === "ar" ? "الخانات المفتوحة حسب مستوى المنظمة: " : "Slots unlocked by organization level: "}<b className="font-mono-num text-white">{orgUnlockedSlots} / 100</b></p>
                 <p className="text-[11px] text-[#A9B9D4]">{language === "ar" ? "فرص استلام عقود المنظمة المتبقية اليوم: " : "Organization contract claims remaining today: "}<b className="font-mono-num text-white">{Math.max(0, orgDailyLimit - orgDailyUsed)} / {orgDailyLimit}</b></p>
                 {canRefreshOrgContracts && <p className="text-[11px] text-[#8FA1BF]">{language === "ar" ? "تجديدات المنظمة المتبقية اليوم: " : "Organization refreshes left today: "}<b className="font-mono-num text-white">{Math.max(0, orgRefreshLimit - orgRefreshUsed)} / {orgRefreshLimit}</b></p>}
