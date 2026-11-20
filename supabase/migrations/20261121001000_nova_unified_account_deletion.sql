@@ -107,7 +107,7 @@ begin
   -- without changing the auction's valid bid history. Ask the player to wait.
   if exists (
     select 1 from nexora.company_auctions
-    where highest_bidder_uid=p_uid and seller_uid<>p_uid and status='active' and ends_at>now()
+    where highest_bidder_uid=p_uid and seller_uid<>p_uid and status='active'
   ) then
     raise exception 'ACCOUNT_HAS_ACTIVE_AUCTION_BID';
   end if;
