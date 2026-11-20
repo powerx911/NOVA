@@ -1,0 +1,49 @@
+-- Run with: supabase test db
+begin;
+create extension if not exists pgtap with schema extensions;
+select extensions.plan(7);
+
+select extensions.ok(
+  to_regprocedure('nexora.player_inventory_usage(text)') is not null,
+  'inventory usage helper includes inventory and active market escrow'
+);
+
+select extensions.ok(
+  to_regprocedure('nexora.settle_finished_manufacturing_jobs()') is not null,
+  'manufacturing completion has a server-side settlement worker'
+);
+
+select extensions.ok(
+  exists(select 1 from pg_trigger where tgrelid='nexora.market_listings'::regclass
+    and tgname='market_listing_capacity_guard' and not tgisinternal),
+  'active market listings are included in inventory capacity enforcement'
+);
+
+select extensions.ok(
+  position('cooldown_until<=now()' in pg_get_functiondef('nexora.get_dynamic_contract_board(text)'::regprocedure)) > 0,
+  'organization slots can only refill after a manual refresh cooldown or on a new daily board'
+);
+
+select extensions.ok(
+  position('new.scope=''personal''' in pg_get_functiondef('nexora.start_contract_slot_cooldown()'::regprocedure)) > 0
+  and position('new.slot_no between 1 and 5' in pg_get_functiondef('nexora.start_contract_slot_cooldown()'::regprocedure)) > 0,
+  'automatic 15-minute completion cooldowns are restricted to the five standard personal slots'
+);
+
+select extensions.ok(
+  exists(select 1 from pg_trigger where tgrelid='nexora.transactions'::regclass
+    and tgname='nova_notify_ready_missions_transaction' and not tgisinternal)
+  and exists(select 1 from pg_trigger where tgrelid='nexora.companies'::regclass
+    and tgname='nova_company_vault_full_notification' and not tgisinternal)
+  and exists(select 1 from pg_trigger where tgrelid='nexora.factories'::regclass
+    and tgname='nova_factory_warehouse_full_notification' and not tgisinternal),
+  'mission-ready and full-storage notification triggers are installed'
+);
+
+select extensions.ok(
+  to_regprocedure('nexora.emit_notification_once(text,text,text,text,text,text,text)') is not null,
+  'notification delivery is deduplicated by event key'
+);
+
+select * from extensions.finish();
+rollback;
