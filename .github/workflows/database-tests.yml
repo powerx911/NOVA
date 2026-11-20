@@ -11,6 +11,8 @@ on:
       - "supabase/tests/**"
       - "scripts/validate_migration_manifest.py"
       - ".github/workflows/ci.yml"
+      - "PROJECT_STATUS.md"
+      - "docs/**"
       - "playwright.config.mjs"
       - "e2e/**"
       - ".github/workflows/database-tests.yml"
