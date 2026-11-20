@@ -135,15 +135,6 @@ jobs:
           psql "$DB_URL" -v ON_ERROR_STOP=1 -f supabase/ci/nexora_production_schema_snapshot.sql
           psql "$DB_URL" -v ON_ERROR_STOP=1 -f supabase/ci/verify_production_schema_snapshot.sql
 
-      - name: Verify the complete production schema snapshot
-        shell: bash
-        run: |
-          set -euo pipefail
-          eval "$(supabase status -o env)"
-          psql "$DB_URL" -v ON_ERROR_STOP=1 -c 'DROP SCHEMA IF EXISTS nexora CASCADE;'
-          psql "$DB_URL" -v ON_ERROR_STOP=1 -f supabase/ci/nexora_production_schema_snapshot.sql
-          psql "$DB_URL" -v ON_ERROR_STOP=1 -f supabase/ci/verify_production_schema_snapshot.sql
-
       - name: Stop disposable database
         if: always()
         run: |
