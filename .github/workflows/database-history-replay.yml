@@ -112,7 +112,8 @@ jobs:
             supabase/migrations/20261120133000_nova_full_economy_rebalance.sql \
             supabase/migrations/20261120220000_nova_company_economy_rebalance_v2.sql \
             supabase/migrations/20261120230000_nova_company_upgrade_duration_rebalance.sql \
-            supabase/migrations/20261120231000_nova_company_upgrade_cost_rebalance.sql
+            supabase/migrations/20261120231000_nova_company_upgrade_cost_rebalance.sql \
+            supabase/migrations/20261120232000_nova_company_upgrade_anchor_rebalance.sql
           do
             psql "$DB_URL" -v ON_ERROR_STOP=1 -f "$migration"
           done

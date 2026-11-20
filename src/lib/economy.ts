@@ -295,11 +295,11 @@ export function calculateCompanyHourlyNet(
 }
 
 export function calculateCompanyUpgradeCost(sector: string | undefined, level: number): number {
-  return Math.ceil(getCompanySectorLevelGain(sector) * (8 + Math.max(1, Math.floor(level))));
+  return Math.ceil(getCompanySectorLevelGain(sector) * (8 + 2.411 * Math.max(1, Math.floor(level))));
 }
 
 export function calculateCompanyUpgradeDurationMs(targetLevel: number): number {
-  return Math.round(8 * Math.pow(Math.max(2, Math.floor(targetLevel)), 1.05) * 60_000);
+  return Math.round(11 * Math.pow(Math.max(2, Math.floor(targetLevel)) / 13, 0.85) * 60_000);
 }
 
 /**
