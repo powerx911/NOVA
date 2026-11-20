@@ -11,6 +11,9 @@ on:
       - "scripts/validate_migration_manifest.py"
       - "supabase/migrations/**"
       - "supabase/tests/**"
+      - ".github/workflows/ci.yml"
+      - "playwright.config.mjs"
+      - "e2e/**"
       - ".github/workflows/database-history-replay.yml"
   pull_request:
     branches:
