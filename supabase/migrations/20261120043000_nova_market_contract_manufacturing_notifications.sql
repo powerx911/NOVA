@@ -796,3 +796,12 @@ revoke all on function nexora.notify_ready_missions_after_profile_update() from 
 revoke all on function nexora.notify_company_vault_full() from public,anon,authenticated;
 revoke all on function nexora.notify_factory_warehouse_full() from public,anon,authenticated;
 grant execute on function nexora.notify_ready_missions(text) to service_role;
+revoke all on function nexora.enforce_player_inventory_capacity() from public,anon,authenticated;
+revoke all on function nexora.start_contract_slot_cooldown() from public,anon,authenticated;
+revoke all on function nexora.guard_contract_slot_cooldown_insert() from public,anon,authenticated;
+revoke all on function nexora.notify_full_company_vaults() from public,anon,authenticated;
+revoke all on function nexora.notify_full_factory_warehouses() from public,anon,authenticated;
+revoke all on function nexora.sync_all_factory_production() from public,anon,authenticated;
+grant execute on function nexora.notify_full_company_vaults() to service_role;
+grant execute on function nexora.notify_full_factory_warehouses() to service_role;
+grant execute on function nexora.sync_all_factory_production() to service_role;
