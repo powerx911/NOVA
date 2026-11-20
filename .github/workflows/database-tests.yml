@@ -18,6 +18,7 @@ on:
       - "supabase/ci/**"
       - "supabase/migrations/**"
       - "supabase/tests/**"
+      - "scripts/validate_migration_manifest.py"
       - ".github/workflows/database-tests.yml"
 
 permissions:
