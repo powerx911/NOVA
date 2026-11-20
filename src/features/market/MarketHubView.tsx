@@ -7,7 +7,7 @@ import {
   ArrowDownLeft,
   ArrowUpRight,
 } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { ManufacturingPanel } from './ManufacturingPanel';
 import { DynamicContractsPanel } from './DynamicContractsPanel';
@@ -73,41 +73,76 @@ export function MarketHubView({
   const [buyQuantities, setBuyQuantities] = useState<Record<string, number>>({});
   const [busyKey, setBusyKey] = useState<string | null>(null);
   const [liveListings, setLiveListings] = useState(marketListings);
+  const [listingsPage, setListingsPage] = useState(1);
+  const [listingsTotalPages, setListingsTotalPages] = useState(1);
+  const [listingsTotalCount, setListingsTotalCount] = useState(0);
+  const [listingsLoading, setListingsLoading] = useState(false);
   const [marketActivity, setMarketActivity] = useState<MarketActivityRecord[]>([]);
   const [activityLoading, setActivityLoading] = useState(false);
+  const [activityPage, setActivityPage] = useState(1);
+  const [activityTotalPages, setActivityTotalPages] = useState(1);
+  const [activityTotalCount, setActivityTotalCount] = useState(0);
   const [activityFilter, setActivityFilter] = useState<'all' | 'purchases' | 'sales'>('all');
 
-  useEffect(() => {
-    let active = true;
-    const refresh = () => {
-      void fetchMarketListings().then((rows) => { if (active) setLiveListings(rows); }).catch(() => undefined);
-    };
-    refresh();
-    const timer = window.setInterval(refresh, 2000);
-    return () => { active = false; window.clearInterval(timer); };
+  const loadListings = useCallback(async (page: number) => {
+    setListingsLoading(true);
+    try {
+      const result = await fetchMarketListings(page, 30);
+      const safePage = Math.max(1, Math.min(page, result.totalPages || 1));
+      if (safePage !== page) {
+        setListingsPage(safePage);
+        return;
+      }
+      setLiveListings(result.items);
+      setListingsTotalPages(result.totalPages);
+      setListingsTotalCount(result.totalCount);
+    } finally {
+      setListingsLoading(false);
+    }
   }, []);
 
-  useEffect(() => { setLiveListings(marketListings); }, [marketListings]);
+  const loadActivity = useCallback(async (page: number, filter: 'all' | 'purchases' | 'sales') => {
+    setActivityLoading(true);
+    try {
+      const result = await fetchMarketActivity(page, 25, filter);
+      const safePage = Math.max(1, Math.min(page, result.totalPages || 1));
+      if (safePage !== page) {
+        setActivityPage(safePage);
+        return;
+      }
+      setMarketActivity(result.items);
+      setActivityTotalPages(result.totalPages);
+      setActivityTotalCount(result.totalCount);
+    } finally {
+      setActivityLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
-    if (subTab !== 'records') return;
-    let active = true;
-    const refresh = () => {
-      setActivityLoading(true);
-      void fetchMarketActivity()
-        .then((rows) => { if (active) setMarketActivity(rows); })
-        .catch(() => undefined)
-        .finally(() => { if (active) setActivityLoading(false); });
-    };
+    const refresh = () => { void loadListings(listingsPage).catch(() => undefined); };
     refresh();
     const timer = window.setInterval(refresh, 15_000);
     window.addEventListener('nova:refresh-game', refresh);
-    return () => { active = false; window.clearInterval(timer); window.removeEventListener('nova:refresh-game', refresh); };
-  }, [subTab]);
+    return () => {
+      window.clearInterval(timer);
+      window.removeEventListener('nova:refresh-game', refresh);
+    };
+  }, [listingsPage, loadListings]);
+
+  useEffect(() => {
+    if (subTab !== 'records') return;
+    const refresh = () => { void loadActivity(activityPage, activityFilter).catch(() => undefined); };
+    refresh();
+    const timer = window.setInterval(refresh, 30_000);
+    window.addEventListener('nova:refresh-game', refresh);
+    return () => {
+      window.clearInterval(timer);
+      window.removeEventListener('nova:refresh-game', refresh);
+    };
+  }, [subTab, activityPage, activityFilter, loadActivity]);
 
   async function refreshListings() {
-    const rows = await fetchMarketListings();
-    setLiveListings(rows);
+    await loadListings(listingsPage);
   }
 
   // Create Sell Listing form
@@ -708,6 +743,29 @@ export function MarketHubView({
                 </div>
               )}
             </div>
+          )}
+          {listingsTotalCount > 0 && (
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-white/8 bg-[#0B0D12] px-3 py-2.5">
+              <span className="text-[11px] text-[#9299A6]">
+                {language === 'ar'
+                  ? `صفحة ${listingsPage} من ${listingsTotalPages} · ${listingsTotalCount.toLocaleString()} عرض`
+                  : `Page ${listingsPage} of ${listingsTotalPages} · ${listingsTotalCount.toLocaleString()} listings`}
+              </span>
+              <div className="flex items-center gap-2">
+                <button type="button" disabled={listingsPage <= 1 || listingsLoading}
+                  onClick={() => setListingsPage((page) => Math.max(1, page - 1))}
+                  className="min-h-9 rounded-lg border border-white/10 px-3 text-xs text-white disabled:opacity-40">
+                  {language === 'ar' ? 'السابق' : 'Previous'}
+                </button>
+                <button type="button" disabled={listingsPage >= listingsTotalPages || listingsLoading}
+                  onClick={() => setListingsPage((page) => Math.min(listingsTotalPages, page + 1))}
+                  className="min-h-9 rounded-lg border border-white/10 px-3 text-xs text-white disabled:opacity-40">
+                  {language === 'ar' ? 'التالي' : 'Next'}
+                </button>
+              </div>
+            </div>
+          )}
+            </div>
           </div>
         </div>
       )}
@@ -813,7 +871,7 @@ export function MarketHubView({
               <h2 className="flex items-center gap-2 text-base font-bold text-[#F4F5F7]"><History className="h-4 w-4 text-[#63A5FF]" />{language === 'ar' ? 'سجلات السوق' : 'Market records'}</h2>
               <p className="mt-1 text-[11px] text-[#9299A6]">{language === 'ar' ? 'تُسجل هنا عمليات الشراء المكتملة والموارد التي اشتراها الآخرون منك فقط.' : 'Only completed purchases and sales to other players appear here.'}</p>
             </div>
-            <span className="rounded-lg bg-[#0B0D12] px-2.5 py-1 text-[10px] font-mono-num text-[#A9B9D4]">{marketActivity.length}</span>
+            <span className="rounded-lg bg-[#0B0D12] px-2.5 py-1 text-[10px] font-mono-num text-[#A9B9D4]">{activityTotalCount.toLocaleString()}</span>
           </div>
           <div className="flex gap-2">
             {([
@@ -821,16 +879,16 @@ export function MarketHubView({
               ['purchases', language === 'ar' ? 'مشترياتي' : 'Purchases'],
               ['sales', language === 'ar' ? 'مبيعاتي' : 'Sales'],
             ] as const).map(([value, label]) => (
-              <button key={value} type="button" onClick={() => setActivityFilter(value)} className={activityFilter === value ? "min-h-9 rounded-lg px-3 text-xs font-semibold bg-[#2468D8] text-white" : "min-h-9 rounded-lg px-3 text-xs font-semibold border border-white/8 bg-[#0B0D12] text-[#9299A6] hover:text-white"}>{label}</button>
+              <button key={value} type="button" onClick={() => { setActivityFilter(value); setActivityPage(1); }} className={activityFilter === value ? "min-h-9 rounded-lg px-3 text-xs font-semibold bg-[#2468D8] text-white" : "min-h-9 rounded-lg px-3 text-xs font-semibold border border-white/8 bg-[#0B0D12] text-[#9299A6] hover:text-white"}>{label}</button>
             ))}
           </div>
           {activityLoading && marketActivity.length === 0 ? (
             <p className="py-8 text-center text-xs text-[#9299A6]">{language === 'ar' ? 'جارٍ تحميل السجلات...' : 'Loading records...'}</p>
-          ) : marketActivity.filter((record) => activityFilter === 'all' || (activityFilter === 'sales' ? record.sellerUid === profile.uid : record.buyerUid === profile.uid)).length === 0 ? (
+          ) : marketActivity.length === 0 ? (
             <div className="rounded-xl border border-white/8 bg-[#0B0D12] p-8 text-center text-xs text-[#9299A6]">{language === 'ar' ? 'لا توجد عمليات شراء أو بيع مكتملة بعد.' : 'No completed purchases or sales yet.'}</div>
           ) : (
             <div className="space-y-2">
-              {marketActivity.filter((record) => activityFilter === 'all' || (activityFilter === 'sales' ? record.sellerUid === profile.uid : record.buyerUid === profile.uid)).map((record) => {
+              {marketActivity.map((record) => {
                 const isSale = record.sellerUid === profile.uid;
                 const item = ITEM_MAP[record.itemId];
                 const otherParty = isSale ? record.buyerName : record.sellerName;
@@ -855,6 +913,27 @@ export function MarketHubView({
                   </article>
                 );
               })}
+            </div>
+          )}
+          {activityTotalCount > 0 && (
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-white/8 bg-[#0B0D12] px-3 py-2.5">
+              <span className="text-[11px] text-[#9299A6]">
+                {language === 'ar'
+                  ? `صفحة ${activityPage} من ${activityTotalPages} · ${activityTotalCount.toLocaleString()} عملية`
+                  : `Page ${activityPage} of ${activityTotalPages} · ${activityTotalCount.toLocaleString()} records`}
+              </span>
+              <div className="flex items-center gap-2">
+                <button type="button" disabled={activityPage <= 1 || activityLoading}
+                  onClick={() => setActivityPage((page) => Math.max(1, page - 1))}
+                  className="min-h-9 rounded-lg border border-white/10 px-3 text-xs text-white disabled:opacity-40">
+                  {language === 'ar' ? 'السابق' : 'Previous'}
+                </button>
+                <button type="button" disabled={activityPage >= activityTotalPages || activityLoading}
+                  onClick={() => setActivityPage((page) => Math.min(activityTotalPages, page + 1))}
+                  className="min-h-9 rounded-lg border border-white/10 px-3 text-xs text-white disabled:opacity-40">
+                  {language === 'ar' ? 'التالي' : 'Next'}
+                </button>
+              </div>
             </div>
           )}
         </section>
