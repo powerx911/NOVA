@@ -28,7 +28,7 @@ Project: `hmrprnjhyzyefocdmnxf`
 
 The historical replay workflow replays the recovered SQL archive on a disposable GitHub Actions Supabase stack, then applies a curated set of canonical migrations and runs pgTAP. Both database workflows validate the production migration source manifest before replay.
 
-The workflow's curated migration list is not a substitute for a complete fresh-project replay. The CI schema baseline was refreshed from the live production catalog on 2026-11-20 and is data-free: 45 tables, 144 functions, 37 triggers, 97 indexes and 167 constraints. Isolated pgTAP tests restore this snapshot and apply only pending PR migrations; historical replay remains a separate disposable-database workflow.
+The workflow's curated migration list is not a substitute for a complete fresh-project replay. The repository keeps two data-free baselines: `supabase/ci/nexora_schema_snapshot.sql` for historical migration replay and gameplay tests, and `supabase/ci/nexora_production_schema_snapshot.sql` exported read-only from production on 2026-11-20. The production snapshot contains 45 tables, 144 functions, 37 triggers, 97 indexes and 167 constraints. CI verifies it separately after running the historical migration chain.
 
 ## Safety
 
