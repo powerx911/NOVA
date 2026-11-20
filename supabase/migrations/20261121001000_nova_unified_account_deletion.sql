@@ -329,4 +329,3 @@ $function$;
 revoke all on function nexora.delete_player_account(text) from public,anon,authenticated;
 grant execute on function nexora.delete_player_account(text) to service_role;
 
-revoke all on table nexora.organizations,nexora.factories from public,anon,authenticated;
