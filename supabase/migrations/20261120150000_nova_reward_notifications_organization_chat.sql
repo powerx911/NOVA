@@ -436,19 +436,19 @@ do $patch$
 declare
   v_definition text;
   v_old_notification text := $old$
-insert into nexora.notifications(id,user_id,title,body,type,is_read)
+    insert into nexora.notifications(id,user_id,title,body,type,is_read)
     select 'ntf_'||gen_random_uuid()::text,p_uid,'CONTRACT_READY','Your contract is ready to claim','economy',false
     where exists(select 1 from nexora.player_private pp where pp.user_id=p_uid and pp.notifications_enabled=true);$old$;
   v_new_notification text := $new$
-perform nexora.emit_notification_once(
+    perform nexora.emit_notification_once(
       p_uid,'contract-ready:'||p_contract_id,
       'العقد جاهز للاستلام','Contract ready to claim',
       'أصبحت مكافأة أحد عقودك جاهزة للاستلام.','A contract reward is ready to claim.','economy'
     );$new$;
   v_old_completion text := $completion$
-update nexora.contract_offers set status='completed',completed_at=now(),updated_at=now() where id=p_contract_id;$completion$;
+  update nexora.contract_offers set status='completed',completed_at=now(),updated_at=now() where id=p_contract_id;$completion$;
   v_new_completion text := $completion$
-update nexora.contract_offers set status='completed',completed_at=now(),updated_at=now() where id=p_contract_id;
+  update nexora.contract_offers set status='completed',completed_at=now(),updated_at=now() where id=p_contract_id;
   update nexora.notifications set is_read=true
   where user_id=p_uid and event_key='contract-ready:'||p_contract_id;$completion$;
 begin
