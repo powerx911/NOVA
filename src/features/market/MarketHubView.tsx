@@ -31,6 +31,7 @@ import {
   createMarketListing,
   fetchMarketListings,
   fetchMarketActivity,
+  fetchMarketPriceHistory,
   transferCredits,
   validateTransferRecipient,
 } from '../../services/gameService';
@@ -39,6 +40,7 @@ import type {
   Language,
   MarketListing,
   MarketActivityRecord,
+  MarketPricePoint,
   MarketSubTab,
   PlayerProfile,
   Wallet,
@@ -76,15 +78,32 @@ export function MarketHubView({
   const [marketActivity, setMarketActivity] = useState<MarketActivityRecord[]>([]);
   const [activityLoading, setActivityLoading] = useState(false);
   const [activityFilter, setActivityFilter] = useState<'all' | 'purchases' | 'sales'>('all');
+  const [marketPriceHistory, setMarketPriceHistory] = useState<MarketPricePoint[]>([]);
 
   useEffect(() => {
     let active = true;
     const refresh = () => {
+      if (document.visibilityState !== 'visible') return;
       void fetchMarketListings().then((rows) => { if (active) setLiveListings(rows); }).catch(() => undefined);
     };
     refresh();
-    const timer = window.setInterval(refresh, 2000);
-    return () => { active = false; window.clearInterval(timer); };
+    const timer = window.setInterval(refresh, 15_000);
+    document.addEventListener('visibilitychange', refresh);
+    window.addEventListener('nova:refresh-game', refresh);
+    return () => { active = false; window.clearInterval(timer); document.removeEventListener('visibilitychange', refresh); window.removeEventListener('nova:refresh-game', refresh); };
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+    const refresh = () => {
+      if (document.visibilityState !== 'visible') return;
+      void fetchMarketPriceHistory().then((rows) => { if (active) setMarketPriceHistory(rows); }).catch(() => undefined);
+    };
+    refresh();
+    const timer = window.setInterval(refresh, 5 * 60_000);
+    document.addEventListener('visibilitychange', refresh);
+    window.addEventListener('nova:refresh-game', refresh);
+    return () => { active = false; window.clearInterval(timer); document.removeEventListener('visibilitychange', refresh); window.removeEventListener('nova:refresh-game', refresh); };
   }, []);
 
   useEffect(() => { setLiveListings(marketListings); }, [marketListings]);
@@ -142,6 +161,29 @@ export function MarketHubView({
   const pulseItems = CATALOG_ITEMS.slice(0, 4).map((item) =>
     calculateMarketItemAnalytics(item.id, liveListings, worldEvents)
   );
+  const marketTrendByItem = new Map<string, { points: number[]; changePct: number | null; trades: number }>();
+  const historyNow = Date.now();
+  for (const pulse of pulseItems) {
+    const buckets = Array.from({ length: 7 }, () => ({ value: 0, quantity: 0, trades: 0 }));
+    for (const point of marketPriceHistory) {
+      if (point.itemId !== pulse.itemId) continue;
+      const createdAt = new Date(String(point.createdAt)).getTime();
+      const age = historyNow - createdAt;
+      if (!Number.isFinite(createdAt) || age < 0 || age >= 7 * 24 * 60 * 60 * 1000) continue;
+      const bucket = buckets[6 - Math.floor(age / (24 * 60 * 60 * 1000))];
+      bucket.value += point.unitPrice * point.quantity;
+      bucket.quantity += point.quantity;
+      bucket.trades += 1;
+    }
+    const points = buckets.map((bucket) => bucket.quantity ? bucket.value / bucket.quantity : 0);
+    const first = points.find((value) => value > 0);
+    const last = [...points].reverse().find((value) => value > 0);
+    marketTrendByItem.set(pulse.itemId, {
+      points,
+      changePct: first && last ? ((last - first) / first) * 100 : null,
+      trades: buckets.reduce((sum, bucket) => sum + bucket.trades, 0),
+    });
+  }
 
   const filteredListings = liveListings.filter((l) => {
     const item = ITEM_MAP[l.itemId];
@@ -165,7 +207,7 @@ export function MarketHubView({
     );
     setBusyKey(`buy_${listing.id}`);
     try {
-      await buyMarketListing(profile.uid, listing.id, qty, taxRate);
+      await buyMarketListing(profile.uid, listing.id, qty, taxRate, listing.unitPrice);
       await refreshListings().catch(() => undefined);
       showToast(
         language === 'ar'
@@ -175,8 +217,13 @@ export function MarketHubView({
       );
     } catch (err) {
       const code = err instanceof Error ? err.message : '';
+      if (code === 'MARKET_QUOTE_CHANGED') await refreshListings().catch(() => undefined);
       showToast(
-        code === 'PRICE_BELOW_MINIMUM' || code === 'PRICE_ABOVE_MAXIMUM'
+        code === 'MARKET_QUOTE_CHANGED'
+          ? language === 'ar'
+            ? 'تغير سعر العرض. تم تحديث السوق؛ راجع السعر ثم أعد الشراء.'
+            : 'The listing price changed. The market was refreshed; review the new price and retry.'
+          : code === 'PRICE_BELOW_MINIMUM' || code === 'PRICE_ABOVE_MAXIMUM'
           ? language === 'ar'
             ? 'هذا العرض خارج حدود الأسعار المعتمدة. على البائع إعادة نشره بسعر ضمن الحدود.'
             : 'This listing is outside the allowed price range. The seller must relist it within the limits.'
@@ -464,6 +511,40 @@ export function MarketHubView({
               })}
             </div>
           </div>
+
+          <section className="bg-[#141821] border border-white/8 rounded-2xl p-4 space-y-3">
+            <div className="flex items-center justify-between gap-3">
+              <h2 className="text-xs font-semibold text-[#9299A6] uppercase tracking-wider">{language === 'ar' ? 'اتجاه الأسعار · آخر 7 أيام' : 'Price trends · last 7 days'}</h2>
+              <span className="text-[10px] text-[#74839A]">{language === 'ar' ? 'متوسط مرجّح بكمية التداول' : 'Volume-weighted trade prices'}</span>
+            </div>
+            {marketPriceHistory.length === 0 ? (
+              <p className="py-3 text-center text-xs text-[#9299A6]">{language === 'ar' ? 'سيظهر الاتجاه بعد تسجيل عمليات تداول مكتملة.' : 'Trends appear after completed market trades are recorded.'}</p>
+            ) : (
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                {pulseItems.map((pulse) => {
+                  const item = ITEM_MAP[pulse.itemId];
+                  const trend = marketTrendByItem.get(pulse.itemId);
+                  if (!item || !trend) return null;
+                  const max = Math.max(1, ...trend.points);
+                  const change = trend.changePct;
+                  return (
+                    <div key={pulse.itemId} className="rounded-xl border border-white/6 bg-[#0B0D12] p-3 space-y-2">
+                      <div className="flex items-center gap-2 min-w-0"><ResourceIcon itemId={pulse.itemId} size="sm" /><span className="truncate text-xs font-semibold text-[#EAF1FF]">{language === 'ar' ? item.nameAr : item.nameEn}</span></div>
+                      <div className="flex h-10 items-end gap-1" aria-label={language === 'ar' ? 'متوسطات الأسعار اليومية' : 'Daily average prices'}>
+                        {trend.points.map((value, index) => <span key={index} className="flex-1 rounded-t bg-[#397BFF]/75" style={{ height: `${value > 0 ? Math.max(5, (value / max) * 36) : 3}px` }} />)}
+                      </div>
+                      <div className="flex items-center justify-between gap-2 text-[10px] text-[#9299A6]">
+                        <span>{trend.trades} {language === 'ar' ? 'صفقات' : 'trades'}</span>
+                        <span className={`font-mono-num font-semibold ${change === null ? 'text-[#9299A6]' : change > 0 ? 'text-emerald-400' : change < 0 ? 'text-rose-300' : 'text-[#F4F5F7]'}`}>
+                          {change === null ? '—' : `${change > 0 ? '+' : ''}${change.toFixed(1)}%`}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </section>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
             {/* Post Sell Listing Form */}

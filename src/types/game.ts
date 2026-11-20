@@ -181,6 +181,13 @@ export interface MarketActivityRecord extends MarketOrder {
   sellerName: string;
 }
 
+export interface MarketPricePoint {
+  itemId: string;
+  unitPrice: number;
+  quantity: number;
+  createdAt: unknown;
+}
+
 export type CompanySector = 'trade' | 'manufacturing' | 'services' | 'tech' | 'logistics';
 
 export interface Company {

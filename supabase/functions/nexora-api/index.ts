@@ -115,6 +115,16 @@ Deno.serve(async (req: Request) => {
       return json({ ok: true, data: camelRow(data ?? []) }, 200, origin);
     }
 
+    if (body.action === "fetch_market_price_history") {
+      const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+      const { data, error } = await db.from("market_orders")
+        .select("item_id,unit_price,quantity,created_at")
+        .gte("created_at", since)
+        .order("created_at", { ascending: false }).limit(1500);
+      if (error) throw error;
+      return json({ ok: true, data: camelRow(data ?? []) }, 200, origin);
+    }
+
     if (body.action === "fetch_market_activity") {
       const { data: orders, error } = await db.from("market_orders")
         .select("id,listing_id,buyer_uid,seller_uid,item_id,quantity,unit_price,total_price,tax_amount,tx_id,created_at")
@@ -275,14 +285,17 @@ Deno.serve(async (req: Request) => {
       const recipientUsername = typeof body.recipientUsername === "string" ? body.recipientUsername.trim() : "";
       const amount = typeof body.amount === "number" && Number.isFinite(body.amount) ? Math.floor(body.amount) : 0;
       const note = typeof body.note === "string" ? body.note.slice(0, 180) : "";
-      const { data, error } = await db.rpc("transfer_credits", {
+      const requestId = typeof body.requestId === "string" ? body.requestId : "";
+      if (!requestId) return json({ error: "IDEMPOTENCY_KEY_REQUIRED" }, 400, origin);
+      const { data, error } = await db.rpc("transfer_credits_idempotent", {
         p_uid: identity.uid,
         p_recipient_username: recipientUsername,
         p_amount: amount,
         p_note: note,
+        p_request_id: requestId,
       });
       if (error) {
-        const known = ["RECIPIENT_NOT_FOUND","SELF_OR_MISSING_RECIPIENT","INVALID_AMOUNT","INSUFFICIENT_FUNDS","TRANSFER_LEVEL_REQUIRED","TRANSFER_DAILY_LIMIT"].find((code) => error.message.includes(code));
+        const known = ["RECIPIENT_NOT_FOUND","SELF_OR_MISSING_RECIPIENT","INVALID_AMOUNT","INSUFFICIENT_FUNDS","TRANSFER_LEVEL_REQUIRED","TRANSFER_DAILY_LIMIT","INVALID_IDEMPOTENCY_KEY","IDEMPOTENCY_KEY_REUSED"].find((code) => error.message.includes(code));
         return json({ error: known ?? "TRANSFER_FAILED" }, 409, origin);
       }
       return json({ ok: true, data }, 200, origin);
@@ -305,12 +318,57 @@ Deno.serve(async (req: Request) => {
     if (body.action === "buy_market_listing") {
       const listingId = typeof body.listingId === "string" ? body.listingId : "";
       const quantity = typeof body.quantity === "number" && Number.isFinite(body.quantity) ? Math.floor(body.quantity) : 0;
-      const { data, error } = await db.rpc("buy_market_listing", {
-        p_uid: identity.uid, p_listing_id: listingId, p_qty: quantity,
+      const requestId = typeof body.requestId === "string" ? body.requestId : "";
+      const expectedUnitPrice = typeof body.expectedUnitPrice === "number" && Number.isFinite(body.expectedUnitPrice)
+        ? Math.floor(body.expectedUnitPrice) : 0;
+      if (!requestId || expectedUnitPrice < 1) return json({ error: "INVALID_PURCHASE_CONFIRMATION" }, 400, origin);
+      const { data, error } = await db.rpc("buy_market_listings_at_quote_idempotent", {
+        p_uid: identity.uid,
+        p_items: [{ listing_id: listingId, quantity, expected_unit_price: expectedUnitPrice }],
+        p_requirements: [],
+        p_request_id: requestId,
       });
       if (error) {
-        const known = ["INVALID_QUANTITY","LISTING_NOT_FOUND","INSUFFICIENT_LISTING_QTY","CANNOT_BUY_OWN_LISTING","INSUFFICIENT_FUNDS","ACCOUNT_NOT_FOUND","SELLER_ACCOUNT_NOT_FOUND","INVENTORY_CAPACITY_EXCEEDED","PRICE_BELOW_MINIMUM","PRICE_ABOVE_MAXIMUM"].find((code) => error.message.includes(code));
+        const known = ["INVALID_QUANTITY","LISTING_NOT_FOUND","INSUFFICIENT_LISTING_QTY","CANNOT_BUY_OWN_LISTING","INSUFFICIENT_FUNDS","ACCOUNT_NOT_FOUND","SELLER_ACCOUNT_NOT_FOUND","INVENTORY_CAPACITY_EXCEEDED","PRICE_BELOW_MINIMUM","PRICE_ABOVE_MAXIMUM","INVALID_PURCHASE_PLAN","INVALID_IDEMPOTENCY_KEY","IDEMPOTENCY_KEY_REUSED","MARKET_QUOTE_CHANGED"].find((code) => error.message.includes(code));
         return json({ error: known ?? "MARKET_PURCHASE_FAILED" }, 409, origin);
+      }
+      return json({ ok: true, data }, 200, origin);
+    }
+
+    if (body.action === "buy_missing_resources") {
+      const requestId = typeof body.requestId === "string" ? body.requestId : "";
+      if (!requestId || !Array.isArray(body.items) || body.items.length < 1 || body.items.length > 100) {
+        return json({ error: "INVALID_PURCHASE_PLAN" }, 400, origin);
+      }
+      if (!Array.isArray(body.requirements) || body.requirements.length < 1 || body.requirements.length > 100) {
+        return json({ error: "INVALID_PURCHASE_PLAN" }, 400, origin);
+      }
+      const requirements = body.requirements.map((entry) => {
+        const item = entry && typeof entry === "object" ? entry as Record<string, unknown> : {};
+        return {
+          item_id: typeof item.itemId === "string" ? item.itemId : "",
+          required_quantity: typeof item.quantity === "number" && Number.isFinite(item.quantity) ? Math.floor(item.quantity) : 0,
+        };
+      });
+      if (requirements.some((item) => !item.item_id || item.required_quantity < 1)) return json({ error: "INVALID_PURCHASE_PLAN" }, 400, origin);
+      const items = body.items.map((entry) => {
+        const item = entry && typeof entry === "object" ? entry as Record<string, unknown> : {};
+        return {
+          listing_id: typeof item.listingId === "string" ? item.listingId : "",
+          quantity: typeof item.quantity === "number" && Number.isFinite(item.quantity) ? Math.floor(item.quantity) : 0,
+          expected_unit_price: typeof item.expectedUnitPrice === "number" && Number.isFinite(item.expectedUnitPrice)
+            ? Math.floor(item.expectedUnitPrice) : 0,
+        };
+      });
+      if (items.some((item) => !item.listing_id || item.quantity < 1 || item.expected_unit_price < 1)) {
+        return json({ error: "INVALID_PURCHASE_PLAN" }, 400, origin);
+      }
+      const { data, error } = await db.rpc("buy_market_listings_at_quote_idempotent", {
+        p_uid: identity.uid, p_items: items, p_requirements: requirements, p_request_id: requestId,
+      });
+      if (error) {
+        const known = ["INVALID_PURCHASE_PLAN", "INVALID_IDEMPOTENCY_KEY", "IDEMPOTENCY_KEY_REUSED", "MARKET_QUOTE_CHANGED", "INVENTORY_REQUIREMENT_CHANGED", "LISTING_NOT_FOUND", "INSUFFICIENT_LISTING_QTY", "CANNOT_BUY_OWN_LISTING", "INSUFFICIENT_FUNDS", "ACCOUNT_NOT_FOUND", "SELLER_ACCOUNT_NOT_FOUND", "INVENTORY_CAPACITY_EXCEEDED", "PRICE_BELOW_MINIMUM", "PRICE_ABOVE_MAXIMUM"].find((code) => error.message.includes(code));
+        return json({ error: known ?? "MISSING_RESOURCE_PURCHASE_FAILED" }, 409, origin);
       }
       return json({ ok: true, data }, 200, origin);
     }
@@ -712,11 +770,13 @@ Deno.serve(async (req: Request) => {
     if (body.action === "org_treasury_deposit") {
       const orgId = typeof body.orgId === "string" ? body.orgId : "";
       const amount = Number(body.amount);
-      const { data, error } = await db.rpc("deposit_org_treasury", {
-        p_uid: identity.uid, p_org_id: orgId, p_amount: Math.floor(amount),
+      const requestId = typeof body.requestId === "string" ? body.requestId : "";
+      if (!requestId) return json({ error: "IDEMPOTENCY_KEY_REQUIRED" }, 400, origin);
+      const { data, error } = await db.rpc("deposit_org_treasury_idempotent", {
+        p_uid: identity.uid, p_org_id: orgId, p_amount: Math.floor(amount), p_request_id: requestId,
       });
       if (error) {
-        const known = ["INVALID_AMOUNT","NOT_FOUND","UNAUTHORIZED","INSUFFICIENT_FUNDS"].find((x) => error.message.includes(x));
+        const known = ["INVALID_AMOUNT","NOT_FOUND","UNAUTHORIZED","INSUFFICIENT_FUNDS","INVALID_IDEMPOTENCY_KEY","IDEMPOTENCY_KEY_REUSED"].find((x) => error.message.includes(x));
         return json({ error: known ?? "ORG_TREASURY_DEPOSIT_FAILED" }, 409, origin);
       }
       return json({ ok: true, data }, 200, origin);
