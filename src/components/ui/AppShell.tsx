@@ -190,8 +190,10 @@ export function AppShell({
                     onClick={() => {
                       const ids = notifications.filter((n) => !isRead(n)).map((n) => n.id);
                       setLocallyReadIds((current) => new Set([...current, ...ids]));
+                      window.dispatchEvent(new CustomEvent('nova:notifications-read', { detail: { ids } }));
                       void markAllNotificationsRead(ids).catch(() => {
                         setLocallyReadIds((current) => new Set([...current].filter((id) => !ids.includes(id))));
+                        window.dispatchEvent(new CustomEvent('nova:notifications-unread', { detail: { ids } }));
                       });
                     }}
                     className="text-xs text-[#63A5FF] hover:underline px-2 py-1 whitespace-nowrap"
@@ -231,8 +233,10 @@ export function AppShell({
                           type="button"
                           onClick={() => {
                             setLocallyReadIds((current) => new Set([...current, n.id]));
+                            window.dispatchEvent(new CustomEvent('nova:notifications-read', { detail: { ids: [n.id] } }));
                             void markNotificationRead(n.id).catch(() => {
                               setLocallyReadIds((current) => { const next = new Set(current); next.delete(n.id); return next; });
+                              window.dispatchEvent(new CustomEvent('nova:notifications-unread', { detail: { ids: [n.id] } }));
                             });
                           }}
                           aria-label="Mark read"
