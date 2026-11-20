@@ -4,7 +4,7 @@
 **Repository:** https://github.com/powerx911/NOVA  
 **Production URL:** https://powerx911.github.io/NOVA/  
 **Production branch:** main  
-**Latest merged commit:** 83933e0011126d65b9e53a8bd24a9130179211fa  
+**Main baseline at refresh:** 83933e0011126d65b9e53a8bd24a9130179211fa  
 **Supabase Edge Function:** nexora-api, active version 45
 
 ## Canonical project identity
