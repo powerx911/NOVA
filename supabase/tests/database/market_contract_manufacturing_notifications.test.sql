@@ -1,7 +1,7 @@
 -- Run with: supabase test db
 begin;
 create extension if not exists pgtap with schema extensions;
-select extensions.plan(7);
+select extensions.plan(9);
 
 select extensions.ok(
   to_regprocedure('nexora.player_inventory_usage(text)') is not null,
@@ -38,6 +38,16 @@ select extensions.ok(
   and exists(select 1 from pg_trigger where tgrelid='nexora.factories'::regclass
     and tgname='nova_factory_warehouse_full_notification' and not tgisinternal),
   'mission-ready and full-storage notification triggers are installed'
+);
+
+select extensions.ok(
+  to_regprocedure('nexora.notify_full_company_vaults()') is not null,
+  'offline company vault accrual is checked for full-capacity notifications'
+);
+
+select extensions.ok(
+  to_regprocedure('nexora.sync_all_factory_production()') is not null,
+  'factory production continues to synchronize without an open client panel'
 );
 
 select extensions.ok(
