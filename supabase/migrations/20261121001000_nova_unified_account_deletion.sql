@@ -31,10 +31,18 @@ begin
       if tg_table_name = 'transactions'
          and (to_jsonb(new) - 'from_uid' - 'to_uid' - 'description')
              = (to_jsonb(old) - 'from_uid' - 'to_uid' - 'description')
-         and (((to_jsonb(old)->>'from_uid') = v_uid and (to_jsonb(new)->>'from_uid') is null)
-              or ((to_jsonb(old)->>'from_uid') is distinct from v_uid and (to_jsonb(new)->>'from_uid') is not distinct from (to_jsonb(old)->>'from_uid'))))
-         and (((to_jsonb(old)->>'to_uid') = v_uid and (to_jsonb(new)->>'to_uid') is null)
-              or ((to_jsonb(old)->>'to_uid') is distinct from v_uid and (to_jsonb(new)->>'to_uid') is not distinct from (to_jsonb(old)->>'to_uid'))))
+         and (
+           ((to_jsonb(old)->>'from_uid') = v_uid and (to_jsonb(new)->>'from_uid') is null)
+           or
+           ((to_jsonb(old)->>'from_uid') is distinct from v_uid
+            and (to_jsonb(new)->>'from_uid') is not distinct from (to_jsonb(old)->>'from_uid'))
+         )
+         and (
+           ((to_jsonb(old)->>'to_uid') = v_uid and (to_jsonb(new)->>'to_uid') is null)
+           or
+           ((to_jsonb(old)->>'to_uid') is distinct from v_uid
+            and (to_jsonb(new)->>'to_uid') is not distinct from (to_jsonb(old)->>'to_uid'))
+         )
          and (to_jsonb(new)->>'description') = 'Historical transaction (anonymized)' then
         return new;
       end if;
