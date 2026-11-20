@@ -6859,7 +6859,7 @@ grant execute on function nexora.transfer_credits_idempotent(text,text,bigint,te
 grant execute on function nexora.deposit_org_treasury_idempotent(text,text,bigint,text) to service_role;
 grant execute on function nexora.buy_market_listings_at_quote_idempotent(text,jsonb,jsonb,text) to service_role;
 
--- Live player skill effects migration (20261120210000).
+-- Live player skill effects migration (20261120191611).
 -- Make player skill bonuses live for existing personal contracts and charge market tax
 -- to the seller whose proceeds are reduced by that tax.
 
