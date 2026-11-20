@@ -29,6 +29,7 @@ import {
   getCompanyVaultLevel,
   getPlayerInventoryCapacity,
 } from '../../lib/economy';
+import { companyUpgradeCost, companyUpgradeDurationMs, vaultUpgradeDurationSeconds } from '../../lib/businessEconomy';
 import {
   collectCompanyRevenue,
   deleteCompany,
@@ -501,7 +502,10 @@ export function BusinessHubView({
                   ? Object.entries(vaultUpgrade.materials).every(([itemId, qty]) => (invMap.get(itemId) || 0) >= qty)
                   : false;
                 const vaultProgress = Math.min(100, (accrued / vaultCapacity) * 100);
-                const upgradeCost = c.level * 550;
+                const sectorSpec = COMPANY_SECTORS.find((s) => s.sector === c.sector);
+                const upgradeCost = companyUpgradeCost(sectorSpec?.foundingCost ?? 0, c.level);
+                const companyUpgradeDuration = companyUpgradeDurationMs(c.level + 1);
+                const vaultUpgradeDuration = vaultUpgradeDurationSeconds(vaultLevel + 1) * 1000;
                 const companyUpgradeEndsAt = c.levelUpgradeEndsAt ? timestampToMs(c.levelUpgradeEndsAt) : 0;
                 const vaultUpgradeEndsAt = c.vaultUpgradeEndsAt ? timestampToMs(c.vaultUpgradeEndsAt) : 0;
                 const companyUpgradeRemaining = companyUpgradeEndsAt ? Math.max(0, companyUpgradeEndsAt - nowMs) : 0;
@@ -510,8 +514,6 @@ export function BusinessHubView({
                 const vaultUpgradePending = Boolean(c.vaultUpgradeStartedAt || c.vaultUpgradeEndsAt || c.vaultUpgradeTargetLevel);
                 const formatRemaining = (ms: number) => { const total = Math.ceil(ms / 1000); const days = Math.floor(total / 86400); const hours = Math.floor((total % 86400) / 3600); const minutes = Math.floor((total % 3600) / 60); const seconds = total % 60; return days > 0 ? `${days}d ${hours}h` : hours > 0 ? `${hours}h ${minutes}m` : minutes > 0 ? `${minutes}m ${seconds}s` : `${seconds}s`; };
                 const isMaxLevel = c.level >= COMPANY_MAX_LEVEL;
-                const sectorSpec = COMPANY_SECTORS.find((s) => s.sector === c.sector);
-
                 return (
                   <div
                     key={c.id}
@@ -570,7 +572,7 @@ export function BusinessHubView({
                       <div>
                         <p className="text-[#9299A6]">{language === 'ar' ? 'تكلفة التطوير' : 'Upgrade Cost'}</p>
                         <p className="font-mono-num font-semibold text-[#F4F5F7] mt-0.5">
-                          {isMaxLevel ? t.maxLevelReached : `$${upgradeCost.toLocaleString()}`}
+                          {isMaxLevel ? t.maxLevelReached : `$${upgradeCost.toLocaleString()} · ${formatRemaining(companyUpgradeDuration)}`}
                         </p>
                       </div>
                     </div>
@@ -605,7 +607,7 @@ export function BusinessHubView({
                         <div className="space-y-2 border-t border-white/8 pt-3">
                           <div className="flex items-center justify-between gap-2">
                             <p className="text-xs font-semibold text-[#F4F5F7]">{language === 'ar' ? `تطوير الخزينة إلى المستوى ${vaultLevel + 1}` : `Upgrade vault to level ${vaultLevel + 1}`}</p>
-                            <span className="text-xs font-mono-num text-amber-300">${vaultUpgrade.cost.toLocaleString()}</span>
+                            <span className="text-xs font-mono-num text-amber-300">${vaultUpgrade.cost.toLocaleString()} · {formatRemaining(vaultUpgradeDuration)}</span>
                           </div>
                           <div className="flex flex-wrap gap-2">
                             {Object.entries(vaultUpgrade.materials).map(([itemId, qty]) => {

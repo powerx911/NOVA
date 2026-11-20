@@ -5,6 +5,7 @@ import {
   REPUTATION_TIERS,
   ROLE_DEFAULT_PERMISSIONS,
 } from '../data/catalog';
+import { companyLevelMultiplier } from './businessEconomy';
 import type {
   Company,
   MarketListing,
@@ -253,10 +254,7 @@ export function calculateCompanyHourlyNet(
   sectorEventMultiplier: number;
   reputationBonus: number;
 } {
-  const levelGain = getCompanySectorLevelGain(company.sector);
-  const levelMultiplier = company.baseRevenuePerHour > 0
-    ? (company.baseRevenuePerHour + (company.level - 1) * levelGain) / company.baseRevenuePerHour
-    : 1;
+  const levelMultiplier = companyLevelMultiplier(company.level);
   const mgmtBonus = 1 + Math.max(0, skills.management) * 0.08;
   const repTier = getReputationTier(reputation);
   const reputationBonus = 1 + repTier.companyYieldBonusRate;
@@ -447,10 +445,10 @@ export function calculateAccruedPayout(
 export const COMPANY_VAULT_CAPACITIES = [3500, 7000, 14000, 25000, 40000] as const;
 export const COMPANY_VAULT_MAX_LEVEL = COMPANY_VAULT_CAPACITIES.length;
 export const COMPANY_VAULT_UPGRADES = [
-  { fromLevel: 1, cost: 1500, materials: { copper_wire: 20, crude_alloy: 10 } },
-  { fromLevel: 2, cost: 4000, materials: { silicon_ore: 20, energy_cells: 15 } },
-  { fromLevel: 3, cost: 10000, materials: { carbon_fiber: 15, precision_frame: 10 } },
-  { fromLevel: 4, cost: 25000, materials: { rare_minerals: 20, quantum_server: 5 } },
+  { fromLevel: 1, cost: 2500, materials: { copper_wire: 20, crude_alloy: 10 } },
+  { fromLevel: 2, cost: 7000, materials: { silicon_ore: 20, energy_cells: 15 } },
+  { fromLevel: 3, cost: 18000, materials: { carbon_fiber: 15, precision_frame: 10 } },
+  { fromLevel: 4, cost: 45000, materials: { rare_minerals: 20, quantum_server: 5 } },
 ] as const;
 
 export function getCompanyVaultLevel(company: { vaultLevel?: number }): number {
