@@ -52,6 +52,61 @@ Deno.serve(async (req: Request) => {
     const admin = getAdminClient();
     const db = admin.schema("nexora");
 
+    if (body.action === "delete_account") {
+      const authorization = req.headers.get("Authorization") ?? "";
+      const tokenMatch = /^Bearer\\s+(.+)$/i.exec(authorization);
+      if (!tokenMatch) return json({ error: "UNAUTHENTICATED" }, 401, origin);
+
+      const { data: deletion, error: deletionError } = await db.rpc("delete_player_account", {
+        p_uid: identity.uid,
+      });
+      if (deletionError) {
+        const known = [
+          "INVALID_ACCOUNT",
+          "LEADER_MUST_TRANSFER",
+          "ACCOUNT_HAS_ACTIVE_AUCTION_BID",
+          "AUCTION_REFUND_WALLET_MISSING",
+          "ACCOUNT_WALLET_MISSING_FOR_ESCROW_REFUND",
+        ].find((code) => deletionError.message.includes(code));
+        return json({ error: known ?? "ACCOUNT_DATA_DELETE_FAILED" }, 409, origin);
+      }
+
+      // The database cleanup is idempotent. If Firebase Auth deletion times out,
+      // the player can retry while still signed in; the database RPC will safely
+      // return already_deleted and this call will retry the Auth deletion.
+      const firebaseApiKey = Deno.env.get("FIREBASE_WEB_API_KEY") || "AIzaSyD8lDEEHIeMIC4E96Zebn_rTtVjwONfSSM";
+      let firebaseError = "";
+      try {
+        const firebaseResponse = await fetch(
+          "https://identitytoolkit.googleapis.com/v1/accounts:delete?key=" + firebaseApiKey,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ idToken: tokenMatch[1] }),
+          },
+        );
+        const firebaseResult = await firebaseResponse.json().catch(() => ({})) as {
+          error?: { message?: string };
+        };
+        if (!firebaseResponse.ok) firebaseError = firebaseResult.error?.message ?? "FIREBASE_ACCOUNT_DELETE_FAILED";
+      } catch {
+        return json({ error: "FIREBASE_ACCOUNT_DELETE_PENDING" }, 503, origin);
+      }
+
+      if (firebaseError && !firebaseError.includes("USER_NOT_FOUND")) {
+        const needsRecentLogin = firebaseError.includes("CREDENTIAL_TOO_OLD_LOGIN_AGAIN")
+          || firebaseError.includes("TOKEN_EXPIRED")
+          || firebaseError.includes("INVALID_ID_TOKEN");
+        return json(
+          { error: needsRecentLogin ? "REAUTHENTICATION_REQUIRED" : "FIREBASE_ACCOUNT_DELETE_PENDING" },
+          needsRecentLogin ? 401 : 503,
+          origin,
+        );
+      }
+
+      return json({ ok: true, data: { deleted: true, database: deletion } }, 200, origin);
+    }
+
     if (body.action === "fetch_market_listings") {
       const { data, error } = await db.from("market_listings").select("*")
         .eq("status", "active").gt("remaining_qty", 0)
