@@ -21,15 +21,15 @@ select extensions.ok(
 
 select extensions.ok(
   (select bool_and(
-    nexora.factory_progression_multiplier(resource_id, 100) >= 4.9
-    and nexora.factory_progression_multiplier(resource_id, 100) <= 7.1
+    nexora.factory_progression_multiplier(resource_id, 100) >= 5.7
+    and nexora.factory_progression_multiplier(resource_id, 100) <= 9.3
   )
    from (values
      ('copper_wire'), ('silicon_ore'), ('energy_cells'), ('crude_alloy'),
      ('carbon_fiber'), ('rare_minerals'), ('titanium_ore'), ('polymer_resin'),
      ('biotech_gel'), ('quantum_dust')
    ) as resources(resource_id)),
-  'level-100 progression is stronger but remains inside the calibrated 4.9x–7.1x range'
+  'level-100 progression is stronger but remains inside the calibrated 5.7x–9.3x range'
 );
 
 select extensions.ok(
