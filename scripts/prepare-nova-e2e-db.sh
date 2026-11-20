@@ -37,6 +37,19 @@ psql "$DB_URL" -v ON_ERROR_STOP=1 -c "GRANT USAGE ON SCHEMA nexora TO authentica
 psql "$DB_URL" -v ON_ERROR_STOP=1 -c "ALTER ROLE authenticator SET pgrst.db_schemas = 'public, graphql_public, nexora';"
 psql "$DB_URL" -v ON_ERROR_STOP=1 -c "NOTIFY pgrst, 'reload config';"
 psql "$DB_URL" -v ON_ERROR_STOP=1 -c "NOTIFY pgrst, 'reload schema';"
+
+# Deterministic system listing for the browser smoke test (the snapshot is data-free).
+psql "$DB_URL" -v ON_ERROR_STOP=1 -c "
+  INSERT INTO nexora.market_listings
+    (id, seller_uid, seller_name, item_id, quantity, remaining_qty, unit_price, status)
+  VALUES
+    ('nova-e2e-system-silicon', 'SYSTEM', 'NOVA', 'silicon_ore', 10, 10, 10, 'active')
+  ON CONFLICT (id) DO UPDATE SET
+    remaining_qty = EXCLUDED.remaining_qty,
+    status = 'active',
+    updated_at = now();
+"
+
 psql "$DB_URL" -v ON_ERROR_STOP=1 -f supabase/ci/verify_production_schema_snapshot.sql
 
 # pgTAP migration-chain suites run in the dedicated NOVA database-test workflow;
