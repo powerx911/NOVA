@@ -1,7 +1,7 @@
 -- Run with: supabase test db
 begin;
 create extension if not exists pgtap with schema extensions;
-select extensions.plan(10);
+select extensions.plan(11);
 
 select extensions.ok(
   to_regprocedure('nexora.player_inventory_usage(text)') is not null,
@@ -53,6 +53,11 @@ select extensions.ok(
 select extensions.ok(
   to_regprocedure('nexora.sync_all_factory_production()') is not null,
   'factory production continues to synchronize without an open client panel'
+);
+
+select extensions.ok(
+  to_regprocedure('nexora.notify_ready_contracts(text)') is not null,
+  'already-ready personal and organization contracts can be notified on bootstrap'
 );
 
 select extensions.ok(
