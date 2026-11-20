@@ -64,12 +64,12 @@ jobs:
           trap restore_migrations EXIT
           supabase start --exclude edge-runtime,gotrue,imgproxy,kong,logflare,mailpit,postgres-meta,postgrest,realtime,storage-api,studio,supavisor,vector
 
-      - name: Replay 42 tracked migrations and 13 untracked SQL events in timestamp order
+      - name: Replay recovered SQL events in global timestamp order
         shell: bash
         run: |
           set -euo pipefail
           eval "$(supabase status -o env)"
-          mapfile -t statements < <(find supabase/recovered-history -type f -name '*.sql' -print | sort)
+          mapfile -t statements < <(find supabase/recovered-history -type f -name '*.sql' -printf '%f\\t%p\\n' | sort -k1,1 | cut -f2-)
           if [ "${#statements[@]}" -eq 0 ]; then
             echo "::error::No recovered SQL sources were found."
             exit 1
@@ -116,9 +116,9 @@ jobs:
             supabase/migrations/20261120043000_nova_market_contract_manufacturing_notifications.sql \
             supabase/migrations/20261120150000_nova_reward_notifications_organization_chat.sql \
             supabase/migrations/20261120160000_nova_factory_support_all_raw_resources.sql \
-            supabase/migrations/20261120170000_nova_company_factory_audit_guards.sql \
-            supabase/migrations/20261120133000_nova_full_economy_rebalance.sql \
             supabase/migrations/20261120132839_nova_production_company_parity_hotfix_20261120.sql \
+            supabase/migrations/20261120133000_nova_full_economy_rebalance.sql \
+            supabase/migrations/20261120170000_nova_company_factory_audit_guards.sql \
             supabase/migrations/20261120220000_nova_company_economy_rebalance_v2.sql \
             supabase/migrations/20261120230000_nova_company_upgrade_duration_rebalance.sql \
             supabase/migrations/20261120231000_nova_company_upgrade_cost_rebalance.sql \
