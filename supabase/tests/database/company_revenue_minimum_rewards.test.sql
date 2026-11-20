@@ -41,7 +41,7 @@ select extensions.is((select total_revenue from nexora.companies where id='pgtap
 select extensions.is((select vault_balance from nexora.companies where id='pgtap_company_reward_base'), 0::bigint, 'the company vault is cleared after collection');
 
 select extensions.lives_ok(
-  $insert into company_reward_results values ('leader', nexora.collect_company_revenue('pgtap_company_reward_leader', 'pgtap_company_reward_leader'))$$,
+  $lead$insert into company_reward_results values ('leader', nexora.collect_company_revenue('pgtap_company_reward_leader', 'pgtap_company_reward_leader'))$lead$,
   'a player with leadership skill can collect company revenue'
 );
 select extensions.is((select xp from nexora.player_profiles where user_id='pgtap_company_reward_leader'), 10::bigint, 'the leadership collection still grants the minimum XP');
