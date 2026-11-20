@@ -84,6 +84,54 @@ for each row execute function nexora.enforce_market_listing_capacity();
 
 revoke all on function nexora.enforce_market_listing_capacity() from public,anon,authenticated;
 
+-- Durable deduplication for ready-reward and capacity notifications.
+create table if not exists nexora.notification_events (
+  user_id text not null,
+  event_key text not null,
+  created_at timestamptz not null default now(),
+  primary key(user_id,event_key)
+);
+alter table nexora.notification_events enable row level security;
+revoke all on table nexora.notification_events from public,anon,authenticated;
+
+create or replace function nexora.emit_notification_once(
+  p_uid text,p_event_key text,p_title_ar text,p_title_en text,
+  p_body_ar text,p_body_en text,p_type text default 'economy'
+)
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $function$
+declare
+  v_language text;
+  v_enabled boolean;
+  v_inserted text;
+begin
+  select language,notifications_enabled into v_language,v_enabled
+  from nexora.player_private where user_id=p_uid;
+  if not found or not coalesce(v_enabled,false) then return; end if;
+
+  insert into nexora.notification_events(user_id,event_key)
+  values(p_uid,p_event_key)
+  on conflict(user_id,event_key) do nothing
+  returning event_key into v_inserted;
+  if v_inserted is null then return; end if;
+
+  insert into nexora.notifications(id,user_id,title,body,type,is_read)
+  values(
+    'ntf_'||gen_random_uuid()::text,p_uid,
+    case when v_language='ar' then p_title_ar else p_title_en end,
+    case when v_language='ar' then p_body_ar else p_body_en end,
+    p_type,false
+  );
+end;
+$function$;
+
+revoke all on function nexora.emit_notification_once(text,text,text,text,text,text,text) from public,anon,authenticated;
+grant execute on function nexora.emit_notification_once(text,text,text,text,text,text,text) to service_role;
+
+
 -- Keep the manufacturing completion path server-authoritative and include market escrow
 -- when checking whether the finished output fits in the player's capacity.
 do $do$
@@ -159,53 +207,6 @@ $function$;
 
 revoke all on function nexora.settle_finished_manufacturing_jobs() from public,anon,authenticated;
 grant execute on function nexora.settle_finished_manufacturing_jobs() to service_role;
-
--- Durable deduplication for ready-reward and capacity notifications.
-create table if not exists nexora.notification_events (
-  user_id text not null,
-  event_key text not null,
-  created_at timestamptz not null default now(),
-  primary key(user_id,event_key)
-);
-alter table nexora.notification_events enable row level security;
-revoke all on table nexora.notification_events from public,anon,authenticated;
-
-create or replace function nexora.emit_notification_once(
-  p_uid text,p_event_key text,p_title_ar text,p_title_en text,
-  p_body_ar text,p_body_en text,p_type text default 'economy'
-)
-returns void
-language plpgsql
-security definer
-set search_path = ''
-as $function$
-declare
-  v_language text;
-  v_enabled boolean;
-  v_inserted text;
-begin
-  select language,notifications_enabled into v_language,v_enabled
-  from nexora.player_private where user_id=p_uid;
-  if not found or not coalesce(v_enabled,false) then return; end if;
-
-  insert into nexora.notification_events(user_id,event_key)
-  values(p_uid,p_event_key)
-  on conflict(user_id,event_key) do nothing
-  returning event_key into v_inserted;
-  if v_inserted is null then return; end if;
-
-  insert into nexora.notifications(id,user_id,title,body,type,is_read)
-  values(
-    'ntf_'||gen_random_uuid()::text,p_uid,
-    case when v_language='ar' then p_title_ar else p_title_en end,
-    case when v_language='ar' then p_body_ar else p_body_en end,
-    p_type,false
-  );
-end;
-$function$;
-
-revoke all on function nexora.emit_notification_once(text,text,text,text,text,text,text) from public,anon,authenticated;
-grant execute on function nexora.emit_notification_once(text,text,text,text,text,text,text) to service_role;
 
 -- Notify when a mission first becomes claimable. The event key includes the mission period,
 -- so a daily/weekly/seasonal mission can notify again in its next period.
