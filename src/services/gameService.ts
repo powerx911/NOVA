@@ -25,6 +25,7 @@ import type {
   InventoryItem,
   Language,
   MarketListing,
+  MarketActivityRecord,
   Organization,
   OrganizationMember,
   OrgRole,
@@ -176,6 +177,14 @@ export async function transferCredits(
 
 export async function fetchMarketListings(): Promise<MarketListing[]> {
   return nexoraApi<MarketListing[]>('fetch_market_listings');
+}
+
+export async function fetchMarketActivity(): Promise<MarketActivityRecord[]> {
+  return nexoraApi<MarketActivityRecord[]>('fetch_market_activity');
+}
+
+export async function fetchInventoryCapacityUsage(): Promise<number> {
+  return nexoraApi<number>('fetch_inventory_capacity_usage');
 }
 
 export async function createMarketListing(

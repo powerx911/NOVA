@@ -60,6 +60,45 @@ Deno.serve(async (req: Request) => {
       return json({ ok: true, data: camelRow(data ?? []) }, 200, origin);
     }
 
+    if (body.action === "fetch_market_activity") {
+      const { data: orders, error } = await db.from("market_orders")
+        .select("id,listing_id,buyer_uid,seller_uid,item_id,quantity,unit_price,total_price,tax_amount,tx_id,created_at")
+        .or(`buyer_uid.eq.${identity.uid},seller_uid.eq.${identity.uid}`)
+        .order("created_at", { ascending: false }).limit(100);
+      if (error) throw error;
+      const participantIds = [...new Set((orders ?? [])
+        .flatMap((order) => [order.buyer_uid, order.seller_uid])
+        .filter((uid): uid is string => typeof uid === "string" && uid.length > 0 && uid !== "SYSTEM"))];
+      const names = new Map<string, string>();
+      if (participantIds.length > 0) {
+        const { data: players, error: playersError } = await db.from("player_profiles")
+          .select("user_id,username").in("user_id", participantIds);
+        if (playersError) throw playersError;
+        for (const player of players ?? []) names.set(player.user_id, player.username);
+      }
+      return json({ ok: true, data: (orders ?? []).map((order) => ({
+        id: order.id,
+        listingId: order.listing_id,
+        buyerUid: order.buyer_uid,
+        buyerName: names.get(order.buyer_uid) ?? "—",
+        sellerUid: order.seller_uid,
+        sellerName: order.seller_uid === "SYSTEM" ? "NEXORA CITY" : (names.get(order.seller_uid) ?? "—"),
+        itemId: order.item_id,
+        quantity: order.quantity,
+        unitPrice: order.unit_price,
+        totalPrice: order.total_price,
+        taxAmount: order.tax_amount,
+        txId: order.tx_id,
+        createdAt: order.created_at,
+      })) }, 200, origin);
+    }
+
+    if (body.action === "fetch_inventory_capacity_usage") {
+      const { data, error } = await db.rpc("player_inventory_usage", { p_uid: identity.uid });
+      if (error) throw error;
+      return json({ ok: true, data: Number(data ?? 0) }, 200, origin);
+    }
+
     if (body.action === "bootstrap") {
       // A signed-in Firebase user may not have created a game character yet.
       // Only unlock achievements after a player profile exists; otherwise the
@@ -73,6 +112,14 @@ Deno.serve(async (req: Request) => {
       if (existingProfile) {
         const { error: achievementError } = await db.rpc("unlock_eligible_achievements", { p_uid: identity.uid });
         if (achievementError) throw achievementError;
+        const [{ error: missionNoticeError }, { error: contractSettleError }] = await Promise.all([
+          db.rpc("notify_ready_missions", { p_uid: identity.uid }),
+          db.rpc("settle_dynamic_contracts", { p_uid: identity.uid }),
+        ]);
+        if (missionNoticeError) throw missionNoticeError;
+        if (contractSettleError) throw contractSettleError;
+        const { error: readyContractNoticeError } = await db.rpc("notify_ready_contracts", { p_uid: identity.uid });
+        if (readyContractNoticeError) throw readyContractNoticeError;
       }
       return json({ ok: true, data: await bootstrap(admin, identity.uid) }, 200, origin);
     }

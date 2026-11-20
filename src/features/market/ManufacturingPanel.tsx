@@ -145,7 +145,7 @@ export function ManufacturingPanel({ profile, wallet, inventory, language, onNav
             <ResourceIcon itemId={activeJob.output_item_id} size="lg" />
             <div className="min-w-0">
               <p className="text-sm font-semibold text-white">{ITEM_MAP[activeJob.output_item_id] ? (isAr ? ITEM_MAP[activeJob.output_item_id].nameAr : ITEM_MAP[activeJob.output_item_id].nameEn) : activeJob.output_item_id} ×{activeJob.output_qty}</p>
-              <p className="text-xs text-[#9AAAC7]">{isAr ? 'تُضاف المنتجات بعد الاستلام، حتى لو أغلقت اللعبة.' : 'Output is credited on collection, even if you close the game.'}</p>
+              <p className="text-xs text-[#9AAAC7]">{isAr ? 'تُضاف المنتجات تلقائيًا عند انتهاء العداد حتى لو أغلقت اللعبة.' : 'Output is added automatically when the timer ends, even if you close the game.'}</p>
             </div>
           </div>
           {jobReady ? (

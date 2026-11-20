@@ -135,6 +135,7 @@ function NovaAppContent() {
           factories={game.factories}
           companyLogs={game.companyLogs}
           inventory={game.inventory}
+          marketListings={game.marketListings}
           worldEvents={game.worldEvents}
           organizationIncomeBonusRate={Math.min(10, game.organizations.find((org) => org.id === game.profile?.orgId)?.research?.commerce ?? 0) * 0.005}
           language={game.language}

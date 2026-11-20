@@ -3,7 +3,7 @@ export type Language = 'ar' | 'en';
 export type MainTab = 'home' | 'business' | 'market' | 'organization' | 'social' | 'profile';
 
 export type BusinessSubTab = 'companies' | 'auction' | 'factories' | 'inventory' | 'financials';
-export type MarketSubTab = 'exchange' | 'contracts' | 'bank' | 'manufacturing';
+export type MarketSubTab = 'exchange' | 'contracts' | 'bank' | 'manufacturing' | 'records';
 export type ProfileSubTab = 'overview' | 'skills' | 'missions' | 'achievements' | 'rankings' | 'settings' | 'diagnostics';
 
 export type SkillKey =
@@ -172,6 +172,11 @@ export interface MarketOrder {
   taxAmount: number;
   txId: string;
   createdAt: unknown;
+}
+
+export interface MarketActivityRecord extends MarketOrder {
+  buyerName: string;
+  sellerName: string;
 }
 
 export type CompanySector = 'trade' | 'manufacturing' | 'services' | 'tech' | 'logistics';
