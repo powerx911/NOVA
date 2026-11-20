@@ -112,6 +112,8 @@ Deno.serve(async (req: Request) => {
         ]);
         if (missionNoticeError) throw missionNoticeError;
         if (contractSettleError) throw contractSettleError;
+        const { error: readyContractNoticeError } = await db.rpc("notify_ready_contracts", { p_uid: identity.uid });
+        if (readyContractNoticeError) throw readyContractNoticeError;
       }
       return json({ ok: true, data: await bootstrap(admin, identity.uid) }, 200, origin);
     }
