@@ -30,7 +30,7 @@ Read-only catalog verification on 2026-11-20:
 | RLS-enabled tables | 46 |
 | RLS-disabled tables | 0 |
 
-The checked-in production schema snapshot is synchronized to the live catalog and verified in isolated CI. The historical snapshot remains a separate starting point for migration replay.
+The checked-in production schema snapshot is refreshed against the live inventory and migration-sensitive functions; isolated CI verifies catalog counts and selected critical invariants. The historical snapshot remains a separate starting point for migration replay.
 
 ## 3. Request and trust boundaries
 
