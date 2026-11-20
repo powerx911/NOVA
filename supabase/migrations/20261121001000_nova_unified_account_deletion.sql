@@ -281,7 +281,7 @@ begin
       owner_uid=v_pseudonym,owner_name='Deleted Player',
       vault_balance=0,auction_id=null,auction_ends_at=null,
       auction_status='cancelled',updated_at=now()
-  where owner_uid=p_uid and not is_deleted;
+  where owner_uid=p_uid;
   get diagnostics v_archived_companies = row_count;
 
   update nexora.factories
