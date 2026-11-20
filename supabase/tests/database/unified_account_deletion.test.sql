@@ -35,10 +35,10 @@ values ('pgtap-delete-account','pgtap-contract',50);
 
 insert into nexora.company_auctions(
   id,company_id,company_name,company_sector,company_level,seller_uid,seller_name,
-  starting_price,current_price,highest_bidder_uid,highest_bidder_name,ends_at,status,asset_type
+  starting_price,current_price,highest_bidder_uid,highest_bidder_name,starts_at,ends_at,status,asset_type
 ) values (
-  'pgtap-delete-active-bid',null,'Other Seller Company','tech',1,'pgtap-other-seller','Other Seller',
-  100,150,'pgtap-delete-account','DeleteTester',now()+interval '10 minutes','active','company'
+  'pgtap-delete-active-bid',null,'Other Seller Company','tech',50,'pgtap-other-seller','Other Seller',
+  100,150,'pgtap-delete-account','DeleteTester',now(),now()+interval '10 minutes','active','company'
 );
 insert into nexora.company_auction_escrows(auction_id,bidder_uid,amount,status)
 values ('pgtap-delete-active-bid','pgtap-delete-account',50,'reserved');
