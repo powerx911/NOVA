@@ -18,7 +18,7 @@ begin
   );
   v_definition := regexp_replace(
     v_definition,
-    'v_duration_seconds[[:space:]]*:=.*?;',
+    'v_duration_seconds[[:space:]]*:=([^;]*);',
     'v_duration_seconds:=120*power(720::numeric,(v_target-2)::numeric/98);',
     'g'
   );
