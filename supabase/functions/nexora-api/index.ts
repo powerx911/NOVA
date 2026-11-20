@@ -82,6 +82,10 @@ Deno.serve(async (req: Request) => {
       // The database cleanup is idempotent. If Firebase Auth deletion times out,
       // the player can retry while still signed in; the database RPC will safely
       // return already_deleted and this call will retry the Auth deletion.
+      if (identity.isE2E) {
+        return json({ ok: true, data: { deleted: true, database: deletion, auth: "emulator" } }, 200, origin);
+      }
+
       const firebaseApiKey = Deno.env.get("FIREBASE_WEB_API_KEY") || "AIzaSyD8lDEEHIeMIC4E96Zebn_rTtVjwONfSSM";
       let firebaseError = "";
       try {
