@@ -25,6 +25,7 @@ begin
 
   if position('v_cost:=ceil(v_cfg.founding_cost*0.18*power(v_factory.level::numeric,1.25))::bigint;' in v_definition)=0
      or position('v_duration_seconds:=120*power(720::numeric,(v_target-2)::numeric/98);' in v_definition)=0 then
+    raise notice 'Factory upgrade replay precondition function: %', v_definition;
     raise exception 'FACTORY_UPGRADE_REPLAY_PRECONDITION_NOT_FOUND';
   end if;
 
