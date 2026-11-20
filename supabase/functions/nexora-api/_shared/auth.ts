@@ -1,6 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2.95.0";
 import { createRemoteJWKSet, jwtVerify } from "npm:jose@5.10.0";
-import { isRecentFirebaseAuth } from "./auth_policy.ts";
 
 const FIREBASE_PROJECT_ID = "gen-lang-client-0074900177";
 const FIREBASE_ISSUER = `https://securetoken.google.com/${FIREBASE_PROJECT_ID}`;
