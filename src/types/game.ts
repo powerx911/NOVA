@@ -83,6 +83,8 @@ export type TransactionType =
   | 'company_create'
   | 'company_upgrade'
   | 'company_upgrade_refund'
+  | 'game_compensation'
+  | 'company_upgrade_refund_reversal'
   | 'company_collect'
   | 'company_vault_upgrade'
   | 'company_auction_escrow'

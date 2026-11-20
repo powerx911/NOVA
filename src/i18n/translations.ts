@@ -430,12 +430,17 @@ const TX_TYPE_LABELS: Record<Language, Record<string, string>> = {
     company_create: 'تأسيس شركة',
     company_upgrade: 'ترقية شركة',
     company_upgrade_refund: 'استرجاع خصم تطوير شركة',
+    game_compensation: 'تعويض عن مشكلة سابقة',
     company_collect: 'إيرادات شركة',
     auction_fee: 'رسوم بيع مزاد',
     company_auction_sale: 'بيع شركة في مزاد',
     factory_auction_sale: 'بيع مصنع في مزاد',
     company_hire: 'توظيف كوادر',
     manufacturing: 'تصنيع صناعي',
+    factory_create: 'تأسيس مصنع',
+    factory_upgrade: 'ترقية مصنع',
+    company_vault_upgrade: 'ترقية خزنة الشركة',
+    factory_operating: 'تكلفة تشغيل المصنع',
     org_create: 'تأسيس منظمة',
     org_deposit: 'إيداع خزينة',
     org_withdraw: 'سحب خزينة',
@@ -451,12 +456,17 @@ const TX_TYPE_LABELS: Record<Language, Record<string, string>> = {
     company_create: 'Company Founding',
     company_upgrade: 'Company Upgrade',
     company_upgrade_refund: 'Company Upgrade Refund',
+    game_compensation: 'Previous Issue Compensation',
     company_collect: 'Company Revenue',
     auction_fee: 'Auction Sale Fee',
     company_auction_sale: 'Company Auction Sale',
     factory_auction_sale: 'Factory Auction Sale',
     company_hire: 'Staff Hire',
     manufacturing: 'Manufacturing',
+    factory_create: 'Factory Founding',
+    factory_upgrade: 'Factory Upgrade',
+    company_vault_upgrade: 'Company Vault Upgrade',
+    factory_operating: 'Factory Operating Cost',
     org_create: 'Org Founding',
     org_deposit: 'Treasury Deposit',
     org_withdraw: 'Treasury Withdrawal',
@@ -500,6 +510,29 @@ export function formatTxType(type: string, lang: Language): string {
   return TX_TYPE_LABELS[lang][type] ?? type;
 }
 
+const HIDDEN_ACTIVITY_TYPES = new Set([
+  'factory_operating',
+  'company_upgrade_refund_reversal',
+]);
+
+export function isVisibleActivityType(type: string): boolean {
+  return !HIDDEN_ACTIVITY_TYPES.has(type);
+}
+
+export function formatTxDescription(description: string, type: string, lang: Language): string {
+  if (type === 'game_compensation') return lang === 'ar' ? 'تعويض عن مشكلة سابقة' : 'Previous issue compensation';
+  if (type === 'company_upgrade_refund') return lang === 'ar' ? 'استرجاع فرق رسوم تطوير الشركة' : 'Company upgrade charge refund';
+  if (type === 'company_collect') return lang === 'ar' ? 'تحصيل إيرادات الشركة' : 'Company revenue collected';
+  if (type === 'company_upgrade') {
+    const targetLevel = description.match(/Lv\.?\s*(\d+)/i)?.[1];
+    return lang === 'ar'
+      ? `ترقية الشركة${targetLevel ? ` إلى المستوى ${targetLevel}` : ''}`
+      : `Company upgrade${targetLevel ? ` to Level ${targetLevel}` : ''}`;
+  }
+  if (type === 'factory_operating' || type === 'company_upgrade_refund_reversal') return '';
+  return lang === 'ar' ? formatTxType(type, lang) : description || formatTxType(type, lang);
+}
+
 export function formatMissionCategory(category: string, lang: Language): string {
   return MISSION_CATEGORY_LABELS[lang][category] ?? category;
 }
@@ -507,4 +540,3 @@ export function formatMissionCategory(category: string, lang: Language): string 
 export function formatOrgRole(role: string, lang: Language): string {
   return ORG_ROLE_LABELS[lang][role] ?? role;
 }
-
