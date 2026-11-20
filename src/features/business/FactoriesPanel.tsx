@@ -5,7 +5,7 @@ import { FACTORY_RESOURCES, ITEM_MAP } from '../../data/catalog';
 import { ResourceIcon } from '../../components/ui/ResourceIcon';
 import { timestampToMs } from '../../services/gameService';
 import { factoryOperatingCostMultiplier, factoryOutputMultiplier, factoryUpgradeCost, factoryUpgradeDurationSeconds, WAREHOUSE_UPGRADE_COSTS, WAREHOUSE_UPGRADE_DURATION_MINUTES, warehouseUpgradeCost } from '../../lib/businessEconomy';
-import { completeFactoryUpgrade, completeFactoryWarehouseUpgrade, foundFactory, syncFactory, upgradeFactory, upgradeFactorySkill, upgradeFactoryWarehouse, withdrawFactoryWarehouse } from '../../services/gameService';
+import { completeFactoryUpgrade, completeFactoryWarehouseUpgrade, foundFactory, upgradeFactory, upgradeFactorySkill, upgradeFactoryWarehouse, withdrawFactoryWarehouse } from '../../services/gameService';
 import type { Factory as FactoryRecord, FactoryResourceId, InventoryItem, Language, PlayerProfile, Wallet } from '../../types/game';
 
 interface FactoriesPanelProps {
@@ -59,21 +59,8 @@ export function FactoriesPanel({ factories, inventory, profile, wallet, language
     return () => window.clearInterval(timer);
   }, []);
 
-  const factoryIds = factories.map((factory) => factory.id).join('|');
-  useEffect(() => {
-    if (!factoryIds) return;
-    let active = true;
-    const refreshProduction = async () => {
-      const ids = factoryIds.split('|').filter(Boolean);
-      for (const id of ids) {
-        if (!active) return;
-        await syncFactory(id).catch(() => undefined);
-      }
-    };
-    void refreshProduction();
-    const timer = window.setInterval(() => void refreshProduction(), 60_000);
-    return () => { active = false; window.clearInterval(timer); };
-  }, [factoryIds]);
+  // Factory production is synchronized centrally by the server cron every minute.
+  // Client-side per-factory syncs caused one full game bootstrap per factory.
 
   useEffect(() => {
     for (const factory of factories) {
