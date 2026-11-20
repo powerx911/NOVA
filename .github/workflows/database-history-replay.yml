@@ -16,6 +16,8 @@ on:
       - main
     paths:
       - "supabase/recovered-history/**"
+      - "supabase/ci/**"
+      - "scripts/validate_migration_manifest.py"
       - "supabase/migrations/**"
       - ".github/workflows/database-history-replay.yml"
 
