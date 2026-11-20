@@ -1,7 +1,7 @@
 -- Run with: supabase test db
 begin;
 create extension if not exists pgtap with schema extensions;
-select extensions.plan(14);
+select extensions.plan(15);
 
 select extensions.ok(
   exists(select 1 from information_schema.columns where table_schema='nexora' and table_name='notifications' and column_name='event_key'),
@@ -84,6 +84,14 @@ select extensions.ok(
   and exists(select 1 from pg_trigger where tgrelid='nexora.companies'::regclass and tgname='nova_mark_company_vault_notification_claimed' and not tgisinternal)
   and exists(select 1 from pg_trigger where tgrelid='nexora.factories'::regclass and tgname='nova_mark_factory_warehouse_notification_claimed' and not tgisinternal),
   'mission, company vault and factory warehouse alerts clear when their reward or capacity is handled'
+);
+
+
+select extensions.ok(
+  exists(select 1 from pg_trigger where tgrelid='nexora.player_achievements'::regclass and tgname='player_achievements_claim_guard' and not tgisinternal)
+  and exists(select 1 from pg_trigger where tgrelid='nexora.player_achievements'::regclass and tgname='player_achievements_delete_immutable' and not tgisinternal)
+  and position('claimed_at' in pg_get_functiondef('nexora.guard_player_achievement_claim_update()'::regprocedure)) > 0,
+  'achievement identity remains immutable while the claim timestamp can be set once'
 );
 
 select * from extensions.finish();
