@@ -534,6 +534,104 @@ ALTER TABLE nexora.audit_logs ADD CONSTRAINT audit_logs_pkey PRIMARY KEY (id);
 
 ALTER TABLE nexora.chat_rate_limits ADD CONSTRAINT chat_rate_limits_pkey PRIMARY KEY (id);
 
+ALTER TABLE nexora.companies ADD CONSTRAINT companies_pkey PRIMARY KEY (id);
+
+ALTER TABLE nexora.company_auction_bids ADD CONSTRAINT company_auction_bids_pkey PRIMARY KEY (id);
+
+ALTER TABLE nexora.company_auction_escrows ADD CONSTRAINT company_auction_escrows_pkey PRIMARY KEY (auction_id, bidder_uid);
+
+ALTER TABLE nexora.company_auctions ADD CONSTRAINT company_auctions_pkey PRIMARY KEY (id);
+
+ALTER TABLE nexora.company_logs ADD CONSTRAINT company_logs_pkey PRIMARY KEY (id);
+
+ALTER TABLE nexora.contract_claims ADD CONSTRAINT contract_claims_pkey PRIMARY KEY (user_id, contract_id);
+
+ALTER TABLE nexora.contract_config ADD CONSTRAINT contract_config_pkey PRIMARY KEY (config_key);
+
+ALTER TABLE nexora.contract_daily_limits ADD CONSTRAINT contract_daily_limits_pkey PRIMARY KEY (user_id, date_key);
+
+ALTER TABLE nexora.contract_offers ADD CONSTRAINT contract_offers_pkey PRIMARY KEY (id);
+
+ALTER TABLE nexora.contract_slot_cooldowns ADD CONSTRAINT contract_slot_cooldowns_pkey PRIMARY KEY (scope, owner_id, slot_no, board_date);
+
+ALTER TABLE nexora.contract_slot_refresh_usage ADD CONSTRAINT contract_slot_refresh_usage_pkey PRIMARY KEY (scope, owner_id, date_key);
+
+ALTER TABLE nexora.conversation_messages ADD CONSTRAINT conversation_messages_pkey PRIMARY KEY (id);
+
+ALTER TABLE nexora.conversations ADD CONSTRAINT conversations_pkey PRIMARY KEY (id);
+
+ALTER TABLE nexora.daily_claims ADD CONSTRAINT daily_claims_pkey PRIMARY KEY (user_id, date_key);
+
+ALTER TABLE nexora.diagnostics_admins ADD CONSTRAINT diagnostics_admins_pkey PRIMARY KEY (user_id);
+
+ALTER TABLE nexora.factories ADD CONSTRAINT factories_pkey PRIMARY KEY (id);
+
+ALTER TABLE nexora.global_chat_messages ADD CONSTRAINT global_chat_messages_pkey PRIMARY KEY (id);
+
+ALTER TABLE nexora.inventory ADD CONSTRAINT inventory_pkey PRIMARY KEY (user_id, item_id);
+
+ALTER TABLE nexora.manufacturing_jobs ADD CONSTRAINT manufacturing_jobs_pkey PRIMARY KEY (id);
+
+ALTER TABLE nexora.market_listings ADD CONSTRAINT market_listings_pkey PRIMARY KEY (id);
+
+ALTER TABLE nexora.market_orders ADD CONSTRAINT market_orders_pkey PRIMARY KEY (id);
+
+ALTER TABLE nexora.market_system_restock_runs ADD CONSTRAINT market_system_restock_runs_pkey PRIMARY KEY (restock_date);
+
+ALTER TABLE nexora.notification_events ADD CONSTRAINT notification_events_pkey PRIMARY KEY (user_id, event_key);
+
+ALTER TABLE nexora.notifications ADD CONSTRAINT notifications_pkey PRIMARY KEY (id);
+
+ALTER TABLE nexora.org_goal_contributions ADD CONSTRAINT org_goal_contributions_goal_id_user_id_key UNIQUE (goal_id, user_id);
+
+ALTER TABLE nexora.org_goal_contributions ADD CONSTRAINT org_goal_contributions_pkey PRIMARY KEY (id);
+
+ALTER TABLE nexora.org_weekly_goals ADD CONSTRAINT org_weekly_goals_org_id_week_start_goal_type_key UNIQUE (org_id, week_start, goal_type);
+
+ALTER TABLE nexora.org_weekly_goals ADD CONSTRAINT org_weekly_goals_pkey PRIMARY KEY (id);
+
+ALTER TABLE nexora.organization_chat_messages ADD CONSTRAINT organization_chat_messages_pkey PRIMARY KEY (id);
+
+ALTER TABLE nexora.organization_invites ADD CONSTRAINT organization_invites_pkey PRIMARY KEY (id);
+
+ALTER TABLE nexora.organization_members ADD CONSTRAINT organization_members_pkey PRIMARY KEY (org_id, user_id);
+
+ALTER TABLE nexora.organization_requests ADD CONSTRAINT organization_requests_pkey PRIMARY KEY (id);
+
+ALTER TABLE nexora.organization_transactions ADD CONSTRAINT organization_transactions_pkey PRIMARY KEY (id);
+
+ALTER TABLE nexora.organizations ADD CONSTRAINT organizations_pkey PRIMARY KEY (id);
+
+ALTER TABLE nexora.organizations ADD CONSTRAINT organizations_tag_key UNIQUE (tag);
+
+ALTER TABLE nexora.player_achievements ADD CONSTRAINT player_achievements_pkey PRIMARY KEY (user_id, achievement_id);
+
+ALTER TABLE nexora.player_missions ADD CONSTRAINT player_missions_pkey PRIMARY KEY (user_id, mission_id, period_key);
+
+ALTER TABLE nexora.player_presence ADD CONSTRAINT player_presence_pkey PRIMARY KEY (user_id);
+
+ALTER TABLE nexora.player_private ADD CONSTRAINT player_private_pkey PRIMARY KEY (user_id);
+
+ALTER TABLE nexora.player_profiles ADD CONSTRAINT player_profiles_pkey PRIMARY KEY (user_id);
+
+ALTER TABLE nexora.player_profiles ADD CONSTRAINT player_profiles_username_lower_key UNIQUE (username_lower);
+
+ALTER TABLE nexora.player_reports ADD CONSTRAINT player_reports_pkey PRIMARY KEY (id);
+
+ALTER TABLE nexora.transactions ADD CONSTRAINT transactions_pkey PRIMARY KEY (id);
+
+ALTER TABLE nexora.user_blocks ADD CONSTRAINT user_blocks_owner_uid_target_uid_key UNIQUE (owner_uid, target_uid);
+
+ALTER TABLE nexora.user_blocks ADD CONSTRAINT user_blocks_pkey PRIMARY KEY (id);
+
+ALTER TABLE nexora.usernames ADD CONSTRAINT usernames_pkey PRIMARY KEY (username_lower);
+
+ALTER TABLE nexora.usernames ADD CONSTRAINT usernames_user_id_key UNIQUE (uid);
+
+ALTER TABLE nexora.wallets ADD CONSTRAINT wallets_pkey PRIMARY KEY (user_id);
+
+ALTER TABLE nexora.world_events ADD CONSTRAINT world_events_pkey PRIMARY KEY (id);
+
 ALTER TABLE nexora.companies ADD CONSTRAINT companies_base_revenue_per_hour_check CHECK ((base_revenue_per_hour >= 0));
 
 ALTER TABLE nexora.companies ADD CONSTRAINT companies_capital_check CHECK ((capital >= 0));
@@ -543,8 +641,6 @@ ALTER TABLE nexora.companies ADD CONSTRAINT companies_employees_count_check CHEC
 ALTER TABLE nexora.companies ADD CONSTRAINT companies_expense_per_hour_check CHECK ((expense_per_hour >= 0));
 
 ALTER TABLE nexora.companies ADD CONSTRAINT companies_level_check CHECK ((level >= 1));
-
-ALTER TABLE nexora.companies ADD CONSTRAINT companies_pkey PRIMARY KEY (id);
 
 ALTER TABLE nexora.companies ADD CONSTRAINT companies_sector_check CHECK ((sector = ANY (ARRAY['trade'::text, 'manufacturing'::text, 'services'::text, 'tech'::text, 'logistics'::text])));
 
@@ -558,13 +654,9 @@ ALTER TABLE nexora.company_auction_bids ADD CONSTRAINT company_auction_bids_amou
 
 ALTER TABLE nexora.company_auction_bids ADD CONSTRAINT company_auction_bids_auction_id_fkey FOREIGN KEY (auction_id) REFERENCES nexora.company_auctions(id);
 
-ALTER TABLE nexora.company_auction_bids ADD CONSTRAINT company_auction_bids_pkey PRIMARY KEY (id);
-
 ALTER TABLE nexora.company_auction_escrows ADD CONSTRAINT company_auction_escrows_amount_check CHECK ((amount > 0));
 
 ALTER TABLE nexora.company_auction_escrows ADD CONSTRAINT company_auction_escrows_auction_id_fkey FOREIGN KEY (auction_id) REFERENCES nexora.company_auctions(id);
-
-ALTER TABLE nexora.company_auction_escrows ADD CONSTRAINT company_auction_escrows_pkey PRIMARY KEY (auction_id, bidder_uid);
 
 ALTER TABLE nexora.company_auction_escrows ADD CONSTRAINT company_auction_escrows_status_check CHECK ((status = ANY (ARRAY['reserved'::text, 'refunded'::text, 'released'::text])));
 
@@ -580,23 +672,13 @@ ALTER TABLE nexora.company_auctions ADD CONSTRAINT company_auctions_current_pric
 
 ALTER TABLE nexora.company_auctions ADD CONSTRAINT company_auctions_factory_id_fkey FOREIGN KEY (factory_id) REFERENCES nexora.factories(id) ON DELETE SET NULL;
 
-ALTER TABLE nexora.company_auctions ADD CONSTRAINT company_auctions_pkey PRIMARY KEY (id);
-
 ALTER TABLE nexora.company_auctions ADD CONSTRAINT company_auctions_starting_price_check CHECK ((starting_price > 0));
 
 ALTER TABLE nexora.company_auctions ADD CONSTRAINT company_auctions_status_check CHECK ((status = ANY (ARRAY['active'::text, 'sold'::text, 'unsold'::text, 'cancelled'::text])));
 
 ALTER TABLE nexora.company_logs ADD CONSTRAINT company_logs_company_id_fkey FOREIGN KEY (company_id) REFERENCES nexora.companies(id);
 
-ALTER TABLE nexora.company_logs ADD CONSTRAINT company_logs_pkey PRIMARY KEY (id);
-
 ALTER TABLE nexora.contract_claims ADD CONSTRAINT contract_claims_amount_check CHECK ((amount >= 0));
-
-ALTER TABLE nexora.contract_claims ADD CONSTRAINT contract_claims_pkey PRIMARY KEY (user_id, contract_id);
-
-ALTER TABLE nexora.contract_config ADD CONSTRAINT contract_config_pkey PRIMARY KEY (config_key);
-
-ALTER TABLE nexora.contract_daily_limits ADD CONSTRAINT contract_daily_limits_pkey PRIMARY KEY (user_id, date_key);
 
 ALTER TABLE nexora.contract_daily_limits ADD CONSTRAINT contract_daily_limits_used_count_check CHECK ((used_count >= 0));
 
@@ -607,8 +689,6 @@ ALTER TABLE nexora.contract_offers ADD CONSTRAINT contract_offers_check CHECK ((
 ALTER TABLE nexora.contract_offers ADD CONSTRAINT contract_offers_org_reputation_reward_check CHECK ((org_reputation_reward >= 0));
 
 ALTER TABLE nexora.contract_offers ADD CONSTRAINT contract_offers_payout_check CHECK (((payout > 0) AND (payout <= 2500)));
-
-ALTER TABLE nexora.contract_offers ADD CONSTRAINT contract_offers_pkey PRIMARY KEY (id);
 
 ALTER TABLE nexora.contract_offers ADD CONSTRAINT contract_offers_processing_minutes_check CHECK (((processing_minutes >= 10) AND (processing_minutes <= 120)));
 
@@ -622,13 +702,9 @@ ALTER TABLE nexora.contract_offers ADD CONSTRAINT contract_offers_status_check C
 
 ALTER TABLE nexora.contract_offers ADD CONSTRAINT contract_offers_tier_check CHECK ((tier = ANY (ARRAY['common'::text, 'uncommon'::text, 'rare'::text, 'epic'::text])));
 
-ALTER TABLE nexora.contract_slot_cooldowns ADD CONSTRAINT contract_slot_cooldowns_pkey PRIMARY KEY (scope, owner_id, slot_no, board_date);
-
 ALTER TABLE nexora.contract_slot_cooldowns ADD CONSTRAINT contract_slot_cooldowns_scope_check CHECK ((scope = ANY (ARRAY['personal'::text, 'organization'::text])));
 
 ALTER TABLE nexora.contract_slot_cooldowns ADD CONSTRAINT contract_slot_cooldowns_slot_no_check CHECK ((slot_no > 0));
-
-ALTER TABLE nexora.contract_slot_refresh_usage ADD CONSTRAINT contract_slot_refresh_usage_pkey PRIMARY KEY (scope, owner_id, date_key);
 
 ALTER TABLE nexora.contract_slot_refresh_usage ADD CONSTRAINT contract_slot_refresh_usage_scope_check CHECK ((scope = ANY (ARRAY['personal'::text, 'organization'::text])));
 
@@ -638,17 +714,9 @@ ALTER TABLE nexora.conversation_messages ADD CONSTRAINT conversation_messages_co
 
 ALTER TABLE nexora.conversation_messages ADD CONSTRAINT conversation_messages_message_text_check CHECK (((length(message_text) >= 1) AND (length(message_text) <= 1000)));
 
-ALTER TABLE nexora.conversation_messages ADD CONSTRAINT conversation_messages_pkey PRIMARY KEY (id);
-
 ALTER TABLE nexora.conversations ADD CONSTRAINT conversations_participants_check CHECK ((cardinality(participants) = 2));
 
-ALTER TABLE nexora.conversations ADD CONSTRAINT conversations_pkey PRIMARY KEY (id);
-
 ALTER TABLE nexora.daily_claims ADD CONSTRAINT daily_claims_amount_check CHECK ((amount >= 0));
-
-ALTER TABLE nexora.daily_claims ADD CONSTRAINT daily_claims_pkey PRIMARY KEY (user_id, date_key);
-
-ALTER TABLE nexora.diagnostics_admins ADD CONSTRAINT diagnostics_admins_pkey PRIMARY KEY (user_id);
 
 ALTER TABLE nexora.diagnostics_admins ADD CONSTRAINT diagnostics_admins_role_check CHECK ((role = ANY (ARRAY['owner'::text, 'admin'::text])));
 
@@ -657,8 +725,6 @@ ALTER TABLE nexora.factories ADD CONSTRAINT factories_level_check CHECK (((level
 ALTER TABLE nexora.factories ADD CONSTRAINT factories_name_check CHECK (((char_length(name) >= 2) AND (char_length(name) <= 48)));
 
 ALTER TABLE nexora.factories ADD CONSTRAINT factories_operating_cost_remainder_check CHECK (((operating_cost_remainder >= (0)::numeric) AND (operating_cost_remainder < (1)::numeric)));
-
-ALTER TABLE nexora.factories ADD CONSTRAINT factories_pkey PRIMARY KEY (id);
 
 ALTER TABLE nexora.factories ADD CONSTRAINT factories_production_remainder_check CHECK (((production_remainder >= (0)::numeric) AND (production_remainder < (1)::numeric)));
 
@@ -672,15 +738,9 @@ ALTER TABLE nexora.factories ADD CONSTRAINT factories_warehouse_qty_check CHECK 
 
 ALTER TABLE nexora.global_chat_messages ADD CONSTRAINT global_chat_messages_message_text_check CHECK (((length(message_text) >= 1) AND (length(message_text) <= 280)));
 
-ALTER TABLE nexora.global_chat_messages ADD CONSTRAINT global_chat_messages_pkey PRIMARY KEY (id);
-
-ALTER TABLE nexora.inventory ADD CONSTRAINT inventory_pkey PRIMARY KEY (user_id, item_id);
-
 ALTER TABLE nexora.inventory ADD CONSTRAINT inventory_quantity_check CHECK ((quantity >= 0));
 
 ALTER TABLE nexora.manufacturing_jobs ADD CONSTRAINT manufacturing_jobs_output_qty_check CHECK ((output_qty > 0));
-
-ALTER TABLE nexora.manufacturing_jobs ADD CONSTRAINT manufacturing_jobs_pkey PRIMARY KEY (id);
 
 ALTER TABLE nexora.manufacturing_jobs ADD CONSTRAINT manufacturing_jobs_status_check CHECK ((status = ANY (ARRAY['running'::text, 'completed'::text, 'cancelled'::text])));
 
@@ -690,8 +750,6 @@ ALTER TABLE nexora.manufacturing_jobs ADD CONSTRAINT manufacturing_jobs_xp_rewar
 
 ALTER TABLE nexora.market_listings ADD CONSTRAINT market_listings_check CHECK (((remaining_qty >= 0) AND (remaining_qty <= quantity)));
 
-ALTER TABLE nexora.market_listings ADD CONSTRAINT market_listings_pkey PRIMARY KEY (id);
-
 ALTER TABLE nexora.market_listings ADD CONSTRAINT market_listings_quantity_check CHECK ((quantity > 0));
 
 ALTER TABLE nexora.market_listings ADD CONSTRAINT market_listings_status_check CHECK ((status = ANY (ARRAY['active'::text, 'sold'::text, 'cancelled'::text])));
@@ -699,8 +757,6 @@ ALTER TABLE nexora.market_listings ADD CONSTRAINT market_listings_status_check C
 ALTER TABLE nexora.market_listings ADD CONSTRAINT market_listings_unit_price_check CHECK ((unit_price > 0));
 
 ALTER TABLE nexora.market_orders ADD CONSTRAINT market_orders_listing_id_fkey FOREIGN KEY (listing_id) REFERENCES nexora.market_listings(id);
-
-ALTER TABLE nexora.market_orders ADD CONSTRAINT market_orders_pkey PRIMARY KEY (id);
 
 ALTER TABLE nexora.market_orders ADD CONSTRAINT market_orders_quantity_check CHECK ((quantity > 0));
 
@@ -712,23 +768,13 @@ ALTER TABLE nexora.market_orders ADD CONSTRAINT market_orders_tx_id_fkey FOREIGN
 
 ALTER TABLE nexora.market_orders ADD CONSTRAINT market_orders_unit_price_check CHECK ((unit_price > 0));
 
-ALTER TABLE nexora.market_system_restock_runs ADD CONSTRAINT market_system_restock_runs_pkey PRIMARY KEY (restock_date);
-
-ALTER TABLE nexora.notification_events ADD CONSTRAINT notification_events_pkey PRIMARY KEY (user_id, event_key);
-
-ALTER TABLE nexora.notifications ADD CONSTRAINT notifications_pkey PRIMARY KEY (id);
-
 ALTER TABLE nexora.notifications ADD CONSTRAINT notifications_type_check CHECK ((type = ANY (ARRAY['economy'::text, 'market'::text, 'org'::text, 'mission'::text, 'system'::text])));
 
 ALTER TABLE nexora.org_goal_contributions ADD CONSTRAINT org_goal_contributions_amount_check CHECK ((amount >= (0)::numeric));
 
 ALTER TABLE nexora.org_goal_contributions ADD CONSTRAINT org_goal_contributions_goal_id_fkey FOREIGN KEY (goal_id) REFERENCES nexora.org_weekly_goals(id) ON DELETE CASCADE;
 
-ALTER TABLE nexora.org_goal_contributions ADD CONSTRAINT org_goal_contributions_goal_id_user_id_key UNIQUE (goal_id, user_id);
-
 ALTER TABLE nexora.org_goal_contributions ADD CONSTRAINT org_goal_contributions_org_id_fkey FOREIGN KEY (org_id) REFERENCES nexora.organizations(id) ON DELETE CASCADE;
-
-ALTER TABLE nexora.org_goal_contributions ADD CONSTRAINT org_goal_contributions_pkey PRIMARY KEY (id);
 
 ALTER TABLE nexora.org_weekly_goals ADD CONSTRAINT org_weekly_goals_current_amount_check CHECK ((current_amount >= (0)::numeric));
 
@@ -737,10 +783,6 @@ ALTER TABLE nexora.org_weekly_goals ADD CONSTRAINT org_weekly_goals_difficulty_c
 ALTER TABLE nexora.org_weekly_goals ADD CONSTRAINT org_weekly_goals_goal_type_check CHECK ((goal_type = ANY (ARRAY['produce_units'::text, 'trade_volume'::text, 'contracts_completed'::text, 'treasury_donations'::text, 'personal_contracts_completed'::text, 'org_contracts_completed'::text, 'company_revenue'::text, 'factory_upgrades'::text, 'company_upgrades'::text, 'companies_founded'::text, 'factories_founded'::text])));
 
 ALTER TABLE nexora.org_weekly_goals ADD CONSTRAINT org_weekly_goals_org_id_fkey FOREIGN KEY (org_id) REFERENCES nexora.organizations(id) ON DELETE CASCADE;
-
-ALTER TABLE nexora.org_weekly_goals ADD CONSTRAINT org_weekly_goals_org_id_week_start_goal_type_key UNIQUE (org_id, week_start, goal_type);
-
-ALTER TABLE nexora.org_weekly_goals ADD CONSTRAINT org_weekly_goals_pkey PRIMARY KEY (id);
 
 ALTER TABLE nexora.org_weekly_goals ADD CONSTRAINT org_weekly_goals_reward_reputation_check CHECK ((reward_reputation = ANY (ARRAY[(50)::bigint, (100)::bigint, (200)::bigint])));
 
@@ -752,29 +794,19 @@ ALTER TABLE nexora.organization_chat_messages ADD CONSTRAINT organization_chat_m
 
 ALTER TABLE nexora.organization_chat_messages ADD CONSTRAINT organization_chat_messages_org_id_fkey FOREIGN KEY (org_id) REFERENCES nexora.organizations(id) ON DELETE CASCADE;
 
-ALTER TABLE nexora.organization_chat_messages ADD CONSTRAINT organization_chat_messages_pkey PRIMARY KEY (id);
-
-ALTER TABLE nexora.organization_invites ADD CONSTRAINT organization_invites_pkey PRIMARY KEY (id);
-
 ALTER TABLE nexora.organization_invites ADD CONSTRAINT organization_invites_status_check CHECK ((status = ANY (ARRAY['pending'::text, 'accepted'::text, 'rejected'::text, 'cancelled'::text])));
 
 ALTER TABLE nexora.organization_members ADD CONSTRAINT organization_members_org_id_fkey FOREIGN KEY (org_id) REFERENCES nexora.organizations(id) ON DELETE CASCADE;
 
-ALTER TABLE nexora.organization_members ADD CONSTRAINT organization_members_pkey PRIMARY KEY (org_id, user_id);
-
 ALTER TABLE nexora.organization_members ADD CONSTRAINT organization_members_role_check CHECK ((role = ANY (ARRAY['leader'::text, 'deputy'::text, 'officer'::text, 'member'::text])));
 
 ALTER TABLE nexora.organization_requests ADD CONSTRAINT organization_requests_org_id_fkey FOREIGN KEY (org_id) REFERENCES nexora.organizations(id) ON DELETE CASCADE;
-
-ALTER TABLE nexora.organization_requests ADD CONSTRAINT organization_requests_pkey PRIMARY KEY (id);
 
 ALTER TABLE nexora.organization_requests ADD CONSTRAINT organization_requests_status_check CHECK ((status = ANY (ARRAY['pending'::text, 'approved'::text, 'rejected'::text])));
 
 ALTER TABLE nexora.organization_transactions ADD CONSTRAINT organization_transactions_amount_check CHECK ((amount >= 0));
 
 ALTER TABLE nexora.organization_transactions ADD CONSTRAINT organization_transactions_org_id_fkey FOREIGN KEY (org_id) REFERENCES nexora.organizations(id);
-
-ALTER TABLE nexora.organization_transactions ADD CONSTRAINT organization_transactions_pkey PRIMARY KEY (id);
 
 ALTER TABLE nexora.organization_transactions ADD CONSTRAINT organization_transactions_type_check CHECK ((type = ANY (ARRAY['deposit'::text, 'withdraw'::text, 'upgrade'::text])));
 
@@ -784,27 +816,15 @@ ALTER TABLE nexora.organizations ADD CONSTRAINT organizations_member_capacity_ch
 
 ALTER TABLE nexora.organizations ADD CONSTRAINT organizations_member_count_check CHECK ((member_count >= 0));
 
-ALTER TABLE nexora.organizations ADD CONSTRAINT organizations_pkey PRIMARY KEY (id);
-
 ALTER TABLE nexora.organizations ADD CONSTRAINT organizations_reputation_check CHECK ((reputation >= 0));
 
-ALTER TABLE nexora.organizations ADD CONSTRAINT organizations_tag_key UNIQUE (tag);
-
 ALTER TABLE nexora.organizations ADD CONSTRAINT organizations_treasury_balance_check CHECK ((treasury_balance >= 0));
-
-ALTER TABLE nexora.player_achievements ADD CONSTRAINT player_achievements_pkey PRIMARY KEY (user_id, achievement_id);
-
-ALTER TABLE nexora.player_missions ADD CONSTRAINT player_missions_pkey PRIMARY KEY (user_id, mission_id, period_key);
 
 ALTER TABLE nexora.player_missions ADD CONSTRAINT player_missions_reward_credits_check CHECK ((reward_credits >= 0));
 
 ALTER TABLE nexora.player_missions ADD CONSTRAINT player_missions_reward_xp_check CHECK ((reward_xp >= 0));
 
-ALTER TABLE nexora.player_presence ADD CONSTRAINT player_presence_pkey PRIMARY KEY (user_id);
-
 ALTER TABLE nexora.player_private ADD CONSTRAINT player_private_language_check CHECK ((language = ANY (ARRAY['ar'::text, 'en'::text])));
-
-ALTER TABLE nexora.player_private ADD CONSTRAINT player_private_pkey PRIMARY KEY (user_id);
 
 ALTER TABLE nexora.player_profiles ADD CONSTRAINT player_profiles_influence_check CHECK ((influence >= 0));
 
@@ -812,21 +832,15 @@ ALTER TABLE nexora.player_profiles ADD CONSTRAINT player_profiles_level_check CH
 
 ALTER TABLE nexora.player_profiles ADD CONSTRAINT player_profiles_org_id_fkey FOREIGN KEY (org_id) REFERENCES nexora.organizations(id);
 
-ALTER TABLE nexora.player_profiles ADD CONSTRAINT player_profiles_pkey PRIMARY KEY (user_id);
-
 ALTER TABLE nexora.player_profiles ADD CONSTRAINT player_profiles_reputation_check CHECK ((reputation >= 0));
 
 ALTER TABLE nexora.player_profiles ADD CONSTRAINT player_profiles_skill_points_check CHECK ((skill_points >= 0));
 
 ALTER TABLE nexora.player_profiles ADD CONSTRAINT player_profiles_username_check CHECK (((char_length(username) >= 3) AND (char_length(username) <= 24)));
 
-ALTER TABLE nexora.player_profiles ADD CONSTRAINT player_profiles_username_lower_key UNIQUE (username_lower);
-
 ALTER TABLE nexora.player_profiles ADD CONSTRAINT player_profiles_xp_check CHECK ((xp >= 0));
 
 ALTER TABLE nexora.player_reports ADD CONSTRAINT player_reports_check CHECK ((reporter_uid <> target_uid));
-
-ALTER TABLE nexora.player_reports ADD CONSTRAINT player_reports_pkey PRIMARY KEY (id);
 
 ALTER TABLE nexora.player_reports ADD CONSTRAINT player_reports_reason_check CHECK ((reason = ANY (ARRAY['harassment'::text, 'spam'::text, 'inappropriate'::text, 'impersonation'::text, 'other'::text])));
 
@@ -838,29 +852,15 @@ ALTER TABLE nexora.transactions ADD CONSTRAINT transactions_fee_check CHECK ((fe
 
 ALTER TABLE nexora.transactions ADD CONSTRAINT transactions_net_amount_check CHECK ((net_amount >= 0));
 
-ALTER TABLE nexora.transactions ADD CONSTRAINT transactions_pkey PRIMARY KEY (id);
-
 ALTER TABLE nexora.transactions ADD CONSTRAINT transactions_status_check CHECK ((status = 'completed'::text));
 
 ALTER TABLE nexora.user_blocks ADD CONSTRAINT user_blocks_check CHECK ((owner_uid <> target_uid));
 
-ALTER TABLE nexora.user_blocks ADD CONSTRAINT user_blocks_owner_uid_target_uid_key UNIQUE (owner_uid, target_uid);
-
-ALTER TABLE nexora.user_blocks ADD CONSTRAINT user_blocks_pkey PRIMARY KEY (id);
-
-ALTER TABLE nexora.usernames ADD CONSTRAINT usernames_pkey PRIMARY KEY (username_lower);
-
-ALTER TABLE nexora.usernames ADD CONSTRAINT usernames_user_id_key UNIQUE (uid);
-
 ALTER TABLE nexora.wallets ADD CONSTRAINT wallets_balance_check CHECK ((balance >= 0));
-
-ALTER TABLE nexora.wallets ADD CONSTRAINT wallets_pkey PRIMARY KEY (user_id);
 
 ALTER TABLE nexora.wallets ADD CONSTRAINT wallets_total_earned_check CHECK ((total_earned >= 0));
 
 ALTER TABLE nexora.wallets ADD CONSTRAINT wallets_total_spent_check CHECK ((total_spent >= 0));
-
-ALTER TABLE nexora.world_events ADD CONSTRAINT world_events_pkey PRIMARY KEY (id);
 
 ALTER TABLE nexora.world_events ADD CONSTRAINT world_events_price_multiplier_check CHECK ((price_multiplier >= (0)::numeric));
 
