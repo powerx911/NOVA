@@ -34,6 +34,7 @@ interface HomeDashboardViewProps {
   transactions: TransactionRecord[];
   claimedMissions: PlayerMissionClaim[];
   claimedDailyToday: boolean;
+  notifications: import('../../types/game').GameNotification[];
   worldEvents: WorldEvent[];
   marketListings: MarketListing[];
   language: Language;
@@ -47,6 +48,7 @@ export function HomeDashboardView({
   transactions,
   claimedMissions,
   claimedDailyToday,
+  notifications,
   worldEvents,
   marketListings,
   language,
@@ -59,6 +61,7 @@ export function HomeDashboardView({
 
   const xpProg = calculateLevelProgress(profile.xp);
   const avatar = AVATARS.find((a) => a.id === profile.avatarId) || AVATARS[0];
+  const dailyStipendAlert = notifications.some((notification) => !notification.read && notification.eventKey?.startsWith('daily-stipend-ready:'));
   const dailyAmount = calculateDailyStipend(profile.level, profile.skills.finance || 0);
   const activeEvents = getActiveWorldEvents(worldEvents);
   const taxRate = calculateMarketTaxRate(profile.skills.trade || 0, activeEvents);
@@ -213,7 +216,7 @@ export function HomeDashboardView({
         <div className="bg-[#141821] border border-white/8 rounded-2xl p-5 flex flex-col justify-between gap-4">
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
-              <h2 className="text-base font-semibold text-[#F4F5F7]">{t.dailyOperation}</h2>
+              <h2 className="text-base font-semibold text-[#F4F5F7] flex items-center gap-2">{t.dailyOperation}{(!claimedDailyToday || dailyStipendAlert) && <span className="inline-flex h-2.5 w-2.5 rounded-full bg-red-500" aria-label={language === 'ar' ? 'مكافأة جاهزة' : 'Reward ready'} />}</h2>
               <CalendarCheck className="w-4 h-4 text-[#63A5FF]" />
             </div>
             <p className="text-xs text-[#9299A6] leading-relaxed">

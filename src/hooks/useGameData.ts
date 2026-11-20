@@ -50,6 +50,7 @@ export interface GameDataState {
   claimedDailyToday: boolean;
   claimedContractsToday: Set<string>;
   unlockedAchievements: Set<string>;
+  claimedAchievements: Set<string>;
   notifications: GameNotification[];
   worldEvents: WorldEvent[];
   isOnline: boolean;
@@ -89,7 +90,27 @@ export function useGameData(): GameDataState {
   const [claimedDailyToday, setClaimedDailyToday] = useState(false);
   const [claimedContractsToday, setClaimedContractsToday] = useState<Set<string>>(new Set());
   const [unlockedAchievements, setUnlockedAchievements] = useState<Set<string>>(new Set());
+  const [claimedAchievements, setClaimedAchievements] = useState<Set<string>>(new Set());
   const [notifications, setNotifications] = useState<GameNotification[]>([]);
+  useEffect(() => {
+    const updateReadState = (event: Event, read: boolean) => {
+      const detail = (event as CustomEvent<{ ids?: string[] }>).detail;
+      const ids = new Set((detail?.ids ?? []).filter((id): id is string => typeof id === 'string'));
+      if (ids.size === 0) return;
+      setNotifications((current) => current.map((notification) =>
+        ids.has(notification.id) ? { ...notification, read } : notification
+      ));
+    };
+    const handleRead = (event: Event) => updateReadState(event, true);
+    const handleUnread = (event: Event) => updateReadState(event, false);
+    window.addEventListener('nova:notifications-read', handleRead);
+    window.addEventListener('nova:notifications-unread', handleUnread);
+    return () => {
+      window.removeEventListener('nova:notifications-read', handleRead);
+      window.removeEventListener('nova:notifications-unread', handleUnread);
+    };
+  }, []);
+
   const [worldEvents, setWorldEvents] = useState<WorldEvent[]>([]);
   const [utcDateKey, setUtcDateKey] = useState(() => getUtcDateKey());
 
@@ -164,6 +185,7 @@ export function useGameData(): GameDataState {
     setClaimedDailyToday(false);
     setClaimedContractsToday(new Set());
     setUnlockedAchievements(new Set());
+    setClaimedAchievements(new Set());
     setNotifications([]);
     setWorldEvents([]);
   }, []);
@@ -237,9 +259,9 @@ export function useGameData(): GameDataState {
         setClaimedMissions((data.playerMissions ?? []) as PlayerMissionClaim[]);
         setClaimedDailyToday(Boolean(data.claimedDailyToday));
         setClaimedContractsToday(new Set((data.claimedContractsToday ?? []) as string[]));
-        setUnlockedAchievements(new Set(
-          ((data.playerAchievements ?? []) as Array<{ achievementId?: string }>).map((item) => item.achievementId).filter(Boolean) as string[]
-        ));
+        const achievementRows = (data.playerAchievements ?? []) as Array<{ achievementId?: string; claimedAt?: string | null }>;
+        setUnlockedAchievements(new Set(achievementRows.map((item) => item.achievementId).filter(Boolean) as string[]));
+        setClaimedAchievements(new Set(achievementRows.filter((item) => Boolean(item.claimedAt)).map((item) => item.achievementId).filter(Boolean) as string[]));
         setNotifications((data.notifications ?? []) as GameNotification[]);
         setWorldEvents((data.worldEvents ?? []) as WorldEvent[]);
         bootstrappedUidRef.current = uid;
@@ -343,6 +365,7 @@ export function useGameData(): GameDataState {
     claimedDailyToday,
     claimedContractsToday,
     unlockedAchievements,
+    claimedAchievements,
     notifications,
     worldEvents,
     isOnline,

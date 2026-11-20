@@ -3,7 +3,7 @@
 create extension if not exists pgtap with schema extensions;
 
 begin;
-select extensions.plan(30);
+select extensions.plan(31);
 
 select extensions.ok(
   not exists (select 1 from nexora.wallets where balance < 0),
@@ -220,8 +220,17 @@ select extensions.ok(
 
 select extensions.is(
   (select balance from nexora.wallets where user_id='pgtap_medal_owner'),
+  2500::bigint,
+  'unlocking whale and market medals does not pay their rewards before collection'
+);
+
+select nexora.claim_achievement_reward('pgtap_medal_owner','nova_whale_i');
+select nexora.claim_achievement_reward('pgtap_medal_owner','nova_market_i');
+
+select extensions.is(
+  (select balance from nexora.wallets where user_id='pgtap_medal_owner'),
   6000::bigint,
-  'new whale and market medals grant their combined 3,500 credit reward'
+  'claiming whale and market medals grants their combined 3,500 credit reward'
 );
 
 select nexora.unlock_eligible_achievements('pgtap_medal_owner');
@@ -229,7 +238,7 @@ select nexora.unlock_eligible_achievements('pgtap_medal_owner');
 select extensions.ok(
   (select balance=6000 from nexora.wallets where user_id='pgtap_medal_owner')
   and (select count(*)=2 from nexora.transactions where to_uid='pgtap_medal_owner' and reference_id in ('nova_whale_i','nova_market_i')),
-  'rechecking achievements never duplicates medal rewards or ledger entries'
+  'rechecking achievements never duplicates claimed medal rewards or ledger entries'
 );
 
 

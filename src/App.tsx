@@ -96,6 +96,8 @@ function NovaAppContent() {
       activeTab={activeTab}
       onTabChange={setActiveTab}
       socialUnreadCount={socialUnreadCount}
+      unclaimedAchievementCount={[...game.unlockedAchievements].filter((id) => !game.claimedAchievements.has(id)).length}
+      dailyStipendReady={!game.claimedDailyToday}
       profile={game.profile}
       wallet={game.wallet}
       notifications={game.notifications}
@@ -119,6 +121,7 @@ function NovaAppContent() {
           transactions={game.transactions}
           claimedMissions={game.claimedMissions}
           claimedDailyToday={game.claimedDailyToday}
+          notifications={game.notifications}
           worldEvents={game.worldEvents}
           marketListings={game.marketListings}
           language={game.language}
@@ -137,6 +140,7 @@ function NovaAppContent() {
           inventory={game.inventory}
           marketListings={game.marketListings}
           worldEvents={game.worldEvents}
+          notifications={game.notifications}
           organizationIncomeBonusRate={Math.min(10, game.organizations.find((org) => org.id === game.profile?.orgId)?.research?.commerce ?? 0) * 0.005}
           language={game.language}
           onGoToMarket={() => setActiveTab('market')}
@@ -150,6 +154,7 @@ function NovaAppContent() {
           inventory={game.inventory}
           marketListings={game.marketListings}
           worldEvents={game.worldEvents}
+          notifications={game.notifications}
           language={game.language}
         />
       )}
@@ -179,6 +184,8 @@ function NovaAppContent() {
           userPrivate={game.userPrivate}
           claimedMissions={game.claimedMissions}
           unlockedAchievements={game.unlockedAchievements}
+          claimedAchievements={game.claimedAchievements}
+          notifications={game.notifications}
           diagnosticsContext={{
             profile: game.profile,
             wallet: game.wallet,

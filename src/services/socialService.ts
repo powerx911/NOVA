@@ -15,6 +15,7 @@ export type SocialDirectMessage = {
 export type SocialGlobalMessage = {
   id: string; senderUid: string; senderName: string; avatarId: string; text: string; createdAt: unknown;
 };
+export type SocialOrganizationMessage = { id: string; senderUid: string; senderName: string; text: string; createdAt: unknown };
 export type SocialOrgInvite = {
   id: string; orgId: string; orgName: string; orgTag: string;
   inviterName: string; status: string; targetUid: string;
@@ -32,6 +33,10 @@ export const listDirectMessages = async (conversationId: string) =>
   (await nexoraApi<{messages:SocialDirectMessage[]}>('list_direct_messages', { conversationId })).messages;
 export const listGlobalChatMessages = async () =>
   (await nexoraApi<{messages:SocialGlobalMessage[]}>('list_global_chat_messages')).messages;
+export const listOrganizationChatMessages = async (orgId: string) =>
+  (await nexoraApi<{messages:SocialOrganizationMessage[]}>('list_organization_chat_messages', { orgId })).messages;
+export const sendOrganizationChatMessage = (orgId: string, text: string) =>
+  nexoraApi<{ok:boolean}>('send_organization_chat_message', { orgId, text, requestId: crypto.randomUUID() });
 export const listOrganizationInvites = async () =>
   (await nexoraApi<{invites:SocialOrgInvite[]}>('list_organization_invites')).invites;
 export const openDirectConversation = (targetUid: string) =>

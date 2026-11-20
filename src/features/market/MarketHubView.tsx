@@ -50,6 +50,7 @@ interface MarketHubViewProps {
   inventory: InventoryItem[];
   marketListings: MarketListing[];
   worldEvents: WorldEvent[];
+  notifications: import('../../types/game').GameNotification[];
   language: Language;
 }
 
@@ -59,6 +60,7 @@ export function MarketHubView({
   inventory,
   marketListings,
   worldEvents,
+  notifications,
   language,
 }: MarketHubViewProps) {
   const t = useTranslations(language);
@@ -370,7 +372,7 @@ export function MarketHubView({
                 : 'bg-[#141821] text-[#9299A6] border border-white/8 hover:text-[#F4F5F7]'
             }`}
           >
-            {tab.label}
+            {tab.label}{tab.id === 'contracts' && notifications.some((n) => n.eventKey?.startsWith('contract-ready:') || (!n.read && (n.title === 'العقد جاهز للاستلام' || n.title === 'Contract ready to claim' || n.title === 'CONTRACT_READY'))) && <span className="ms-1 inline-flex h-2 w-2 rounded-full bg-red-500" />}
           </button>
         ))}
       </div>
@@ -716,6 +718,7 @@ export function MarketHubView({
           inventory={inventory}
           wallet={wallet}
           language={language}
+          notifications={notifications}
         />
       )}
 

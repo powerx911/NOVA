@@ -27,6 +27,8 @@ interface AppShellProps {
   wallet: Wallet | null;
   notifications: GameNotification[];
   socialUnreadCount: number;
+  unclaimedAchievementCount: number;
+  dailyStipendReady: boolean;
   language: Language;
   children: ReactNode;
 }
@@ -38,6 +40,8 @@ export function AppShell({
   wallet,
   notifications,
   socialUnreadCount,
+  unclaimedAchievementCount,
+  dailyStipendReady,
   language,
   children,
 }: AppShellProps) {
@@ -46,12 +50,13 @@ export function AppShell({
   const [locallyReadIds, setLocallyReadIds] = useState<Set<string>>(new Set());
   const isRead = (notification: GameNotification) => notification.read || locallyReadIds.has(notification.id);
   const unreadCount = notifications.filter((n) => !isRead(n)).length;
-  const missionReadyUnreadCount = notifications.filter((n) => !isRead(n) && ['مكافأة مهمة جاهزة', 'Mission reward ready'].includes(n.title)).length;
-  const contractReadyUnreadCount = notifications.filter((n) => !isRead(n) && ['العقد جاهز للاستلام', 'Contract ready to claim'].includes(n.title)).length;
-  const capacityAlertUnreadCount = notifications.filter((n) => !isRead(n) && ['خزنة الشركة ممتلئة', 'Company vault is full', 'مستودع المصنع ممتلئ', 'Factory warehouse is full'].includes(n.title)).length;
-  const navBadgeCount = (tab: MainTab) => tab === 'social' ? socialUnreadCount
+  const missionReadyUnreadCount = notifications.filter((n) => n.eventKey?.startsWith('mission-ready:') || (!isRead(n) && ['مكافأة مهمة جاهزة', 'Mission reward ready'].includes(n.title))).length;
+  const contractReadyUnreadCount = notifications.filter((n) => n.eventKey?.startsWith('contract-ready:') || (!isRead(n) && ['العقد جاهز للاستلام', 'Contract ready to claim', 'CONTRACT_READY'].includes(n.title))).length;
+  const capacityAlertUnreadCount = notifications.filter((n) => n.eventKey?.startsWith('company-vault-full:') || n.eventKey?.startsWith('factory-warehouse-full:') || (!isRead(n) && ['خزنة الشركة ممتلئة', 'Company vault is full', 'مستودع المصنع ممتلئ', 'Factory warehouse is full'].includes(n.title))).length;
+  const navBadgeCount = (tab: MainTab) => tab === 'home' ? (dailyStipendReady ? 1 : 0)
+    : tab === 'social' ? socialUnreadCount
     : tab === 'market' ? contractReadyUnreadCount
-    : tab === 'profile' ? missionReadyUnreadCount
+    : tab === 'profile' ? missionReadyUnreadCount + unclaimedAchievementCount
     : tab === 'business' ? capacityAlertUnreadCount : 0;
 
   const navItems: { id: MainTab; label: string; icon: typeof Home }[] = [
@@ -185,8 +190,10 @@ export function AppShell({
                     onClick={() => {
                       const ids = notifications.filter((n) => !isRead(n)).map((n) => n.id);
                       setLocallyReadIds((current) => new Set([...current, ...ids]));
+                      window.dispatchEvent(new CustomEvent('nova:notifications-read', { detail: { ids } }));
                       void markAllNotificationsRead(ids).catch(() => {
                         setLocallyReadIds((current) => new Set([...current].filter((id) => !ids.includes(id))));
+                        window.dispatchEvent(new CustomEvent('nova:notifications-unread', { detail: { ids } }));
                       });
                     }}
                     className="text-xs text-[#63A5FF] hover:underline px-2 py-1 whitespace-nowrap"
@@ -226,8 +233,10 @@ export function AppShell({
                           type="button"
                           onClick={() => {
                             setLocallyReadIds((current) => new Set([...current, n.id]));
+                            window.dispatchEvent(new CustomEvent('nova:notifications-read', { detail: { ids: [n.id] } }));
                             void markNotificationRead(n.id).catch(() => {
                               setLocallyReadIds((current) => { const next = new Set(current); next.delete(n.id); return next; });
+                              window.dispatchEvent(new CustomEvent('nova:notifications-unread', { detail: { ids: [n.id] } }));
                             });
                           }}
                           aria-label="Mark read"

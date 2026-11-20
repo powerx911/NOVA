@@ -669,6 +669,16 @@ Deno.serve(async (req: Request) => {
       return json({ ok: true, data }, 200, origin);
     }
 
+    if (body.action === "claim_achievement_reward") {
+      const achievementId = typeof body.achievementId === "string" ? body.achievementId : "";
+      const { data, error } = await db.rpc("claim_achievement_reward", { p_uid: identity.uid, p_achievement_id: achievementId });
+      if (error) {
+        const known = ["INVALID_ACHIEVEMENT","ACHIEVEMENT_NOT_UNLOCKED","ACHIEVEMENT_ALREADY_CLAIMED","ACCOUNT_NOT_FOUND"].find((code) => error.message.includes(code));
+        return json({ error: known ?? "ACHIEVEMENT_CLAIM_FAILED" }, 409, origin);
+      }
+      return json({ ok: true, data }, 200, origin);
+    }
+
     if (body.action === "unlock_eligible_achievements") {
       // Onboarding clients may request an achievement sync before a character exists.
       // Treat that state as an empty achievement set instead of surfacing ACCOUNT_NOT_FOUND.
@@ -707,7 +717,7 @@ Deno.serve(async (req: Request) => {
         const known = [
           "PLAYER_NOT_FOUND","INVALID_TARGET","INVALID_REPORT","REPORT_RATE_LIMIT","PLAYER_BLOCKED",
           "CONVERSATION_ACCESS_DENIED","INVALID_MESSAGE","EMPTY_MESSAGE","CHAT_RATE_LIMIT",
-          "PROFILE_NOT_FOUND","NOT_IN_ORG","INVITE_PERMISSION_REQUIRED","TARGET_ALREADY_IN_ORG",
+          "PROFILE_NOT_FOUND","NOT_IN_ORG","ORG_CHAT_ACCESS_DENIED","ORG_CHAT_NOT_AVAILABLE","INVITE_PERMISSION_REQUIRED","TARGET_ALREADY_IN_ORG",
           "INVITE_ALREADY_PENDING","INVITE_NOT_AVAILABLE","ALREADY_IN_ORG","ORG_FULL",
         ].find((code) => error.message.includes(code));
         return json({ error: known ?? "SOCIAL_OPERATION_FAILED" }, 409, origin);

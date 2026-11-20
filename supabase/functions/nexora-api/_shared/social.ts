@@ -26,6 +26,8 @@ export function getSocialAction(
     list_direct_messages: { rpc: "list_direct_messages", args: { p_user_id: uid, p_conversation_id: body.conversationId } },
     list_global_chat_messages: { rpc: "list_global_chat_messages", args: { p_user_id: uid } },
     list_organization_invites: { rpc: "list_organization_invites", args: { p_user_id: uid } },
+    list_organization_chat_messages: { rpc: "list_organization_chat_messages", args: { p_user_id: uid, p_org_id: typeof body.orgId === "string" ? body.orgId : "" } },
+    send_organization_chat_message: { rpc: "send_organization_chat_message", args: { p_user_id: uid, p_org_id: typeof body.orgId === "string" ? body.orgId : "", p_text: body.text, p_request_id: requestId } },
     invite_player_to_organization: { rpc: "invite_player_to_organization", args: { p_user_id: uid, p_target_uid: targetUid } },
     respond_organization_invite: { rpc: "respond_organization_invite", args: { p_user_id: uid, p_invite_id: body.inviteId, p_response: body.response } },
   };

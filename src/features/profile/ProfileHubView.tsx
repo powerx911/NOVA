@@ -18,6 +18,7 @@ import {
 } from '../../services/diagnosticsService';
 import {
   claimMissionReward,
+  claimAchievementReward,
   fetchLeaderboards,
   updatePlayerAvatar,
   updatePlayerSettings,
@@ -47,6 +48,8 @@ interface ProfileHubViewProps {
   userPrivate: UserPrivate | null;
   claimedMissions: PlayerMissionClaim[];
   unlockedAchievements: Set<string>;
+  claimedAchievements: Set<string>;
+  notifications: import('../../types/game').GameNotification[];
   diagnosticsContext: ClientSnapshotContext;
   language: Language;
   onLanguageChange: (lang: Language) => void;
@@ -60,6 +63,8 @@ export function ProfileHubView({
   userPrivate,
   claimedMissions,
   unlockedAchievements,
+  claimedAchievements,
+  notifications,
   diagnosticsContext,
   language,
   onLanguageChange,
@@ -189,6 +194,23 @@ export function ProfileHubView({
         : code === 'NO_SKILLS_TO_RESET'
         ? (language === 'ar' ? 'لا توجد مهارات مطوّرة لإعادة تعيينها.' : 'There are no upgraded skills to reset.')
         : (language === 'ar' ? 'تعذر إعادة تعيين المهارات.' : 'Could not reset skills.'), 'error');
+    } finally {
+      setBusyKey(null);
+    }
+  }
+
+  async function handleClaimAchievement(achievementId: string) {
+    setBusyKey(`ach_${achievementId}`);
+    try {
+      await claimAchievementReward(profile.uid, achievementId);
+      showToast(language === 'ar' ? 'تم استلام مكافأة الإنجاز.' : 'Achievement reward claimed.', 'success');
+    } catch (err) {
+      const code = err instanceof Error ? err.message : '';
+      showToast(code === 'ACHIEVEMENT_ALREADY_CLAIMED'
+        ? (language === 'ar' ? 'تم استلام هذه المكافأة بالفعل.' : 'This reward was already claimed.')
+        : code === 'ACHIEVEMENT_NOT_UNLOCKED'
+          ? (language === 'ar' ? 'الإنجاز لم يكتمل بعد.' : 'Achievement is not unlocked yet.')
+          : (language === 'ar' ? 'تعذر استلام مكافأة الإنجاز.' : 'Could not claim achievement reward.'), 'error');
     } finally {
       setBusyKey(null);
     }
@@ -352,7 +374,7 @@ export function ProfileHubView({
                 : 'bg-[#141821] text-[#9299A6] border border-white/8 hover:text-[#F4F5F7]'
             }`}
           >
-            {tab.label}
+            {tab.label}{tab.id === 'missions' && notifications.some((n) => n.eventKey?.startsWith('mission-ready:') || (!n.read && (n.title === 'مكافأة مهمة جاهزة' || n.title === 'Mission reward ready'))) && <span className="ms-1 inline-flex h-2 w-2 rounded-full bg-red-500" />}{tab.id === 'achievements' && [...unlockedAchievements].some((id) => !claimedAchievements.has(id)) && <span className="ms-1 inline-flex h-2 w-2 rounded-full bg-red-500" />}
           </button>
         ))}
       </div>
@@ -610,7 +632,7 @@ export function ProfileHubView({
                       <div key={m.id} className="bg-[#141821] border border-white/8 rounded-2xl p-5 flex flex-col justify-between gap-4">
                         <div className="space-y-1.5">
                           <div className="flex items-center justify-between gap-2">
-                            <h3 className="text-base font-bold text-[#F4F5F7]">{language === 'ar' ? m.titleAr : m.titleEn}</h3>
+                            <h3 className="text-base font-bold text-[#F4F5F7] flex items-center gap-2">{language === 'ar' ? m.titleAr : m.titleEn}{ready && <span className="inline-flex h-2.5 w-2.5 rounded-full bg-red-500 shrink-0" aria-label={language === 'ar' ? 'المكافأة جاهزة' : 'Reward ready'} />}</h3>
                             <Award className="w-4 h-4 text-[#E04455] shrink-0" />
                           </div>
                           <p className="text-xs text-[#9299A6]">{formatMissionCategory(m.category, language)} · <span className="font-mono-num">{Math.min(val, m.targetCount)}/{m.targetCount}</span></p>
@@ -659,6 +681,7 @@ export function ProfileHubView({
               <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
                 {ACHIEVEMENTS.filter((achievement) => achievement.group === group.id).map((ach) => {
                   const unlocked = unlockedAchievements.has(ach.id);
+                  const claimed = claimedAchievements.has(ach.id);
                   const val = getAchievementProgress(ach.metric, { ...profile, totalSpent: wallet?.totalSpent ?? 0 });
                   const pct = Math.min(100, Math.round((Math.min(val, ach.threshold) / ach.threshold) * 100));
                   const medalColor = ach.tier === 'platinum' ? 'text-cyan-200 border-cyan-300/40 bg-cyan-300/10' : ach.tier === 'gold' ? 'text-amber-300 border-amber-300/40 bg-amber-300/10' : ach.tier === 'silver' ? 'text-slate-200 border-slate-300/40 bg-slate-300/10' : 'text-orange-300 border-orange-400/40 bg-orange-500/10';
@@ -671,6 +694,7 @@ export function ProfileHubView({
                           <span className="text-[9px] font-black leading-none">{roman}</span>
                         </div>
                         <div className="min-w-0 flex-1">
+                          {unlocked && !claimed && <span className="mb-1 inline-flex h-2.5 w-2.5 rounded-full bg-red-500" aria-label={language === 'ar' ? 'المكافأة جاهزة' : 'Reward ready'} />}
                           <div className={`text-xs font-semibold ${unlocked ? 'text-emerald-300' : 'text-[#77808F]'}`}>{unlocked ? (language === 'ar' ? 'مكتملة' : 'Earned') : (language === 'ar' ? 'قيد التقدم' : 'In progress')}</div>
                         </div>
                       </div>
@@ -680,6 +704,8 @@ export function ProfileHubView({
                         <span className="font-mono-num text-emerald-300">+${(ach.rewardCredits ?? 0).toLocaleString()}</span>
                       </div>
                       <div className="h-1.5 rounded-full bg-[#141821] overflow-hidden"><div className={`h-full rounded-full ${unlocked ? 'bg-emerald-500' : 'bg-[#B91C32]'}`} style={{ width: `${pct}%` }} /></div>
+                      {unlocked && !claimed && <button type="button" disabled={busyKey === `ach_${ach.id}`} onClick={() => void handleClaimAchievement(ach.id)} className="w-full min-h-[38px] rounded-lg bg-[#B91C32] hover:bg-[#E04455] text-white text-xs font-bold disabled:opacity-50">{busyKey === `ach_${ach.id}` ? '...' : (language === 'ar' ? 'استلام المكافأة' : 'Claim reward')}</button>}
+                      {claimed && <p className="text-[11px] font-semibold text-emerald-300">{language === 'ar' ? 'تم استلام المكافأة' : 'Reward claimed'}</p>}
                     </article>
                   );
                 })}

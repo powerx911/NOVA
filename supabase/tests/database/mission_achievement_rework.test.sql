@@ -1,7 +1,7 @@
 -- Regression coverage for the redesigned recurring missions and long-term medal tracks.
 create extension if not exists pgtap with schema extensions;
 begin;
-select extensions.plan(14);
+select extensions.plan(16);
 
 insert into nexora.player_profiles(user_id,username,username_lower,stats)
 values('pgtap_rework_owner','pgTAP_Rework','pgtap_rework',
@@ -82,6 +82,9 @@ select extensions.ok(
   'seasonal manufacturing objective validates completed manufacturing batches'
 );
 
+create temporary table pgtap_achievement_balance_before as
+select balance from nexora.wallets where user_id='pgtap_rework_owner';
+
 select nexora.unlock_eligible_achievements('pgtap_rework_owner');
 select extensions.is(
   (select count(*)::integer from nexora.player_achievements where user_id='pgtap_rework_owner'
@@ -89,12 +92,28 @@ select extensions.is(
   4,
   'new achievement tracks unlock from verified lifetime spending, trades, production and company revenue'
 );
-select extensions.is((select balance from nexora.wallets where user_id='pgtap_rework_owner'),167470::bigint,
-  'achievement rewards are credited exactly with the four eligible first-tier medals');
+select extensions.is(
+  (select balance from nexora.wallets where user_id='pgtap_rework_owner'),
+  (select balance from pgtap_achievement_balance_before),
+  'unlocking achievements leaves their rewards uncredited until the player claims them'
+);
 select extensions.is(
   (nexora.unlock_eligible_achievements('pgtap_rework_owner')->>'new_rewards')::bigint,
   0::bigint,
-  'refreshing achievements does not pay previously granted medals again'
+  'refreshing achievements does not create duplicate claimable rewards'
+);
+select nexora.claim_achievement_reward('pgtap_rework_owner','nova_whale_i');
+select nexora.claim_achievement_reward('pgtap_rework_owner','nova_market_i');
+select nexora.claim_achievement_reward('pgtap_rework_owner','nova_industry_i');
+select nexora.claim_achievement_reward('pgtap_rework_owner','nova_enterprise_i');
+select extensions.is(
+  (select balance from nexora.wallets where user_id='pgtap_rework_owner'),
+  (select balance from pgtap_achievement_balance_before)+10500::bigint,
+  'claiming four completed first-tier achievements credits each configured reward once'
+);
+select extensions.throws_ok(
+  'select nexora.claim_achievement_reward(''pgtap_rework_owner'',''nova_whale_i'')',
+  'P0001','ACHIEVEMENT_ALREADY_CLAIMED','achievement reward cannot be claimed twice'
 );
 select extensions.is(
   (select count(*)::integer from nexora.player_achievements where user_id='pgtap_rework_owner'
