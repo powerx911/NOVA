@@ -1,19 +1,19 @@
 # Recovered Supabase SQL source archive
 
 **Original recovery snapshot:** 42 / 42 remote migration sources recovered, plus 13 untracked SQL statement events (2026-11-19).  
-**Current production ledger:** 74 applied migration records (read-only inventory, 2026-11-20).
+**Current production ledger:** 77 applied migration records (read-only inventory, 2026-11-20).
 
 Project: `hmrprnjhyzyefocdmnxf`
 
 ## Current source reconciliation
 
-- The current production ledger contains 74 rows in `supabase_migrations.schema_migrations`.
-- The source manifest at `supabase/ci/production_migration_manifest.json` maps all 74 records to source paths and Git blob hashes.
+- The current production ledger contains 77 rows in `supabase_migrations.schema_migrations`.
+- The source manifest at `supabase/ci/production_migration_manifest.json` maps all 77 records to source paths and Git blob hashes.
 - 21 records currently use recovered-history files as their canonical available source.
 - 21 records have additional historical variants with different Git blob hashes. These variants are forensic evidence; do not overwrite one with another without a reviewed SQL diff.
 - The applied production hotfix `20261120132839_nova_production_company_parity_hotfix_20261120` was recovered directly from its `statements` array and restored to `supabase/migrations/20261120132839_nova_production_company_parity_hotfix_20261120.sql`.
-- The base `main` branch had 70 tracked migration files. The current hardening branch has additional pending migrations; do not count those as applied production migrations.
-- Twenty local migration files are not mapped by name to the current ledger. This is a name-mapping gap, not proof that they are pending or unapplied.
+- The current `main` branch contains 74 tracked migration files. The three hardening migrations were applied to production on 2026-11-20 and are included in the 77-row ledger.
+- Eighteen local migration files are not mapped by name to the current ledger. This is a name-mapping gap, not proof that they are pending or unapplied.
 
 ## Original recovered migration sources
 
@@ -28,7 +28,7 @@ Project: `hmrprnjhyzyefocdmnxf`
 
 The historical replay workflow replays the recovered SQL archive on a disposable GitHub Actions Supabase stack, then applies a curated set of canonical migrations and runs pgTAP. Both database workflows validate the production migration source manifest before replay.
 
-The workflow's curated migration list is not a substitute for a complete fresh-project replay. The repository keeps two data-free baselines: `supabase/ci/nexora_schema_snapshot.sql` for historical migration replay and gameplay tests, and `supabase/ci/nexora_production_schema_snapshot.sql` exported read-only from production on 2026-11-20. The production snapshot contains 45 tables, 144 functions, 37 triggers, 97 indexes and 167 constraints. CI verifies it separately after running the historical migration chain.
+The workflow's curated migration list is not a substitute for a complete fresh-project replay. The repository keeps two data-free baselines: `supabase/ci/nexora_schema_snapshot.sql` for historical migration replay and gameplay tests, and `supabase/ci/nexora_production_schema_snapshot.sql` exported read-only from production on 2026-11-20. The production snapshot contains 45 tables, 145 functions (132 SECURITY DEFINER), 37 triggers, 97 indexes and 167 constraints. CI verifies it separately after running the historical migration chain.
 
 ## Safety
 
