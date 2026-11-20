@@ -250,7 +250,7 @@ export async function buyMarketListing(
   }
 }
 
-export async function buyMissingResources(items: MissingResourcePurchaseItem[]): Promise<void> {
+export async function buyMissingResources(items: MissingResourcePurchaseItem[], requirements: Array<{ itemId: string; quantity: number }>): Promise<void> {
   if (!items.length || items.length > 100) throw new Error('INVALID_PURCHASE_PLAN');
   const normalized = items.map((item) => ({
     listingId: item.listingId,
@@ -262,7 +262,7 @@ export async function buyMissingResources(items: MissingResourcePurchaseItem[]):
     throw new Error('INVALID_PURCHASE_PLAN');
   }
   try {
-    await nexoraApi('buy_missing_resources', { items: normalized });
+    await nexoraApi('buy_missing_resources', { items: normalized, requirements });
     if (typeof window !== 'undefined') window.dispatchEvent(new Event('nova:refresh-game'));
   } catch (error) {
     if (error instanceof Error && 'code' in error) throw new Error(String((error as { code?: unknown }).code ?? 'MISSING_RESOURCE_PURCHASE_FAILED'));
