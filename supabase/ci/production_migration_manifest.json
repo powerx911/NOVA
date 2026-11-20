@@ -4,7 +4,7 @@
   "repository": "powerx911/NOVA",
   "production_project_id": "hmrprnjhyzyefocdmnxf",
   "production_ledger_records": 81,
-  "tracked_migration_files": 79,
+  "tracked_migration_files": 80,
   "recovered_history_sql_files": 55,
   "production_schema_inventory": {
     "tables": 46,
@@ -20,7 +20,7 @@
     "records_missing_source": 0,
     "records_recovered_only": 21,
     "records_with_additional_variants": 21,
-    "local_migration_files_not_mapped_to_applied_record": 19
+    "local_migration_files_not_mapped_to_applied_record": 20
   },
   "entries": [
     {
