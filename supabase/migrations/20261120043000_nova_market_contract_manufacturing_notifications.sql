@@ -523,7 +523,7 @@ begin
   select c.cooldown_until into v_until
   from nexora.contract_slot_cooldowns c
   where c.scope=new.scope and c.owner_id=v_owner_id
-    and c.slot_no=new.slot_no and c.board_date=new.board_date
+    and c.slot_no=new.slot_no
   order by c.cooldown_until desc limit 1
   for update;
 
@@ -532,8 +532,7 @@ begin
   if v_until is not null then
     delete from nexora.contract_slot_cooldowns c
     where c.scope=new.scope and c.owner_id=v_owner_id
-      and c.slot_no=new.slot_no and c.board_date=new.board_date
-      and c.cooldown_until<=now();
+      and c.slot_no=new.slot_no and c.cooldown_until<=now();
   end if;
   return new;
 end;
@@ -607,7 +606,7 @@ begin
         select slot_no,max(board_date) as board_date,max(cooldown_until) as cooldown_until
         from nexora.contract_slot_cooldowns
         where scope='organization' and owner_id=v_org_id
-          and board_date=(now() at time zone 'UTC')::date and cooldown_until>now()
+          and cooldown_until>now()
         group by slot_no
       ) c
     ),'[]'::jsonb)
