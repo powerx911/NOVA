@@ -50,9 +50,9 @@ export function AppShell({
   const [locallyReadIds, setLocallyReadIds] = useState<Set<string>>(new Set());
   const isRead = (notification: GameNotification) => notification.read || locallyReadIds.has(notification.id);
   const unreadCount = notifications.filter((n) => !isRead(n)).length;
-  const missionReadyUnreadCount = notifications.filter((n) => !isRead(n) && ['مكافأة مهمة جاهزة', 'Mission reward ready'].includes(n.title)).length;
-  const contractReadyUnreadCount = notifications.filter((n) => !isRead(n) && ['العقد جاهز للاستلام', 'Contract ready to claim'].includes(n.title)).length;
-  const capacityAlertUnreadCount = notifications.filter((n) => !isRead(n) && ['خزنة الشركة ممتلئة', 'Company vault is full', 'مستودع المصنع ممتلئ', 'Factory warehouse is full'].includes(n.title)).length;
+  const missionReadyUnreadCount = notifications.filter((n) => !isRead(n) && (n.eventKey?.startsWith('mission-ready:') || ['مكافأة مهمة جاهزة', 'Mission reward ready'].includes(n.title))).length;
+  const contractReadyUnreadCount = notifications.filter((n) => !isRead(n) && (n.eventKey?.startsWith('contract-ready:') || ['العقد جاهز للاستلام', 'Contract ready to claim', 'CONTRACT_READY'].includes(n.title))).length;
+  const capacityAlertUnreadCount = notifications.filter((n) => !isRead(n) && (n.eventKey?.startsWith('company-vault-full:') || n.eventKey?.startsWith('factory-warehouse-full:') || ['خزنة الشركة ممتلئة', 'Company vault is full', 'مستودع المصنع ممتلئ', 'Factory warehouse is full'].includes(n.title))).length;
   const navBadgeCount = (tab: MainTab) => tab === 'home' ? (dailyStipendReady ? 1 : 0)
     : tab === 'social' ? socialUnreadCount
     : tab === 'market' ? contractReadyUnreadCount
