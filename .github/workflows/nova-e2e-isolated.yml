@@ -111,6 +111,10 @@ jobs:
             -d "$(jq -n --arg idToken "$id_token" '{idToken:$idToken,emailVerified:true,returnSecureToken:true}')" \
             >/dev/null
           token="$(openssl rand -hex 32)"
+          # These are disposable credentials, but mask them from public workflow logs.
+          echo "::add-mask::$password"
+          echo "::add-mask::$uid"
+          echo "::add-mask::$token"
           {
             echo "NOVA_E2E_EMAIL=$email"
             echo "NOVA_E2E_PASSWORD=$password"
