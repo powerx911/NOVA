@@ -104,12 +104,32 @@ jobs:
           uid="$(printf '%s' "$response" | jq -r '.localId // empty')"
           id_token="$(printf '%s' "$response" | jq -r '.idToken // empty')"
           test -n "$uid" && test -n "$id_token" || { echo "Firebase Auth emulator failed to create the disposable account"; exit 1; }
-          # NOVA's sign-in UX requires verified email; mark only this emulator user verified.
+          # Verify this disposable account through the Auth emulator's OOB flow.
+          curl -fsS -X POST \
+            'http://127.0.0.1:9099/identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key=fake-api-key' \
+            -H 'Content-Type: application/json' \
+            -d "$(jq -n --arg idToken "$id_token" '{requestType:"VERIFY_EMAIL",idToken:$idToken}')" \
+            >/dev/null
+          oob_code=""
+          for attempt in $(seq 1 30); do
+            oob_response="$(curl -fsS \
+              'http://127.0.0.1:9099/emulator/v1/projects/gen-lang-client-0074900177/oobCodes')"
+            oob_code="$(printf '%s' "$oob_response" | jq -r --arg email "$email" \
+              '[.oobCodes[] | select(.email == $email and .requestType == "VERIFY_EMAIL")][0].oobCode // empty')"
+            test -n "$oob_code" && break
+            sleep 1
+          done
+          test -n "$oob_code" || { echo "Firebase Auth emulator did not produce an email verification code"; exit 1; }
           curl -fsS -X POST \
             'http://127.0.0.1:9099/identitytoolkit.googleapis.com/v1/accounts:update?key=fake-api-key' \
             -H 'Content-Type: application/json' \
-            -d "$(jq -n --arg idToken "$id_token" '{idToken:$idToken,emailVerified:true,returnSecureToken:true}')" \
+            -d "$(jq -n --arg oobCode "$oob_code" '{oobCode:$oobCode}')" \
             >/dev/null
+          verified="$(curl -fsS -X POST \
+            'http://127.0.0.1:9099/identitytoolkit.googleapis.com/v1/accounts:lookup?key=fake-api-key' \
+            -H 'Content-Type: application/json' \
+            -d "$(jq -n --arg idToken "$id_token" '{idToken:$idToken}')" | jq -r '.users[0].emailVerified // false')"
+          test "$verified" = "true" || { echo "Firebase Auth emulator account remained unverified"; exit 1; }
           token="$(openssl rand -hex 32)"
           # These are disposable credentials, but mask them from public workflow logs.
           echo "::add-mask::$password"
