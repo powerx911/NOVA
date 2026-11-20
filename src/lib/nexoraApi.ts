@@ -47,7 +47,7 @@ export async function nexoraApi<T>(
     );
   }
   if (result.ok !== true) throw new NexoraApiError('INVALID_API_RESPONSE', 502);
-  if (!READ_ONLY_ACTIONS.has(action) && typeof window !== 'undefined') {
+  if (!READ_ONLY_ACTIONS.has(action) && action !== 'delete_account' && typeof window !== 'undefined') {
     window.dispatchEvent(new Event('nova:refresh-game'));
   }
   return result.data as T;
