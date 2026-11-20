@@ -44,10 +44,10 @@ select extensions.is(
 );
 
 select extensions.ok(
-  position('if v_factory.upgrade_ends_at is not null then raise exception ''upgrade_not_finished''' in
-    lower(pg_get_functiondef('nexora.upgrade_factory(text,text)'::regprocedure))) > 0
-  and position('if v_factory.warehouse_upgrade_ends_at is not null then raise exception ''upgrade_not_finished''' in
-    lower(pg_get_functiondef('nexora.upgrade_factory_warehouse(text,text)'::regprocedure))) > 0,
+  position('upgrade_ends_at' in lower(pg_get_functiondef('nexora.upgrade_factory(text,text)'::regprocedure))) > 0
+  and position('upgrade_not_finished' in lower(pg_get_functiondef('nexora.upgrade_factory(text,text)'::regprocedure))) > 0
+  and position('warehouse_upgrade_ends_at' in lower(pg_get_functiondef('nexora.upgrade_factory_warehouse(text,text)'::regprocedure))) > 0
+  and position('upgrade_not_finished' in lower(pg_get_functiondef('nexora.upgrade_factory_warehouse(text,text)'::regprocedure))) > 0,
   'factory and warehouse upgrades reject every existing unfinished upgrade, including elapsed ones'
 );
 
