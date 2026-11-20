@@ -364,6 +364,110 @@ revoke all on function nexora.send_organization_chat_message(text,text,text,uuid
 grant execute on function nexora.list_organization_chat_messages(text,text) to service_role;
 grant execute on function nexora.send_organization_chat_message(text,text,text,uuid) to service_role;
 
+-- Clear readiness notifications when their underlying reward/action is claimed.
+create or replace function nexora.mark_mission_reward_notification_claimed()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $function$
+begin
+  update nexora.notifications set is_read=true
+  where user_id=new.user_id
+    and event_key='mission-ready:'||new.mission_id||':'||new.period_key;
+  return new;
+end;
+$function$;
+drop trigger if exists nova_mark_mission_reward_notification_claimed on nexora.player_missions;
+create trigger nova_mark_mission_reward_notification_claimed
+after insert on nexora.player_missions
+for each row execute function nexora.mark_mission_reward_notification_claimed();
+
+create or replace function nexora.mark_company_vault_notification_claimed()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $function$
+begin
+  if new.vault_balance<old.vault_balance
+    or new.last_collected_at is distinct from old.last_collected_at
+    or new.vault_level>old.vault_level then
+    update nexora.notifications set is_read=true
+    where user_id=new.owner_uid
+      and (event_key like 'company-vault-full:'||new.id||':%'
+        or (event_key is null and title in ('خزنة الشركة ممتلئة','Company vault is full')
+          and body like '%'||new.name||'%'));
+  end if;
+  return new;
+end;
+$function$;
+drop trigger if exists nova_mark_company_vault_notification_claimed on nexora.companies;
+create trigger nova_mark_company_vault_notification_claimed
+after update of vault_balance,last_collected_at,vault_level on nexora.companies
+for each row execute function nexora.mark_company_vault_notification_claimed();
+
+create or replace function nexora.mark_factory_warehouse_notification_claimed()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $function$
+begin
+  if new.warehouse_qty<old.warehouse_qty or new.warehouse_level>old.warehouse_level then
+    update nexora.notifications set is_read=true
+    where user_id=new.owner_uid
+      and (event_key like 'factory-warehouse-full:'||new.id||':%'
+        or (event_key is null and title in ('مستودع المصنع ممتلئ','Factory warehouse is full')
+          and body like '%'||new.name||'%'));
+  end if;
+  return new;
+end;
+$function$;
+drop trigger if exists nova_mark_factory_warehouse_notification_claimed on nexora.factories;
+create trigger nova_mark_factory_warehouse_notification_claimed
+after update of warehouse_qty,warehouse_level on nexora.factories
+for each row execute function nexora.mark_factory_warehouse_notification_claimed();
+
+-- The legacy claim path could insert a title-only notification while settling a
+-- processing contract. Route it through the same idempotent event key as the
+-- background notifier, and clear it immediately when the reward is claimed.
+do $patch$
+declare
+  v_definition text;
+  v_old_notification text := $old$
+insert into nexora.notifications(id,user_id,title,body,type,is_read)
+    select 'ntf_'||gen_random_uuid()::text,p_uid,'CONTRACT_READY','Your contract is ready to claim','economy',false
+    where exists(select 1 from nexora.player_private pp where pp.user_id=p_uid and pp.notifications_enabled=true);$old$;
+  v_new_notification text := $new$
+perform nexora.emit_notification_once(
+      p_uid,'contract-ready:'||p_contract_id,
+      'العقد جاهز للاستلام','Contract ready to claim',
+      'أصبحت مكافأة أحد عقودك جاهزة للاستلام.','A contract reward is ready to claim.','economy'
+    );$new$;
+  v_old_completion text := $completion$
+update nexora.contract_offers set status='completed',completed_at=now(),updated_at=now() where id=p_contract_id;$completion$;
+  v_new_completion text := $completion$
+update nexora.contract_offers set status='completed',completed_at=now(),updated_at=now() where id=p_contract_id;
+  update nexora.notifications set is_read=true
+  where user_id=p_uid and event_key='contract-ready:'||p_contract_id;$completion$;
+begin
+  select pg_get_functiondef('nexora.claim_dynamic_contract(text,text)'::regprocedure)
+    into v_definition;
+  if position(v_old_notification in v_definition)=0
+    or position(v_old_completion in v_definition)=0 then
+    raise exception 'CONTRACT_NOTIFICATION_PATCH_FAILED';
+  end if;
+  v_definition:=replace(v_definition,v_old_notification,v_new_notification);
+  v_definition:=replace(v_definition,v_old_completion,v_new_completion);
+  execute v_definition;
+end;
+$patch$;
+
+revoke all on function nexora.mark_mission_reward_notification_claimed() from public,anon,authenticated;
+revoke all on function nexora.mark_company_vault_notification_claimed() from public,anon,authenticated;
+revoke all on function nexora.mark_factory_warehouse_notification_claimed() from public,anon,authenticated;
+
 -- Run the daily notification sweep on the server; bootstrap also checks immediately
 -- for a player returning to the game after the UTC reset.
 do $do$
