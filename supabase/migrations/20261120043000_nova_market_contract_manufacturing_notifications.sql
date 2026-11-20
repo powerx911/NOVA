@@ -291,12 +291,6 @@ $function$;
 
 revoke all on function nexora.settle_finished_manufacturing_jobs() from public,anon,authenticated;
 grant execute on function nexora.settle_finished_manufacturing_jobs() to service_role;
-revoke all on function nexora.notify_full_company_vaults() from public,anon,authenticated;
-revoke all on function nexora.sync_all_factory_production() from public,anon,authenticated;
-revoke all on function nexora.notify_full_factory_warehouses() from public,anon,authenticated;
-grant execute on function nexora.notify_full_company_vaults() to service_role;
-grant execute on function nexora.sync_all_factory_production() to service_role;
-grant execute on function nexora.notify_full_factory_warehouses() to service_role;
 
 -- Notify when a mission first becomes claimable. The event key includes the mission period,
 -- so a daily/weekly/seasonal mission can notify again in its next period.
