@@ -49,6 +49,7 @@ interface ProfileHubViewProps {
   claimedMissions: PlayerMissionClaim[];
   unlockedAchievements: Set<string>;
   claimedAchievements: Set<string>;
+  notifications: import('../../types/game').GameNotification[];
   diagnosticsContext: ClientSnapshotContext;
   language: Language;
   onLanguageChange: (lang: Language) => void;
@@ -63,6 +64,7 @@ export function ProfileHubView({
   claimedMissions,
   unlockedAchievements,
   claimedAchievements,
+  notifications,
   diagnosticsContext,
   language,
   onLanguageChange,
@@ -372,7 +374,7 @@ export function ProfileHubView({
                 : 'bg-[#141821] text-[#9299A6] border border-white/8 hover:text-[#F4F5F7]'
             }`}
           >
-            {tab.label}{tab.id === 'achievements' && [...unlockedAchievements].some((id) => !claimedAchievements.has(id)) && <span className="ms-1 inline-flex h-2 w-2 rounded-full bg-red-500" />}
+            {tab.label}{tab.id === 'missions' && notifications.some((n) => !n.read && (n.title === 'مكافأة مهمة جاهزة' || n.title === 'Mission reward ready')) && <span className="ms-1 inline-flex h-2 w-2 rounded-full bg-red-500" />}{tab.id === 'achievements' && [...unlockedAchievements].some((id) => !claimedAchievements.has(id)) && <span className="ms-1 inline-flex h-2 w-2 rounded-full bg-red-500" />}
           </button>
         ))}
       </div>
@@ -630,7 +632,7 @@ export function ProfileHubView({
                       <div key={m.id} className="bg-[#141821] border border-white/8 rounded-2xl p-5 flex flex-col justify-between gap-4">
                         <div className="space-y-1.5">
                           <div className="flex items-center justify-between gap-2">
-                            <h3 className="text-base font-bold text-[#F4F5F7]">{language === 'ar' ? m.titleAr : m.titleEn}</h3>
+                            <h3 className="text-base font-bold text-[#F4F5F7] flex items-center gap-2">{language === 'ar' ? m.titleAr : m.titleEn}{ready && <span className="inline-flex h-2.5 w-2.5 rounded-full bg-red-500 shrink-0" aria-label={language === 'ar' ? 'المكافأة جاهزة' : 'Reward ready'} />}</h3>
                             <Award className="w-4 h-4 text-[#E04455] shrink-0" />
                           </div>
                           <p className="text-xs text-[#9299A6]">{formatMissionCategory(m.category, language)} · <span className="font-mono-num">{Math.min(val, m.targetCount)}/{m.targetCount}</span></p>
@@ -692,6 +694,7 @@ export function ProfileHubView({
                           <span className="text-[9px] font-black leading-none">{roman}</span>
                         </div>
                         <div className="min-w-0 flex-1">
+                          {unlocked && !claimed && <span className="mb-1 inline-flex h-2.5 w-2.5 rounded-full bg-red-500" aria-label={language === 'ar' ? 'المكافأة جاهزة' : 'Reward ready'} />}
                           <div className={`text-xs font-semibold ${unlocked ? 'text-emerald-300' : 'text-[#77808F]'}`}>{unlocked ? (language === 'ar' ? 'مكتملة' : 'Earned') : (language === 'ar' ? 'قيد التقدم' : 'In progress')}</div>
                         </div>
                       </div>
