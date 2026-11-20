@@ -97,9 +97,9 @@ begin
     'v_cost:=v_company.level*550;',
     'v_cost:=nexora.company_upgrade_cost(v_company.sector,v_company.level);');
   v_definition := regexp_replace(v_definition,
-    'v_duration_ms[[:space:]]*:=.*?;','v_duration_ms := round(1.2 * power(v_target::numeric, 1.2) * 60 * 1000);','');
+    'v_duration_ms[[:space:]]*:=([^\n;]*);','v_duration_ms := round(1.2 * power(v_target::numeric, 1.2) * 60 * 1000);','g');
   v_definition := regexp_replace(v_definition,
-    'v_duration[[:space:]]*:=.*?;','v_duration := round(1.2 * power(v_target::numeric, 1.2) * 60 * 1000);','');
+    'v_duration[[:space:]]*:=([^\n;]*);','v_duration := round(1.2 * power(v_target::numeric, 1.2) * 60 * 1000);','g');
   if position('company_upgrade_cost' in v_definition) = 0
      or position('power(v_target::numeric, 1.2)' in v_definition) = 0 then
     raise exception 'COMPANY_CURVE_PATCH_FAILED';

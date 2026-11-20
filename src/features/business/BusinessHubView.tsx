@@ -29,7 +29,7 @@ import {
   getCompanyVaultLevel,
   getPlayerInventoryCapacity,
 } from '../../lib/economy';
-import { companyUpgradeCost, companyUpgradeDurationMs, vaultUpgradeDurationSeconds } from '../../lib/businessEconomy';
+import { companyUpgradeCost, companyUpgradeDurationMs, getCompanySectorLevelGain, vaultUpgradeDurationSeconds } from '../../lib/businessEconomy';
 import {
   collectCompanyRevenue,
   deleteCompany,
@@ -503,7 +503,7 @@ export function BusinessHubView({
                   : false;
                 const vaultProgress = Math.min(100, (accrued / vaultCapacity) * 100);
                 const sectorSpec = COMPANY_SECTORS.find((s) => s.sector === c.sector);
-                const upgradeCost = companyUpgradeCost(sectorSpec?.foundingCost ?? 0, c.level);
+                const upgradeCost = companyUpgradeCost(sectorSpec?.foundingCost ?? 0, c.level, getCompanySectorLevelGain(c.sector));
                 const companyUpgradeDuration = companyUpgradeDurationMs(c.level + 1);
                 const vaultUpgradeDuration = vaultUpgradeDurationSeconds(vaultLevel + 1) * 1000;
                 const companyUpgradeEndsAt = c.levelUpgradeEndsAt ? timestampToMs(c.levelUpgradeEndsAt) : 0;
