@@ -346,7 +346,7 @@ begin
   v_capacity:=v_caps[greatest(1,least(5,coalesce(new.vault_level,1)))];
   if coalesce(old.vault_balance,0)<v_capacity and coalesce(new.vault_balance,0)>=v_capacity then
     perform nexora.emit_notification_once(
-      new.owner_uid,'company-vault-full:'||new.id||':'||coalesce(new.last_collected_at,new.created_at,now())::text,
+      new.owner_uid,'company-vault-full:'||new.id||':'||new.vault_level||':'||coalesce(new.last_collected_at,new.created_at,now())::text,
       'خزنة الشركة ممتلئة','Company vault is full',
       'وصلت خزنة أرباح شركة «'||new.name||'» إلى سعتها القصوى. حصّل الإيرادات لتجنب ضياع الدخل القادم.',
       'The profit vault for "'||new.name||'" is full. Collect revenue so future income is not lost.','economy'
@@ -699,7 +699,7 @@ begin
     if v_balance>=v_capacity then
       perform nexora.emit_notification_once(
         v_company.owner_uid,
-        'company-vault-full:'||v_company.id||':'||coalesce(v_company.last_collected_at,v_company.created_at,now())::text,
+        'company-vault-full:'||v_company.id||':'||v_company.vault_level||':'||coalesce(v_company.last_collected_at,v_company.created_at,now())::text,
         'خزنة الشركة ممتلئة','Company vault is full',
         'وصلت خزنة أرباح شركة «'||v_company.name||'» إلى سعتها القصوى. حصّل الإيرادات لتجنب ضياع الدخل القادم.',
         'The profit vault for "'||v_company.name||'" is full. Collect revenue so future income is not lost.','economy'
