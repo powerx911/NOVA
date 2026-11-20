@@ -46,6 +46,13 @@ export function AppShell({
   const [locallyReadIds, setLocallyReadIds] = useState<Set<string>>(new Set());
   const isRead = (notification: GameNotification) => notification.read || locallyReadIds.has(notification.id);
   const unreadCount = notifications.filter((n) => !isRead(n)).length;
+  const missionReadyUnreadCount = notifications.filter((n) => !isRead(n) && ['مكافأة مهمة جاهزة', 'Mission reward ready'].includes(n.title)).length;
+  const contractReadyUnreadCount = notifications.filter((n) => !isRead(n) && ['العقد جاهز للاستلام', 'Contract ready to claim'].includes(n.title)).length;
+  const capacityAlertUnreadCount = notifications.filter((n) => !isRead(n) && ['خزنة الشركة ممتلئة', 'Company vault is full', 'مستودع المصنع ممتلئ', 'Factory warehouse is full'].includes(n.title)).length;
+  const navBadgeCount = (tab: MainTab) => tab === 'social' ? socialUnreadCount
+    : tab === 'market' ? contractReadyUnreadCount
+    : tab === 'profile' ? missionReadyUnreadCount
+    : tab === 'business' ? capacityAlertUnreadCount : 0;
 
   const navItems: { id: MainTab; label: string; icon: typeof Home }[] = [
     { id: 'home', label: t.navHome, icon: Home },
@@ -91,7 +98,7 @@ export function AppShell({
                       : 'text-[#9AAAC7] border-transparent hover:text-[#EAF1FF]'
                   }`}
                 >
-                  {item.label}{item.id === 'social' && socialUnreadCount > 0 && <span className="ms-1 inline-flex min-w-4 h-4 px-1 rounded-full bg-red-600 text-[9px] font-bold text-white items-center justify-center">{socialUnreadCount}</span>}
+                  {item.label}{navBadgeCount(item.id) > 0 && <span className="ms-1 inline-flex min-w-4 h-4 px-1 rounded-full bg-red-600 text-[9px] font-bold text-white items-center justify-center">{navBadgeCount(item.id)}</span>}
                 </button>
               );
             })}
@@ -153,7 +160,7 @@ export function AppShell({
                 }`}
               >
                 <Icon className="w-5 h-5" strokeWidth={isActive ? 2.3 : 1.8} />
-                {item.id === 'social' && socialUnreadCount > 0 && <span className="absolute top-1 end-2 min-w-4 h-4 px-1 rounded-full bg-red-600 text-[9px] font-bold text-white flex items-center justify-center">{socialUnreadCount}</span>}
+                {navBadgeCount(item.id) > 0 && <span className="absolute top-1 end-2 min-w-4 h-4 px-1 rounded-full bg-red-600 text-[9px] font-bold text-white flex items-center justify-center">{navBadgeCount(item.id)}</span>}
                 <span className="block w-full min-w-0 overflow-hidden text-ellipsis whitespace-nowrap px-0.5 text-center text-[10px] sm:text-[11px] font-medium">{item.label}</span>
               </button>
             );
