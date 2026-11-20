@@ -6884,16 +6884,19 @@ as $function$
 declare
   v_negotiation integer := 0;
 begin
-  if tg_op = 'INSERT' or new.base_payout is distinct from old.base_payout then
-    new.base_payout := coalesce(new.base_payout, new.payout);
-    if new.scope = 'personal' and new.user_id is not null then
-      select coalesce((skills->>'negotiation')::integer, 0)
-        into v_negotiation
-      from nexora.player_profiles
-      where user_id = new.user_id;
+  if tg_op = 'UPDATE' then
+    if new.base_payout is not distinct from old.base_payout then
+      return new;
     end if;
-    new.payout := round(new.base_payout * (1 + greatest(0, least(10, v_negotiation)) * 0.07))::bigint;
   end if;
+  new.base_payout := coalesce(new.base_payout, new.payout);
+  if new.scope = 'personal' and new.user_id is not null then
+    select coalesce((skills->>'negotiation')::integer, 0)
+      into v_negotiation
+    from nexora.player_profiles
+    where user_id = new.user_id;
+  end if;
+  new.payout := round(new.base_payout * (1 + greatest(0, least(10, v_negotiation)) * 0.07))::bigint;
   return new;
 end;
 $function$;
