@@ -34,8 +34,8 @@ select extensions.ok(
 );
 
 select extensions.ok(
-  position('2500' in pg_get_functiondef('nexora.upgrade_factory_warehouse(text,text)')) > 0
-  and position('720' in pg_get_functiondef('nexora.upgrade_factory_warehouse(text,text)')) > 0,
+  position('2500' in pg_get_functiondef('nexora.upgrade_factory_warehouse(text,text)'::regprocedure)) > 0
+  and position('720' in pg_get_functiondef('nexora.upgrade_factory_warehouse(text,text)'::regprocedure)) > 0,
   'warehouse costs and the final warehouse duration are present'
 );
 
