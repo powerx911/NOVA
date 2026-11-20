@@ -12,7 +12,7 @@ begin
 
   v_definition := regexp_replace(
     v_definition,
-    'v_cost[[:space:]]*:=.*?;',
+    'v_cost[[:space:]]*:=[^;]*;',
     'v_cost:=ceil(v_cfg.founding_cost*0.18*power(v_factory.level::numeric,1.25))::bigint;',
     'g'
   );
