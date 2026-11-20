@@ -121,6 +121,7 @@ function NovaAppContent() {
           transactions={game.transactions}
           claimedMissions={game.claimedMissions}
           claimedDailyToday={game.claimedDailyToday}
+          notifications={game.notifications}
           worldEvents={game.worldEvents}
           marketListings={game.marketListings}
           language={game.language}
