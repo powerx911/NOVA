@@ -907,6 +907,7 @@ revoke all on function nexora.notify_factory_warehouse_full() from public,anon,a
 grant execute on function nexora.notify_ready_missions(text) to service_role;
 revoke all on function nexora.notify_ready_contracts(text) from public,anon,authenticated;
 grant execute on function nexora.notify_ready_contracts(text) to service_role;
+grant execute on function nexora.settle_dynamic_contracts(text) to service_role;
 revoke all on function nexora.enforce_player_inventory_capacity() from public,anon,authenticated;
 revoke all on function nexora.start_contract_slot_cooldown() from public,anon,authenticated;
 revoke all on function nexora.guard_contract_slot_cooldown_insert() from public,anon,authenticated;
