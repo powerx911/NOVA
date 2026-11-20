@@ -1,7 +1,7 @@
 -- Run with: supabase test db
 begin;
 create extension if not exists pgtap with schema extensions;
-select extensions.plan(9);
+select extensions.plan(10);
 
 select extensions.ok(
   to_regprocedure('nexora.player_inventory_usage(text)') is not null,
@@ -43,6 +43,11 @@ select extensions.ok(
 select extensions.ok(
   to_regprocedure('nexora.notify_full_company_vaults()') is not null,
   'offline company vault accrual is checked for full-capacity notifications'
+);
+
+select extensions.ok(
+  to_regprocedure('nexora.notify_full_factory_warehouses()') is not null,
+  'already-full factory warehouses are detected and alert state resets after withdrawals'
 );
 
 select extensions.ok(
