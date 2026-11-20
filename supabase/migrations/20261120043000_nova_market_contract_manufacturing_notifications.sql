@@ -5,7 +5,7 @@
 create or replace function nexora.player_inventory_usage(p_uid text)
 returns bigint
 language sql
-stable
+volatile
 security definer
 set search_path = ''
 as $function$
