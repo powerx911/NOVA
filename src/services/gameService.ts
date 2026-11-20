@@ -187,12 +187,25 @@ export async function transferCredits(
   }
 }
 
-export async function fetchMarketListings(): Promise<MarketListing[]> {
-  return nexoraApi<MarketListing[]>('fetch_market_listings');
+export interface PaginatedResult<T> {
+  items: T[];
+  page: number;
+  pageSize: number;
+  totalCount: number;
+  totalPages: number;
+  hasMore: boolean;
 }
 
-export async function fetchMarketActivity(): Promise<MarketActivityRecord[]> {
-  return nexoraApi<MarketActivityRecord[]>('fetch_market_activity');
+export async function fetchMarketListings(page = 1, pageSize = 30): Promise<PaginatedResult<MarketListing>> {
+  return nexoraApi<PaginatedResult<MarketListing>>('fetch_market_listings', { page, pageSize });
+}
+
+export async function fetchMarketActivity(
+  page = 1,
+  pageSize = 25,
+  filter: 'all' | 'purchases' | 'sales' = 'all',
+): Promise<PaginatedResult<MarketActivityRecord>> {
+  return nexoraApi<PaginatedResult<MarketActivityRecord>>('fetch_market_activity', { page, pageSize, filter });
 }
 
 export async function fetchInventoryCapacityUsage(): Promise<number> {
