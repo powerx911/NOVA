@@ -748,7 +748,7 @@
       "version": "20261120184839",
       "name": "nova_financial_idempotency_market_history",
       "source_status": "tracked",
-      "canonical_source": "supabase/migrations/20261121003000_nova_financial_idempotency_market_history.sql",
+      "canonical_source": "supabase/migrations/20261120184839_nova_financial_idempotency_market_history.sql",
       "canonical_git_blob_sha": "14d0b7a2dacef22de8cf7fc26e4571ee44f400e2",
       "additional_variants": []
     }
