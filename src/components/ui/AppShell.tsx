@@ -27,6 +27,8 @@ interface AppShellProps {
   wallet: Wallet | null;
   notifications: GameNotification[];
   socialUnreadCount: number;
+  unclaimedAchievementCount: number;
+  dailyStipendReady: boolean;
   language: Language;
   children: ReactNode;
 }
@@ -38,6 +40,8 @@ export function AppShell({
   wallet,
   notifications,
   socialUnreadCount,
+  unclaimedAchievementCount,
+  dailyStipendReady,
   language,
   children,
 }: AppShellProps) {
@@ -49,9 +53,10 @@ export function AppShell({
   const missionReadyUnreadCount = notifications.filter((n) => !isRead(n) && ['مكافأة مهمة جاهزة', 'Mission reward ready'].includes(n.title)).length;
   const contractReadyUnreadCount = notifications.filter((n) => !isRead(n) && ['العقد جاهز للاستلام', 'Contract ready to claim'].includes(n.title)).length;
   const capacityAlertUnreadCount = notifications.filter((n) => !isRead(n) && ['خزنة الشركة ممتلئة', 'Company vault is full', 'مستودع المصنع ممتلئ', 'Factory warehouse is full'].includes(n.title)).length;
-  const navBadgeCount = (tab: MainTab) => tab === 'social' ? socialUnreadCount
+  const navBadgeCount = (tab: MainTab) => tab === 'home' ? (dailyStipendReady ? 1 : 0)
+    : tab === 'social' ? socialUnreadCount
     : tab === 'market' ? contractReadyUnreadCount
-    : tab === 'profile' ? missionReadyUnreadCount
+    : tab === 'profile' ? missionReadyUnreadCount + unclaimedAchievementCount
     : tab === 'business' ? capacityAlertUnreadCount : 0;
 
   const navItems: { id: MainTab; label: string; icon: typeof Home }[] = [
