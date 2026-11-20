@@ -29,7 +29,7 @@ export function companyUpgradeCost(foundingCost: number, currentLevel: number, l
 
 export function companyUpgradeDurationMs(targetLevel: number): number {
   const level = Math.max(2, Math.min(COMPANY_LEVEL_MAX, Math.floor(targetLevel)));
-  return Math.round(15 * 60_000 * Math.pow(level, 1.1));
+  return Math.round(8 * 60_000 * Math.pow(level, 1.05));
 }
 
 export function factoryOutputMultiplier(level: number): number {

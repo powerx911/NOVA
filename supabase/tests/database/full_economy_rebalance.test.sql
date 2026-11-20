@@ -46,8 +46,9 @@ select extensions.ok(
 );
 
 select extensions.ok(
-  position('power(v_target::numeric, 1.1)' in lower(pg_get_functiondef('nexora.start_company_upgrade(text,text)'::regprocedure))) > 0,
-  'company upgrade RPC uses the v2 duration curve'
+  position('power(greatest(2, least(100' in lower(pg_get_functiondef('nexora.company_upgrade_duration_seconds(integer)'::regprocedure))) > 0
+  and position('1.05' in lower(pg_get_functiondef('nexora.company_upgrade_duration_seconds(integer)'::regprocedure))) > 0,
+  'company duration function uses the shortened progressive curve'
 );
 
 select * from extensions.finish();

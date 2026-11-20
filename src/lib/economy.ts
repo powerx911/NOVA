@@ -299,7 +299,7 @@ export function calculateCompanyUpgradeCost(sector: string | undefined, level: n
 }
 
 export function calculateCompanyUpgradeDurationMs(targetLevel: number): number {
-  return Math.round(15 * Math.pow(Math.max(2, Math.floor(targetLevel)), 1.1) * 60_000);
+  return Math.round(8 * Math.pow(Math.max(2, Math.floor(targetLevel)), 1.05) * 60_000);
 }
 
 /**
