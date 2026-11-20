@@ -1,3 +1,5 @@
+import type { FactoryResourceId } from '../types/game';
+
 export const COMPANY_LEVEL_MAX = 100;
 export const FACTORY_LEVEL_MAX = 100;
 export const VAULT_LEVEL_MAX = 5;
@@ -32,10 +34,25 @@ export function companyUpgradeDurationMs(targetLevel: number): number {
   return Math.round(11 * 60_000 * Math.pow(level / 13, 0.85));
 }
 
-export function factoryOutputMultiplier(level: number): number {
+const FACTORY_RESOURCE_GROWTH_CURVES: Record<FactoryResourceId, { linear: number; quadratic: number }> = {
+  copper_wire: { linear: 0.028, quadratic: 0.00020 },
+  silicon_ore: { linear: 0.030, quadratic: 0.00022 },
+  energy_cells: { linear: 0.032, quadratic: 0.00024 },
+  crude_alloy: { linear: 0.034, quadratic: 0.00026 },
+  carbon_fiber: { linear: 0.036, quadratic: 0.00028 },
+  rare_minerals: { linear: 0.038, quadratic: 0.00030 },
+  titanium_ore: { linear: 0.040, quadratic: 0.00032 },
+  polymer_resin: { linear: 0.042, quadratic: 0.00034 },
+  biotech_gel: { linear: 0.044, quadratic: 0.00036 },
+  quantum_dust: { linear: 0.046, quadratic: 0.00038 },
+};
+
+/** Mirrors nexora.factory_progression_multiplier for the selected raw resource. */
+export function factoryOutputMultiplier(resourceId: FactoryResourceId, level: number): number {
   const safeLevel = Math.max(1, Math.min(FACTORY_LEVEL_MAX, Math.floor(level)));
   const step = safeLevel - 1;
-  return 1 + 0.04 * step + 0.0003 * step * step;
+  const curve = FACTORY_RESOURCE_GROWTH_CURVES[resourceId];
+  return 1 + curve.linear * step + curve.quadratic * step * step;
 }
 
 export function factoryOperatingCostMultiplier(level: number): number {
