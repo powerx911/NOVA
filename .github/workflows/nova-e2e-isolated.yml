@@ -131,8 +131,11 @@ jobs:
           supabase functions serve nexora-api --env-file /tmp/nova-e2e-edge.env \
             > /tmp/nova-e2e-edge.log 2>&1 &
           eval "$(supabase status -o env)"
+          : "${API_URL:?Supabase local API_URL is required}"
+          : "${ANON_KEY:?Supabase local ANON_KEY is required}"
           for attempt in $(seq 1 60); do
-            if curl -fsS "$API_URL/functions/v1/nexora-api" -H "apikey: $ANON_KEY" \
+            if curl --connect-timeout 2 --max-time 4 -fsS "$API_URL/functions/v1/nexora-api" \
+              -H "apikey: $ANON_KEY" -H "Authorization: Bearer $ANON_KEY" \
               | jq -e '.ok == true' >/dev/null 2>&1; then
               {
                 echo "NOVA_E2E_SUPABASE_URL=$API_URL"
