@@ -69,9 +69,17 @@ jobs:
         run: |
           set -euo pipefail
           eval "$(supabase status -o env)"
-          mapfile -t statements < <(find supabase/recovered-history -type f -name '*.sql' -printf '%f\t%p\n' | sort -k1,1 | cut -f2-)
-          if [ "${#statements[@]}" -eq 0 ]; then
-            echo "::error::No recovered SQL sources were found."
+          test -d supabase/recovered-history
+          python - <<'PY' > /tmp/recovered-sql-files.txt
+          from pathlib import Path
+          root = Path("supabase/recovered-history")
+          files = sorted((p for p in root.rglob("*.sql") if p.is_file()), key=lambda p: (p.name, p.as_posix()))
+          for path in files:
+              print(path.as_posix())
+          PY
+          mapfile -t statements < /tmp/recovered-sql-files.txt
+          if [ "${#statements[@]}" -ne 55 ]; then
+            echo "::error::Expected 55 recovered SQL sources; found ${#statements[@]}."
             exit 1
           fi
           echo "Replaying ${#statements[@]} recovered SQL sources."
