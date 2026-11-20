@@ -7,6 +7,7 @@ const SUPABASE_PUBLISHABLE_KEY =
 const API_URL = `${SUPABASE_URL}/functions/v1/nexora-api`;
 const READ_ONLY_ACTIONS = new Set(['bootstrap', 'username_available', 'fetch_org_pending_requests', 'fetch_leaderboards', 'get_public_player_profile', 'search_players', 'list_blocked_players', 'list_direct_conversations', 'list_direct_messages', 'list_global_chat_messages', 'list_organization_invites', 'get_players_presence', 'touch_player_presence', 'get_org_donation_ranking', 'validate_transfer_recipient', 'get_dynamic_contract_board', 'get_org_weekly_goals', 'get_manufacturing_job', 'fetch_market_price_history']);
 const IDEMPOTENT_ACTIONS = new Set(['transfer_credits', 'buy_market_listing', 'buy_missing_resources', 'org_treasury_deposit']);
+const inMemoryRequestIds = new Map<string, string>();
 
 function payloadFingerprint(payload: Record<string, unknown>): string {
   const source = JSON.stringify(payload);
