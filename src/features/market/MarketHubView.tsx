@@ -89,7 +89,8 @@ export function MarketHubView({
     refresh();
     const timer = window.setInterval(refresh, 15_000);
     document.addEventListener('visibilitychange', refresh);
-    return () => { active = false; window.clearInterval(timer); document.removeEventListener('visibilitychange', refresh); };
+    window.addEventListener('nova:refresh-game', refresh);
+    return () => { active = false; window.clearInterval(timer); document.removeEventListener('visibilitychange', refresh); window.removeEventListener('nova:refresh-game', refresh); };
   }, []);
 
   useEffect(() => {
@@ -101,7 +102,8 @@ export function MarketHubView({
     refresh();
     const timer = window.setInterval(refresh, 5 * 60_000);
     document.addEventListener('visibilitychange', refresh);
-    return () => { active = false; window.clearInterval(timer); document.removeEventListener('visibilitychange', refresh); };
+    window.addEventListener('nova:refresh-game', refresh);
+    return () => { active = false; window.clearInterval(timer); document.removeEventListener('visibilitychange', refresh); window.removeEventListener('nova:refresh-game', refresh); };
   }, []);
 
   useEffect(() => { setLiveListings(marketListings); }, [marketListings]);
