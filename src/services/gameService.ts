@@ -328,6 +328,7 @@ export async function abandonDynamicContract(contractId: string): Promise<void> 
 
 export async function claimDynamicContract(contractId: string): Promise<void> {
   await runDynamicContractAction('claim_dynamic_contract', contractId);
+  if (typeof window !== 'undefined') window.dispatchEvent(new Event('nova:refresh-game'));
 }
 
 /** @deprecated Legacy fixed-contract RPC; the NOVA UI uses dynamic contracts. */
@@ -369,6 +370,7 @@ export async function upgradeCompany(_uid: string, companyId: string): Promise<v
 
 export async function upgradeCompanyVault(_uid: string, companyId: string): Promise<void> {
   await callSupabaseCompanyAction('vault_upgrade', companyId);
+  if (typeof window !== 'undefined') window.dispatchEvent(new Event('nova:refresh-game'));
 }
 
 export async function completeCompanyUpgrade(_uid: string, companyId: string): Promise<void> {
@@ -377,10 +379,12 @@ export async function completeCompanyUpgrade(_uid: string, companyId: string): P
 
 export async function completeCompanyVaultUpgrade(_uid: string, companyId: string): Promise<void> {
   await callSupabaseCompanyAction('vault_complete', companyId);
+  if (typeof window !== 'undefined') window.dispatchEvent(new Event('nova:refresh-game'));
 }
 
 export async function collectCompanyRevenue(_uid: string, companyId: string): Promise<number> {
   const result = await callSupabaseCompanyAction<{ payout: number }>('company_collect', companyId);
+  if (typeof window !== 'undefined') window.dispatchEvent(new Event('nova:refresh-game'));
   return result.payout;
 }
 
@@ -475,9 +479,11 @@ export async function completeFactoryUpgrade(factoryId: string): Promise<void> {
 }
 export async function upgradeFactoryWarehouse(factoryId: string): Promise<void> {
   await callFactoryAction('upgrade_factory_warehouse', factoryId);
+  if (typeof window !== 'undefined') window.dispatchEvent(new Event('nova:refresh-game'));
 }
 export async function completeFactoryWarehouseUpgrade(factoryId: string): Promise<void> {
   await callFactoryAction('complete_factory_warehouse_upgrade', factoryId);
+  if (typeof window !== 'undefined') window.dispatchEvent(new Event('nova:refresh-game'));
 }
 export async function upgradeFactorySkill(factoryId: string): Promise<void> {
   await callFactoryAction('upgrade_factory_skill', factoryId);
@@ -489,6 +495,7 @@ export async function withdrawFactoryWarehouse(factoryId: string, quantityRaw: n
   const quantity = Number.isFinite(quantityRaw) ? Math.floor(quantityRaw) : 0;
   if (quantity < 1) throw new Error('INVALID_QUANTITY');
   await callFactoryAction('withdraw_factory_warehouse', factoryId, { quantity });
+  if (typeof window !== 'undefined') window.dispatchEvent(new Event('nova:refresh-game'));
 }
 
 export async function claimMissionReward(_uid: string, missionId: string): Promise<void> {
