@@ -50,12 +50,11 @@ export async function nexoraApi<T>(
   let requestPayload = payload;
   if (IDEMPOTENT_ACTIONS.has(action) && typeof window !== 'undefined') {
     requestStorageKey = `nova:idempotency:${user.uid}:${action}:${payloadFingerprint(payload)}`;
-    let requestId: string | null = null;
-    try { requestId = window.sessionStorage.getItem(requestStorageKey); } catch { /* Session storage may be disabled. */ }
-    if (!requestId) {
-      requestId = createRequestId();
-      try { window.sessionStorage.setItem(requestStorageKey, requestId); } catch { /* Retry protection remains active for this attempt. */ }
-    }
+    let requestId: string | null = inMemoryRequestIds.get(requestStorageKey) ?? null;
+    try { requestId = window.sessionStorage.getItem(requestStorageKey) ?? requestId; } catch { /* Session storage may be disabled. */ }
+    if (!requestId) requestId = createRequestId();
+    inMemoryRequestIds.set(requestStorageKey, requestId);
+    try { window.sessionStorage.setItem(requestStorageKey, requestId); } catch { /* The in-memory key remains available for retries. */ }
     requestPayload = { ...payload, requestId };
   }
   const response = await fetch(API_URL, {
