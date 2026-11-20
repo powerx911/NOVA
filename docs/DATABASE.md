@@ -1,138 +1,95 @@
 # NOVA Database Architecture
 
-**Last verified:** 2026-11-19
+**Last verified:** 2026-11-20  
+**Supabase project:** hmrprnjhyzyefocdmnxf  
+**Active schema:** nexora  
+**Server API:** nexora-api
 
 ## Source of truth
 
-- Product/game name: **NOVA**
-- Supabase project reference: `hmrprnjhyzyefocdmnxf`
-- Active application schema: `nexora` (legacy internal namespace retained for compatibility)
-- Server API: Supabase Edge Function `nexora-api`
-- Identity provider: Firebase Authentication. Firebase is used for identity only; game state and economy are stored in Supabase.
-- Authoritative gameplay data and the economy are not stored in Cloud Firestore. The current owner-only diagnostics screen still reads a small legacy Firestore diagnostics surface; that dependency must be migrated before deleting the Firestore rules/config.
+- Product/game name: **NOVA**.
+- Firebase Authentication establishes player identity.
+- Supabase PostgreSQL is authoritative for game state, wallets, inventory, companies, factories, organizations, auctions, contracts, manufacturing and notifications.
+- The browser calls the Supabase Edge Function nexora-api with a Firebase ID token. It never receives the service-role key.
+- Firestore remains a legacy diagnostics/older-function surface; it is not the authoritative game economy.
 
-The brand is NOVA. The `nexora` schema and `nexora-api` function names are legacy technical identifiers. They are intentionally not renamed in-place because changing the schema requires a coordinated compatibility migration across every RPC, edge-function query, grant and migration. Do not rename them with a blind search/replace.
+The nexora schema and nexora-api function names are legacy technical identifiers. Keep them until a coordinated compatibility migration is approved; do not rename them with a bulk replacement.
 
-## Live schema snapshot
+## Live production inventory
 
-The production project currently has **34 tables** in schema `nexora`, all with Row Level Security enabled. The latest read-only access audit found no direct table grants to `anon` or `authenticated`. There are currently no views in this schema.
+Read-only catalog verification on 2026-11-20 returned:
 
-### Player identity and progression
-- `player_profiles`
-- `player_private`
-- `usernames`
-- `player_presence`
-- `player_achievements`
-- `player_missions`
+| Object | Count |
+|---|---:|
+| Tables | 46 |
+| Functions | 151 |
+| SECURITY DEFINER functions | 138 |
+| Triggers | 40 |
+| Indexes | 102 |
+| Constraints | 169 |
+| Active pg_cron jobs | 8 |
+| RLS-enabled tables | 46 |
+| RLS-disabled tables | 0 |
 
-### Wallet and economy
-- `wallets`
-- `transactions`
-- `inventory`
-- `market_listings`
-- `market_orders`
-- `contract_claims`
-- `daily_claims`
-- `world_events`
-
-### Companies and factories
-- `companies`
-- `company_logs`
-- `factories`
-- `company_auctions`
-- `company_auction_bids`
-- `company_auction_escrows`
-
-### Organizations and community
-- `organizations`
-- `organization_members`
-- `organization_requests`
-- `organization_invites`
-- `organization_transactions`
-- `conversations`
-- `conversation_messages`
-- `global_chat_messages`
-- `chat_rate_limits`
-- `user_blocks`
-- `player_reports`
-
-### Operations and safety
-- `notifications`
-- `audit_logs`
-- `diagnostics_admins`
+The production snapshot verifier enforces these counts and checks key function/security invariants. All 46 tables have RLS enabled. Direct table access is not granted to anon or authenticated; manufacturing_jobs additionally has no direct-access policies or read grants for service_role.
 
 ## Security boundary
 
-1. The browser authenticates with Firebase Authentication and sends its signed ID token to `nexora-api`.
-2. The Edge Function verifies the token and derives the player UID from the verified identity. It uses the Supabase service-role credential only on the server.
-3. The browser must never receive the service-role key or write directly to the economy tables.
-4. All 34 tables in `nexora` currently have RLS enabled. The latest audit found zero direct table grants to `anon` and `authenticated`.
-5. Wallet balances are constrained to be non-negative. Financial changes are recorded in `transactions`; wallet updates and their ledger rows must be performed atomically by trusted server operations.
+1. The client authenticates with Firebase and sends its signed ID token to nexora-api.
+2. The Edge Function verifies the Firebase signature, issuer and audience, then derives the UID from the verified token.
+3. Non-anonymous account deletion requires a signed Firebase auth_time no older than five minutes. This check occurs before Supabase account cleanup.
+4. The Edge Function uses its server-side service-role client to call trusted RPCs and read permitted data.
+5. Financial, ownership and manufacturing invariants belong in PostgreSQL transactions and trusted server functions, not client-only checks.
 
-## Economic invariants
+## Financial and gameplay invariants
 
-- `wallets.balance >= 0`.
-- For the current wallet model, the opening balance is 2,500 credits. The reconstructed balance is:
-  `2500 + incoming transaction net_amount - outgoing transaction amount`.
-- A live read-only check on 2026-11-19 found no negative wallets and no difference between reconstructed ledger balances and the three existing wallet balances.
-- Factory pause is server-side: `set_factory_active` synchronizes the elapsed active production before setting `is_active = false`. A subsequent sync while paused must not charge a second operating cost.
+- Wallet balances must remain non-negative.
+- Wallet mutations and their transaction-ledger records must be atomic.
+- Player-to-player transfers, market purchases and organization treasury deposits use an idempotency key. The same key and payload return the stored result; reusing a key with a different payload is rejected.
+- Organization treasury deposits are one-way. Withdrawals are disabled at the UI, API and database RPC layers to prevent the treasury from acting as a player-to-player transfer intermediary.
+- Auction bids reserve funds in company_auction_escrows. Settlement must release or refund the reserved amount; missing underlying assets must not strand bidder escrow.
+- Company revenue collection grants minimum XP/reputation/influence rewards, scales reputation/influence with leadership, and caps collection XP.
+- Factory progression uses a resource-specific curve. The server cron owns periodic production synchronization.
+- Manufacturing recipe cost, inputs, XP and cancellation refunds must agree with the canonical server recipe and job snapshot.
 
-## Migrations: release blocker — do not push
+## Manufacturing access
 
-A read-only comparison on 2026-11-19 found **42 applied records** in Supabase and **31 SQL files** in the repository. Matching by migration name (not timestamp alone) gives:
+manufacturing_jobs has RLS enabled and no broad direct-access policies. The browser must use the existing server RPC boundary. The manufacturing RPCs remain SECURITY DEFINER functions owned by the trusted database role. The two nullable auction foreign keys, company_auctions.company_id and factory_id, have partial supporting indexes for non-null values.
 
-| Audit result | Count |
-|---|---:|
-| Applied migration records | 42 |
-| Local SQL files | 31 |
-| Names present both locally and remotely | 21 |
-| Shared names whose local timestamp still differs from the applied version | 14 |
-| Local-only migration names not found in applied history | 10 |
-| Applied migration names with no local SQL source file | 21 |
+## Account deletion
 
-The known `nova_skill_reset_and_factories` filename mismatch was corrected in PR #57; the counts above include that correction. The remaining mismatches must be reconciled individually. The 10 local-only names and 21 remote-only names mean the migration folder is not yet a faithful representation of production history. A blind `supabase db push` can replay an already-applied change, apply an unreviewed local migration, or fail on an existing object.
+Account deletion is a two-system operation:
 
-**Local-only names (not present in the applied history):**
-- `nexora_companies_properties`
-- `nexora_company_vault_rpcs`
-- `nexora_contract_rpc`
-- `nexora_economy_rpcs`
-- `nexora_manufacturing_rpc`
-- `nexora_market_rpcs`
-- `nexora_player_settings_notifications`
-- `nexora_seed_world`
-- `nova_advanced_resource_recipes`
-- `nova_factory_business_auctions`
+1. nexora.delete_player_account(p_uid) performs transactional Supabase cleanup.
+2. Immutable financial/audit history is retained and narrowly pseudonymized; private/progression state is removed.
+3. Deletion is rejected when the player has a live winning bid on another player's auction or a leadership state that cannot be safely transferred.
+4. The Edge Function then deletes the Firebase Auth identity.
+5. If Firebase deletion is pending after database cleanup, the player can reauthenticate and retry; the database cleanup is idempotent.
 
-**Applied names missing a local SQL source file:**
-- `20261118151500_harden_player_rpc_schema`
-- `20261118160000_nova_player_core`
-- `add_advanced_resource_manufacturing_recipes`
-- `balance_advanced_resource_recipe_costs`
-- `correct_market_purchase_rewards`
-- `nexora_character_creation_rpc`
-- `nexora_core_schema_v1`
-- `nexora_firebase_identity_boundary`
-- `nexora_username_compatibility`
-- `nova_competitive_core`
-- `nova_competitive_duels`
-- `nova_factory_auction_capacity_reservations`
-- `nova_factory_auction_support`
-- `nova_factory_profit_margin_v2`
-- `nova_factory_warehouse_and_level_100`
-- `nova_market_fk_indexes`
-- `nova_remove_property_achievement_path`
-- `nova_shared_market`
-- `remove_legacy_nova_functions`
-- `remove_legacy_nova_game_tables`
-- `remove_market_purchase_reputation_influence`
+Do not test deletion against real player accounts.
 
-- The migration-history audit was read-only; production was not changed.
-- Do not run `supabase db push`, `migration repair`, or create empty placeholder migrations until the missing SQL is recovered or explicitly accounted for, every shared migration is mapped to its applied version, and the complete sequence is tested on a genuinely isolated branch.
-- The Supabase branch listing currently reports the same project reference as production, so it is **not considered safe for writes or pgTAP execution**. Do not use it as a test target until Supabase confirms a separate branch project reference.
+## Migration history and snapshots
 
-## Testing
+The production migration ledger contains **83 applied records**. The repository has **80 tracked migration files**. The current manifest maps all 83 applied records to canonical source paths and Git blob hashes; 21 records use recovered-history sources, and 21 records have additional historical variants. Eighteen local migration files remain unmapped by name to the current ledger. They are not automatically considered pending or unapplied.
 
-- TypeScript and unit tests run through the GitHub Actions CI workflow.
-- pgTAP regression tests live under `supabase/tests/database` and should be run against a disposable Supabase branch/local database, never against production.
-- Playwright smoke tests cover email sign-in, character onboarding, buying a market listing, and founding a company. They run only when the GitHub secrets `NOVA_E2E_BASE_URL`, `NOVA_E2E_EMAIL`, and `NOVA_E2E_PASSWORD` point to a dedicated isolated test environment.
+Two data-free snapshots serve different purposes:
+
+- supabase/ci/nexora_schema_snapshot.sql is the historical starting baseline for replaying the curated migration chain.
+- supabase/ci/nexora_production_schema_snapshot.sql is synchronized to the current live production catalog and is used by the strict catalog verifier.
+
+The isolated database workflow restores the historical baseline, applies the ordered migration chain and runs pgTAP. The production snapshot verification runs separately against a disposable schema and checks the current live catalog shape and key function definitions.
+
+Never run supabase db push or migration repair to paper over history drift. Keep timestamped migration order and source hashes intact. Apply production changes only after disposable replay, pgTAP and snapshot verification pass.
+
+## Regression suites
+
+Database regression tests live under supabase/tests/database, including:
+
+- financial_idempotency.test.sql
+- biotech_recipe_integrity.test.sql
+- company_revenue_minimum_rewards.test.sql
+- manufacturing_rls_auction_fk_indexes.test.sql
+- unified_account_deletion.test.sql
+- factory_resource_progression.test.sql
+
+Run these only in disposable PostgreSQL/Supabase environments, never against production.
