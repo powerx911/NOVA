@@ -10,6 +10,9 @@ on:
       - "supabase/migrations/**"
       - "supabase/tests/**"
       - "scripts/validate_migration_manifest.py"
+      - ".github/workflows/ci.yml"
+      - "playwright.config.mjs"
+      - "e2e/**"
       - ".github/workflows/database-tests.yml"
   pull_request:
     branches:
