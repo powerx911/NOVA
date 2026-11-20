@@ -75,3 +75,10 @@ Feedback/suggestions delivery and the moderator/admin console are intentionally 
 - Keep each implementation batch isolated on its own branch/PR and verify CI before merging.
 - Do not deploy schema changes directly to production while migration history and snapshot parity remain unresolved.
 - Do not claim a change is live until GitHub Pages and the published version manifest confirm it.
+
+
+## Dependency management
+
+- Root application dependencies use Bun with the single root lockfile `bun.lock`, matching the Bun-based CI install.
+- The Firebase Functions folder is a separate Node package with its own `functions/package-lock.json`; it is not a competing root lockfile and its CI uses npm.
+- `.github/dependabot.yml` now schedules weekly updates for Bun, the Functions npm package, and GitHub Actions.
