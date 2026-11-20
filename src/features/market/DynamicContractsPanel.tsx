@@ -98,7 +98,7 @@ export function DynamicContractsPanel({ profile, inventory, wallet, language }: 
     try {
       const board = await getDynamicContractBoard();
       setContracts(board.personal ?? []);
-      setPersonalCooldowns(board.cooldowns?.personal ?? []);
+      setPersonalCooldowns((board.cooldowns?.personal ?? []).filter((slot) => slot.slot_no >= 1 && slot.slot_no <= 5));
       setOrgCooldowns(board.cooldowns?.organization ?? []);
       setCanRefreshOrgContracts(board.cooldowns?.can_refresh_org === true);
       setPersonalRefreshUsed(board.cooldowns?.personal_refresh_used ?? 0);
