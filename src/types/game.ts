@@ -408,6 +408,7 @@ export interface GameNotification {
   type: 'economy' | 'market' | 'org' | 'mission' | 'system';
   read: boolean;
   createdAt: unknown;
+  eventKey?: string | null;
 }
 
 export interface TradeContract {
