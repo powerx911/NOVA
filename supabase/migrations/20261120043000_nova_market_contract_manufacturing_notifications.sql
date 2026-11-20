@@ -63,7 +63,7 @@ declare
   v_capacity bigint;
   v_total bigint;
 begin
-  if new.status <> 'active' or new.remaining_qty <= 0 then return null; end if;
+  if new.seller_uid='SYSTEM' or new.status <> 'active' or new.remaining_qty <= 0 then return null; end if;
   perform pg_advisory_xact_lock(hashtextextended(new.seller_uid,0));
   select level into v_level from nexora.player_profiles where user_id=new.seller_uid;
   if not found then raise exception 'ACCOUNT_NOT_FOUND'; end if;
