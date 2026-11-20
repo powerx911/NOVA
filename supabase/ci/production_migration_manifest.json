@@ -723,7 +723,7 @@
   ],
   "tracked_migration_files_on_branch": 73,
   "tracked_migration_files_on_main": 70,
-  "pending_migrations_not_in_production": [
+  "unmapped_local_migration_files_by_name": [
     "supabase/migrations/20261118180000_nexora_economy_rpcs.sql",
     "supabase/migrations/20261118183000_nexora_market_rpcs.sql",
     "supabase/migrations/20261118190000_nexora_manufacturing_rpc.sql",
@@ -744,5 +744,11 @@
     "supabase/migrations/20261120233000_nova_company_upgrade_charge_reconciliation.sql",
     "supabase/migrations/20261121000000_nova_treasury_withdrawal_lock_and_auction_refund.sql",
     "supabase/migrations/20261121001000_nova_unified_account_deletion.sql"
+  ],
+  "notes": [
+    "A source match is a name-based source mapping, not proof that a local file is byte-identical to the exact SQL executed in production.",
+    "Recovered variants with differing Git blob hashes are retained as forensic evidence; do not replace the canonical tracked source without SQL diff review.",
+    "Local migration files not mapped by name to a production ledger record are classified as unmapped, not assumed to be pending or unapplied.",
+    "Two new hardening migrations on this branch are not yet applied in production and are intentionally absent from the 74 production ledger entries."
   ]
 }
