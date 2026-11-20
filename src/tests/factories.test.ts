@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { factoryOutputMultiplier } from '../lib/businessEconomy';
 import { COMPANY_SECTORS, FACTORY_RESOURCES, ITEM_MAP, MANUFACTURING_RECIPES } from '../data/catalog';
 
 describe('Raw resource factories', () => {
@@ -31,12 +32,23 @@ describe('Raw resource factories', () => {
     }
   });
 
-  it('uses a progressive but bounded factory output curve', () => {
-    const multiplier = (level: number) => 1 + 0.018 * (level - 1) + 0.00012 * Math.pow(level - 1, 2);
-    const gain = (from: number, to: number) => multiplier(to) - multiplier(from);
-    expect(gain(2, 3)).toBeLessThan(gain(41, 42));
-    expect(gain(41, 42)).toBeLessThan(gain(75, 76));
-    expect(multiplier(100)).toBeLessThan(4);
+  it('uses distinct, convex, bounded progression curves for all ten resources', () => {
+    const level100Multipliers = FACTORY_RESOURCES.map((factory) =>
+      factoryOutputMultiplier(factory.resourceId, 100)
+    );
+    expect(new Set(level100Multipliers.map((value) => value.toFixed(5))).size).toBe(10);
+
+    for (const factory of FACTORY_RESOURCES) {
+      const multiplier = (level: number) => factoryOutputMultiplier(factory.resourceId, level);
+      const gain = (from: number, to: number) => multiplier(to) - multiplier(from);
+      expect(gain(2, 3)).toBeLessThan(gain(41, 42));
+      expect(gain(41, 42)).toBeLessThan(gain(75, 76));
+      expect(multiplier(100)).toBeGreaterThan(5.7);
+      expect(multiplier(100)).toBeLessThan(9.3);
+    }
+
+    expect(factoryOutputMultiplier('copper_wire', 100)).toBeCloseTo(5.7322, 4);
+    expect(factoryOutputMultiplier('quantum_dust', 100)).toBeCloseTo(9.27838, 5);
   });
 
   it('keeps raw-resource production margins controlled', () => {
