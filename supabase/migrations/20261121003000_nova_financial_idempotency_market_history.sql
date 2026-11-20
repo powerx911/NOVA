@@ -8,6 +8,7 @@ create table if not exists nexora.idempotency_requests (
   constraint idempotency_request_id_length check (length(request_id) between 16 and 128)
 );
 create index if not exists idempotency_requests_created_at_idx on nexora.idempotency_requests (created_at desc);
+create index if not exists market_orders_created_at_item_idx on nexora.market_orders (created_at desc, item_id);
 alter table nexora.idempotency_requests enable row level security;
 revoke all on table nexora.idempotency_requests from public, anon, authenticated;
 grant select, insert, update, delete on table nexora.idempotency_requests to service_role;
@@ -55,7 +56,7 @@ declare
   v_hash text; v_existing nexora.idempotency_requests%rowtype; v_profile nexora.player_profiles%rowtype;
   v_seller_uids text[]; v_item record; v_listing nexora.market_listings%rowtype;
   v_purchase jsonb; v_purchases jsonb := '[]'::jsonb; v_response jsonb;
-  v_requirement record; v_owned integer; v_planned integer;
+  v_requirement record; v_owned bigint; v_planned bigint;
 begin
   if p_request_id is null or p_request_id !~ '^[A-Za-z0-9:_-]{16,128}$' then raise exception 'INVALID_IDEMPOTENCY_KEY'; end if;
   if p_items is null or jsonb_typeof(p_items) is distinct from 'array' then raise exception 'INVALID_PURCHASE_PLAN'; end if;
