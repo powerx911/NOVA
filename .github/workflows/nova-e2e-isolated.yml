@@ -122,7 +122,14 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          eval "$(supabase status -o env)"
+          : "${API_URL:?Supabase local API_URL is required}"
+          : "${ANON_KEY:?Supabase local ANON_KEY is required}"
+          : "${SERVICE_ROLE_KEY:?Supabase local SERVICE_ROLE_KEY is required}"
           cat > /tmp/nova-e2e-edge.env <<EOF
+          SUPABASE_URL=http://kong:8000
+          SUPABASE_ANON_KEY=$ANON_KEY
+          SUPABASE_SERVICE_ROLE_KEY=$SERVICE_ROLE_KEY
           NOVA_E2E_ALLOW_LOCAL_AUTH=true
           NOVA_E2E_AUTH_TOKEN=$NOVA_E2E_AUTH_TOKEN
           NOVA_E2E_UID=$NOVA_E2E_UID
@@ -130,9 +137,6 @@ jobs:
           EOF
           supabase functions serve nexora-api --env-file /tmp/nova-e2e-edge.env \
             > /tmp/nova-e2e-edge.log 2>&1 &
-          eval "$(supabase status -o env)"
-          : "${API_URL:?Supabase local API_URL is required}"
-          : "${ANON_KEY:?Supabase local ANON_KEY is required}"
           for attempt in $(seq 1 60); do
             if curl --connect-timeout 2 --max-time 4 -fsS "$API_URL/functions/v1/nexora-api" \
               -H "apikey: $ANON_KEY" -H "Authorization: Bearer $ANON_KEY" \
