@@ -160,8 +160,8 @@ do $patch$
 declare v_definition text;
 begin
   select pg_get_functiondef('nexora.upgrade_factory(text,text)'::regprocedure) into v_definition;
-  v_definition:=regexp_replace(v_definition,'v_cost :=.*?;','v_cost := ceil(v_cfg.founding_cost * 0.22 * power(v_factory.level::numeric, 1.22))::bigint;');
-  v_definition:=regexp_replace(v_definition,'v_duration_seconds :=.*?;','v_duration_seconds := 10 * 60 * power(v_target::numeric, 1.35);');
+  v_definition:=regexp_replace(v_definition,'v_cost :=[^;]*;','v_cost := ceil(v_cfg.founding_cost * 0.22 * power(v_factory.level::numeric, 1.22))::bigint;');
+  v_definition:=regexp_replace(v_definition,'v_duration_seconds :=[^;]*;','v_duration_seconds := 10 * 60 * power(v_target::numeric, 1.35);');
   execute v_definition;
 end $patch$;
 
