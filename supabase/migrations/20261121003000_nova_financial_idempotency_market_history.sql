@@ -58,8 +58,10 @@ declare
   v_requirement record; v_owned integer; v_planned integer;
 begin
   if p_request_id is null or p_request_id !~ '^[A-Za-z0-9:_-]{16,128}$' then raise exception 'INVALID_IDEMPOTENCY_KEY'; end if;
-  if jsonb_typeof(p_items) is distinct from 'array' or jsonb_array_length(p_items) < 1 or jsonb_array_length(p_items) > 100 then raise exception 'INVALID_PURCHASE_PLAN'; end if;
-  if p_requirements is null or jsonb_typeof(p_requirements) is distinct from 'array' or jsonb_array_length(p_requirements) > 100 then raise exception 'INVALID_PURCHASE_PLAN'; end if;
+  if p_items is null or jsonb_typeof(p_items) is distinct from 'array' then raise exception 'INVALID_PURCHASE_PLAN'; end if;
+  if jsonb_array_length(p_items) < 1 or jsonb_array_length(p_items) > 100 then raise exception 'INVALID_PURCHASE_PLAN'; end if;
+  if p_requirements is null or jsonb_typeof(p_requirements) is distinct from 'array' then raise exception 'INVALID_PURCHASE_PLAN'; end if;
+  if jsonb_array_length(p_requirements) > 100 then raise exception 'INVALID_PURCHASE_PLAN'; end if;
   if exists (select 1 from jsonb_to_recordset(p_requirements) as r(item_id text, required_quantity integer)
     where coalesce(item_id, '')='' or coalesce(required_quantity,0)<1) then raise exception 'INVALID_PURCHASE_PLAN'; end if;
   if (select count(*) from jsonb_to_recordset(p_requirements) as r(item_id text, required_quantity integer))
