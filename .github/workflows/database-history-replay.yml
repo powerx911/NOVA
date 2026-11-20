@@ -115,9 +115,9 @@ jobs:
             supabase/migrations/20261120043000_nova_market_contract_manufacturing_notifications.sql \
             supabase/migrations/20261120150000_nova_reward_notifications_organization_chat.sql \
             supabase/migrations/20261120160000_nova_factory_support_all_raw_resources.sql \
+            supabase/migrations/20261120170000_nova_company_factory_audit_guards.sql \
             supabase/migrations/20261120132839_nova_production_company_parity_hotfix_20261120.sql \
             supabase/migrations/20261120133000_nova_full_economy_rebalance.sql \
-            supabase/migrations/20261120170000_nova_company_factory_audit_guards.sql \
             supabase/migrations/20261120220000_nova_company_economy_rebalance_v2.sql \
             supabase/migrations/20261120230000_nova_company_upgrade_duration_rebalance.sql \
             supabase/migrations/20261120231000_nova_company_upgrade_cost_rebalance.sql \
