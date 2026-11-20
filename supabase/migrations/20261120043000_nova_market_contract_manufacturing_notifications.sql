@@ -137,6 +137,38 @@ revoke all on function nexora.emit_notification_once(text,text,text,text,text,te
 grant execute on function nexora.emit_notification_once(text,text,text,text,text,text,text) to service_role;
 
 
+-- Cancelling a listing returns the same escrowed units to inventory; allow this
+-- transfer even for legacy accounts that are already over the new combined cap.
+do $do$
+declare
+  v_def text;
+begin
+  select pg_get_functiondef('nexora.cancel_market_listing(text,text)'::regprocedure) into v_def;
+  v_def:=replace(v_def,
+    'declare' || chr(10) || '  v_listing nexora.market_listings%rowtype;',
+    'declare' || chr(10) || '  v_listing nexora.market_listings%rowtype;' || chr(10) || '  v_previous_refund_setting text;');
+  v_def:=replace(v_def,
+    '  update nexora.market_listings set remaining_qty=0,status=''cancelled'',updated_at=now() where id=p_listing_id;' || chr(10) ||
+    '  insert into nexora.inventory(user_id,item_id,quantity,last_listing_id)',
+    '  update nexora.market_listings set remaining_qty=0,status=''cancelled'',updated_at=now() where id=p_listing_id;' || chr(10) ||
+    '  v_previous_refund_setting:=coalesce(current_setting(''nexora.allow_inventory_refund'',true),''false'');' || chr(10) ||
+    '  perform set_config(''nexora.allow_inventory_refund'',''true'',true);' || chr(10) ||
+    '  insert into nexora.inventory(user_id,item_id,quantity,last_listing_id)');
+  v_def:=replace(v_def,
+    '    set quantity=nexora.inventory.quantity+excluded.quantity,last_listing_id=excluded.last_listing_id,updated_at=now();' || chr(10) ||
+    '  return jsonb_build_object',
+    '    set quantity=nexora.inventory.quantity+excluded.quantity,last_listing_id=excluded.last_listing_id,updated_at=now();' || chr(10) ||
+    '  perform set_config(''nexora.allow_inventory_refund'',v_previous_refund_setting,true);' || chr(10) ||
+    '  return jsonb_build_object');
+  if position('v_previous_refund_setting' in v_def)=0
+    or position('perform set_config(''nexora.allow_inventory_refund'',''true'',true)' in v_def)=0
+    or position('perform set_config(''nexora.allow_inventory_refund'',v_previous_refund_setting,true)' in v_def)=0 then
+    raise exception 'MARKET_LISTING_CANCEL_REFUND_PATCH_FAILED';
+  end if;
+  execute v_def;
+end;
+$do$;
+
 -- Keep the manufacturing completion path server-authoritative and include market escrow
 -- when checking whether the finished output fits in the player's capacity.
 do $do$
