@@ -49,14 +49,14 @@ values (
 );
 
 select extensions.throws_ok(
-  $select nexora.set_factory_active('pgtap_pause_owner', 'pgtap_pause_factory', false)$,
+  $$select nexora.set_factory_active('pgtap_pause_owner', 'pgtap_pause_factory', false)$$,
   'P0001',
   'FACTORY_ALWAYS_AUTOMATIC',
   'manual factory shutdown is rejected because operations are automatic'
 );
 
 select extensions.lives_ok(
-  $select nexora.sync_factory_production('pgtap_pause_owner', 'pgtap_pause_factory')$,
+  $$select nexora.sync_factory_production('pgtap_pause_owner', 'pgtap_pause_factory')$$,
   'automatic factory sync processes elapsed production and operating costs'
 );
 
