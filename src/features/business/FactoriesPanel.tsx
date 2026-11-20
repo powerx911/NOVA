@@ -262,7 +262,7 @@ export function FactoriesPanel({ factories, inventory, profile, wallet, language
               </button>
             ))}
           </div>
-          <button type="submit" disabled={factories.length >= 3 || busyKey === 'found' || factoryName.trim().length < 2 || factoryName.trim().length > 48 || (wallet !== null && wallet.balance < (FACTORY_RESOURCES.find((item) => item.resourceId === resourceId)?.foundingCost ?? Infinity))} className="w-full min-h-[44px] rounded-xl bg-[#397BFF] px-4 text-sm font-semibold text-white hover:bg-[#2F6DE0] disabled:opacity-40">{busyKey === 'found' ? '...' : factories.length >= 3 ? (isAr ? 'اكتمل الحد الأقصى (3 مصانع)' : 'Three-factory limit reached') : (isAr ? `تأسيس المصنع · ${(FACTORY_RESOURCES.find((item) => item.resourceId === resourceId)?.foundingCost ?? 0).toLocaleString()}` : `Found factory · ${(FACTORY_RESOURCES.find((item) => item.resourceId === resourceId)?.foundingCost ?? 0).toLocaleString()}`)}</button>
+          <button type="submit" disabled={factories.length >= 3 || busyKey === 'found'} className="w-full min-h-[44px] rounded-xl bg-[#397BFF] px-4 text-sm font-semibold text-white hover:bg-[#2F6DE0] disabled:opacity-40">{busyKey === 'found' ? '...' : factories.length >= 3 ? (isAr ? 'اكتمل الحد الأقصى (3 مصانع)' : 'Three-factory limit reached') : (isAr ? `تأسيس المصنع · ${(FACTORY_RESOURCES.find((item) => item.resourceId === resourceId)?.foundingCost ?? 0).toLocaleString()}` : `Found factory · ${(FACTORY_RESOURCES.find((item) => item.resourceId === resourceId)?.foundingCost ?? 0).toLocaleString()}`)}</button>
         </form>
       </section>}
     </div>
