@@ -23,7 +23,7 @@ describe('business and factory economy curves', () => {
   });
 
   it('keeps factory growth profitable and progressive', () => {
-    expect(factoryOutputMultiplier(5)).toBeGreaterThan(factoryOutputMultiplier(1));
+    expect(factoryOutputMultiplier('copper_wire', 5)).toBeGreaterThan(factoryOutputMultiplier('copper_wire', 1));
     expect(factoryOperatingCostMultiplier(5)).toBeGreaterThan(factoryOperatingCostMultiplier(1));
     expect(factoryUpgradeCost(4200, 4)).toBeGreaterThan(factoryUpgradeCost(4200, 1));
     expect(factoryUpgradeDurationSeconds(5)).toBeGreaterThan(factoryUpgradeDurationSeconds(2));
