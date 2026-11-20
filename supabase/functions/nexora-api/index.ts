@@ -54,7 +54,7 @@ Deno.serve(async (req: Request) => {
 
     if (body.action === "delete_account") {
       const authorization = req.headers.get("Authorization") ?? "";
-      const tokenMatch = /^Bearer\\s+(.+)$/i.exec(authorization);
+      const tokenMatch = /^Bearer\s+(.+)$/i.exec(authorization);
       if (!tokenMatch) return json({ error: "UNAUTHENTICATED" }, 401, origin);
 
       const { data: deletion, error: deletionError } = await db.rpc("delete_player_account", {
