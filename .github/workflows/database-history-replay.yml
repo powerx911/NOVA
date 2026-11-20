@@ -69,7 +69,7 @@ jobs:
         run: |
           set -euo pipefail
           eval "$(supabase status -o env)"
-          mapfile -t statements < <(find supabase/recovered-history -type f -name '*.sql' -printf '%f\\t%p\\n' | sort -k1,1 | cut -f2-)
+          mapfile -t statements < <(find supabase/recovered-history -type f -name '*.sql' -printf '%f\t%p\n' | sort -k1,1 | cut -f2-)
           if [ "${#statements[@]}" -eq 0 ]; then
             echo "::error::No recovered SQL sources were found."
             exit 1
