@@ -692,10 +692,10 @@ begin
     order by id
   loop
     v_capacity:=v_caps[greatest(1,least(5,coalesce(v_company.vault_level,1)))];
-    v_elapsed:=greatest(0,extract(epoch from (now()-coalesce(v_company.last_collected_at,v_company.created_at))));
+    v_elapsed:=least(12,greatest(0,extract(epoch from (now()-coalesce(v_company.last_collected_at,v_company.created_at)))/3600));
     v_hourly:=greatest(0,nexora.company_net_hourly(v_company.id));
     v_balance:=least(v_capacity,coalesce(v_company.vault_balance,0)
-      + floor(v_hourly*v_elapsed/3600)::bigint);
+      + floor(v_hourly*v_elapsed)::bigint);
     if v_balance>=v_capacity then
       perform nexora.emit_notification_once(
         v_company.owner_uid,
