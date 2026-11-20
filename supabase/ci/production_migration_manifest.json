@@ -3,24 +3,24 @@
   "captured_at": "2026-11-20",
   "repository": "powerx911/NOVA",
   "production_project_id": "hmrprnjhyzyefocdmnxf",
-  "production_ledger_records": 77,
+  "production_ledger_records": 78,
   "tracked_migration_files": 75,
   "recovered_history_sql_files": 55,
   "production_schema_inventory": {
-    "tables": 45,
-    "functions": 145,
-    "security_definer_functions": 132,
-    "triggers": 37,
-    "indexes": 97,
-    "constraints": 167,
+    "tables": 46,
+    "functions": 149,
+    "security_definer_functions": 136,
+    "triggers": 38,
+    "indexes": 100,
+    "constraints": 169,
     "active_cron_jobs": 8
   },
   "matching_summary": {
-    "records_with_source": 77,
+    "records_with_source": 78,
     "records_missing_source": 0,
     "records_recovered_only": 21,
     "records_with_additional_variants": 21,
-    "local_migration_files_not_mapped_to_applied_record": 19
+    "local_migration_files_not_mapped_to_applied_record": 18
   },
   "entries": [
     {
@@ -743,10 +743,18 @@
       "canonical_source": "supabase/migrations/20261121002000_nova_factory_contract_upgrade_guard_fixes.sql",
       "canonical_git_blob_sha": "89317193ef6466192ca0bef7068b7bb9be4bbf35",
       "additional_variants": []
+    },
+    {
+      "version": "20261120184839",
+      "name": "nova_financial_idempotency_market_history",
+      "source_status": "tracked",
+      "canonical_source": "supabase/migrations/20261120184839_nova_financial_idempotency_market_history.sql",
+      "canonical_git_blob_sha": "14d0b7a2dacef22de8cf7fc26e4571ee44f400e2",
+      "additional_variants": []
     }
   ],
-  "tracked_migration_files_on_branch": 74,
-  "tracked_migration_files_on_main": 74,
+  "tracked_migration_files_on_branch": 75,
+  "tracked_migration_files_on_main": 75,
   "unmapped_local_migration_files_by_name": [
     "supabase/migrations/20261118180000_nexora_economy_rpcs.sql",
     "supabase/migrations/20261118183000_nexora_market_rpcs.sql",
@@ -772,6 +780,7 @@
     "Recovered variants with differing Git blob hashes are retained as forensic evidence; do not replace the canonical tracked source without SQL diff review.",
     "Local migration files not mapped by name to a production ledger record are classified as unmapped, not assumed to be pending or unapplied.",
     "The three NOVA hardening migrations were applied to production on 2026-11-20 and are recorded as ledger versions 20261120181539, 20261120181541, and 20261120181542.",
-    "The production schema snapshot was refreshed after those migrations: 45 tables, 145 functions (132 SECURITY DEFINER), 37 triggers, 97 indexes, and 167 constraints."
+    "The financial idempotency and market history migration was applied on 2026-11-20 and is recorded as ledger version 20261120184839.",
+    "The production schema snapshot includes the financial idempotency ledger and wrappers: 46 tables, 149 functions (136 SECURITY DEFINER), 38 triggers, 100 indexes, and 169 constraints."
   ]
 }
