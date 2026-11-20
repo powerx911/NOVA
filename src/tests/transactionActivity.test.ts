@@ -13,5 +13,10 @@ describe('recent activity formatting', () => {
     expect(formatTxDescription('Company revenue collected: Alpha', 'company_collect', 'ar')).toBe('تحصيل إيرادات الشركة');
     expect(formatTxDescription('Started upgrade to Lv.13', 'company_upgrade', 'ar')).toBe('ترقية الشركة إلى المستوى 13');
     expect(formatTxType('game_compensation', 'ar')).toBe('تعويض عن مشكلة سابقة');
+    expect(formatTxType('company_auction_escrow', 'ar')).toBe('حجز مبلغ مزاد الشركة');
+    expect(formatTxType('company_auction_refund', 'ar')).toBe('استرجاع مبلغ مزاد الشركة');
+    expect(formatTxType('skill_reset', 'ar')).toBe('إعادة تعيين المهارات');
+    expect(formatTxType('factory_skill', 'ar')).toBe('تطوير مهارة المصنع');
+    expect(formatTxType('unknown_backend_event', 'ar')).toBe('عملية مالية');
   });
 });
