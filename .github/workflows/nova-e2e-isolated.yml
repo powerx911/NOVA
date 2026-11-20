@@ -137,15 +137,18 @@ jobs:
           EOF
           supabase functions serve nexora-api --env-file /tmp/nova-e2e-edge.env \
             > /tmp/nova-e2e-edge.log 2>&1 &
-          for attempt in $(seq 1 60); do
-            if curl --connect-timeout 2 --max-time 4 -fsS "$API_URL/functions/v1/nexora-api" \
-              -H "apikey: $ANON_KEY" -H "Authorization: Bearer $ANON_KEY" \
-              | jq -e '.ok == true' >/dev/null 2>&1; then
+          for attempt in $(seq 1 20); do
+            health_response="$(curl --connect-timeout 2 --max-time 4 -sS "$API_URL/functions/v1/nexora-api" \
+              -H "apikey: $ANON_KEY" -H "Authorization: Bearer $ANON_KEY" 2>&1 || true)"
+            if printf '%s' "$health_response" | jq -e '.ok == true' >/dev/null 2>&1; then
               {
                 echo "NOVA_E2E_SUPABASE_URL=$API_URL"
                 echo "NOVA_E2E_SUPABASE_ANON_KEY=$ANON_KEY"
               } >> "$GITHUB_ENV"
               exit 0
+            fi
+            if [ -n "$health_response" ]; then
+              echo "Local Edge Function health attempt $attempt: $health_response"
             fi
             sleep 2
           done
