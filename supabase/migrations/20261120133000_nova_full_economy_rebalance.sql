@@ -111,7 +111,7 @@ do $patch$
 declare
   v_definition text;
   v_body text;
-  v_begin_marker text := E'\\nbegin\\n';
+  v_begin_marker text := E'\nbegin\n';
   v_body_start integer;
 begin
   select pg_get_functiondef('nexora.start_company_upgrade(text,text)'::regprocedure)
