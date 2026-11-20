@@ -8,6 +8,7 @@ on:
     paths:
       - "supabase/recovered-history/**"
       - "supabase/migrations/**"
+      - "supabase/tests/**"
       - ".github/workflows/database-history-replay.yml"
   pull_request:
     branches:
@@ -15,6 +16,7 @@ on:
     paths:
       - "supabase/recovered-history/**"
       - "supabase/migrations/**"
+      - "supabase/tests/**"
       - ".github/workflows/database-history-replay.yml"
 
 permissions:
