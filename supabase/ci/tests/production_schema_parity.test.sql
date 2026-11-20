@@ -15,8 +15,8 @@ select extensions.is(
 select extensions.is(
   (select count(*)::integer from pg_proc p join pg_namespace n on n.oid=p.pronamespace
    where n.nspname='nexora' and p.prokind='f'),
-  145,
-  'isolated schema contains 144 production functions plus the pending account-deletion RPC'
+  144,
+  'production snapshot contains the 144 production functions'
 );
 
 select extensions.is(
