@@ -45,7 +45,11 @@ export async function nexoraApi<T>(
   const user = auth.currentUser;
   if (!user) throw new NexoraApiError('UNAUTHENTICATED', 401);
 
-  const token = await user.getIdToken();
+  const localHost = ['localhost', '127.0.0.1'].includes(new URL(SUPABASE_URL).hostname);
+  const e2eToken = import.meta.env.VITE_NOVA_E2E_AUTH_TOKEN;
+  const token = localHost && typeof e2eToken === 'string' && e2eToken.length >= 32
+    ? e2eToken
+    : await user.getIdToken();
   let requestStorageKey: string | null = null;
   let requestPayload = payload;
   if (IDEMPOTENT_ACTIONS.has(action) && typeof window !== 'undefined') {
