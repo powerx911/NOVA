@@ -2,7 +2,7 @@ import { defineConfig, devices } from '@playwright/test';
 
 export default defineConfig({
   testDir: './e2e',
-  testMatch: '**/*.playwright.mjs',
+  testMatch: '**/*.spec.mjs',
   fullyParallel: false,
   workers: 1,
   timeout: 120_000,
