@@ -669,6 +669,16 @@ Deno.serve(async (req: Request) => {
       return json({ ok: true, data }, 200, origin);
     }
 
+    if (body.action === "claim_achievement_reward") {
+      const achievementId = typeof body.achievementId === "string" ? body.achievementId : "";
+      const { data, error } = await db.rpc("claim_achievement_reward", { p_uid: identity.uid, p_achievement_id: achievementId });
+      if (error) {
+        const known = ["INVALID_ACHIEVEMENT","ACHIEVEMENT_NOT_UNLOCKED","ACHIEVEMENT_ALREADY_CLAIMED","ACCOUNT_NOT_FOUND"].find((code) => error.message.includes(code));
+        return json({ error: known ?? "ACHIEVEMENT_CLAIM_FAILED" }, 409, origin);
+      }
+      return json({ ok: true, data }, 200, origin);
+    }
+
     if (body.action === "unlock_eligible_achievements") {
       // Onboarding clients may request an achievement sync before a character exists.
       // Treat that state as an empty achievement set instead of surfacing ACCOUNT_NOT_FOUND.
