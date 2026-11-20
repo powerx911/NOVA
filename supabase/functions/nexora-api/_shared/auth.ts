@@ -46,5 +46,7 @@ export async function authenticate(req: Request) {
     uid: payload.sub,
     email: typeof payload.email === "string" ? payload.email : "",
     emailVerified: payload.email_verified === true,
+    isAnonymous,
+    authTime: typeof payload.auth_time === "number" ? payload.auth_time : null,
   };
 }

@@ -3,6 +3,7 @@ import { getAdminClient, authenticate } from "./_shared/auth.ts";
 import { bootstrap } from "./_shared/bootstrap.ts";
 import { getSocialAction } from "./_shared/social.ts";
 import { camelRow } from "./_shared/serialization.ts";
+import { isRecentFirebaseAuth } from "./_shared/auth_policy.ts";
 
 const ALLOWED_ORIGINS = new Set([
   "https://powerx911.github.io",
@@ -53,6 +54,13 @@ Deno.serve(async (req: Request) => {
     const db = admin.schema("nexora");
 
     if (body.action === "delete_account") {
+      // Enforce the same recent-login requirement on the server. Client-side
+      // reauthentication alone can be bypassed by calling this action directly.
+      // Anonymous accounts have no reusable credential and retain their existing deletion path.
+      if (!identity.isAnonymous && !isRecentFirebaseAuth(identity.authTime)) {
+        return json({ error: "REAUTHENTICATION_REQUIRED" }, 401, origin);
+      }
+
       const authorization = req.headers.get("Authorization") ?? "";
       const tokenMatch = /^Bearer\s+(.+)$/i.exec(authorization);
       if (!tokenMatch) return json({ error: "UNAUTHENTICATED" }, 401, origin);
