@@ -46,8 +46,11 @@ jobs:
           cache-dependency-path: |
             functions/package-lock.json
 
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+
       - name: Install root dependencies
-        run: npm install --no-audit --no-fund --package-lock=false
+        run: bun install --frozen-lockfile
 
       - name: Install Cloud Functions dependencies
         run: npm ci --prefix functions --no-audit --no-fund

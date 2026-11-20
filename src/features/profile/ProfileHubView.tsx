@@ -25,6 +25,7 @@ import {
   upgradeSkill,
   resetSkills,
   refreshPlayerAchievements,
+  deletePlayerAccount,
 } from '../../services/gameService';
 import type {
   Company,
@@ -276,14 +277,7 @@ export function ProfileHubView({
       } else {
         throw new Error('REAUTHENTICATION_REQUIRED');
       }
-      const token = await user.getIdToken(true);
-      const response = await fetch('/api/account-delete', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
-        body: JSON.stringify({ confirm: true }),
-      });
-      const result = await response.json().catch(() => ({})) as { error?: string };
-      if (!response.ok) throw new Error(result.error || 'ACCOUNT_DELETE_FAILED');
+      await deletePlayerAccount();
       setDeleteConfirmOpen(false);
       showToast(language === 'ar' ? 'تم حذف الحساب وبيانات اللعب.' : 'Your account and game data have been deleted.', 'success');
       await onLogout();
@@ -291,9 +285,11 @@ export function ProfileHubView({
       const code = error instanceof Error ? error.message : '';
       const message = code === 'LEADER_MUST_TRANSFER'
         ? (language === 'ar' ? 'انقل قيادة منظمتك أولاً قبل حذف الحساب.' : 'Transfer your organization leadership before deleting this account.')
+        : code === 'ACCOUNT_HAS_ACTIVE_AUCTION_BID'
+        ? (language === 'ar' ? 'لديك مزايدة نشطة. انتظر انتهاء المزاد ثم أعد حذف الحساب.' : 'You have an active auction bid. Wait for the auction to finish, then retry.')
         : code === 'REAUTHENTICATION_REQUIRED' || code.includes('auth/requires-recent-login')
         ? (language === 'ar' ? 'سجّل الدخول من جديد ثم أعد محاولة الحذف.' : 'Sign in again, then retry account deletion.')
-        : (language === 'ar' ? 'تعذر حذف الحساب بالكامل. لم يتم تأكيد الحذف.' : 'Account deletion could not be completed. No success was reported.');
+        : (language === 'ar' ? 'تعذر حذف الحساب بالكامل. إذا تمت إزالة بيانات اللعب، يمكنك إعادة المحاولة لإكمال حذف تسجيل الدخول.' : 'Account deletion is pending. If game data was already removed, retry to finish deleting the sign-in account.');
       showToast(message, 'error');
     } finally {
       setDeleteBusy(false);

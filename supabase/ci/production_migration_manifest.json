@@ -1,0 +1,755 @@
+{
+  "manifest_version": 1,
+  "captured_at": "2026-11-20",
+  "repository": "powerx911/NOVA",
+  "production_project_id": "hmrprnjhyzyefocdmnxf",
+  "production_ledger_records": 74,
+  "tracked_migration_files": 74,
+  "recovered_history_sql_files": 55,
+  "production_schema_inventory": {
+    "tables": 45,
+    "functions": 144,
+    "security_definer_functions": 131,
+    "triggers": 37,
+    "indexes": 97,
+    "constraints": 167,
+    "active_cron_jobs": 8
+  },
+  "matching_summary": {
+    "records_with_source": 74,
+    "records_missing_source": 0,
+    "records_recovered_only": 21,
+    "records_with_additional_variants": 21,
+    "local_migration_files_not_mapped_to_applied_record": 20
+  },
+  "entries": [
+    {
+      "version": "20261118151416",
+      "name": "20261118160000_nova_player_core",
+      "source_status": "recovered_only",
+      "canonical_source": "supabase/recovered-history/20261118151416_nova_player_core.sql",
+      "canonical_git_blob_sha": "56e6d36816348985f40eb3a1abf193e82d27d443",
+      "additional_variants": []
+    },
+    {
+      "version": "20261118151655",
+      "name": "20261118151500_harden_player_rpc_schema",
+      "source_status": "recovered_only",
+      "canonical_source": "supabase/recovered-history/20261118151655_harden_player_rpc_schema.sql",
+      "canonical_git_blob_sha": "806b119c6e08562563575175f0f9adc479b30a28",
+      "additional_variants": []
+    },
+    {
+      "version": "20261118160528",
+      "name": "nova_competitive_core",
+      "source_status": "recovered_only",
+      "canonical_source": "supabase/recovered-history/20261118160528_nova_competitive_core.sql",
+      "canonical_git_blob_sha": "8eff8c99270396ebcee765141dd180fc2b788217",
+      "additional_variants": []
+    },
+    {
+      "version": "20261118161142",
+      "name": "nova_shared_market",
+      "source_status": "recovered_only",
+      "canonical_source": "supabase/recovered-history/20261118161142_nova_shared_market.sql",
+      "canonical_git_blob_sha": "a07157032a2f19291a94d0c2dbb1a80c582fbb40",
+      "additional_variants": []
+    },
+    {
+      "version": "20261118161319",
+      "name": "nova_market_fk_indexes",
+      "source_status": "recovered_only",
+      "canonical_source": "supabase/recovered-history/20261118161319_nova_market_fk_indexes.sql",
+      "canonical_git_blob_sha": "80376de6d690a05f2c0404d46aa0e34b6b2fd375",
+      "additional_variants": []
+    },
+    {
+      "version": "20261118162050",
+      "name": "nova_competitive_duels",
+      "source_status": "recovered_only",
+      "canonical_source": "supabase/recovered-history/20261118162050_nova_competitive_duels.sql",
+      "canonical_git_blob_sha": "28389de68ca47579c053712dd82135866e261810",
+      "additional_variants": []
+    },
+    {
+      "version": "20261118170627",
+      "name": "nexora_core_schema_v1",
+      "source_status": "recovered_only",
+      "canonical_source": "supabase/recovered-history/20261118170627_nexora_core_schema_v1.sql",
+      "canonical_git_blob_sha": "6ce31b11909f27db67d083fd531d722b91c73980",
+      "additional_variants": []
+    },
+    {
+      "version": "20261118170652",
+      "name": "nexora_username_compatibility",
+      "source_status": "recovered_only",
+      "canonical_source": "supabase/recovered-history/20261118170652_nexora_username_compatibility.sql",
+      "canonical_git_blob_sha": "bd19721d7a85226d4a901381668f205264efe963",
+      "additional_variants": []
+    },
+    {
+      "version": "20261118170811",
+      "name": "remove_legacy_nova_functions",
+      "source_status": "recovered_only",
+      "canonical_source": "supabase/recovered-history/20261118170811_remove_legacy_nova_functions.sql",
+      "canonical_git_blob_sha": "afdd753803e6b89c84e3a43a4d4a8bb4c1477ced",
+      "additional_variants": []
+    },
+    {
+      "version": "20261118170819",
+      "name": "remove_legacy_nova_game_tables",
+      "source_status": "recovered_only",
+      "canonical_source": "supabase/recovered-history/20261118170819_remove_legacy_nova_game_tables.sql",
+      "canonical_git_blob_sha": "8abdbfa3bde5b2ca2d897c8a964ed27b4d73dd84",
+      "additional_variants": []
+    },
+    {
+      "version": "20261118170850",
+      "name": "nexora_firebase_identity_boundary",
+      "source_status": "recovered_only",
+      "canonical_source": "supabase/recovered-history/20261118170850_nexora_firebase_identity_boundary.sql",
+      "canonical_git_blob_sha": "241a6cdae20167ad850aab40245af816435d19b4",
+      "additional_variants": []
+    },
+    {
+      "version": "20261118171625",
+      "name": "nexora_character_creation_rpc",
+      "source_status": "recovered_only",
+      "canonical_source": "supabase/recovered-history/20261118171625_nexora_character_creation_rpc.sql",
+      "canonical_git_blob_sha": "beb15748307a73782d039afc734c03cf57e7149d",
+      "additional_variants": []
+    },
+    {
+      "version": "20261118181814",
+      "name": "nexora_server_operations",
+      "source_status": "tracked",
+      "canonical_source": "supabase/migrations/20261118181814_nexora_server_operations.sql",
+      "canonical_git_blob_sha": "a03e050d5b8f4fb301e045ac4da8004aa78e2ea2",
+      "additional_variants": [
+        {
+          "path": "supabase/recovered-history/20261118181814_nexora_server_operations.sql",
+          "git_blob_sha": "c411964ccb946ee7a793b29294d86f074e2d7df6"
+        }
+      ]
+    },
+    {
+      "version": "20261118181827",
+      "name": "nexora_org_request_pending_unique",
+      "source_status": "tracked",
+      "canonical_source": "supabase/migrations/20261118181827_nexora_org_request_pending_unique.sql",
+      "canonical_git_blob_sha": "1d7fcbaf7a94a4ce19a33db42fac630927021572",
+      "additional_variants": [
+        {
+          "path": "supabase/recovered-history/20261118181827_nexora_org_request_pending_unique.sql",
+          "git_blob_sha": "269e4ca77880ef87f2b1b35bcaf9209151de2335"
+        }
+      ]
+    },
+    {
+      "version": "20261118190004",
+      "name": "nova_character_welcome_branding",
+      "source_status": "tracked",
+      "canonical_source": "supabase/migrations/20261118190004_nova_character_welcome_branding.sql",
+      "canonical_git_blob_sha": "496a2b18b948e1c280aba95be4a8fe211594beec",
+      "additional_variants": [
+        {
+          "path": "supabase/recovered-history/20261118190004_nova_character_welcome_branding.sql",
+          "git_blob_sha": "9aec66557a6ca2762f8f19d4d28bc8873ace6004"
+        }
+      ]
+    },
+    {
+      "version": "20261118192232",
+      "name": "nova_remove_properties_and_skill_point_progression",
+      "source_status": "tracked",
+      "canonical_source": "supabase/migrations/20261118192232_nova_remove_properties_and_skill_point_progression.sql",
+      "canonical_git_blob_sha": "899f27b9b6926a7237ea0e4eaf62432e58557e5e",
+      "additional_variants": [
+        {
+          "path": "supabase/recovered-history/20261118192232_nova_remove_properties_and_skill_point_progression.sql",
+          "git_blob_sha": "a11e36111b15084924de832e4c2bf409adfd4921"
+        }
+      ]
+    },
+    {
+      "version": "20261118192618",
+      "name": "nova_remove_property_mission_path",
+      "source_status": "tracked",
+      "canonical_source": "supabase/migrations/20261118192618_nova_remove_property_mission_path.sql",
+      "canonical_git_blob_sha": "d1c3dd3f53b47833d6d09ac86ca9b8f9efa027f7",
+      "additional_variants": [
+        {
+          "path": "supabase/recovered-history/20261118192618_nova_remove_property_mission_path.sql",
+          "git_blob_sha": "f70748484fb7909bfb2e10d5d1d954164cd18a10"
+        }
+      ]
+    },
+    {
+      "version": "20261118192658",
+      "name": "nova_remove_property_achievement_path",
+      "source_status": "recovered_only",
+      "canonical_source": "supabase/recovered-history/20261118192658_nova_remove_property_achievement_path.sql",
+      "canonical_git_blob_sha": "d13afd7c7c783f63d3dc18299b65a5e5f2a87670",
+      "additional_variants": []
+    },
+    {
+      "version": "20261118193136",
+      "name": "nova_reconcile_skill_points_to_one_per_level",
+      "source_status": "tracked",
+      "canonical_source": "supabase/migrations/20261118214500_nova_reconcile_skill_points_to_one_per_level.sql",
+      "canonical_git_blob_sha": "dca62dd5b00666ceb2ec6c4f4200cf14274b9014",
+      "additional_variants": [
+        {
+          "path": "supabase/recovered-history/20261118193136_nova_reconcile_skill_points_to_one_per_level.sql",
+          "git_blob_sha": "d17486e2f6210e864d8c99cb142cafff2fa81047"
+        }
+      ]
+    },
+    {
+      "version": "20261118194258",
+      "name": "nova_fix_company_upgrade_guard_and_indexes",
+      "source_status": "tracked",
+      "canonical_source": "supabase/migrations/20261118194500_nova_fix_company_upgrade_guard_and_indexes.sql",
+      "canonical_git_blob_sha": "27f3904c713f8201579e12f2fe75e5c09fdd4bc0",
+      "additional_variants": [
+        {
+          "path": "supabase/recovered-history/20261118194258_nova_fix_company_upgrade_guard_and_indexes.sql",
+          "git_blob_sha": "b6d1d7356cff4dbbb0087a24e1d3462b5ecb630f"
+        }
+      ]
+    },
+    {
+      "version": "20261118201649",
+      "name": "nova_social_hub",
+      "source_status": "tracked",
+      "canonical_source": "supabase/migrations/20261118220000_nova_social_hub.sql",
+      "canonical_git_blob_sha": "0e62fc1762db87bff9f3882008bafe36d9e08a50",
+      "additional_variants": [
+        {
+          "path": "supabase/recovered-history/20261118201649_nova_social_hub.sql",
+          "git_blob_sha": "0909d26ff03b8d9efd9a846445a67edf2f1fdff7"
+        }
+      ]
+    },
+    {
+      "version": "20261118201750",
+      "name": "nova_social_conversation_shape",
+      "source_status": "tracked",
+      "canonical_source": "supabase/migrations/20261118220100_nova_social_conversation_shape.sql",
+      "canonical_git_blob_sha": "99365b396e5004b3676b5c9cd9fde0b7f9063c1c",
+      "additional_variants": [
+        {
+          "path": "supabase/recovered-history/20261118201750_nova_social_conversation_shape.sql",
+          "git_blob_sha": "d6b91cfada1c9b10d7bfa18525ef3160c483a0c7"
+        }
+      ]
+    },
+    {
+      "version": "20261118205113",
+      "name": "nova_player_presence",
+      "source_status": "tracked",
+      "canonical_source": "supabase/migrations/20261118223000_nova_player_presence.sql",
+      "canonical_git_blob_sha": "b5fd0c2846117840872b359dbfd14e5f99b77f83",
+      "additional_variants": [
+        {
+          "path": "supabase/recovered-history/20261118205113_nova_player_presence.sql",
+          "git_blob_sha": "ce897ea8716ce35addfb5b9ca6d87d99f378ed22"
+        }
+      ]
+    },
+    {
+      "version": "20261118205409",
+      "name": "nova_org_donation_ranking",
+      "source_status": "tracked",
+      "canonical_source": "supabase/migrations/20261118224000_nova_org_donation_ranking.sql",
+      "canonical_git_blob_sha": "f8eb7cc7fdb42a0d8097a1b25abc7bb03c1909e9",
+      "additional_variants": [
+        {
+          "path": "supabase/recovered-history/20261118205409_nova_org_donation_ranking.sql",
+          "git_blob_sha": "ca8c4ceb57e75a853f825dc95e7bee4039ced7a4"
+        }
+      ]
+    },
+    {
+      "version": "20261118212342",
+      "name": "nova_company_auction",
+      "source_status": "tracked",
+      "canonical_source": "supabase/migrations/20261118230000_nova_company_auction.sql",
+      "canonical_git_blob_sha": "09bec4f395fbd9ccc01da19a17d48811712dd625",
+      "additional_variants": [
+        {
+          "path": "supabase/recovered-history/20261118212342_nova_company_auction.sql",
+          "git_blob_sha": "004438335daaa7310cff8c8c4ab78514f7d1e571"
+        }
+      ]
+    },
+    {
+      "version": "20261118212718",
+      "name": "nova_company_auction_immutable_history",
+      "source_status": "tracked",
+      "canonical_source": "supabase/migrations/20261118232000_nova_company_auction_immutable_history.sql",
+      "canonical_git_blob_sha": "1c923cd3fc5270ba8111ebef21893d4ed9cc3a75",
+      "additional_variants": [
+        {
+          "path": "supabase/recovered-history/20261118212718_nova_company_auction_immutable_history.sql",
+          "git_blob_sha": "0797c25a80cc1e4a9e9e5998545db8a7de482496"
+        }
+      ]
+    },
+    {
+      "version": "20261118212846",
+      "name": "nova_company_bid_found_guard",
+      "source_status": "tracked",
+      "canonical_source": "supabase/migrations/20261118233000_nova_company_bid_found_guard.sql",
+      "canonical_git_blob_sha": "7c4240d298b29d86968cf8f844b0b86f4ebbf98c",
+      "additional_variants": [
+        {
+          "path": "supabase/recovered-history/20261118212846_nova_company_bid_found_guard.sql",
+          "git_blob_sha": "eef08cbbe6fcb35f4aea48d05fd740892c5089db"
+        }
+      ]
+    },
+    {
+      "version": "20261118222122",
+      "name": "nova_skill_reset_and_factories",
+      "source_status": "tracked",
+      "canonical_source": "supabase/migrations/20261118222122_nova_skill_reset_and_factories.sql",
+      "canonical_git_blob_sha": "a14767ddd2caff05f40bfc46cf1766376ac50cb8",
+      "additional_variants": [
+        {
+          "path": "supabase/recovered-history/20261118222122_nova_skill_reset_and_factories.sql",
+          "git_blob_sha": "e69436f0bd2789f237fa426fbf35a5a414fcfd5d"
+        }
+      ]
+    },
+    {
+      "version": "20261118222810",
+      "name": "nova_factory_pause_sync_fix",
+      "source_status": "tracked",
+      "canonical_source": "supabase/migrations/20261118222810_nova_factory_pause_sync_fix.sql",
+      "canonical_git_blob_sha": "d2fbf5b4f1a50906280768ba38e73dc6a7263f16",
+      "additional_variants": [
+        {
+          "path": "supabase/recovered-history/20261118222810_nova_factory_pause_sync_fix.sql",
+          "git_blob_sha": "dd42309b6f6efa9771cda926356e7360d5e91588"
+        }
+      ]
+    },
+    {
+      "version": "20261118225248",
+      "name": "nova_factory_economy_rebalance",
+      "source_status": "tracked",
+      "canonical_source": "supabase/migrations/20261119001000_nova_factory_economy_rebalance.sql",
+      "canonical_git_blob_sha": "ff28245e4adc6779809d8ca0c14a98ddd0585412",
+      "additional_variants": [
+        {
+          "path": "supabase/recovered-history/20261118225248_nova_factory_economy_rebalance.sql",
+          "git_blob_sha": "6a2f55a1f3ebfc6141603567be7ce887f1f66ced"
+        }
+      ]
+    },
+    {
+      "version": "20261118225603",
+      "name": "nova_factory_warehouse_and_level_100",
+      "source_status": "recovered_only",
+      "canonical_source": "supabase/recovered-history/20261118225603_nova_factory_warehouse_and_level_100.sql",
+      "canonical_git_blob_sha": "eb062aa42428c6918f890fd103fcb895a68abd99",
+      "additional_variants": []
+    },
+    {
+      "version": "20261118225737",
+      "name": "nova_factory_auction_support",
+      "source_status": "recovered_only",
+      "canonical_source": "supabase/recovered-history/20261118225737_nova_factory_auction_support.sql",
+      "canonical_git_blob_sha": "371c002d7d8fb199395a1c2477c6554f851593c0",
+      "additional_variants": []
+    },
+    {
+      "version": "20261118230011",
+      "name": "nova_factory_warehouse_capacity_balance",
+      "source_status": "tracked",
+      "canonical_source": "supabase/migrations/20261119002000_nova_factory_warehouse_capacity_balance.sql",
+      "canonical_git_blob_sha": "31cc48ea97b5907abee3f45d29036bfb60fdb41d",
+      "additional_variants": [
+        {
+          "path": "supabase/recovered-history/20261118230011_nova_factory_warehouse_capacity_balance.sql",
+          "git_blob_sha": "fd00f412d2c37a217e26df432c1d97d913f83940"
+        }
+      ]
+    },
+    {
+      "version": "20261118230131",
+      "name": "nova_factory_auction_capacity_reservations",
+      "source_status": "recovered_only",
+      "canonical_source": "supabase/recovered-history/20261118230131_nova_factory_auction_capacity_reservations.sql",
+      "canonical_git_blob_sha": "bdfdc0e06ee25cc16bcf73bd3ce29cd818de1bd9",
+      "additional_variants": []
+    },
+    {
+      "version": "20261118230414",
+      "name": "nova_factory_base_profit_curve",
+      "source_status": "tracked",
+      "canonical_source": "supabase/migrations/20261119004000_nova_factory_base_profit_curve.sql",
+      "canonical_git_blob_sha": "6bde7840a1b8d1ca8d9a204344a74dc043336280",
+      "additional_variants": [
+        {
+          "path": "supabase/recovered-history/20261118230414_nova_factory_base_profit_curve.sql",
+          "git_blob_sha": "a294481d7993c5a6a9a6534f69baccd57b90f3b3"
+        }
+      ]
+    },
+    {
+      "version": "20261118230515",
+      "name": "nova_add_advanced_factory_resources",
+      "source_status": "tracked",
+      "canonical_source": "supabase/migrations/20261119005000_nova_add_advanced_factory_resources.sql",
+      "canonical_git_blob_sha": "32c06c9fe97e06fe8f9d6a2c9df83b4fa845c9d5",
+      "additional_variants": [
+        {
+          "path": "supabase/recovered-history/20261118230515_nova_add_advanced_factory_resources.sql",
+          "git_blob_sha": "c3fb11a6d030b1dacfe94bfb6ed73308f3b029ab"
+        }
+      ]
+    },
+    {
+      "version": "20261118232146",
+      "name": "nova_factory_profit_margin_v2",
+      "source_status": "recovered_only",
+      "canonical_source": "supabase/recovered-history/20261118232146_nova_factory_profit_margin_v2.sql",
+      "canonical_git_blob_sha": "15d80898aee21040b515b546d4dbd7edcfff1745",
+      "additional_variants": []
+    },
+    {
+      "version": "20261118233048",
+      "name": "nova_remove_market_purchase_xp",
+      "source_status": "tracked",
+      "canonical_source": "supabase/migrations/20261119006000_nova_remove_market_purchase_xp.sql",
+      "canonical_git_blob_sha": "3f5b10a6f939b5423fd3093ce13209cd37bb5292",
+      "additional_variants": [
+        {
+          "path": "supabase/recovered-history/20261118233048_nova_remove_market_purchase_xp.sql",
+          "git_blob_sha": "8d68e8f8f8863e00511b3a7c96c6ddb108be3f31"
+        }
+      ]
+    },
+    {
+      "version": "20261118233344",
+      "name": "remove_market_purchase_reputation_influence",
+      "source_status": "recovered_only",
+      "canonical_source": "supabase/recovered-history/20261118233344_remove_market_purchase_reputation_influence.sql",
+      "canonical_git_blob_sha": "a80b69571a6ac01e0d54e8ef37b587ea42ae4f4b",
+      "additional_variants": []
+    },
+    {
+      "version": "20261118233403",
+      "name": "correct_market_purchase_rewards",
+      "source_status": "recovered_only",
+      "canonical_source": "supabase/recovered-history/20261118233403_correct_market_purchase_rewards.sql",
+      "canonical_git_blob_sha": "38c21512b3b63daa2fe7844dbe85ba39177a7e26",
+      "additional_variants": []
+    },
+    {
+      "version": "20261118233646",
+      "name": "add_advanced_resource_manufacturing_recipes",
+      "source_status": "recovered_only",
+      "canonical_source": "supabase/recovered-history/20261118233646_add_advanced_resource_manufacturing_recipes.sql",
+      "canonical_git_blob_sha": "731593fc4eecee429bdb668fe48b341b7e5cd650",
+      "additional_variants": []
+    },
+    {
+      "version": "20261118233707",
+      "name": "balance_advanced_resource_recipe_costs",
+      "source_status": "recovered_only",
+      "canonical_source": "supabase/recovered-history/20261118233707_balance_advanced_resource_recipe_costs.sql",
+      "canonical_git_blob_sha": "202ba708651ce8817f03e8bf38e22812692ef44a",
+      "additional_variants": []
+    },
+    {
+      "version": "20261119112257",
+      "name": "nova_economy_abuse_guards",
+      "source_status": "tracked",
+      "canonical_source": "supabase/migrations/20261119112257_nova_economy_abuse_guards.sql",
+      "canonical_git_blob_sha": "acc1fa6f401da3a4fdbfca5a1e167311a6e14374",
+      "additional_variants": []
+    },
+    {
+      "version": "20261119112311",
+      "name": "nova_recurring_mission_periods",
+      "source_status": "tracked",
+      "canonical_source": "supabase/migrations/20261119112311_nova_recurring_mission_periods.sql",
+      "canonical_git_blob_sha": "ce480260126ebdb04d0a81e710f97c1945066dfd",
+      "additional_variants": []
+    },
+    {
+      "version": "20261119112320",
+      "name": "nova_market_wallet_lock_order",
+      "source_status": "tracked",
+      "canonical_source": "supabase/migrations/20261119112320_nova_market_wallet_lock_order.sql",
+      "canonical_git_blob_sha": "f3b6c3efe6d7e10c22f36f63bc041189dc289ed9",
+      "additional_variants": []
+    },
+    {
+      "version": "20261119121127",
+      "name": "20261119140000_nova_tiered_medal_rewards",
+      "source_status": "tracked",
+      "canonical_source": "supabase/migrations/20261119140000_nova_tiered_medal_rewards.sql",
+      "canonical_git_blob_sha": "1669cdefb4fe51c5618fef320b4cf997c4dcff8a",
+      "additional_variants": []
+    },
+    {
+      "version": "20261119121807",
+      "name": "20261119143000_nova_weekly_market_mogul",
+      "source_status": "tracked",
+      "canonical_source": "supabase/migrations/20261119143000_nova_weekly_market_mogul.sql",
+      "canonical_git_blob_sha": "902fad2c04937d1c3c5309383591602624350570",
+      "additional_variants": []
+    },
+    {
+      "version": "20261119130317",
+      "name": "20261119150000_nova_mission_achievement_rebuild",
+      "source_status": "tracked",
+      "canonical_source": "supabase/migrations/20261119150000_nova_mission_achievement_rebuild.sql",
+      "canonical_git_blob_sha": "f0082c10f944d3a648e208f109fb96fdbf61530d",
+      "additional_variants": []
+    },
+    {
+      "version": "20261119141305",
+      "name": "20261119160000_nova_dynamic_contracts_org_goals",
+      "source_status": "tracked",
+      "canonical_source": "supabase/migrations/20261119141305_20261119160000_nova_dynamic_contracts_org_goals.sql",
+      "canonical_git_blob_sha": "51e0e50786910d36c98747fec05a4e704b669743",
+      "additional_variants": []
+    },
+    {
+      "version": "20261119141731",
+      "name": "20261119142000_nova_org_goal_contribution_org_index",
+      "source_status": "tracked",
+      "canonical_source": "supabase/migrations/20261119141731_20261119142000_nova_org_goal_contribution_org_index.sql",
+      "canonical_git_blob_sha": "420b794bf71b9bddfbbbade7a900c1c945e98f64",
+      "additional_variants": []
+    },
+    {
+      "version": "20261119160154",
+      "name": "20261119151500_nova_contract_slot_cooldowns",
+      "source_status": "tracked",
+      "canonical_source": "supabase/migrations/20261119160154_nova_contract_slot_cooldowns.sql",
+      "canonical_git_blob_sha": "14a2767a6169797513b8f698187662725dd62155",
+      "additional_variants": []
+    },
+    {
+      "version": "20261119160205",
+      "name": "20261119152000_nova_contract_slot_refresh_limits",
+      "source_status": "tracked",
+      "canonical_source": "supabase/migrations/20261119160205_nova_contract_slot_refresh_limits.sql",
+      "canonical_git_blob_sha": "a650b9cb86119984577432535ea0d3ecfeb92e18",
+      "additional_variants": []
+    },
+    {
+      "version": "20261119160209",
+      "name": "20261119153000_nova_ten_org_weekly_goals",
+      "source_status": "tracked",
+      "canonical_source": "supabase/migrations/20261119160209_nova_ten_org_weekly_goals.sql",
+      "canonical_git_blob_sha": "0c46d36f3b37add25c94dcfb6e2d3a03fcf4590e",
+      "additional_variants": []
+    },
+    {
+      "version": "20261119160214",
+      "name": "20261119154000_nova_independent_contract_claim_limits",
+      "source_status": "tracked",
+      "canonical_source": "supabase/migrations/20261119160214_nova_independent_contract_claim_limits.sql",
+      "canonical_git_blob_sha": "d57dd13af5eef6f4d6822822405e93701cd9dc9b",
+      "additional_variants": []
+    },
+    {
+      "version": "20261119164015",
+      "name": "nova_manufacturing_queue_inventory_capacity",
+      "source_status": "tracked",
+      "canonical_source": "supabase/migrations/20261119164015_nova_manufacturing_queue_inventory_capacity.sql",
+      "canonical_git_blob_sha": "95d94127fdd82e34b4c7fe5e0b6470e866a91b9d",
+      "additional_variants": []
+    },
+    {
+      "version": "20261119171452",
+      "name": "nova_market_price_bounds_manufacturing_cancel",
+      "source_status": "tracked",
+      "canonical_source": "supabase/migrations/20261119171452_nova_market_price_bounds_manufacturing_cancel.sql",
+      "canonical_git_blob_sha": "03ec311049355f0046216f792eaf4c70c2b232a2",
+      "additional_variants": []
+    },
+    {
+      "version": "20261119173737",
+      "name": "nova_economy_market_organization_rebalance",
+      "source_status": "tracked",
+      "canonical_source": "supabase/migrations/20261119173737_nova_economy_market_organization_rebalance.sql",
+      "canonical_git_blob_sha": "74899ce200eb3fbad352f52f30fa57bdcd9368cb",
+      "additional_variants": []
+    },
+    {
+      "version": "20261119173930",
+      "name": "nova_weekly_goal_calibration",
+      "source_status": "tracked",
+      "canonical_source": "supabase/migrations/20261119173930_nova_weekly_goal_calibration.sql",
+      "canonical_git_blob_sha": "40245876b0543742081773c8b79fadffc24a761d",
+      "additional_variants": []
+    },
+    {
+      "version": "20261119174212",
+      "name": "nova_factory_operating_cost_rebalance",
+      "source_status": "tracked",
+      "canonical_source": "supabase/migrations/20261119174212_nova_factory_operating_cost_rebalance.sql",
+      "canonical_git_blob_sha": "37179603d3b92054df374023a731ddb39f5cbe01",
+      "additional_variants": []
+    },
+    {
+      "version": "20261119175916",
+      "name": "nova_market_system_raw_scope_factory_duration",
+      "source_status": "tracked",
+      "canonical_source": "supabase/migrations/20261119190000_nova_market_system_raw_scope_factory_duration.sql",
+      "canonical_git_blob_sha": "172b6a5cd4d96361343907434a7e9b0e7355d03f",
+      "additional_variants": []
+    },
+    {
+      "version": "20261119181911",
+      "name": "nova_contract_notifications_market_city_restock",
+      "source_status": "tracked",
+      "canonical_source": "supabase/migrations/20261119203000_nova_contract_notifications_market_city_restock.sql",
+      "canonical_git_blob_sha": "dd258904b380cff21e204cfc140eee671f87cdb8",
+      "additional_variants": []
+    },
+    {
+      "version": "20261119183106",
+      "name": "nova_factory_automatic_operations_progression",
+      "source_status": "tracked",
+      "canonical_source": "supabase/migrations/20261119210000_nova_factory_automatic_operations_progression.sql",
+      "canonical_git_blob_sha": "072455b994e3785cafb04d8603202ceed1d180e2",
+      "additional_variants": []
+    },
+    {
+      "version": "20261119183209",
+      "name": "nova_factory_progression_curve_calibration",
+      "source_status": "tracked",
+      "canonical_source": "supabase/migrations/20261119211000_nova_factory_progression_curve_calibration.sql",
+      "canonical_git_blob_sha": "4485f2baaa3a0617adbde310d18c8e1882551ecd",
+      "additional_variants": []
+    },
+    {
+      "version": "20261119183643",
+      "name": "nova_factory_operating_margin_calibration",
+      "source_status": "tracked",
+      "canonical_source": "supabase/migrations/20261119212000_nova_factory_operating_margin_calibration.sql",
+      "canonical_git_blob_sha": "a706b49305fda63c31a5fc66246faa50c77f2069",
+      "additional_variants": []
+    },
+    {
+      "version": "20261120034024",
+      "name": "nova_factory_resource_specific_growth_curves",
+      "source_status": "tracked",
+      "canonical_source": "supabase/migrations/20261120000000_nova_factory_resource_specific_growth_curves.sql",
+      "canonical_git_blob_sha": "4bea61ce13a20a05fe58766d6c077a1345d6bc38",
+      "additional_variants": []
+    },
+    {
+      "version": "20261120041232",
+      "name": "nova_market_contract_manufacturing_notifications",
+      "source_status": "tracked",
+      "canonical_source": "supabase/migrations/20261120043000_nova_market_contract_manufacturing_notifications.sql",
+      "canonical_git_blob_sha": "12667632600cdeef28e84264596736e5efb3332b",
+      "additional_variants": []
+    },
+    {
+      "version": "20261120065206",
+      "name": "nova_reward_notifications_organization_chat",
+      "source_status": "tracked",
+      "canonical_source": "supabase/migrations/20261120150000_nova_reward_notifications_organization_chat.sql",
+      "canonical_git_blob_sha": "b680282d16db41b0333c16cc96cbe586bbbea197",
+      "additional_variants": []
+    },
+    {
+      "version": "20261120084848",
+      "name": "nova_factory_support_all_raw_resources",
+      "source_status": "tracked",
+      "canonical_source": "supabase/migrations/20261120160000_nova_factory_support_all_raw_resources.sql",
+      "canonical_git_blob_sha": "dbafac5c317bfbdaa22a45662bdfc517f7a9c9f6",
+      "additional_variants": []
+    },
+    {
+      "version": "20261120132839",
+      "name": "nova_production_company_parity_hotfix_20261120",
+      "source_status": "tracked",
+      "canonical_source": "supabase/migrations/20261120132839_nova_production_company_parity_hotfix_20261120.sql",
+      "canonical_git_blob_sha": "1e4dd780ecc6ffdf34b0b2eed9d5f555348f7295",
+      "additional_variants": []
+    },
+    {
+      "version": "20261120135718",
+      "name": "nova_production_economy_parity_repair",
+      "source_status": "tracked",
+      "canonical_source": "supabase/migrations/20261120234000_nova_production_economy_parity_repair.sql",
+      "canonical_git_blob_sha": "04af907eb21e8d76ff1fe5b973054fb7b7a12b3e",
+      "additional_variants": []
+    },
+    {
+      "version": "20261120140520",
+      "name": "nova_company_founding_parity_repair",
+      "source_status": "tracked",
+      "canonical_source": "supabase/migrations/20261120235000_nova_company_founding_parity_repair.sql",
+      "canonical_git_blob_sha": "a898e09b1f0ba1fcb0034c4a73e1806e3797dbc1",
+      "additional_variants": []
+    },
+    {
+      "version": "20261120140918",
+      "name": "nova_factory_operating_wallet_reserve",
+      "source_status": "tracked",
+      "canonical_source": "supabase/migrations/20261120235500_nova_factory_operating_wallet_reserve.sql",
+      "canonical_git_blob_sha": "8c751ef44db975526c8f8f08a1bdf5ef244c6c3c",
+      "additional_variants": []
+    },
+    {
+      "version": "20261120140955",
+      "name": "nova_company_server_collectable_quote",
+      "source_status": "tracked",
+      "canonical_source": "supabase/migrations/20261120235600_nova_company_server_collectable_quote.sql",
+      "canonical_git_blob_sha": "b6de7e878effd4278ba208c5c2751dc71fc49cd4",
+      "additional_variants": []
+    },
+    {
+      "version": "20261120141329",
+      "name": "nova_remove_hidden_quantum_server_recipe",
+      "source_status": "tracked",
+      "canonical_source": "supabase/migrations/20261120235700_nova_remove_hidden_quantum_server_recipe.sql",
+      "canonical_git_blob_sha": "f89246280237824ab6f82cd5eb31fb28a8d9e952",
+      "additional_variants": []
+    }
+  ],
+  "tracked_migration_files_on_branch": 74,
+  "tracked_migration_files_on_main": 70,
+  "unmapped_local_migration_files_by_name": [
+    "supabase/migrations/20261118180000_nexora_economy_rpcs.sql",
+    "supabase/migrations/20261118183000_nexora_market_rpcs.sql",
+    "supabase/migrations/20261118190000_nexora_manufacturing_rpc.sql",
+    "supabase/migrations/20261118193000_nexora_contract_rpc.sql",
+    "supabase/migrations/20261118200000_nexora_player_settings_notifications.sql",
+    "supabase/migrations/20261118201000_nexora_seed_world.sql",
+    "supabase/migrations/20261118203000_nexora_companies_properties.sql",
+    "supabase/migrations/20261118210000_nexora_company_vault_rpcs.sql",
+    "supabase/migrations/20261119003000_nova_factory_business_auctions.sql",
+    "supabase/migrations/20261119011000_nova_advanced_resource_recipes.sql",
+    "supabase/migrations/20261120133000_nova_full_economy_rebalance.sql",
+    "supabase/migrations/20261120170000_nova_company_factory_audit_guards.sql",
+    "supabase/migrations/20261120200000_nova_economy_curves_auto_settlement.sql",
+    "supabase/migrations/20261120220000_nova_company_economy_rebalance_v2.sql",
+    "supabase/migrations/20261120230000_nova_company_upgrade_duration_rebalance.sql",
+    "supabase/migrations/20261120231000_nova_company_upgrade_cost_rebalance.sql",
+    "supabase/migrations/20261120232000_nova_company_upgrade_anchor_rebalance.sql",
+    "supabase/migrations/20261120233000_nova_company_upgrade_charge_reconciliation.sql",
+    "supabase/migrations/20261121000000_nova_treasury_withdrawal_lock_and_auction_refund.sql",
+    "supabase/migrations/20261121001000_nova_unified_account_deletion.sql",
+    "supabase/migrations/20261121002000_nova_factory_contract_upgrade_guard_fixes.sql"
+  ],
+  "notes": [
+    "A source match is a name-based source mapping, not proof that a local file is byte-identical to the exact SQL executed in production.",
+    "Recovered variants with differing Git blob hashes are retained as forensic evidence; do not replace the canonical tracked source without SQL diff review.",
+    "Local migration files not mapped by name to a production ledger record are classified as unmapped, not assumed to be pending or unapplied.",
+    "Three new hardening migrations on this branch are not yet applied in production and are intentionally absent from the 74 production ledger entries."
+  ]
+}

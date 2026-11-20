@@ -1,37 +1,44 @@
 # Recovered Supabase SQL source archive
 
-**42 / 42 tracked remote migration entries recovered, plus 13 untracked SQL statement events.**
+**Original recovery snapshot:** 42 / 42 remote migration sources recovered, plus 13 untracked SQL statement events (2026-11-19).  
+**Current production ledger:** 74 applied migration records (read-only inventory, 2026-11-20).
 
-Project: `hmrprnjhyzyefocdmnxf`  
-Recovery date: 2026-11-19.
+Project: `hmrprnjhyzyefocdmnxf`
 
-## Tracked migration sources
+## Current source reconciliation
 
-- 41 SQL bodies were recovered from Supabase `postgres_logs` statement events; their timestamps map to remote migration versions.
-- The remaining source, `20261118193136_nova_reconcile_skill_points_to_one_per_level`, was recovered read-only from `supabase_migrations.schema_migrations.statements`.
-- The migration metadata table contains 42 rows and no rollback arrays.
-- Two additional tracked-style statement events had no matching version in the current remote ledger and were excluded from the 42 applied migration sources.
+- The current production ledger contains 74 rows in `supabase_migrations.schema_migrations`.
+- The source manifest at `supabase/ci/production_migration_manifest.json` maps all 74 records to source paths and Git blob hashes.
+- 21 records currently use recovered-history files as their canonical available source.
+- 21 records have additional historical variants with different Git blob hashes. These variants are forensic evidence; do not overwrite one with another without a reviewed SQL diff.
+- The applied production hotfix `20261120132839_nova_production_company_parity_hotfix_20261120` was recovered directly from its `statements` array and restored to `supabase/migrations/20261120132839_nova_production_company_parity_hotfix_20261120.sql`.
+- The base `main` branch had 70 tracked migration files. The current hardening branch has additional pending migrations; do not count those as applied production migrations.
+- Twenty local migration files are not mapped by name to the current ledger. This is a name-mapping gap, not proof that they are pending or unapplied.
 
-## Untracked direct SQL events
+## Original recovered migration sources
 
-- 13 additional client-backend SQL statements were logged as direct `POST /mcp` executions, but do not appear as entries in `supabase_migrations.schema_migrations`.
+- 42 tracked migration sources were recovered during the 2026-11-19 recovery.
+- 41 SQL bodies were recovered from Supabase `postgres_logs` statement events; the remaining source was recovered read-only from `supabase_migrations.schema_migrations.statements`.
+- The 13 untracked SQL statement events were logged as direct `POST /mcp` executions and do not appear as rows in `supabase_migrations.schema_migrations`.
 - Their SQL bodies were recovered from PostgreSQL logs and stored under `untracked/`.
 - Request metadata and user identifiers were deliberately stripped.
-- Several statements define functions that are present in the production catalog but are absent from the 42 tracked migration bodies. Some are later replaced by tracked migrations; the replay workflow preserves their chronological order.
+- Some recovered SQL bodies are later replaced by tracked migrations; replay order is maintained by timestamp-prefixed filenames.
 
 ## Isolated replay
 
-The historical replay workflow combines the 42 tracked migration sources and 13 untracked SQL events by their timestamp-prefixed filenames, then applies the three NOVA hardening migrations and runs pgTAP. It runs only on a disposable GitHub Actions Supabase stack.
+The historical replay workflow replays the recovered SQL archive on a disposable GitHub Actions Supabase stack, then applies a curated set of canonical migrations and runs pgTAP. Both database workflows validate the production migration source manifest before replay.
+
+The workflow's curated migration list is not a substitute for a complete fresh-project replay. The repository keeps two data-free baselines: `supabase/ci/nexora_schema_snapshot.sql` for historical migration replay and gameplay tests, and `supabase/ci/nexora_production_schema_snapshot.sql` exported read-only from production on 2026-11-20. The production snapshot contains 45 tables, 144 functions, 37 triggers, 97 indexes and 167 constraints. CI verifies it separately after running the historical migration chain.
 
 ## Safety
 
-**Do not execute this directory wholesale outside the isolated replay workflow. Do not move these files into `supabase/migrations/` or run `supabase db push` based only on this recovery.**
+**Do not execute this directory wholesale outside the isolated replay workflow. Do not move recovered files into `supabase/migrations/` or run `supabase db push` based only on this recovery.**
 
-The archive restores logged SQL bodies, but the current 31 local migration files still contain differences and candidates that need classification. The archive is forensic evidence for reconciliation, not a deployment plan.
+The archive restores logged SQL bodies, but some tracked/recovered variants differ. The manifest preserves source paths and Git blob hashes so reconciliation can be done explicitly. Never infer deployment status from a filename alone.
 
-## Tracked source files
+## Archive inventory
 
-55 total SQL files are archived: 42 tracked sources in this directory and 13 untracked events in `untracked/`. See the parent folder listing for the full tracked-source inventory.
+55 total SQL files are archived: 42 tracked sources in this directory and 13 untracked events in `untracked/`. See the parent folder listing for the full inventory.
 
 ## Untracked source files
 

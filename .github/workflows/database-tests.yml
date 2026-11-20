@@ -9,6 +9,7 @@ on:
       - "supabase/ci/**"
       - "supabase/migrations/**"
       - "supabase/tests/**"
+      - "scripts/validate_migration_manifest.py"
       - ".github/workflows/database-tests.yml"
   pull_request:
     branches:
@@ -17,6 +18,7 @@ on:
       - "supabase/ci/**"
       - "supabase/migrations/**"
       - "supabase/tests/**"
+      - "scripts/validate_migration_manifest.py"
       - ".github/workflows/database-tests.yml"
 
 permissions:
@@ -34,6 +36,9 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Validate production migration source manifest
+        run: python scripts/validate_migration_manifest.py
 
       - name: Setup Supabase CLI
         uses: supabase/setup-cli@v3
@@ -94,6 +99,7 @@ jobs:
             supabase/migrations/20261119212000_nova_factory_operating_margin_calibration.sql \
             supabase/migrations/20261120000000_nova_factory_resource_specific_growth_curves.sql \
             supabase/migrations/20261120043000_nova_market_contract_manufacturing_notifications.sql \
+            supabase/migrations/20261120132839_nova_production_company_parity_hotfix_20261120.sql \
             supabase/migrations/20261120133000_nova_full_economy_rebalance.sql \
             supabase/migrations/20261120150000_nova_reward_notifications_organization_chat.sql \
             supabase/migrations/20261120160000_nova_factory_support_all_raw_resources.sql \
@@ -109,6 +115,7 @@ jobs:
             supabase/migrations/20261120235600_nova_company_server_collectable_quote.sql \
             supabase/migrations/20261120235700_nova_remove_hidden_quantum_server_recipe.sql \
             supabase/migrations/20261121000000_nova_treasury_withdrawal_lock_and_auction_refund.sql \
+            supabase/migrations/20261121001000_nova_unified_account_deletion.sql \
             supabase/migrations/20261121002000_nova_factory_contract_upgrade_guard_fixes.sql
           do
             if [ "$migration" = "supabase/migrations/20261120234000_nova_production_economy_parity_repair.sql" ]; then

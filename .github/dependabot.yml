@@ -1,0 +1,28 @@
+version: 2
+updates:
+  - package-ecosystem: bun
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: tuesday
+      time: "04:00"
+      timezone: UTC
+    open-pull-requests-limit: 5
+
+  - package-ecosystem: npm
+    directory: "/functions"
+    schedule:
+      interval: weekly
+      day: tuesday
+      time: "04:30"
+      timezone: UTC
+    open-pull-requests-limit: 3
+
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: tuesday
+      time: "05:00"
+      timezone: UTC
+    open-pull-requests-limit: 5
