@@ -23,8 +23,8 @@ def old_server_cost(gain: float, level: int) -> int:
 
 
 def proposed_cost(gain: float, level: int) -> int:
-    # Pays back the incremental net income in roughly 6-50 hours across levels 1-50.
-    return math.ceil(gain * (5 + 0.75 * level))
+    # Targets roughly one day of payback while preserving incremental-profit scaling.
+    return math.ceil(gain * (8 + level))
 
 
 def net_income(base: int, expense: int, gain: float, level: int) -> int:
@@ -34,7 +34,7 @@ def net_income(base: int, expense: int, gain: float, level: int) -> int:
 
 
 def duration_minutes(target_level: int) -> int:
-    return round(15 * target_level**1.1)
+    return round(8 * target_level**1.05)
 
 
 def cumulative_hours_to_level(base: int, expense: int, gain: float, target: int) -> float:
@@ -64,8 +64,8 @@ def main() -> None:
         "",
         "- دخل الشركة: دخل أساسي + زيادة قطاعية خطية لكل مستوى.",
         "- المصروف: نمو 8% لكل مستوى بدل 20%، حتى لا تلتهم التكاليف الزيادة في الدخل.",
-        "- تكلفة الترقية: `ceil(الزيادة القطاعية × (5 + 0.75 × المستوى الحالي))`.",
-        "- مدة الترقية: `15 دقيقة × المستوى المستهدف^1.1`.",
+        "- تكلفة الترقية: `ceil(الزيادة القطاعية × (8 + المستوى الحالي))`، بهدف استرداد يقارب يومًا من دخل الشركة.",
+        "- مدة الترقية: `8 دقائق × المستوى المستهدف^1.05` لتقليل الانتظار مع الحفاظ على التدرج.",
         "- الهدف: استرداد تكلفة الترقية من الزيادة في صافي الربح خلال فترة معقولة، بدل ربطها بتكلفة التأسيس.",
         "",
         "## مقارنة المستوى 12",

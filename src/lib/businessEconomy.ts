@@ -24,12 +24,12 @@ export function companyUpgradeCost(foundingCost: number, currentLevel: number, l
   const level = Math.max(1, Math.min(COMPANY_LEVEL_MAX - 1, Math.floor(currentLevel)));
   const inferredGain = Math.max(37.8, foundingCost * 0.011);
   const gain = Math.max(1, levelGain ?? inferredGain);
-  return Math.ceil(gain * (5 + 0.75 * level));
+  return Math.ceil(gain * (8 + level));
 }
 
 export function companyUpgradeDurationMs(targetLevel: number): number {
   const level = Math.max(2, Math.min(COMPANY_LEVEL_MAX, Math.floor(targetLevel)));
-  return Math.round(15 * 60_000 * Math.pow(level, 1.1));
+  return Math.round(8 * 60_000 * Math.pow(level, 1.05));
 }
 
 export function factoryOutputMultiplier(level: number): number {
