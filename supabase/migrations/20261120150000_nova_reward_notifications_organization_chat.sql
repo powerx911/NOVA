@@ -214,7 +214,7 @@ begin
   where user_id=p_uid;
 
   insert into nexora.transactions(id,from_uid,to_uid,amount,fee,net_amount,type,reference_id,description,status)
-  values(v_tx,'SYSTEM',p_uid,v_reward,0,v_reward,'mission_reward','achievement:'||p_achievement_id,
+  values(v_tx,'SYSTEM',p_uid,v_reward,0,v_reward,'mission_reward',p_achievement_id,
     'NOVA achievement reward: '||p_achievement_id,'completed');
 
   update nexora.player_achievements set claimed_at=now()
