@@ -44,7 +44,7 @@ insert into nexora.company_auction_escrows(auction_id,bidder_uid,amount,status)
 values ('pgtap-delete-active-bid','pgtap-delete-account',50,'reserved');
 
 select extensions.throws_ok(
-  $select nexora.delete_player_account('pgtap-delete-account')$,
+  'select nexora.delete_player_account(''pgtap-delete-account'')',
   'P0001',
   'ACCOUNT_HAS_ACTIVE_AUCTION_BID',
   'account deletion waits for an active winning bid on another player auction'
