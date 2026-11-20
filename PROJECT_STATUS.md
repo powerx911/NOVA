@@ -32,11 +32,11 @@ NOVA is the player-facing game and brand name. The current database schema remai
 
 ## Snapshot and test status
 
-- `supabase/ci/nexora_schema_snapshot.sql` currently contains 34 table definitions and 78 function definitions. It is a historical baseline, not a complete snapshot of current production.
-- A new pgTAP schema-count parity test checks the isolated result against 45 tables, 144 functions, 37 triggers, 97 indexes and 167 constraints.
-- Both database workflows now include the five latest production economy migrations, the restored hotfix and the new hardening migrations in chronological order.
-- A manifest validator checks that every mapped production source and historical variant still exists with the recorded Git blob hash.
-- The snapshot itself still requires a verified schema-only refresh; do not call it current until the parity test passes against the full canonical replay.
+- `supabase/ci/nexora_schema_snapshot.sql` has been refreshed from the live production catalog using read-only queries on 2026-11-20. It is data-free and contains 45 tables, 144 functions, 37 triggers, 97 indexes and 167 constraints.
+- The snapshot also captures the current 44/45 RLS-enabled state and zero RLS policies in the private `nexora` schema.
+- `database-tests.yml` now restores the complete production snapshot and applies only the pending PR migrations (treasury hardening and account deletion), rather than replaying historical migrations over a current snapshot.
+- `database-history-replay.yml` independently replays the recovered SQL archive in global filename/timestamp order, then validates the curated migration chain on disposable PostgreSQL.
+- The production migration manifest validator checks all 74 applied ledger records against their source paths and Git blob hashes. Applied production migration files remain byte-for-byte unchanged.
 - Do not run `supabase db push`, migration repair, or production DDL to paper over drift.
 
 ## Current hardening batches
