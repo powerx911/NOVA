@@ -215,8 +215,13 @@ export function MarketHubView({
       );
     } catch (err) {
       const code = err instanceof Error ? err.message : '';
+      if (code === 'MARKET_QUOTE_CHANGED') await refreshListings().catch(() => undefined);
       showToast(
-        code === 'PRICE_BELOW_MINIMUM' || code === 'PRICE_ABOVE_MAXIMUM'
+        code === 'MARKET_QUOTE_CHANGED'
+          ? language === 'ar'
+            ? 'تغير سعر العرض. تم تحديث السوق؛ راجع السعر ثم أعد الشراء.'
+            : 'The listing price changed. The market was refreshed; review the new price and retry.'
+          : code === 'PRICE_BELOW_MINIMUM' || code === 'PRICE_ABOVE_MAXIMUM'
           ? language === 'ar'
             ? 'هذا العرض خارج حدود الأسعار المعتمدة. على البائع إعادة نشره بسعر ضمن الحدود.'
             : 'This listing is outside the allowed price range. The seller must relist it within the limits.'
