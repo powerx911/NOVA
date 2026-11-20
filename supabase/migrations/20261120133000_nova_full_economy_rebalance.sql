@@ -112,8 +112,8 @@ declare v_definition text;
 begin
   select pg_get_functiondef('nexora.start_company_upgrade(text,text)'::regprocedure) into v_definition;
   v_definition:=replace(v_definition,'v_cost := nexora.company_upgrade_cost(v_company.sector, v_company.level);','v_cost := nexora.company_upgrade_cost(v_company.sector, v_company.level);');
-  v_definition:=regexp_replace(v_definition,'v_duration_ms[[:space:]]*:=.*?;','v_duration_ms := nexora.company_upgrade_duration_seconds(v_target) * 1000;','');
-  v_definition:=regexp_replace(v_definition,'v_duration[[:space:]]*:=.*?;','v_duration := nexora.company_upgrade_duration_seconds(v_target) * 1000;','');
+  v_definition:=regexp_replace(v_definition,'v_duration_ms[^\n;]*;','v_duration_ms := nexora.company_upgrade_duration_seconds(v_target) * 1000;','g');
+  v_definition:=regexp_replace(v_definition,'v_duration[^\n;]*;','v_duration := nexora.company_upgrade_duration_seconds(v_target) * 1000;','g');
   execute v_definition;
 end $patch$;
 
