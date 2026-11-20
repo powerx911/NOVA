@@ -11,9 +11,9 @@ create temporary table company_reward_results (
 
 insert into nexora.player_profiles(user_id, username, username_lower, xp, level, skills, stats)
 values
-  ('pgtap_company_reward_base', 'pgtap_company_reward_base', 'pgtap_companyrewardbase', 0, 1, '{"leadership":0}'::jsonb, '{}'::jsonb),
-  ('pgtap_company_reward_leader', 'pgtap_company_reward_leader', 'pgtap_companyrewardleader', 0, 1, '{"leadership":5}'::jsonb, '{}'::jsonb),
-  ('pgtap_company_reward_cap', 'pgtap_company_reward_cap', 'pgtap_companyrewardcap', 190, 1, '{"leadership":0}'::jsonb, '{}'::jsonb);
+  ('pgtap_company_reward_base', 'pgtap_reward_base', 'pgtap_reward_base', 0, 1, '{"leadership":0}'::jsonb, '{}'::jsonb),
+  ('pgtap_company_reward_leader', 'pgtap_reward_leader', 'pgtap_reward_leader', 0, 1, '{"leadership":5}'::jsonb, '{}'::jsonb),
+  ('pgtap_company_reward_cap', 'pgtap_reward_cap', 'pgtap_reward_cap', 190, 1, '{"leadership":0}'::jsonb, '{}'::jsonb);
 
 insert into nexora.wallets(user_id, balance, total_earned, total_spent)
 values
