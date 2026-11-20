@@ -136,6 +136,7 @@ export async function createPlayerCharacter(
 export async function claimDailyStipend(_uid: string): Promise<number> {
   try {
     const result = await nexoraApi<{ amount: number }>('claim_daily_stipend');
+    if (typeof window !== 'undefined') window.dispatchEvent(new Event('nova:refresh-game'));
     return result.amount;
   } catch (error) {
     if (error instanceof Error && 'code' in error) {
