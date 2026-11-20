@@ -95,3 +95,43 @@ jobs:
 
       - name: Build Cloud Functions
         run: npm run build --prefix functions
+
+  e2e:
+    name: Playwright isolated smoke test
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: validate
+    if: ${{ github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch' }}
+    env:
+      NOVA_E2E_BASE_URL: ${{ secrets.NOVA_E2E_BASE_URL }}
+      NOVA_E2E_EMAIL: ${{ secrets.NOVA_E2E_EMAIL }}
+      NOVA_E2E_PASSWORD: ${{ secrets.NOVA_E2E_PASSWORD }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install root dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Verify Playwright discovers the smoke spec
+        run: npx playwright test --list
+
+      - name: Install Chromium for isolated E2E
+        if: ${{ env.NOVA_E2E_BASE_URL != '' && env.NOVA_E2E_EMAIL != '' && env.NOVA_E2E_PASSWORD != '' }}
+        run: npx playwright install --with-deps chromium
+
+      - name: Run isolated Playwright smoke test
+        if: ${{ env.NOVA_E2E_BASE_URL != '' && env.NOVA_E2E_EMAIL != '' && env.NOVA_E2E_PASSWORD != '' }}
+        run: npm run test:e2e
+
+      - name: Report isolated E2E skipped
+        if: ${{ env.NOVA_E2E_BASE_URL == '' || env.NOVA_E2E_EMAIL == '' || env.NOVA_E2E_PASSWORD == '' }}
+        run: echo "Skipping browser mutations because NOVA_E2E_BASE_URL, NOVA_E2E_EMAIL, and NOVA_E2E_PASSWORD are not all configured."
