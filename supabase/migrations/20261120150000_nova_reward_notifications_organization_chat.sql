@@ -220,7 +220,7 @@ begin
   update nexora.player_achievements set claimed_at=now()
   where user_id=p_uid and achievement_id=p_achievement_id;
 
-  update nexora.notifications set is_read=true
+  update nexora.notifications set is_read=true,event_key=null
   where user_id=p_uid and event_key='achievement-ready:'||p_achievement_id;
 
   return jsonb_build_object('ok',true,'achievement_id',p_achievement_id,'reward',v_reward);
@@ -277,7 +277,7 @@ security definer
 set search_path = ''
 as $function$
 begin
-  update nexora.notifications set is_read=true
+  update nexora.notifications set is_read=true,event_key=null
   where user_id=new.user_id
     and event_key like 'daily-stipend-ready:%'
     and is_read=false;
@@ -402,7 +402,7 @@ security definer
 set search_path = ''
 as $function$
 begin
-  update nexora.notifications set is_read=true
+  update nexora.notifications set is_read=true,event_key=null
   where user_id=new.user_id
     and event_key='mission-ready:'||new.mission_id||':'||new.period_key;
   return new;
@@ -423,7 +423,7 @@ begin
   if new.vault_balance<old.vault_balance
     or new.last_collected_at is distinct from old.last_collected_at
     or new.vault_level>old.vault_level then
-    update nexora.notifications set is_read=true
+    update nexora.notifications set is_read=true,event_key=null
     where user_id=new.owner_uid
       and (event_key like 'company-vault-full:'||new.id||':%'
         or (event_key is null and title in ('خزنة الشركة ممتلئة','Company vault is full')
@@ -445,7 +445,7 @@ set search_path = ''
 as $function$
 begin
   if new.warehouse_qty<old.warehouse_qty or new.warehouse_level>old.warehouse_level then
-    update nexora.notifications set is_read=true
+    update nexora.notifications set is_read=true,event_key=null
     where user_id=new.owner_uid
       and (event_key like 'factory-warehouse-full:'||new.id||':%'
         or (event_key is null and title in ('مستودع المصنع ممتلئ','Factory warehouse is full')
@@ -479,7 +479,7 @@ declare
   update nexora.contract_offers set status='completed',completed_at=now(),updated_at=now() where id=p_contract_id;$completion$;
   v_new_completion text := $completion$
   update nexora.contract_offers set status='completed',completed_at=now(),updated_at=now() where id=p_contract_id;
-  update nexora.notifications set is_read=true
+  update nexora.notifications set is_read=true,event_key=null
   where user_id=p_uid and event_key='contract-ready:'||p_contract_id;$completion$;
 begin
   select pg_get_functiondef('nexora.claim_dynamic_contract(text,text)'::regprocedure)
