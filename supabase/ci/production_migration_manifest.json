@@ -423,7 +423,7 @@
       "version": "20261118233048",
       "name": "nova_remove_market_purchase_xp",
       "source_status": "tracked",
-      "canonical_source": "supabase/migrations/20261119006000_nova_remove_market_purchase_xp.sql",
+      "canonical_source": "supabase/migrations/20261119010000_nova_remove_market_purchase_xp.sql",
       "canonical_git_blob_sha": "3f5b10a6f939b5423fd3093ce13209cd37bb5292",
       "additional_variants": [
         {
