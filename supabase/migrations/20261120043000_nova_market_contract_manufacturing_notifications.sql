@@ -610,6 +610,36 @@ begin
 end;
 $do$;
 
+-- Backfill notifications for contracts that were already ready when this migration
+-- is deployed, and re-check them during bootstrap after settlement.
+create or replace function nexora.notify_ready_contracts(p_uid text)
+returns integer
+language plpgsql
+security definer
+set search_path = ''
+as $function$
+declare
+  v_contract record;
+  v_count integer:=0;
+begin
+  for v_contract in
+    select id from nexora.contract_offers
+    where status='ready'
+      and ((scope='personal' and user_id=p_uid)
+        or (scope='organization' and claimed_by=p_uid))
+    order by created_at,id
+  loop
+    perform nexora.emit_notification_once(
+      p_uid,'contract-ready:'||v_contract.id,
+      'العقد جاهز للاستلام','Contract ready to claim',
+      'أصبحت مكافأة أحد عقودك جاهزة للاستلام.','A contract reward is ready to claim.','economy'
+    );
+    v_count:=v_count+1;
+  end loop;
+  return v_count;
+end;
+$function$;
+
 -- Manual organization refreshes are still permitted for authorized officers;
 -- record their cooldown explicitly because automatic completion cooldowns are personal-only.
 do $do$
@@ -796,6 +826,8 @@ revoke all on function nexora.notify_ready_missions_after_profile_update() from 
 revoke all on function nexora.notify_company_vault_full() from public,anon,authenticated;
 revoke all on function nexora.notify_factory_warehouse_full() from public,anon,authenticated;
 grant execute on function nexora.notify_ready_missions(text) to service_role;
+revoke all on function nexora.notify_ready_contracts(text) from public,anon,authenticated;
+grant execute on function nexora.notify_ready_contracts(text) to service_role;
 revoke all on function nexora.enforce_player_inventory_capacity() from public,anon,authenticated;
 revoke all on function nexora.start_contract_slot_cooldown() from public,anon,authenticated;
 revoke all on function nexora.guard_contract_slot_cooldown_insert() from public,anon,authenticated;
