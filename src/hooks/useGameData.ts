@@ -92,6 +92,25 @@ export function useGameData(): GameDataState {
   const [unlockedAchievements, setUnlockedAchievements] = useState<Set<string>>(new Set());
   const [claimedAchievements, setClaimedAchievements] = useState<Set<string>>(new Set());
   const [notifications, setNotifications] = useState<GameNotification[]>([]);
+  useEffect(() => {
+    const updateReadState = (event: Event, read: boolean) => {
+      const detail = (event as CustomEvent<{ ids?: string[] }>).detail;
+      const ids = new Set((detail?.ids ?? []).filter((id): id is string => typeof id === 'string'));
+      if (ids.size === 0) return;
+      setNotifications((current) => current.map((notification) =>
+        ids.has(notification.id) ? { ...notification, read } : notification
+      ));
+    };
+    const handleRead = (event: Event) => updateReadState(event, true);
+    const handleUnread = (event: Event) => updateReadState(event, false);
+    window.addEventListener('nova:notifications-read', handleRead);
+    window.addEventListener('nova:notifications-unread', handleUnread);
+    return () => {
+      window.removeEventListener('nova:notifications-read', handleRead);
+      window.removeEventListener('nova:notifications-unread', handleUnread);
+    };
+  }, []);
+
   const [worldEvents, setWorldEvents] = useState<WorldEvent[]>([]);
   const [utcDateKey, setUtcDateKey] = useState(() => getUtcDateKey());
 
