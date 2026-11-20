@@ -659,7 +659,7 @@ begin
   if exists(select 1 from pg_extension where extname='pg_cron') then
     perform cron.schedule(
       'nova-manufacturing-auto-completion',
-      '* * * * *',
+      '15 seconds',
       'select nexora.settle_finished_manufacturing_jobs();'
     );
   end if;
