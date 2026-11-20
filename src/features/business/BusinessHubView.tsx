@@ -134,8 +134,8 @@ export function BusinessHubView({
     return () => { active = false; window.clearInterval(timer); };
   }, []);
   const visibleCompanies = companies.filter((company) => !deletedCompanyIds.includes(company.id)).sort((a, b) => b.level - a.level || a.name.localeCompare(b.name));
-  const companyVaultAlert = notifications.some((n) => !n.read && (n.eventKey?.startsWith('company-vault-full:') || n.title === 'خزنة الشركة ممتلئة' || n.title === 'Company vault is full'));
-  const factoryWarehouseAlert = notifications.some((n) => !n.read && (n.eventKey?.startsWith('factory-warehouse-full:') || n.title === 'مستودع المصنع ممتلئ' || n.title === 'Factory warehouse is full'));
+  const companyVaultAlert = notifications.some((n) => n.eventKey?.startsWith('company-vault-full:') || (!n.read && (n.title === 'خزنة الشركة ممتلئة' || n.title === 'Company vault is full')));
+  const factoryWarehouseAlert = notifications.some((n) => n.eventKey?.startsWith('factory-warehouse-full:') || (!n.read && (n.title === 'مستودع المصنع ممتلئ' || n.title === 'Factory warehouse is full')));
   const activeAuctions = auctions.filter((auction) => auction.status === 'active');
   const companyBidReservations = activeAuctions.filter((auction) => auction.assetType !== 'factory' && auction.highestBidderUid === profile.uid).length;
   const factoryBidReservations = activeAuctions.filter((auction) => auction.assetType === 'factory' && auction.highestBidderUid === profile.uid).length;
@@ -397,7 +397,7 @@ export function BusinessHubView({
                 <div className="flex items-center justify-between"><h2 className="text-sm font-bold text-[#F4F5F7]">{language === 'ar' ? 'شركاتي' : 'My companies'}</h2><span className="text-xs text-[#9299A6] font-mono-num">{occupiedCompanySlots}/3</span></div>
                 {visibleCompanies.length === 0 ? <p className="py-6 text-center text-sm text-[#9299A6]">{language === 'ar' ? 'لا تمتلك شركات حالياً.' : 'You do not own any companies yet.'}</p> : visibleCompanies.map((company) => (
                   <button key={company.id} type="button" onClick={() => { setSelectedCompanyId(company.id); setCompanyView('detail'); }} className="w-full rounded-xl bg-[#0B0D12] border border-white/8 px-4 py-3 flex items-center justify-between gap-3 text-start hover:border-[#E04455]/50 transition-colors">
-                    <span className="min-w-0"><span className="block truncate text-sm font-semibold text-[#F4F5F7]">{company.name}{notifications.some((n) => !n.read && (n.eventKey?.startsWith('company-vault-full:' + company.id + ':') || ((n.title === 'خزنة الشركة ممتلئة' || n.title === 'Company vault is full') && n.body.includes(company.name)))) && <span className="ms-2 inline-block h-2 w-2 rounded-full bg-red-500" />}</span><span className="block mt-1 text-xs text-[#9299A6]">{language === 'ar' ? 'المستوى' : 'Level'} <span className="font-mono-num text-[#F4F5F7]">{company.level}</span></span></span><ArrowLeft className="w-4 h-4 text-[#9299A6] shrink-0" />
+                    <span className="min-w-0"><span className="block truncate text-sm font-semibold text-[#F4F5F7]">{company.name}{notifications.some((n) => n.eventKey?.startsWith('company-vault-full:' + company.id + ':') || (!n.read && (n.title === 'خزنة الشركة ممتلئة' || n.title === 'Company vault is full') && n.body.includes(company.name))) && <span className="ms-2 inline-block h-2 w-2 rounded-full bg-red-500" />}</span><span className="block mt-1 text-xs text-[#9299A6]">{language === 'ar' ? 'المستوى' : 'Level'} <span className="font-mono-num text-[#F4F5F7]">{company.level}</span></span></span><ArrowLeft className="w-4 h-4 text-[#9299A6] shrink-0" />
                   </button>
                 ))}
               </section>
