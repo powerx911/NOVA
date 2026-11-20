@@ -69,11 +69,14 @@ jobs:
         run: |
           set -euo pipefail
           eval "$(supabase status -o env)"
-          mapfile -t statements < <(find supabase/recovered-history -type f -name '*.sql' -print | sort)
-          if [ "${#statements[@]}" -eq 0 ]; then
-            echo "::error::No recovered SQL sources were found."
+          mapfile -t statements < <(find supabase/recovered-history -maxdepth 1 -type f -name '2026*.sql' -print | sort)
+          mapfile -t untracked < <(find supabase/recovered-history/untracked -type f -name '*.sql' -print | sort)
+          if [ "${#statements[@]}" -ne 42 ] || [ "${#untracked[@]}" -ne 13 ]; then
+            echo "::error::Expected 42 tracked recovery sources and 13 untracked events; found ${#statements[@]} and ${#untracked[@]}."
             exit 1
           fi
+          python scripts/validate_recovered_sql.py
+          echo "Replaying ${#statements[@]} tracked recovery sources; validating but not executing ${#untracked[@]} historical one-off events."
           echo "Replaying ${#statements[@]} recovered SQL sources."
           for statement in "${statements[@]}"; do
             echo "::group::Replay ${statement}"
@@ -109,6 +112,7 @@ jobs:
             supabase/migrations/20261119160214_nova_independent_contract_claim_limits.sql \
             supabase/migrations/20261119164015_nova_manufacturing_queue_inventory_capacity.sql \
             supabase/migrations/20261119171452_nova_market_price_bounds_manufacturing_cancel.sql \
+            supabase/migrations/20261119190000_nova_market_system_raw_scope_factory_duration.sql \
             supabase/migrations/20261119210000_nova_factory_automatic_operations_progression.sql \
             supabase/migrations/20261119211000_nova_factory_progression_curve_calibration.sql \
             supabase/migrations/20261119212000_nova_factory_operating_margin_calibration.sql \
@@ -132,9 +136,6 @@ jobs:
             supabase/migrations/20261121000000_nova_treasury_withdrawal_lock_and_auction_refund.sql \
             supabase/migrations/20261121001000_nova_unified_account_deletion.sql
           do
-            if [ "$migration" = "supabase/migrations/20261120234000_nova_production_economy_parity_repair.sql" ]; then
-              psql "$DB_URL" -v ON_ERROR_STOP=1 -f supabase/ci/replay_patches/prepare_factory_upgrade_parity.sql
-            fi
             psql "$DB_URL" -v ON_ERROR_STOP=1 -f "$migration"
           done
 
