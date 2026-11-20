@@ -36,10 +36,11 @@ begin
 
     v_definition := replace(
       v_definition,
-      '-- 1 XP per 15 credits actually collected: no minimum reward for tiny API calls,\n  -- and no reputation/influence for withdrawing money already earned by the company.',
-      '-- Every collection grants minimum XP, reputation, and influence; leadership\n  -- skill scales reputation/influence and each collection is capped at 80 XP.'
+      $old$  -- 1 XP per 15 credits actually collected: no minimum reward for tiny API calls,
+  -- and no reputation/influence for withdrawing money already earned by the company.$old$,
+      $new$  -- Every collection grants minimum XP, reputation, and influence; leadership
+  -- skill scales reputation/influence and each collection is capped at 80 XP.$new$
     );
-
     if position('v_xp_gain:=least(80,greatest(10,floor(v_payout/15)::integer));' in v_definition) = 0
       or position('reputation=reputation+round(2*v_leadership)::bigint' in v_definition) = 0
       or position('influence=influence+round(1*v_leadership)::bigint' in v_definition) = 0
