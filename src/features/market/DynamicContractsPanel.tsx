@@ -214,6 +214,7 @@ export function DynamicContractsPanel({ profile, inventory, wallet, language, no
     const canRefresh = organization ? canRefreshOrgContracts && orgRefreshUsed < orgRefreshLimit : personalRefreshUsed < personalRefreshLimit;
     const canDeliver = contract.status === 'accepted' && isOwnedContract && owned >= contract.quantity && (wallet?.balance ?? 0) >= fee;
     const isBusy = busyId === contract.id;
+    const hasReadyNotification = notifications.some((notification) => !notification.read && notification.eventKey === `contract-ready:${contract.id}`);
     const tierColor: Record<DynamicContractOffer['tier'], string> = {
       common: 'text-slate-300 border-slate-400/25 bg-slate-400/10',
       uncommon: 'text-sky-300 border-sky-400/25 bg-sky-400/10',
@@ -226,7 +227,7 @@ export function DynamicContractsPanel({ profile, inventory, wallet, language, no
           <div className="flex items-center gap-3 min-w-0">
             <ResourceIcon itemId={contract.item_id} size="md" />
             <div className="min-w-0">
-              <h3 className="text-sm font-bold text-[#EAF1FF] truncate flex items-center gap-2">{language === 'ar' ? item.nameAr : item.nameEn}{contract.status === 'ready' && isOwnedContract && <span className="inline-flex h-2.5 w-2.5 rounded-full bg-red-500 shrink-0" aria-label={language === 'ar' ? 'المكافأة جاهزة' : 'Reward ready'} />}</h3>
+              <h3 className="text-sm font-bold text-[#EAF1FF] truncate flex items-center gap-2">{language === 'ar' ? item.nameAr : item.nameEn}{contract.status === 'ready' && isOwnedContract && <span className="inline-flex h-2.5 w-2.5 rounded-full bg-red-500 shrink-0" aria-label={hasReadyNotification ? (language === 'ar' ? 'إشعار مكافأة جديد' : 'New reward notification') : (language === 'ar' ? 'المكافأة جاهزة' : 'Reward ready')} />}</h3>
               <p className="text-[11px] text-[#8FA1BF]">{t.requiredQuantity}: <b className="text-white font-mono-num">{contract.quantity.toLocaleString()}</b></p>
             </div>
           </div>
