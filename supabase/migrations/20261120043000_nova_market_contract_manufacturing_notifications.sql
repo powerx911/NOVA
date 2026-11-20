@@ -892,6 +892,78 @@ begin
 end;
 $do$;
 
+-- Reassert the scheduled notification workers immediately before privilege setup.
+-- Keeping these declarations adjacent to their grants makes the migration safe on
+-- fresh databases where earlier trigger setup can be replayed independently.
+create or replace function nexora.notify_full_company_vaults()
+returns integer
+language plpgsql
+security definer
+set search_path = ''
+as $function$
+declare
+  v_company record;
+  v_caps bigint[]:=array[3500,7000,14000,25000,40000];
+  v_capacity bigint;
+  v_elapsed numeric;
+  v_hourly bigint;
+  v_balance bigint;
+  v_count integer:=0;
+begin
+  for v_company in
+    select id,owner_uid,name,vault_level,vault_balance,last_collected_at,created_at
+    from nexora.companies
+    where is_deleted=false
+    order by id
+  loop
+    v_capacity:=v_caps[greatest(1,least(5,coalesce(v_company.vault_level,1)))];
+    v_elapsed:=least(12,greatest(0,extract(epoch from (now()-coalesce(v_company.last_collected_at,v_company.created_at)))/3600));
+    v_hourly:=greatest(0,nexora.company_net_hourly(v_company.id));
+    v_balance:=least(v_capacity,coalesce(v_company.vault_balance,0)
+      + floor(v_hourly*v_elapsed)::bigint);
+    if v_balance>=v_capacity then
+      perform nexora.emit_notification_once(
+        v_company.owner_uid,
+        'company-vault-full:'||v_company.id||':'||v_company.vault_level||':'||coalesce(v_company.last_collected_at,v_company.created_at,now())::text,
+        'خزنة الشركة ممتلئة','Company vault is full',
+        'وصلت خزنة أرباح شركة «'||v_company.name||'» إلى سعتها القصوى. حصّل الإيرادات لتجنب ضياع الدخل القادم.',
+        'The profit vault for "'||v_company.name||'" is full. Collect revenue so future income is not lost.','economy'
+      );
+      v_count:=v_count+1;
+    end if;
+  end loop;
+  return v_count;
+end;
+$function$;
+
+create or replace function nexora.notify_full_factory_warehouses()
+returns integer
+language plpgsql
+security definer
+set search_path = ''
+as $function$
+declare
+  v_factory record;
+  v_count integer:=0;
+begin
+  for v_factory in
+    select id,owner_uid,name,resource_id,warehouse_level,warehouse_qty
+    from nexora.factories
+    where warehouse_qty>=nexora.factory_warehouse_capacity(resource_id,warehouse_level)
+    order by id
+  loop
+    perform nexora.emit_notification_once(
+      v_factory.owner_uid,'factory-warehouse-full:'||v_factory.id||':'||v_factory.warehouse_level,
+      'مستودع المصنع ممتلئ','Factory warehouse is full',
+      'امتلأ مستودع مصنع «'||v_factory.name||'». اسحب الموارد إلى مخزونك أو وسّع المستودع لاستئناف الإنتاج.',
+      'The warehouse for "'||v_factory.name||'" is full. Withdraw resources or expand the warehouse to resume production.','economy'
+    );
+    v_count:=v_count+1;
+  end loop;
+  return v_count;
+end;
+$function$;
+
 revoke all on function nexora.notify_ready_missions(text) from public,anon,authenticated;
 revoke all on function nexora.notify_ready_missions_after_transaction() from public,anon,authenticated;
 revoke all on function nexora.notify_ready_missions_after_profile_update() from public,anon,authenticated;
