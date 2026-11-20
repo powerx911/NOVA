@@ -140,6 +140,7 @@ function NovaAppContent() {
           inventory={game.inventory}
           marketListings={game.marketListings}
           worldEvents={game.worldEvents}
+          notifications={game.notifications}
           organizationIncomeBonusRate={Math.min(10, game.organizations.find((org) => org.id === game.profile?.orgId)?.research?.commerce ?? 0) * 0.005}
           language={game.language}
           onGoToMarket={() => setActiveTab('market')}
@@ -184,6 +185,7 @@ function NovaAppContent() {
           claimedMissions={game.claimedMissions}
           unlockedAchievements={game.unlockedAchievements}
           claimedAchievements={game.claimedAchievements}
+          notifications={game.notifications}
           diagnosticsContext={{
             profile: game.profile,
             wallet: game.wallet,
