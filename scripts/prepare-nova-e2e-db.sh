@@ -43,7 +43,7 @@ psql "$DB_URL" -v ON_ERROR_STOP=1 -c "
   INSERT INTO nexora.market_listings
     (id, seller_uid, seller_name, item_id, quantity, remaining_qty, unit_price, status)
   VALUES
-    ('nova-e2e-system-silicon', 'SYSTEM', 'NOVA', 'silicon_ore', 10, 10, 10, 'active')
+    ('nova-e2e-system-silicon', 'SYSTEM', 'NOVA', 'silicon_ore', 10, 10, 20, 'active')
   ON CONFLICT (id) DO UPDATE SET
     remaining_qty = EXCLUDED.remaining_qty,
     status = 'active',
