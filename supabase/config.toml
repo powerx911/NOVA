@@ -1,11 +1,5 @@
 project_id = "hmrprnjhyzyefocdmnxf"
 
-[api]
-enabled = true
-schemas = ["public", "graphql_public", "nexora"]
-extra_search_path = ["public", "extensions", "nexora"]
-max_rows = 1000
-
 [functions.nexora-api]
 verify_jwt = false
 
