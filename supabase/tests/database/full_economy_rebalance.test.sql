@@ -2,7 +2,7 @@
 create extension if not exists pgtap with schema extensions;
 
 begin;
-select extensions.plan(8);
+select extensions.plan(12);
 
 select extensions.is(
   nexora.company_upgrade_cost('trade', 1),
@@ -10,9 +10,21 @@ select extensions.is(
   'trade company level 1 upgrade uses the incremental-profit cost curve'
 );
 
+select extensions.is(
+  nexora.company_upgrade_cost('tech', 12),
+  3612::bigint,
+  'tech company level 12 to 13 upgrade costs 3612'
+);
+
 select extensions.ok(
   nexora.company_upgrade_duration_seconds(5) > nexora.company_upgrade_duration_seconds(2),
   'company upgrade duration increases with target level'
+);
+
+select extensions.is(
+  nexora.company_upgrade_duration_seconds(13),
+  660::bigint,
+  'company level 13 upgrade duration is exactly 11 minutes'
 );
 
 select extensions.is(
@@ -50,6 +62,18 @@ select extensions.ok(
   and position('11 * power' in lower(pg_get_functiondef('nexora.company_upgrade_duration_seconds(integer)'::regprocedure))) > 0
   and position('.85' in lower(pg_get_functiondef('nexora.company_upgrade_duration_seconds(integer)'::regprocedure))) > 0,
   'company duration function uses the level 13 eleven-minute anchor'
+);
+
+select extensions.ok(
+  position('company_upgrade_cost(v_company.sector, v_company.level)' in lower(pg_get_functiondef('nexora.start_company_upgrade(text,text)'::regprocedure))) > 0
+  and position('company_upgrade_duration_seconds(v_target)' in lower(pg_get_functiondef('nexora.start_company_upgrade(text,text)'::regprocedure))) > 0,
+  'company upgrade RPC uses the shared cost and duration functions'
+);
+
+select extensions.ok(
+  position('company_net_hourly' in lower(pg_get_functiondef('nexora.company_collectable_amount(text)'::regprocedure))) > 0
+  and position('least(12' in lower(pg_get_functiondef('nexora.company_collectable_amount(text)'::regprocedure))) > 0,
+  'company production preview uses the same server income and twelve-hour cap as collection'
 );
 
 select * from extensions.finish();

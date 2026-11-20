@@ -33,6 +33,24 @@ export async function bootstrap(admin: ReturnType<typeof getAdminClient>, uid: s
   ]);
 
   const ownedCompanyIds = (companies as Record<string, unknown>[]).map((company) => String(company.id)).filter(Boolean);
+  const companyEconomy = await Promise.all(ownedCompanyIds.map(async (companyId) => {
+    let quote: Record<string, unknown> | null = null;
+    try {
+      quote = await queryData(db.rpc("company_collectable_amount", { p_company_id: companyId })) as Record<string, unknown> | null;
+    } catch {
+      // Older deployments do not have the quote RPC yet; the client fallback remains valid.
+    }
+    return [companyId, quote ?? {}] as const;
+  }));
+  const companyEconomyById = new Map(companyEconomy);
+  const companiesWithAuthoritativeEconomy = (companies as Record<string, unknown>[]).map((company) => {
+    const quote = companyEconomyById.get(String(company.id));
+    return {
+      ...company,
+      server_net_hourly: Number(quote?.net_hourly ?? 0),
+      server_collectable: Number(quote?.collectable ?? 0),
+    };
+  });
   const companyLogs = ownedCompanyIds.length
     ? await queryData(db.from("company_logs").select("*").in("company_id", ownedCompanyIds)
         .order("created_at", { ascending: false }).limit(200))
@@ -66,7 +84,7 @@ export async function bootstrap(admin: ReturnType<typeof getAdminClient>, uid: s
     transactions: camelRow(transactions),
     marketListings: camelRow(marketListings),
     marketOrders: camelRow(marketOrders),
-    companies: camelRow(companies),
+    companies: camelRow(companiesWithAuthoritativeEconomy),
     factories: camelRow(factories),
     companyLogs: camelRow(companyLogs),
     organizations: camelRow(organizations),
