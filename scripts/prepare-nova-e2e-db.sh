@@ -32,7 +32,10 @@ while IFS= read -r -d '' migration; do
   psql "$DB_URL" -v ON_ERROR_STOP=1 -f "$migration"
 done < <(find supabase/migrations -maxdepth 1 -type f -name '*.sql' -print0 | sort -z)
 
-# The API gateway started before the snapshot created nexora; refresh PostgREST's schema cache.
+# Expose nexora only after the schema exists, then refresh PostgREST's configuration and cache.
+psql "$DB_URL" -v ON_ERROR_STOP=1 -c "GRANT USAGE ON SCHEMA nexora TO authenticator;"
+psql "$DB_URL" -v ON_ERROR_STOP=1 -c "ALTER ROLE authenticator SET pgrst.db_schemas = 'public, graphql_public, nexora';"
+psql "$DB_URL" -v ON_ERROR_STOP=1 -c "NOTIFY pgrst, 'reload config';"
 psql "$DB_URL" -v ON_ERROR_STOP=1 -c "NOTIFY pgrst, 'reload schema';"
 psql "$DB_URL" -v ON_ERROR_STOP=1 -f supabase/ci/verify_production_schema_snapshot.sql
 
