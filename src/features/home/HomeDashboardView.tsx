@@ -5,7 +5,7 @@ import { ResourceIcon } from '../../components/ui/ResourceIcon';
 import { getMissionPeriodKey } from '../../lib/missionPeriods';
 import { useToast } from '../../components/ui/ToastProvider';
 import { AVATARS, CATALOG_ITEMS, ITEM_MAP, MISSIONS } from '../../data/catalog';
-import { useTranslations, formatTxType } from '../../i18n/translations';
+import { useTranslations, formatTxDescription, formatTxType, isVisibleActivityType } from '../../i18n/translations';
 import {
   calculateDailyStipend,
   calculateDynamicItemPrice,
@@ -66,6 +66,7 @@ export function HomeDashboardView({
   const activeEvents = getActiveWorldEvents(worldEvents);
   const taxRate = calculateMarketTaxRate(profile.skills.trade || 0, activeEvents);
   const repTier = getReputationTier(profile.reputation);
+  const visibleTransactions = transactions.filter((tx) => isVisibleActivityType(tx.type));
 
   const claimedSet = new Set(claimedMissions.filter((m) => (m.periodKey ?? 'lifetime') === getMissionPeriodKey(m.missionId)).map((m) => m.missionId));
   const getProgress = (mission: (typeof MISSIONS)[number]) => mission.id === 'daily_active_trader'
@@ -416,11 +417,11 @@ export function HomeDashboardView({
             <h2 className="text-base font-semibold text-[#F4F5F7]">{t.recentActivity}</h2>
             <TrendingUp className="w-4 h-4 text-[#9299A6]" />
           </div>
-          {transactions.length === 0 ? (
+          {visibleTransactions.length === 0 ? (
             <p className="text-sm text-[#9299A6] py-8 text-center">{t.noActivity}</p>
           ) : (
             <div className="space-y-2">
-              {transactions.slice(0, 6).map((tx) => {
+              {visibleTransactions.slice(0, 6).map((tx) => {
                 const isCredit = tx.toUid === profile.uid;
                 return (
                   <div
@@ -437,7 +438,7 @@ export function HomeDashboardView({
                       </div>
                       <div className="min-w-0">
                         <p className="text-xs font-medium text-[#F4F5F7] truncate">
-                          {tx.description}
+                          {formatTxDescription(tx.description, tx.type, language)}
                         </p>
                         <p className="text-[11px] text-[#9299A6] mt-0.5">{formatTxType(tx.type, language)}</p>
                       </div>

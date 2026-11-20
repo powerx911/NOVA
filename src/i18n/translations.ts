@@ -429,13 +429,22 @@ const TX_TYPE_LABELS: Record<Language, Record<string, string>> = {
     daily_stipend: 'العائد اليومي',
     company_create: 'تأسيس شركة',
     company_upgrade: 'ترقية شركة',
-    company_upgrade_refund: 'استرجاع خصم تطوير شركة',
+    company_upgrade_refund: 'استرجاع فرق رسوم تطوير الشركة',
+    company_auction_escrow: 'حجز مبلغ مزاد الشركة',
+    company_auction_refund: 'استرجاع مبلغ مزاد الشركة',
+    game_compensation: 'تعويض عن مشكلة سابقة',
     company_collect: 'إيرادات شركة',
     auction_fee: 'رسوم بيع مزاد',
     company_auction_sale: 'بيع شركة في مزاد',
     factory_auction_sale: 'بيع مصنع في مزاد',
     company_hire: 'توظيف كوادر',
     manufacturing: 'تصنيع صناعي',
+    factory_create: 'تأسيس مصنع',
+    factory_upgrade: 'ترقية مصنع',
+    company_vault_upgrade: 'ترقية خزنة الشركة',
+    skill_reset: 'إعادة تعيين المهارات',
+    factory_skill: 'تطوير مهارة المصنع',
+    factory_operating: 'تكلفة تشغيل المصنع',
     org_create: 'تأسيس منظمة',
     org_deposit: 'إيداع خزينة',
     org_withdraw: 'سحب خزينة',
@@ -451,12 +460,21 @@ const TX_TYPE_LABELS: Record<Language, Record<string, string>> = {
     company_create: 'Company Founding',
     company_upgrade: 'Company Upgrade',
     company_upgrade_refund: 'Company Upgrade Refund',
+    company_auction_escrow: 'Company Auction Deposit',
+    company_auction_refund: 'Company Auction Refund',
+    game_compensation: 'Previous Issue Compensation',
     company_collect: 'Company Revenue',
     auction_fee: 'Auction Sale Fee',
     company_auction_sale: 'Company Auction Sale',
     factory_auction_sale: 'Factory Auction Sale',
     company_hire: 'Staff Hire',
     manufacturing: 'Manufacturing',
+    factory_create: 'Factory Founding',
+    factory_upgrade: 'Factory Upgrade',
+    company_vault_upgrade: 'Company Vault Upgrade',
+    skill_reset: 'Skill Reset',
+    factory_skill: 'Factory Skill Upgrade',
+    factory_operating: 'Factory Operating Cost',
     org_create: 'Org Founding',
     org_deposit: 'Treasury Deposit',
     org_withdraw: 'Treasury Withdrawal',
@@ -497,7 +515,30 @@ const ORG_ROLE_LABELS: Record<Language, Record<string, string>> = {
 };
 
 export function formatTxType(type: string, lang: Language): string {
-  return TX_TYPE_LABELS[lang][type] ?? type;
+  return TX_TYPE_LABELS[lang][type] ?? (lang === 'ar' ? 'عملية مالية' : 'Transaction');
+}
+
+const HIDDEN_ACTIVITY_TYPES = new Set([
+  'factory_operating',
+  'company_upgrade_refund_reversal',
+]);
+
+export function isVisibleActivityType(type: string): boolean {
+  return !HIDDEN_ACTIVITY_TYPES.has(type);
+}
+
+export function formatTxDescription(description: string, type: string, lang: Language): string {
+  if (type === 'game_compensation') return lang === 'ar' ? 'تعويض عن مشكلة سابقة' : 'Previous issue compensation';
+  if (type === 'company_upgrade_refund') return lang === 'ar' ? 'استرجاع فرق رسوم تطوير الشركة' : 'Company upgrade charge refund';
+  if (type === 'company_collect') return lang === 'ar' ? 'تحصيل إيرادات الشركة' : 'Company revenue collected';
+  if (type === 'company_upgrade') {
+    const targetLevel = description.match(/Lv\.?\s*(\d+)/i)?.[1];
+    return lang === 'ar'
+      ? `ترقية الشركة${targetLevel ? ` إلى المستوى ${targetLevel}` : ''}`
+      : `Company upgrade${targetLevel ? ` to Level ${targetLevel}` : ''}`;
+  }
+  if (type === 'factory_operating' || type === 'company_upgrade_refund_reversal') return '';
+  return lang === 'ar' ? formatTxType(type, lang) : description || formatTxType(type, lang);
 }
 
 export function formatMissionCategory(category: string, lang: Language): string {
@@ -507,4 +548,3 @@ export function formatMissionCategory(category: string, lang: Language): string 
 export function formatOrgRole(role: string, lang: Language): string {
   return ORG_ROLE_LABELS[lang][role] ?? role;
 }
-
