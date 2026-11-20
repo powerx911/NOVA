@@ -26,7 +26,6 @@ drop trigger if exists player_profiles_cleanup_idempotency_requests on nexora.pl
 create trigger player_profiles_cleanup_idempotency_requests
 before delete on nexora.player_profiles
 for each row execute function nexora.cleanup_deleted_player_idempotency();
-create index if not exists market_orders_created_at_item_idx on nexora.market_orders (created_at desc, item_id);
 alter table nexora.idempotency_requests enable row level security;
 revoke all on table nexora.idempotency_requests from public, anon, authenticated;
 grant select, insert, update, delete on table nexora.idempotency_requests to service_role;
