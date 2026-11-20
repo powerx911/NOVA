@@ -6362,7 +6362,8 @@ ALTER TABLE nexora.wallets ENABLE ROW LEVEL SECURITY;
 
 ALTER TABLE nexora.world_events ENABLE ROW LEVEL SECURITY;
 
-REVOKE ALL ON SCHEMA nexora FROM PUBLIC, anon, authenticated;\nGRANT USAGE ON SCHEMA nexora TO service_role;
+REVOKE ALL ON SCHEMA nexora FROM PUBLIC, anon, authenticated;
+GRANT USAGE ON SCHEMA nexora TO service_role;
 GRANT ALL ON ALL TABLES IN SCHEMA nexora TO service_role;
 GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA nexora TO service_role;
 REVOKE ALL ON ALL TABLES IN SCHEMA nexora FROM PUBLIC, anon, authenticated;
