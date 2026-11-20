@@ -788,7 +788,7 @@
       "version": "20261120202341",
       "name": "nova_manufacturing_rls_auction_fk_indexes",
       "source_status": "tracked",
-      "canonical_source": "supabase/migrations/20261121006000_nova_manufacturing_rls_auction_fk_indexes.sql",
+      "canonical_source": "supabase/migrations/20261121010000_nova_manufacturing_rls_auction_fk_indexes.sql",
       "canonical_git_blob_sha": "e0411ec656281d87d4d7501812c2319b37dcc0ef",
       "additional_variants": []
     }
