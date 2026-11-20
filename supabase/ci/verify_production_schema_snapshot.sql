@@ -42,9 +42,9 @@ BEGIN
   WHERE n.nspname = 'nexora' AND c.relkind = 'r';
 
   IF v_tables <> 46
-     OR v_functions <> 149
-     OR v_security_definer <> 136
-     OR v_triggers <> 38
+     OR v_functions <> 151
+     OR v_security_definer <> 138
+     OR v_triggers <> 40
      OR v_indexes <> 100
      OR v_constraints <> 169
      OR v_rls_enabled <> 45
