@@ -2,7 +2,7 @@
 -- Expected counts are the read-only NOVA production inventory captured on 2026-11-20.
 begin;
 create extension if not exists pgtap with schema extensions;
-select extensions.plan(5);
+select extensions.plan(6);
 select extensions.is(
   (select count(*)::integer from information_schema.tables where table_schema='nexora' and table_type='BASE TABLE'),
   45,'isolated schema contains the 45 production tables');
@@ -18,5 +18,9 @@ select extensions.is(
 select extensions.is(
   (select count(*)::integer from pg_constraint c join pg_namespace n on n.oid=c.connamespace where n.nspname='nexora'),
   167,'isolated schema contains the 167 production constraints');
+select extensions.is(
+  (select count(*)::integer from pg_class c join pg_namespace n on n.oid=c.relnamespace
+   where n.nspname='nexora' and c.relkind='r' and c.relrowsecurity),
+  44,'isolated schema matches the 44 production tables with RLS enabled');
 select * from extensions.finish();
 rollback;
