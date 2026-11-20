@@ -167,6 +167,10 @@ jobs:
               {
                 echo "NOVA_E2E_SUPABASE_URL=$API_URL"
                 echo "NOVA_E2E_SUPABASE_ANON_KEY=$ANON_KEY"
+                # Vite reads these at build time; force every browser API call to the local stack.
+                echo "VITE_SUPABASE_URL=$API_URL"
+                echo "VITE_SUPABASE_PUBLISHABLE_KEY=$ANON_KEY"
+                echo "VITE_NOVA_E2E_AUTH_TOKEN=$NOVA_E2E_AUTH_TOKEN"
               } >> "$GITHUB_ENV"
               exit 0
             fi
