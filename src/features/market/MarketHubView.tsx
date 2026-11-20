@@ -167,7 +167,9 @@ export function MarketHubView({
     const buckets = Array.from({ length: 7 }, () => ({ value: 0, quantity: 0, trades: 0 }));
     for (const point of marketPriceHistory) {
       if (point.itemId !== pulse.itemId) continue;
-      const createdAt = new Date(String(point.createdAt)).getTime();
+      const createdAt = typeof point.createdAt === 'number'
+        ? point.createdAt
+        : new Date(String(point.createdAt)).getTime();
       const age = historyNow - createdAt;
       if (!Number.isFinite(createdAt) || age < 0 || age >= 7 * 24 * 60 * 60 * 1000) continue;
       const bucket = buckets[6 - Math.floor(age / (24 * 60 * 60 * 1000))];
