@@ -10,7 +10,7 @@
 - **Identity:** Firebase Authentication. The browser obtains a Firebase ID token; it never receives database service credentials.
 - **Game database:** Supabase PostgreSQL project hmrprnjhyzyefocdmnxf, private schema nexora.
 - **Game API:** Supabase Edge Function nexora-api, active version 45. It verifies Firebase ID tokens and uses a server-side service-role client.
-- **Legacy Firestore/Cloud Functions:** Retained for owner diagnostics and older server functionality. They are not the authoritative game economy; inventory deployed functions and callers before retirement.
+- **Legacy Firestore/Cloud Functions:** Retained for owner diagnostics, world-event rotation and legacy Firestore company-vault operations. The source exports upgradeCompanyProfitVault, collectCompanyRevenueSecure, nexoraDiagnostics and rotateWorldEvents; their deployed inventory and live callers have not yet been verified.
 - **Legacy api/* sources:** Still exist in the repository. GitHub Pages publishes only dist; the owner-only diagnostics service currently calls /api/company-vault for a health check; the current Vercel deployment status is not verified. Do not remove these sources until deployed routes and client callers are inventoried.
 
 ## 2. Production database inventory
