@@ -192,8 +192,8 @@ declare
 begin
   select pg_get_functiondef('nexora.cancel_market_listing(text,text)'::regprocedure) into v_def;
   v_def:=replace(v_def,
-    'declare' || chr(10) || '  v_listing nexora.market_listings%rowtype;',
-    'declare' || chr(10) || '  v_listing nexora.market_listings%rowtype;' || chr(10) || '  v_previous_refund_setting text;');
+    'declare v_listing nexora.market_listings%rowtype; v_username text; v_id text := ''lst_'' || gen_random_uuid()::text;',
+    'declare v_listing nexora.market_listings%rowtype; v_username text; v_id text := ''lst_'' || gen_random_uuid()::text; v_previous_transfer_setting text;');
   v_def:=replace(v_def,
     '  update nexora.market_listings set remaining_qty=0,status=''cancelled'',updated_at=now() where id=p_listing_id;' || chr(10) ||
     '  insert into nexora.inventory(user_id,item_id,quantity,last_listing_id)',
