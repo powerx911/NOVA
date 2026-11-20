@@ -34,4 +34,5 @@ done < <(find supabase/migrations -maxdepth 1 -type f -name '*.sql' -print0 | so
 
 psql "$DB_URL" -v ON_ERROR_STOP=1 -f supabase/ci/verify_production_schema_snapshot.sql
 
-supabase test db
+# pgTAP migration-chain suites run in the dedicated NOVA database-test workflow;
+# this snapshot-backed browser environment validates schema parity, then exercises the live API.
