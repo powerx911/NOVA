@@ -429,7 +429,9 @@ const TX_TYPE_LABELS: Record<Language, Record<string, string>> = {
     daily_stipend: 'العائد اليومي',
     company_create: 'تأسيس شركة',
     company_upgrade: 'ترقية شركة',
-    company_upgrade_refund: 'استرجاع خصم تطوير شركة',
+    company_upgrade_refund: 'استرجاع فرق رسوم تطوير الشركة',
+    company_auction_escrow: 'حجز مبلغ مزاد الشركة',
+    company_auction_refund: 'استرجاع مبلغ مزاد الشركة',
     game_compensation: 'تعويض عن مشكلة سابقة',
     company_collect: 'إيرادات شركة',
     auction_fee: 'رسوم بيع مزاد',
@@ -440,6 +442,8 @@ const TX_TYPE_LABELS: Record<Language, Record<string, string>> = {
     factory_create: 'تأسيس مصنع',
     factory_upgrade: 'ترقية مصنع',
     company_vault_upgrade: 'ترقية خزنة الشركة',
+    skill_reset: 'إعادة تعيين المهارات',
+    factory_skill: 'تطوير مهارة المصنع',
     factory_operating: 'تكلفة تشغيل المصنع',
     org_create: 'تأسيس منظمة',
     org_deposit: 'إيداع خزينة',
@@ -456,6 +460,8 @@ const TX_TYPE_LABELS: Record<Language, Record<string, string>> = {
     company_create: 'Company Founding',
     company_upgrade: 'Company Upgrade',
     company_upgrade_refund: 'Company Upgrade Refund',
+    company_auction_escrow: 'Company Auction Deposit',
+    company_auction_refund: 'Company Auction Refund',
     game_compensation: 'Previous Issue Compensation',
     company_collect: 'Company Revenue',
     auction_fee: 'Auction Sale Fee',
@@ -466,6 +472,8 @@ const TX_TYPE_LABELS: Record<Language, Record<string, string>> = {
     factory_create: 'Factory Founding',
     factory_upgrade: 'Factory Upgrade',
     company_vault_upgrade: 'Company Vault Upgrade',
+    skill_reset: 'Skill Reset',
+    factory_skill: 'Factory Skill Upgrade',
     factory_operating: 'Factory Operating Cost',
     org_create: 'Org Founding',
     org_deposit: 'Treasury Deposit',
@@ -507,7 +515,7 @@ const ORG_ROLE_LABELS: Record<Language, Record<string, string>> = {
 };
 
 export function formatTxType(type: string, lang: Language): string {
-  return TX_TYPE_LABELS[lang][type] ?? type;
+  return TX_TYPE_LABELS[lang][type] ?? (lang === 'ar' ? 'عملية مالية' : 'Transaction');
 }
 
 const HIDDEN_ACTIVITY_TYPES = new Set([
