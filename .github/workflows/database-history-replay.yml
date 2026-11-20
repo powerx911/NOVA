@@ -120,7 +120,7 @@ jobs:
             supabase/migrations/20261120235500_nova_factory_operating_wallet_reserve.sql \
             supabase/migrations/20261120235600_nova_company_server_collectable_quote.sql \
             supabase/migrations/20261120235700_nova_remove_hidden_quantum_server_recipe.sql \
-            supabase/migrations/20261121000000_nova_treasury_withdrawal_lock_and_auction_refund.sql \
+            supabase/migrations/20261121000000_nova_treasury_withdrawal_lock_and_auction_refund.sql
           do
             psql "$DB_URL" -v ON_ERROR_STOP=1 -f "$migration"
           done
