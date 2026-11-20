@@ -1,6 +1,6 @@
 -- Restore the minimum company-revenue collection rewards that were lost
--- during the production parity replacement. Keep the leadership multiplier,
--- level-up skill points, and the existing 80-XP per-collection cap.
+-- during the production parity replacement. Keep leadership scaling and the
+-- existing 80-XP per-collection cap; the profile trigger awards level-up points.
 do $patch$
 declare
   v_definition text;
@@ -23,14 +23,14 @@ begin
       'g'
     );
 
-    if position('v_gained integer;' in v_definition) = 0 then
-      v_definition := replace(v_definition, 'v_step bigint;', 'v_step bigint; v_gained integer; v_leadership numeric;');
+    if position('v_leadership numeric;' in v_definition) = 0 then
+      v_definition := replace(v_definition, 'v_step bigint;', 'v_step bigint; v_leadership numeric;');
     end if;
 
     v_definition := regexp_replace(
       v_definition,
       $re$update nexora\.player_profiles[[:space:]]+set xp=v_xp,level=v_level_after,updated_at=now\(\)[[:space:]]+where user_id=p_uid;$re$,
-      $replacement$v_gained:=greatest(0,v_level_after-v_profile.level); v_leadership:=1+coalesce((v_profile.skills->>'leadership')::numeric,0)*0.1; update nexora.player_profiles set xp=v_xp,level=v_level_after,skill_points=skill_points+v_gained*2,reputation=reputation+round(2*v_leadership)::bigint,influence=influence+round(1*v_leadership)::bigint,updated_at=now() where user_id=p_uid;$replacement$,
+      $replacement$v_leadership:=1+coalesce((v_profile.skills->>'leadership')::numeric,0)*0.1; update nexora.player_profiles set xp=v_xp,level=v_level_after,reputation=reputation+round(2*v_leadership)::bigint,influence=influence+round(1*v_leadership)::bigint,updated_at=now() where user_id=p_uid;$replacement$,
       'g'
     );
 
@@ -43,16 +43,14 @@ begin
     );
     if position('v_xp_gain:=least(80,greatest(10,floor(v_payout/15)::integer));' in v_definition) = 0
       or position('reputation=reputation+round(2*v_leadership)::bigint' in v_definition) = 0
-      or position('influence=influence+round(1*v_leadership)::bigint' in v_definition) = 0
-      or position('skill_points=skill_points+v_gained*2' in v_definition) = 0 then
+      or position('influence=influence+round(1*v_leadership)::bigint' in v_definition) = 0 then
       raise exception 'COMPANY_REVENUE_REWARD_PATCH_INCOMPLETE';
     end if;
 
     execute v_definition;
   elsif position('least(80,greatest(10,floor(v_payout/15)::integer))' in v_definition) > 0
     and position('reputation=reputation+round(2*v_leadership)::bigint' in v_definition) > 0
-    and position('influence=influence+round(1*v_leadership)::bigint' in v_definition) > 0
-    and position('skill_points=skill_points+v_gained*2' in v_definition) > 0 then
+    and position('influence=influence+round(1*v_leadership)::bigint' in v_definition) > 0 then
     raise notice 'Company revenue minimum rewards are already present';
   else
     raise exception 'UNEXPECTED_COLLECT_COMPANY_REVENUE_DEFINITION';
