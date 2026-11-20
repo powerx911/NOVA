@@ -41,13 +41,13 @@ BEGIN
   JOIN pg_namespace n ON n.oid = c.relnamespace
   WHERE n.nspname = 'nexora' AND c.relkind = 'r';
 
-  IF v_tables <> 45
-     OR v_functions <> 145
-     OR v_security_definer <> 132
-     OR v_triggers <> 37
-     OR v_indexes <> 97
-     OR v_constraints <> 167
-     OR v_rls_enabled <> 44
+  IF v_tables <> 46
+     OR v_functions <> 149
+     OR v_security_definer <> 136
+     OR v_triggers <> 38
+     OR v_indexes <> 100
+     OR v_constraints <> 169
+     OR v_rls_enabled <> 45
      OR v_rls_disabled <> 1 THEN
     RAISE EXCEPTION
       'Production schema snapshot mismatch: tables %, functions %, SECURITY DEFINER %, triggers %, indexes %, constraints %, RLS enabled %, RLS disabled %',
