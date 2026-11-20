@@ -108,18 +108,36 @@ Deno.serve(async (req: Request) => {
     }
 
     if (body.action === "fetch_market_listings") {
-      const { data, error } = await db.from("market_listings").select("*")
+      const page = Number.isInteger(body.page) ? Math.max(1, Math.min(10000, Number(body.page))) : 1;
+      const pageSize = Number.isInteger(body.pageSize) ? Math.max(1, Math.min(50, Number(body.pageSize))) : 30;
+      const start = (page - 1) * pageSize;
+      const { data, count, error } = await db.from("market_listings").select("*", { count: "exact" })
         .eq("status", "active").gt("remaining_qty", 0)
-        .order("unit_price", { ascending: true }).order("created_at", { ascending: true }).limit(500);
+        .order("unit_price", { ascending: true }).order("created_at", { ascending: true })
+        .order("id", { ascending: true }).range(start, start + pageSize - 1);
       if (error) throw error;
-      return json({ ok: true, data: camelRow(data ?? []) }, 200, origin);
+      const totalCount = count ?? 0;
+      const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
+      const response = json({ ok: true, data: {
+        items: camelRow(data ?? []), page, pageSize, totalCount, totalPages, hasMore: page < totalPages,
+      } }, 200, origin);
+      response.headers.set("Cache-Control", "private, max-age=10, stale-while-revalidate=15");
+      return response;
     }
 
     if (body.action === "fetch_market_activity") {
-      const { data: orders, error } = await db.from("market_orders")
-        .select("id,listing_id,buyer_uid,seller_uid,item_id,quantity,unit_price,total_price,tax_amount,tx_id,created_at")
-        .or(`buyer_uid.eq.${identity.uid},seller_uid.eq.${identity.uid}`)
-        .order("created_at", { ascending: false }).limit(100);
+      const page = Number.isInteger(body.page) ? Math.max(1, Math.min(10000, Number(body.page))) : 1;
+      const pageSize = Number.isInteger(body.pageSize) ? Math.max(1, Math.min(50, Number(body.pageSize))) : 25;
+      const filter = body.filter === "purchases" || body.filter === "sales" ? body.filter : "all";
+      const start = (page - 1) * pageSize;
+      let activityQuery = db.from("market_orders")
+        .select("id,listing_id,buyer_uid,seller_uid,item_id,quantity,unit_price,total_price,tax_amount,tx_id,created_at", { count: "exact" });
+      if (filter === "purchases") activityQuery = activityQuery.eq("buyer_uid", identity.uid);
+      else if (filter === "sales") activityQuery = activityQuery.eq("seller_uid", identity.uid);
+      else activityQuery = activityQuery.or(`buyer_uid.eq.${identity.uid},seller_uid.eq.${identity.uid}`);
+      const { data: orders, count, error } = await activityQuery
+        .order("created_at", { ascending: false }).order("id", { ascending: false })
+        .range(start, start + pageSize - 1);
       if (error) throw error;
       const participantIds = [...new Set((orders ?? [])
         .flatMap((order) => [order.buyer_uid, order.seller_uid])
@@ -131,7 +149,7 @@ Deno.serve(async (req: Request) => {
         if (playersError) throw playersError;
         for (const player of players ?? []) names.set(player.user_id, player.username);
       }
-      return json({ ok: true, data: (orders ?? []).map((order) => ({
+      const items = (orders ?? []).map((order) => ({
         id: order.id,
         listingId: order.listing_id,
         buyerUid: order.buyer_uid,
@@ -145,7 +163,12 @@ Deno.serve(async (req: Request) => {
         taxAmount: order.tax_amount,
         txId: order.tx_id,
         createdAt: order.created_at,
-      })) }, 200, origin);
+      }));
+      const totalCount = count ?? 0;
+      const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
+      return json({ ok: true, data: {
+        items, page, pageSize, totalCount, totalPages, hasMore: page < totalPages, filter,
+      } }, 200, origin);
     }
 
     if (body.action === "fetch_inventory_capacity_usage") {
