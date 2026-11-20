@@ -14,6 +14,7 @@ import { DynamicContractsPanel } from './DynamicContractsPanel';
 import { useToast } from '../../components/ui/ToastProvider';
 import { BRAND_ASSETS, CATALOG_ITEMS, ITEM_MAP } from '../../data/catalog';
 import { ResourceIcon } from '../../components/ui/ResourceIcon';
+import { NotificationBadge } from '../../components/ui/NotificationBadge';
 import { useTranslations } from '../../i18n/translations';
 import {
   calculateDynamicItemPrice,
@@ -372,7 +373,7 @@ export function MarketHubView({
                 : 'bg-[#141821] text-[#9299A6] border border-white/8 hover:text-[#F4F5F7]'
             }`}
           >
-            {tab.label}{tab.id === 'contracts' && notifications.some((n) => n.eventKey?.startsWith('contract-ready:') || (!n.read && (n.title === 'العقد جاهز للاستلام' || n.title === 'Contract ready to claim' || n.title === 'CONTRACT_READY'))) && <span className="ms-1 inline-flex h-2 w-2 rounded-full bg-red-500" />}
+            {tab.label}{tab.id === 'contracts' && notifications.filter((n) => !n.read && (n.eventKey?.startsWith('contract-ready:') || n.title === 'العقد جاهز للاستلام' || n.title === 'Contract ready to claim' || n.title === 'CONTRACT_READY')).length > 0 && <NotificationBadge className="ms-1" count={notifications.filter((n) => !n.read && (n.eventKey?.startsWith('contract-ready:') || n.title === 'العقد جاهز للاستلام' || n.title === 'Contract ready to claim' || n.title === 'CONTRACT_READY')).length} />}
           </button>
         ))}
       </div>
