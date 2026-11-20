@@ -1,5 +1,5 @@
 -- Give each factory resource its own stronger, convex level progression.
--- The level-100 output multiplier ranges from ~4.93x to ~7.04x before skill bonuses.
+-- The level-100 output multiplier ranges from ~5.73x to ~9.28x before skill bonuses.
 create or replace function nexora.factory_progression_multiplier(p_resource_id text, p_level integer)
 returns numeric
 language sql
