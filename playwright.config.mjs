@@ -10,6 +10,8 @@ export default defineConfig({
   reporter: 'list',
   use: {
     ...devices['Desktop Chrome'],
+    // Exercise the mobile navigation used by the current NOVA smoke-test selectors.
+    viewport: { width: 390, height: 844 },
     baseURL: process.env.NOVA_E2E_BASE_URL,
     headless: true,
     trace: 'retain-on-failure',
