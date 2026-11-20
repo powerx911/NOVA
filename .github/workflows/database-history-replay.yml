@@ -133,6 +133,9 @@ jobs:
             if [ "$migration" = "supabase/migrations/20261120234000_nova_production_economy_parity_repair.sql" ]; then
               psql "$DB_URL" -v ON_ERROR_STOP=1 -f supabase/ci/replay_patches/prepare_factory_upgrade_parity.sql
             fi
+            if [ "$migration" = "supabase/migrations/20261120235000_nova_company_founding_parity_repair.sql" ]; then
+              psql "$DB_URL" -v ON_ERROR_STOP=1 -f supabase/ci/replay_patches/prepare_company_founding_parity.sql
+            fi
             psql "$DB_URL" -v ON_ERROR_STOP=1 -f "$migration"
           done
 
