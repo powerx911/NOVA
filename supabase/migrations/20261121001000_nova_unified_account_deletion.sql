@@ -83,6 +83,7 @@ declare
   v_escrow nexora.company_auction_escrows%rowtype;
   v_tx text;
   v_refunds integer := 0;
+  v_asset_type text;
   v_archived_companies integer := 0;
   v_archived_factories integer := 0;
 begin
@@ -187,12 +188,14 @@ begin
     set status='refunded',updated_at=now()
     where auction_id=v_escrow.auction_id and bidder_uid=p_uid;
 
+    select asset_type into v_asset_type from nexora.company_auctions where id=v_escrow.auction_id;
     v_tx := 'tx_' || gen_random_uuid()::text;
     insert into nexora.transactions(
       id,from_uid,to_uid,amount,fee,net_amount,type,reference_id,description,status
     ) values (
       v_tx,'SYSTEM',p_uid,v_escrow.amount,0,v_escrow.amount,
-      'company_auction_refund',v_escrow.auction_id,'Refund of reserved auction funds during account deletion','completed'
+      case when v_asset_type='factory' then 'factory_auction_refund' else 'company_auction_refund' end,
+      v_escrow.auction_id,'Refund of reserved auction funds during account deletion','completed'
     );
     v_refunds := v_refunds + 1;
   end loop;
