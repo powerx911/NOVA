@@ -55,7 +55,7 @@ select extensions.lives_ok(
 );
 select extensions.is((select xp from nexora.player_profiles where user_id='pgtap_company_reward_cap'), 270::bigint, 'capped XP is added to the existing XP total');
 select extensions.is((select level from nexora.player_profiles where user_id='pgtap_company_reward_cap'), 2, 'collection XP can advance the player level');
-select extensions.is((select skill_points from nexora.player_profiles where user_id='pgtap_company_reward_cap'), 2, 'level gained from collection grants two skill points');
+select extensions.is((select skill_points from nexora.player_profiles where user_id='pgtap_company_reward_cap'), 1, 'the profile trigger grants one skill point for the level gained');
 select extensions.is((select reputation from nexora.player_profiles where user_id='pgtap_company_reward_cap'), 2::bigint, 'the capped collection still grants reputation');
 select extensions.is((select influence from nexora.player_profiles where user_id='pgtap_company_reward_cap'), 1::bigint, 'the capped collection still grants influence');
 select extensions.is((select balance from nexora.wallets where user_id='pgtap_company_reward_cap'), 3500::bigint, 'the full vault payout reaches the wallet');
