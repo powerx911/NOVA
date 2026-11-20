@@ -39,7 +39,10 @@ Deno.serve(async (req: Request) => {
       const { error } = await admin.from("world_events").select("id").limit(1);
       if (error) throw error;
       return json({ ok: true, service: "nexora-api", schema: "nexora" }, 200, origin);
-    } catch {
+    } catch (error) {
+      if (Deno.env.get("NOVA_E2E_ALLOW_LOCAL_AUTH") === "true") {
+        console.error("NOVA_E2E_DATABASE_HEALTH_ERROR", error);
+      }
       return json({ ok: false, error: "DATABASE_UNAVAILABLE" }, 503, origin);
     }
   }
