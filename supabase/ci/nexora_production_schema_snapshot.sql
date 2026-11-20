@@ -1,4 +1,5 @@
--- CI-ONLY, DATA-FREE snapshot synchronized from the live NOVA production catalog on 2026-11-20 after migrations through 20261120202341.
+-- CI-ONLY, DATA-FREE snapshot refreshed against the live NOVA production catalog after migrations through 20261120202341.
+-- Migration-sensitive function definitions and current RLS/index inventory are synchronized; the verifier checks catalog counts and critical invariants.
 -- Never apply this file to production. It is an isolated-test baseline only.
 SET check_function_bodies = off;
 CREATE SCHEMA IF NOT EXISTS nexora;
