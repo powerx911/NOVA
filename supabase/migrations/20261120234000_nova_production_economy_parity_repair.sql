@@ -82,17 +82,36 @@ begin
 end;
 $function$;
 
--- Keep the factory operating-cost and operator-skill curves equal to the UI.
+-- Match the production and operating-cost curves through explicit server helpers.
 do $patch$
-declare v_definition text;
+declare
+  v_definition text;
 begin
-  select pg_get_functiondef('nexora.sync_factory_production(text,text)'::regprocedure) into v_definition;
-  v_definition := replace(v_definition,
-    'greatest(0,v_factory.level-1)*0.025',
-    'greatest(0,v_factory.level-1)*0.018');
-  if position('greatest(0,v_factory.level-1)*0.018' in v_definition)=0 then
+  select pg_get_functiondef('nexora.sync_factory_production(text,text)'::regprocedure)
+    into v_definition;
+
+  -- The current guarded RPC has a level-based production curve and a separate
+  -- operating-cost curve. Patch each assignment as a whole; never rely on a
+  -- whitespace-sensitive substring from an older function body.
+  v_definition := regexp_replace(
+    v_definition,
+    'v_rate[[:space:]]*:=[^;]*;',
+    'v_rate := v_cfg.production_rate * nexora.factory_progression_multiplier(v_factory.resource_id, v_factory.level) * (1 + v_factory.skill_level * 0.04);',
+    'g'
+  );
+  v_definition := regexp_replace(
+    v_definition,
+    'v_expense[[:space:]]*:=[^;]*;',
+    'v_expense := v_cfg.operating_cost * (1 + greatest(0, v_factory.level - 1) * 0.018) * (1 - v_factory.skill_level * 0.005);',
+    'g'
+  );
+
+  if position('factory_progression_multiplier(v_factory.resource_id, v_factory.level)' in v_definition) = 0
+     or position('greatest(0, v_factory.level - 1) * 0.018' in v_definition) = 0
+     or position('v_factory.skill_level * 0.005' in v_definition) = 0 then
     raise exception 'FACTORY_OPERATING_CURVE_PATCH_FAILED';
   end if;
+
   execute v_definition;
 end
 $patch$;
