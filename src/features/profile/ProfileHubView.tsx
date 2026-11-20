@@ -374,7 +374,7 @@ export function ProfileHubView({
                 : 'bg-[#141821] text-[#9299A6] border border-white/8 hover:text-[#F4F5F7]'
             }`}
           >
-            {tab.label}{tab.id === 'missions' && notifications.some((n) => !n.read && (n.eventKey?.startsWith('mission-ready:') || n.title === 'مكافأة مهمة جاهزة' || n.title === 'Mission reward ready')) && <span className="ms-1 inline-flex h-2 w-2 rounded-full bg-red-500" />}{tab.id === 'achievements' && [...unlockedAchievements].some((id) => !claimedAchievements.has(id)) && <span className="ms-1 inline-flex h-2 w-2 rounded-full bg-red-500" />}
+            {tab.label}{tab.id === 'missions' && notifications.some((n) => n.eventKey?.startsWith('mission-ready:') || (!n.read && (n.title === 'مكافأة مهمة جاهزة' || n.title === 'Mission reward ready'))) && <span className="ms-1 inline-flex h-2 w-2 rounded-full bg-red-500" />}{tab.id === 'achievements' && [...unlockedAchievements].some((id) => !claimedAchievements.has(id)) && <span className="ms-1 inline-flex h-2 w-2 rounded-full bg-red-500" />}
           </button>
         ))}
       </div>
