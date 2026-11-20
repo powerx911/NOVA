@@ -21,6 +21,11 @@ on:
     branches:
       - main
     paths:
+      - ".github/workflows/ci.yml"
+      - "playwright.config.mjs"
+      - "e2e/**"
+      - "PROJECT_STATUS.md"
+      - "docs/**"
       - "supabase/recovered-history/**"
       - "supabase/ci/**"
       - "scripts/validate_migration_manifest.py"
