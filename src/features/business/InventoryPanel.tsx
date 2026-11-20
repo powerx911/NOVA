@@ -1,7 +1,9 @@
+import { useEffect, useState } from 'react';
 import { Package } from 'lucide-react';
 import { ResourceIcon } from '../../components/ui/ResourceIcon';
 import { ITEM_MAP } from '../../data/catalog';
 import type { InventoryItem, Language, MarketListing } from '../../types/game';
+import { fetchInventoryCapacityUsage } from '../../services/gameService';
 
 interface InventoryPanelProps {
   inventory: InventoryItem[];
@@ -15,9 +17,23 @@ interface InventoryPanelProps {
 }
 
 export function InventoryPanel({ inventory, marketListings, uid, language, title, marketLabel, onGoToMarket, capacity }: InventoryPanelProps) {
-  const listedQuantity = marketListings.reduce((sum, listing) => sum + (listing.sellerUid === uid && listing.status === 'active' ? Math.max(0, listing.remainingQty) : 0), 0);
+  const [serverInventoryUsage, setServerInventoryUsage] = useState<number | null>(null);
   const inventoryQuantity = inventory.reduce((sum, item) => sum + Math.max(0, item.quantity), 0);
-  const totalQuantity = inventoryQuantity + listedQuantity;
+  const fallbackListedQuantity = marketListings.reduce((sum, listing) => sum + (listing.sellerUid === uid && listing.status === 'active' ? Math.max(0, listing.remainingQty) : 0), 0);
+  useEffect(() => {
+    let active = true;
+    const refresh = () => {
+      void fetchInventoryCapacityUsage().then((usage) => {
+        if (active && Number.isFinite(usage)) setServerInventoryUsage(Math.max(0, usage));
+      }).catch(() => undefined);
+    };
+    refresh();
+    const timer = window.setInterval(refresh, 30_000);
+    window.addEventListener('nova:refresh-game', refresh);
+    return () => { active = false; window.clearInterval(timer); window.removeEventListener('nova:refresh-game', refresh); };
+  }, [uid]);
+  const totalQuantity = serverInventoryUsage === null ? inventoryQuantity + fallbackListedQuantity : Math.max(inventoryQuantity, serverInventoryUsage);
+  const listedQuantity = Math.max(0, totalQuantity - inventoryQuantity);
   const capacityPercent = capacity > 0 ? Math.min(100, (totalQuantity / capacity) * 100) : 0;
   const availableItems = inventory.filter((item) => item.quantity > 0);
 
