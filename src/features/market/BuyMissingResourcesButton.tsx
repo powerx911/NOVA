@@ -87,15 +87,21 @@ export function BuyMissingResourcesButton({ uid, requirements, inventory, wallet
       showToast(isAr ? 'تم شراء المواد الناقصة بنجاح.' : 'Missing materials purchased successfully.', 'success');
     } catch (error) {
       const code = error instanceof Error ? error.message : '';
-      if (code === 'MARKET_QUOTE_CHANGED' || code === 'INVENTORY_REQUIREMENT_CHANGED' || code === 'INSUFFICIENT_LISTING_QTY' || code === 'LISTING_NOT_FOUND') {
-        try {
-          setPlan(createPlan(requirements, inventory, await fetchMarketListings(), uid));
-          setQuoteChanged(true);
-        } catch { setPlan([]); }
-        if (code === 'INVENTORY_REQUIREMENT_CHANGED' && typeof window !== 'undefined') window.dispatchEvent(new Event('nova:refresh-game'));
+      if (code === 'INVENTORY_REQUIREMENT_CHANGED') {
+        setOpen(false);
+        if (typeof window !== 'undefined') window.dispatchEvent(new Event('nova:refresh-game'));
         showToast(isAr
-          ? 'تغيرت الكميات أو عروض السوق أثناء التأكيد. تم تحديث البيانات؛ راجع الملخص وأكد من جديد.'
-          : 'Inventory or market offers changed during confirmation. Data was refreshed; review and confirm again.', 'info');
+          ? 'تغير مخزونك قبل الشراء. حدّثنا بياناتك؛ افتح عرض النواقص من جديد.'
+          : 'Your inventory changed before purchase. Data is refreshing; reopen the missing-resource quote.', 'info');
+      } else if (code === 'MARKET_QUOTE_CHANGED' || code === 'INSUFFICIENT_LISTING_QTY' || code === 'LISTING_NOT_FOUND') {
+        try {
+          const refreshedPlan = createPlan(requirements, inventory, await fetchMarketListings(), uid);
+          if (!refreshedPlan.length) { setOpen(false); setPlan([]); }
+          else { setPlan(refreshedPlan); setQuoteChanged(true); }
+        } catch { setPlan([]); setOpen(false); }
+        showToast(isAr
+          ? 'تغيرت عروض السوق أثناء التأكيد. راجع الملخص الجديد وأكد من جديد.'
+          : 'Market offers changed during confirmation. Review the updated quote and confirm again.', 'info');
       } else {
         showToast(code === 'INSUFFICIENT_FUNDS'
           ? (isAr ? 'رصيدك لا يكفي لإتمام الشراء مع ضريبة السوق.' : 'Your balance is not enough for the purchase and market tax.')
