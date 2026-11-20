@@ -93,7 +93,8 @@ jobs:
             supabase/migrations/20261119211000_nova_factory_progression_curve_calibration.sql \
             supabase/migrations/20261119212000_nova_factory_operating_margin_calibration.sql \
             supabase/migrations/20261120000000_nova_factory_resource_specific_growth_curves.sql \
-            supabase/migrations/20261120043000_nova_market_contract_manufacturing_notifications.sql
+            supabase/migrations/20261120043000_nova_market_contract_manufacturing_notifications.sql \\
+            supabase/migrations/20261120150000_nova_reward_notifications_organization_chat.sql
           do
             psql "$DB_URL" -v ON_ERROR_STOP=1 -f "$migration"
           done
