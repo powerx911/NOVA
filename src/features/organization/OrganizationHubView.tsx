@@ -26,7 +26,6 @@ import {
   upgradeOrganization,
   completeOrganizationUpgrade,
   researchOrganization,
-  withdrawFromOrgTreasury,
   getOrgDonationRanking,
   getPlayersPresence,
   getOrgWeeklyGoals,
@@ -285,25 +284,6 @@ export function OrganizationHubView({
       );
     } catch {
       showToast(language === 'ar' ? 'الرصيد غير كافٍ.' : 'Insufficient personal funds.', 'error');
-    } finally {
-      setBusyKey(null);
-    }
-  }
-
-  async function handleWithdraw() {
-    if (!currentOrg) return;
-    setBusyKey('wdr');
-    try {
-      await withdrawFromOrgTreasury(profile.uid, profile.username, currentOrg.id, treasuryAmt);
-      showToast(
-        language === 'ar' ? 'تم السحب من خزينة المنظمة.' : 'Withdrawn from treasury.',
-        'success'
-      );
-    } catch {
-      showToast(
-        language === 'ar' ? 'تعذر السحب من الخزينة.' : 'Withdrawal failed or unauthorized.',
-        'error'
-      );
     } finally {
       setBusyKey(null);
     }
@@ -758,16 +738,6 @@ export function OrganizationHubView({
                         >
                           {language === 'ar' ? 'تبرع للخزنة' : 'Donate to treasury'}
                         </button>
-                        {canManageTreasury && (
-                          <button
-                            type="button"
-                            disabled={busyKey === 'wdr' || treasuryAmt < 1 || currentOrg.treasuryBalance < treasuryAmt}
-                            onClick={handleWithdraw}
-                            className="flex-1 sm:flex-none min-w-0 min-h-[44px] px-3 sm:px-4 rounded-xl bg-[#1B2230] hover:bg-[#232C3E] text-[#F4F5F7] text-xs font-semibold whitespace-nowrap disabled:opacity-50"
-                          >
-                            {t.withdraw}
-                          </button>
-                        )}
                       </div>
           
                       <div className="space-y-2 pt-2 border-t border-white/8">
