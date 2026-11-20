@@ -78,7 +78,7 @@ begin
     'g');
 
   v_definition := regexp_replace(v_definition,
-    'make_interval\\(secs[[:space:]]*=>[[:space:]]*greatest\\(1,[[:space:]]*v_duration[[:space:]]*/[[:space:]]*1000\\)\\)',
+    'make_interval\(secs[[:space:]]*=>[[:space:]]*greatest\(1,[[:space:]]*v_duration[[:space:]]*/[[:space:]]*1000\)\)',
     'make_interval(secs=>greatest(1,v_duration/2000))',
     'g');
 
