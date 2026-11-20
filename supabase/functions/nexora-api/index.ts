@@ -106,6 +106,12 @@ Deno.serve(async (req: Request) => {
       if (existingProfile) {
         const { error: achievementError } = await db.rpc("unlock_eligible_achievements", { p_uid: identity.uid });
         if (achievementError) throw achievementError;
+        const [{ error: missionNoticeError }, { error: contractSettleError }] = await Promise.all([
+          db.rpc("notify_ready_missions", { p_uid: identity.uid }),
+          db.rpc("settle_dynamic_contracts", { p_uid: identity.uid }),
+        ]);
+        if (missionNoticeError) throw missionNoticeError;
+        if (contractSettleError) throw contractSettleError;
       }
       return json({ ok: true, data: await bootstrap(admin, identity.uid) }, 200, origin);
     }
