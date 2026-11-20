@@ -325,6 +325,7 @@ Deno.serve(async (req: Request) => {
       const { data, error } = await db.rpc("buy_market_listings_at_quote_idempotent", {
         p_uid: identity.uid,
         p_items: [{ listing_id: listingId, quantity, expected_unit_price: expectedUnitPrice }],
+        p_requirements: [],
         p_request_id: requestId,
       });
       if (error) {
@@ -339,6 +340,17 @@ Deno.serve(async (req: Request) => {
       if (!requestId || !Array.isArray(body.items) || body.items.length < 1 || body.items.length > 100) {
         return json({ error: "INVALID_PURCHASE_PLAN" }, 400, origin);
       }
+      if (!Array.isArray(body.requirements) || body.requirements.length < 1 || body.requirements.length > 100) {
+        return json({ error: "INVALID_PURCHASE_PLAN" }, 400, origin);
+      }
+      const requirements = body.requirements.map((entry) => {
+        const item = entry && typeof entry === "object" ? entry as Record<string, unknown> : {};
+        return {
+          item_id: typeof item.itemId === "string" ? item.itemId : "",
+          required_quantity: typeof item.quantity === "number" && Number.isFinite(item.quantity) ? Math.floor(item.quantity) : 0,
+        };
+      });
+      if (requirements.some((item) => !item.item_id || item.required_quantity < 1)) return json({ error: "INVALID_PURCHASE_PLAN" }, 400, origin);
       const items = body.items.map((entry) => {
         const item = entry && typeof entry === "object" ? entry as Record<string, unknown> : {};
         return {
@@ -352,10 +364,10 @@ Deno.serve(async (req: Request) => {
         return json({ error: "INVALID_PURCHASE_PLAN" }, 400, origin);
       }
       const { data, error } = await db.rpc("buy_market_listings_at_quote_idempotent", {
-        p_uid: identity.uid, p_items: items, p_request_id: requestId,
+        p_uid: identity.uid, p_items: items, p_requirements: requirements, p_request_id: requestId,
       });
       if (error) {
-        const known = ["INVALID_PURCHASE_PLAN", "INVALID_IDEMPOTENCY_KEY", "IDEMPOTENCY_KEY_REUSED", "MARKET_QUOTE_CHANGED", "LISTING_NOT_FOUND", "INSUFFICIENT_LISTING_QTY", "CANNOT_BUY_OWN_LISTING", "INSUFFICIENT_FUNDS", "ACCOUNT_NOT_FOUND", "SELLER_ACCOUNT_NOT_FOUND", "INVENTORY_CAPACITY_EXCEEDED", "PRICE_BELOW_MINIMUM", "PRICE_ABOVE_MAXIMUM"].find((code) => error.message.includes(code));
+        const known = ["INVALID_PURCHASE_PLAN", "INVALID_IDEMPOTENCY_KEY", "IDEMPOTENCY_KEY_REUSED", "MARKET_QUOTE_CHANGED", "INVENTORY_REQUIREMENT_CHANGED", "LISTING_NOT_FOUND", "INSUFFICIENT_LISTING_QTY", "CANNOT_BUY_OWN_LISTING", "INSUFFICIENT_FUNDS", "ACCOUNT_NOT_FOUND", "SELLER_ACCOUNT_NOT_FOUND", "INVENTORY_CAPACITY_EXCEEDED", "PRICE_BELOW_MINIMUM", "PRICE_ABOVE_MAXIMUM"].find((code) => error.message.includes(code));
         return json({ error: known ?? "MISSING_RESOURCE_PURCHASE_FAILED" }, 409, origin);
       }
       return json({ ok: true, data }, 200, origin);
