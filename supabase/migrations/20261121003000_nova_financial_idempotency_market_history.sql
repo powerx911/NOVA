@@ -48,22 +48,28 @@ begin
 end;
 $function$;
 
-create or replace function nexora.buy_market_listings_at_quote_idempotent(p_uid text, p_items jsonb, p_request_id text)
+create or replace function nexora.buy_market_listings_at_quote_idempotent(p_uid text, p_items jsonb, p_requirements jsonb, p_request_id text)
 returns jsonb language plpgsql security definer set search_path = ''
 as $function$
 declare
   v_hash text; v_existing nexora.idempotency_requests%rowtype; v_profile nexora.player_profiles%rowtype;
   v_seller_uids text[]; v_item record; v_listing nexora.market_listings%rowtype;
   v_purchase jsonb; v_purchases jsonb := '[]'::jsonb; v_response jsonb;
+  v_requirement record; v_owned integer; v_planned integer;
 begin
   if p_request_id is null or p_request_id !~ '^[A-Za-z0-9:_-]{16,128}$' then raise exception 'INVALID_IDEMPOTENCY_KEY'; end if;
-  if jsonb_typeof(p_items) <> 'array' or jsonb_array_length(p_items) < 1 or jsonb_array_length(p_items) > 100 then raise exception 'INVALID_PURCHASE_PLAN'; end if;
+  if jsonb_typeof(p_items) is distinct from 'array' or jsonb_array_length(p_items) < 1 or jsonb_array_length(p_items) > 100 then raise exception 'INVALID_PURCHASE_PLAN'; end if;
+  if p_requirements is null or jsonb_typeof(p_requirements) is distinct from 'array' or jsonb_array_length(p_requirements) > 100 then raise exception 'INVALID_PURCHASE_PLAN'; end if;
+  if exists (select 1 from jsonb_to_recordset(p_requirements) as r(item_id text, required_quantity integer)
+    where coalesce(item_id, '')='' or coalesce(required_quantity,0)<1) then raise exception 'INVALID_PURCHASE_PLAN'; end if;
+  if (select count(*) from jsonb_to_recordset(p_requirements) as r(item_id text, required_quantity integer))
+     <> (select count(distinct item_id) from jsonb_to_recordset(p_requirements) as r(item_id text, required_quantity integer)) then raise exception 'INVALID_PURCHASE_PLAN'; end if;
   if exists (select 1 from jsonb_to_recordset(p_items) as x(listing_id text, quantity integer, expected_unit_price bigint)
     where coalesce(listing_id, '')='' or coalesce(quantity,0)<1 or coalesce(expected_unit_price,0)<1) then raise exception 'INVALID_PURCHASE_PLAN'; end if;
   if (select count(*) from jsonb_to_recordset(p_items) as x(listing_id text, quantity integer, expected_unit_price bigint))
      <> (select count(distinct listing_id) from jsonb_to_recordset(p_items) as x(listing_id text, quantity integer, expected_unit_price bigint)) then raise exception 'INVALID_PURCHASE_PLAN'; end if;
 
-  v_hash := md5(p_items::text);
+  v_hash := md5(jsonb_build_object('items',p_items,'requirements',p_requirements)::text);
   insert into nexora.idempotency_requests(user_id, action, request_id, request_hash)
   values (p_uid, 'buy_market_listings', p_request_id, v_hash) on conflict (user_id, action, request_id) do nothing;
   select * into v_existing from nexora.idempotency_requests where user_id=p_uid and action='buy_market_listings' and request_id=p_request_id for update;
@@ -81,6 +87,7 @@ begin
   where w.user_id=p_uid or w.user_id=any(coalesce(v_seller_uids,array[]::text[]))
   order by w.user_id for update;
 
+  -- Lock and validate every quoted listing before changing any inventory or wallet.
   for v_item in select * from jsonb_to_recordset(p_items)
     as x(listing_id text, quantity integer, expected_unit_price bigint) order by listing_id
   loop
@@ -89,6 +96,29 @@ begin
     if v_listing.seller_uid=p_uid then raise exception 'CANNOT_BUY_OWN_LISTING'; end if;
     if v_listing.status <> 'active' or v_listing.remaining_qty < v_item.quantity then raise exception 'INSUFFICIENT_LISTING_QTY'; end if;
     if v_listing.unit_price <> v_item.expected_unit_price then raise exception 'MARKET_QUOTE_CHANGED'; end if;
+  end loop;
+
+  -- Recheck the player's real inventory under row locks so a stale quote cannot overbuy.
+  if jsonb_array_length(p_requirements) > 0 then
+    if exists (
+      select 1 from jsonb_to_recordset(p_items) as x(listing_id text, quantity integer, expected_unit_price bigint)
+      join nexora.market_listings l on l.id=x.listing_id
+      where not exists (select 1 from jsonb_to_recordset(p_requirements) as r(item_id text, required_quantity integer) where r.item_id=l.item_id)
+    ) then raise exception 'INVALID_PURCHASE_PLAN'; end if;
+    for v_requirement in select * from jsonb_to_recordset(p_requirements) as r(item_id text, required_quantity integer)
+    loop
+      select quantity into v_owned from nexora.inventory where user_id=p_uid and item_id=v_requirement.item_id for update;
+      if not found then v_owned:=0; end if;
+      select coalesce(sum(x.quantity),0)::integer into v_planned
+      from jsonb_to_recordset(p_items) as x(listing_id text, quantity integer, expected_unit_price bigint)
+      join nexora.market_listings l on l.id=x.listing_id where l.item_id=v_requirement.item_id;
+      if v_owned + v_planned <> v_requirement.required_quantity then raise exception 'INVENTORY_REQUIREMENT_CHANGED'; end if;
+    end loop;
+  end if;
+
+  for v_item in select * from jsonb_to_recordset(p_items)
+    as x(listing_id text, quantity integer, expected_unit_price bigint) order by listing_id
+  loop
     v_purchase := nexora.buy_market_listing(p_uid, v_item.listing_id, v_item.quantity);
     v_purchases := v_purchases || jsonb_build_array(v_purchase);
   end loop;
@@ -105,7 +135,7 @@ revoke all on function nexora.buy_market_listing(text,text,integer) from public,
 revoke all on function nexora.deposit_org_treasury(text,text,bigint) from public, anon, authenticated;
 revoke all on function nexora.transfer_credits_idempotent(text,text,bigint,text,text) from public, anon, authenticated;
 revoke all on function nexora.deposit_org_treasury_idempotent(text,text,bigint,text) from public, anon, authenticated;
-revoke all on function nexora.buy_market_listings_at_quote_idempotent(text,jsonb,text) from public, anon, authenticated;
+revoke all on function nexora.buy_market_listings_at_quote_idempotent(text,jsonb,jsonb,text) from public, anon, authenticated;
 grant execute on function nexora.transfer_credits_idempotent(text,text,bigint,text,text) to service_role;
 grant execute on function nexora.deposit_org_treasury_idempotent(text,text,bigint,text) to service_role;
-grant execute on function nexora.buy_market_listings_at_quote_idempotent(text,jsonb,text) to service_role;
+grant execute on function nexora.buy_market_listings_at_quote_idempotent(text,jsonb,jsonb,text) to service_role;
