@@ -1,6 +1,7 @@
 import { Factory, Timer } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useToast } from '../../components/ui/ToastProvider';
+import { BuyMissingResourcesButton } from './BuyMissingResourcesButton';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { ITEM_MAP, MANUFACTURING_RECIPES } from '../../data/catalog';
 import { ResourceIcon } from '../../components/ui/ResourceIcon';
@@ -213,7 +214,18 @@ export function ManufacturingPanel({ profile, wallet, inventory, language, onNav
                 <button type="button" disabled={jobLoading || Boolean(activeJob) || !hasSkill || !hasInputs || !canAfford || busyKey === recipe.id} onClick={() => void handleManufacture(recipe.id)} className="flex-1 min-h-[44px] px-4 rounded-xl bg-[#397BFF] hover:bg-[#63A5FF] text-white text-xs font-semibold transition-colors disabled:bg-[#162642] disabled:text-[#9AAAC7]">
                   {busyKey === recipe.id ? '...' : activeJob ? (isAr ? 'انتظر انتهاء التصنيع' : 'Manufacturing busy') : !hasSkill ? (isAr ? 'مهارة غير كافية' : 'Skill too low') : !hasInputs ? t.missingInputs : !canAfford ? (isAr ? 'رصيد غير كافٍ' : 'Insufficient balance') : (isAr ? `بدء التصنيع ×${quantity}` : `Start ×${quantity}`)}
                 </button>
-                {!hasInputs && !activeJob && <button type="button" onClick={onNavigateToExchange} className="min-h-[44px] px-3.5 rounded-xl bg-[#1B2230] hover:bg-[#232C3E] text-[#F4F5F7] text-xs font-medium whitespace-nowrap">{isAr ? 'شراء المواد' : 'Buy materials'}</button>}
+                {!hasInputs && !activeJob && (
+                  <>
+                    <BuyMissingResourcesButton
+                      uid={profile.uid}
+                      requirements={recipe.inputs.map((input) => ({ itemId: input.itemId, quantity: input.qty * quantity }))}
+                      inventory={inventory}
+                      wallet={wallet}
+                      language={language}
+                    />
+                    <button type="button" onClick={onNavigateToExchange} className="min-h-[44px] px-3.5 rounded-xl bg-[#1B2230] hover:bg-[#232C3E] text-[#F4F5F7] text-xs font-medium whitespace-nowrap">{isAr ? 'فتح السوق' : 'Open market'}</button>
+                  </>
+                )}
               </div>
             </article>
           );

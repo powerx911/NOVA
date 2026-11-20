@@ -20,10 +20,44 @@ def git_blob(path: str) -> str:
     ).strip()
 
 
+def validate_ci_covers_latest_migrations(data: dict) -> None:
+    migration_dir = ROOT / "supabase/migrations"
+    local_files = sorted(migration_dir.glob("*.sql"))
+    latest = [path.relative_to(ROOT).as_posix() for path in local_files[-5:]]
+    workflow_paths = [
+        ROOT / ".github/workflows/database-tests.yml",
+        ROOT / ".github/workflows/database-history-replay.yml",
+    ]
+    missing = []
+    for workflow in workflow_paths:
+        content = workflow.read_text(encoding="utf-8")
+        for migration in latest:
+            if migration not in content:
+                missing.append(f"{workflow.relative_to(ROOT)}:{migration}")
+    if missing:
+        raise SystemExit("Latest production migrations are not replayed by both database CI workflows:\n- " + "\n- ".join(missing))
+
+    mapped = {
+        entry.get("canonical_source")
+        for entry in data.get("entries", [])
+        if isinstance(entry.get("canonical_source"), str)
+        and entry["canonical_source"].startswith("supabase/migrations/")
+    }
+    unmapped_count = len({
+        path.relative_to(ROOT).as_posix() for path in local_files
+    } - mapped)
+    expected_unmapped = int(data.get("matching_summary", {}).get("local_migration_files_not_mapped_to_applied_record", -1))
+    if unmapped_count != expected_unmapped:
+        raise SystemExit(
+            f"Manifest reports {expected_unmapped} local migrations without a production ledger mapping; found {unmapped_count}."
+        )
+
+
 def main() -> int:
     data = json.loads(MANIFEST.read_text(encoding="utf-8"))
     entries = data.get("entries", [])
     expected = int(data.get("production_ledger_records", 0))
+    validate_ci_covers_latest_migrations(data)
     if len(entries) != expected:
         raise SystemExit(f"Manifest has {len(entries)} records; expected {expected}.")
 

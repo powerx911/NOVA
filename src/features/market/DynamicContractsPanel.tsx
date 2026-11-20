@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import { ResourceIcon } from '../../components/ui/ResourceIcon';
 import { NotificationBadge } from '../../components/ui/NotificationBadge';
+import { BuyMissingResourcesButton } from './BuyMissingResourcesButton';
 import { useToast } from '../../components/ui/ToastProvider';
 import { ITEM_MAP } from '../../data/catalog';
 import { useTranslations } from '../../i18n/translations';
@@ -288,6 +289,15 @@ export function DynamicContractsPanel({ profile, inventory, wallet, language, no
                 <span className="inline-flex items-center gap-1.5"><RefreshCw className="w-3.5 h-3.5" />{language === 'ar' ? 'تجديد العقد' : 'Refresh contract'}</span>
               </button>}
             </>
+          )}
+          {contract.status === 'accepted' && isOwnedContract && owned < contract.quantity && (
+            <BuyMissingResourcesButton
+              uid={profile.uid}
+              requirements={[{ itemId: contract.item_id, quantity: contract.quantity }]}
+              inventory={inventory}
+              wallet={wallet}
+              language={language}
+            />
           )}
           {contract.status === 'accepted' && isOwnedContract && (
             <>

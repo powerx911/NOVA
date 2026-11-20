@@ -26,6 +26,7 @@ import type {
   Language,
   MarketListing,
   MarketActivityRecord,
+  MarketPricePoint,
   Organization,
   OrganizationMember,
   OrgRole,
@@ -195,6 +196,10 @@ export async function fetchMarketActivity(): Promise<MarketActivityRecord[]> {
   return nexoraApi<MarketActivityRecord[]>('fetch_market_activity');
 }
 
+export async function fetchMarketPriceHistory(): Promise<MarketPricePoint[]> {
+  return nexoraApi<MarketPricePoint[]>('fetch_market_price_history');
+}
+
 export async function fetchInventoryCapacityUsage(): Promise<number> {
   return nexoraApi<number>('fetch_inventory_capacity_usage');
 }
@@ -220,19 +225,47 @@ export async function createMarketListing(
   }
 }
 
+export interface MissingResourcePurchaseItem {
+  listingId: string;
+  itemId: string;
+  quantity: number;
+  expectedUnitPrice: number;
+}
+
 export async function buyMarketListing(
   _buyerUid: string,
   listingId: string,
   buyQtyRaw: number,
-  _taxRate: number
+  _taxRate: number,
+  expectedUnitPrice: number
 ): Promise<void> {
   const quantity = Number.isFinite(buyQtyRaw) ? Math.floor(buyQtyRaw) : 0;
-  if (quantity < 1) throw new Error('INVALID_QUANTITY');
+  if (quantity < 1 || !Number.isFinite(expectedUnitPrice) || expectedUnitPrice < 1) throw new Error('INVALID_QUANTITY');
   try {
-    await nexoraApi('buy_market_listing', { listingId, quantity });
+    await nexoraApi('buy_market_listing', { listingId, quantity, expectedUnitPrice });
     if (typeof window !== 'undefined') window.dispatchEvent(new Event('nova:refresh-game'));
   } catch (error) {
     if (error instanceof Error && 'code' in error) throw new Error(String((error as { code?: unknown }).code ?? 'MARKET_PURCHASE_FAILED'));
+    throw error;
+  }
+}
+
+export async function buyMissingResources(items: MissingResourcePurchaseItem[], requirements: Array<{ itemId: string; quantity: number }>): Promise<void> {
+  if (!items.length || items.length > 100) throw new Error('INVALID_PURCHASE_PLAN');
+  const normalized = items.map((item) => ({
+    listingId: item.listingId,
+    itemId: item.itemId,
+    quantity: Math.floor(item.quantity),
+    expectedUnitPrice: Math.floor(item.expectedUnitPrice),
+  }));
+  if (normalized.some((item) => !item.listingId || !item.itemId || item.quantity < 1 || item.expectedUnitPrice < 1)) {
+    throw new Error('INVALID_PURCHASE_PLAN');
+  }
+  try {
+    await nexoraApi('buy_missing_resources', { items: normalized, requirements });
+    if (typeof window !== 'undefined') window.dispatchEvent(new Event('nova:refresh-game'));
+  } catch (error) {
+    if (error instanceof Error && 'code' in error) throw new Error(String((error as { code?: unknown }).code ?? 'MISSING_RESOURCE_PURCHASE_FAILED'));
     throw error;
   }
 }
