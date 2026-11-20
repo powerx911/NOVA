@@ -3,7 +3,7 @@
   "captured_at": "2026-11-20",
   "repository": "powerx911/NOVA",
   "production_project_id": "hmrprnjhyzyefocdmnxf",
-  "production_ledger_records": 81,
+  "production_ledger_records": 82,
   "tracked_migration_files": 79,
   "recovered_history_sql_files": 55,
   "production_schema_inventory": {
@@ -16,11 +16,11 @@
     "active_cron_jobs": 8
   },
   "matching_summary": {
-    "records_with_source": 81,
+    "records_with_source": 82,
     "records_missing_source": 0,
     "records_recovered_only": 21,
     "records_with_additional_variants": 21,
-    "local_migration_files_not_mapped_to_applied_record": 19
+    "local_migration_files_not_mapped_to_applied_record": 18
   },
   "entries": [
     {
@@ -774,6 +774,14 @@
       "source_status": "tracked",
       "canonical_source": "supabase/migrations/20261121004000_nova_biotech_recipe_integrity_fix.sql",
       "canonical_git_blob_sha": "3fd6524442e5a944cfc215600e9282cfb0165af3",
+      "additional_variants": []
+    },
+    {
+      "version": "20261120201225",
+      "name": "nova_company_revenue_minimum_rewards",
+      "source_status": "tracked",
+      "canonical_source": "supabase/migrations/20261121005000_nova_company_revenue_minimum_rewards.sql",
+      "canonical_git_blob_sha": "ada74d96e04a7fd2d10f91d7898aeabd488a66ce",
       "additional_variants": []
     }
   ],
