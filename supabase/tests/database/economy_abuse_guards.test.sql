@@ -48,44 +48,51 @@ values (
   'copper_wire', 1, 0, true, 0, 0, 0, now() - interval '2 hours'
 );
 
+select extensions.throws_ok(
+  $select nexora.set_factory_active('pgtap_pause_owner', 'pgtap_pause_factory', false)$,
+  'P0001',
+  'FACTORY_ALWAYS_AUTOMATIC',
+  'manual factory shutdown is rejected because operations are automatic'
+);
+
 select extensions.lives_ok(
-  $$select nexora.set_factory_active('pgtap_pause_owner', 'pgtap_pause_factory', false)$$,
-  'pausing an active factory synchronizes its elapsed production first'
+  $select nexora.sync_factory_production('pgtap_pause_owner', 'pgtap_pause_factory')$,
+  'automatic factory sync processes elapsed production and operating costs'
 );
 
 select extensions.is(
   (select is_active from nexora.factories where id = 'pgtap_pause_factory'),
-  false,
-  'factory is inactive after the pause RPC'
+  true,
+  'factory remains active while operating funds are available'
 );
 
 select extensions.is(
   (select balance from nexora.wallets where user_id = 'pgtap_pause_owner'),
-  2450::bigint,
-  'two elapsed hours of copper-wire operating costs are charged before pausing'
+  1500::bigint,
+  'two elapsed hours of copper-wire operating costs are charged automatically'
 );
 
 select extensions.is(
   (select count(*)::bigint from nexora.transactions where from_uid = 'pgtap_pause_owner' and type = 'factory_operating'),
   1::bigint,
-  'pause creates exactly one operating-cost ledger row'
+  'automatic production creates exactly one operating-cost ledger row'
 );
 
 select extensions.lives_ok(
   $$select nexora.sync_factory_production('pgtap_pause_owner', 'pgtap_pause_factory')$$,
-  'a later sync of a paused factory succeeds without production'
+  'a later automatic sync succeeds without double charging'
 );
 
 select extensions.is(
   (select balance from nexora.wallets where user_id = 'pgtap_pause_owner'),
-  2450::bigint,
-  'syncing after pause does not charge a second operating cost'
+  1500::bigint,
+  'syncing again does not charge a second operating cost'
 );
 
 select extensions.is(
   (select count(*)::bigint from nexora.transactions where from_uid = 'pgtap_pause_owner' and type = 'factory_operating'),
   1::bigint,
-  'syncing after pause does not append another operating-cost ledger row'
+  'syncing again does not append another operating-cost ledger row'
 );
 
 
