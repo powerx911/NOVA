@@ -91,6 +91,17 @@ export async function validateTransferRecipient(username: string): Promise<{ exi
   return nexoraApi<{ exists: boolean; isSelf: boolean }>('validate_transfer_recipient', { username: clean });
 }
 
+export async function claimAchievementReward(_uid: string, achievementId: string): Promise<void> {
+  if (!/^nova_(whale|market|industry|enterprise)_(i|ii|iii|iv)$/.test(achievementId)) throw new Error('INVALID_ACHIEVEMENT');
+  try {
+    await nexoraApi('claim_achievement_reward', { achievementId });
+    if (typeof window !== 'undefined') window.dispatchEvent(new Event('nova:refresh-game'));
+  } catch (error) {
+    if (error instanceof Error && 'code' in error) throw new Error(String((error as { code?: unknown }).code ?? 'ACHIEVEMENT_CLAIM_FAILED'));
+    throw error;
+  }
+}
+
 export async function refreshPlayerAchievements(): Promise<void> {
   await nexoraApi('refresh_achievements');
   if (typeof window !== 'undefined') window.dispatchEvent(new Event('nova:refresh-game'));
