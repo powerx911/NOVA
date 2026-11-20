@@ -50,6 +50,7 @@ export interface GameDataState {
   claimedDailyToday: boolean;
   claimedContractsToday: Set<string>;
   unlockedAchievements: Set<string>;
+  claimedAchievements: Set<string>;
   notifications: GameNotification[];
   worldEvents: WorldEvent[];
   isOnline: boolean;
@@ -89,6 +90,7 @@ export function useGameData(): GameDataState {
   const [claimedDailyToday, setClaimedDailyToday] = useState(false);
   const [claimedContractsToday, setClaimedContractsToday] = useState<Set<string>>(new Set());
   const [unlockedAchievements, setUnlockedAchievements] = useState<Set<string>>(new Set());
+  const [claimedAchievements, setClaimedAchievements] = useState<Set<string>>(new Set());
   const [notifications, setNotifications] = useState<GameNotification[]>([]);
   const [worldEvents, setWorldEvents] = useState<WorldEvent[]>([]);
   const [utcDateKey, setUtcDateKey] = useState(() => getUtcDateKey());
@@ -164,6 +166,7 @@ export function useGameData(): GameDataState {
     setClaimedDailyToday(false);
     setClaimedContractsToday(new Set());
     setUnlockedAchievements(new Set());
+    setClaimedAchievements(new Set());
     setNotifications([]);
     setWorldEvents([]);
   }, []);
@@ -237,9 +240,9 @@ export function useGameData(): GameDataState {
         setClaimedMissions((data.playerMissions ?? []) as PlayerMissionClaim[]);
         setClaimedDailyToday(Boolean(data.claimedDailyToday));
         setClaimedContractsToday(new Set((data.claimedContractsToday ?? []) as string[]));
-        setUnlockedAchievements(new Set(
-          ((data.playerAchievements ?? []) as Array<{ achievementId?: string }>).map((item) => item.achievementId).filter(Boolean) as string[]
-        ));
+        const achievementRows = (data.playerAchievements ?? []) as Array<{ achievementId?: string; claimedAt?: string | null }>;
+        setUnlockedAchievements(new Set(achievementRows.map((item) => item.achievementId).filter(Boolean) as string[]));
+        setClaimedAchievements(new Set(achievementRows.filter((item) => Boolean(item.claimedAt)).map((item) => item.achievementId).filter(Boolean) as string[]));
         setNotifications((data.notifications ?? []) as GameNotification[]);
         setWorldEvents((data.worldEvents ?? []) as WorldEvent[]);
         bootstrappedUidRef.current = uid;
@@ -343,6 +346,7 @@ export function useGameData(): GameDataState {
     claimedDailyToday,
     claimedContractsToday,
     unlockedAchievements,
+    claimedAchievements,
     notifications,
     worldEvents,
     isOnline,
