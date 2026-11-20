@@ -78,20 +78,24 @@ export function BuyMissingResourcesButton({ uid, requirements, inventory, wallet
           : 'Prices or quantities changed. Review the updated quote and confirm again.', 'info');
         return;
       }
-      await buyMissingResources(plan.map(({ listingId, itemId, quantity, expectedUnitPrice }) => ({ listingId, itemId, quantity, expectedUnitPrice })));
+      await buyMissingResources(
+        plan.map(({ listingId, itemId, quantity, expectedUnitPrice }) => ({ listingId, itemId, quantity, expectedUnitPrice })),
+        requirements,
+      );
       setOpen(false);
       setQuoteChanged(false);
       showToast(isAr ? 'تم شراء المواد الناقصة بنجاح.' : 'Missing materials purchased successfully.', 'success');
     } catch (error) {
       const code = error instanceof Error ? error.message : '';
-      if (code === 'MARKET_QUOTE_CHANGED' || code === 'INSUFFICIENT_LISTING_QTY' || code === 'LISTING_NOT_FOUND') {
+      if (code === 'MARKET_QUOTE_CHANGED' || code === 'INVENTORY_REQUIREMENT_CHANGED' || code === 'INSUFFICIENT_LISTING_QTY' || code === 'LISTING_NOT_FOUND') {
         try {
           setPlan(createPlan(requirements, inventory, await fetchMarketListings(), uid));
           setQuoteChanged(true);
         } catch { setPlan([]); }
+        if (code === 'INVENTORY_REQUIREMENT_CHANGED' && typeof window !== 'undefined') window.dispatchEvent(new Event('nova:refresh-game'));
         showToast(isAr
-          ? 'تغير أحد عروض السوق أثناء التأكيد. تم تحديث الملخص؛ راجعه وأكد من جديد.'
-          : 'A market offer changed during confirmation. The quote was refreshed; review and confirm again.', 'info');
+          ? 'تغيرت الكميات أو عروض السوق أثناء التأكيد. تم تحديث البيانات؛ راجع الملخص وأكد من جديد.'
+          : 'Inventory or market offers changed during confirmation. Data was refreshed; review and confirm again.', 'info');
       } else {
         showToast(code === 'INSUFFICIENT_FUNDS'
           ? (isAr ? 'رصيدك لا يكفي لإتمام الشراء مع ضريبة السوق.' : 'Your balance is not enough for the purchase and market tax.')
