@@ -60,10 +60,11 @@ describe('Raw resource factories', () => {
     }
   });
 
-  it('gives every advanced raw resource a real manufacturing use', () => {
-    const advancedResources = ['titanium_ore', 'polymer_resin', 'biotech_gel', 'quantum_dust'];
+  it('keeps advanced resources in recipes while the retired resin-input recipe stays removed', () => {
+    const advancedResources = ['titanium_ore', 'biotech_gel', 'quantum_dust'];
     for (const resourceId of advancedResources) {
       expect(MANUFACTURING_RECIPES.some((recipe) => recipe.inputs.some((input) => input.itemId === resourceId))).toBe(true);
     }
+    expect(MANUFACTURING_RECIPES.some((recipe) => recipe.inputs.some((input) => input.itemId === 'polymer_resin'))).toBe(false);
   });
 });

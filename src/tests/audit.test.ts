@@ -60,7 +60,7 @@ describe('NEXORA Audit Regression & Security Invariants', () => {
 
   it('exposes consistent progression and listing ceiling constants', () => {
     expect(COMPANY_MAX_LEVEL).toBe(100);
-    expect(LISTING_MAX_QTY).toBe(10_000);
+    expect(LISTING_MAX_QTY).toBe(250);
     expect(LISTING_MAX_PRICE).toBe(1_000_000);
   });
 

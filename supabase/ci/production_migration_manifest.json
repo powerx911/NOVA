@@ -3,8 +3,8 @@
   "captured_at": "2026-11-20",
   "repository": "powerx911/NOVA",
   "production_project_id": "hmrprnjhyzyefocdmnxf",
-  "production_ledger_records": 83,
-  "tracked_migration_files": 80,
+  "production_ledger_records": 86,
+  "tracked_migration_files": 83,
   "recovered_history_sql_files": 55,
   "production_schema_inventory": {
     "tables": 46,
@@ -16,7 +16,7 @@
     "active_cron_jobs": 8
   },
   "matching_summary": {
-    "records_with_source": 83,
+    "records_with_source": 86,
     "records_missing_source": 0,
     "records_recovered_only": 21,
     "records_with_additional_variants": 21,
@@ -791,10 +791,34 @@
       "canonical_source": "supabase/migrations/20261121006000_nova_manufacturing_rls_auction_fk_indexes.sql",
       "canonical_git_blob_sha": "e0411ec656281d87d4d7501812c2319b37dcc0ef",
       "additional_variants": []
+    },
+    {
+      "version": "20261121081031",
+      "name": "market_listing_limits",
+      "source_status": "tracked",
+      "canonical_source": "supabase/migrations/20261121081031_market_listing_limits.sql",
+      "canonical_git_blob_sha": "a4ec687b063030601fc766378946e2f9ce36b8e6",
+      "additional_variants": []
+    },
+    {
+      "version": "20261121081916",
+      "name": "nexora_merchant_daily_sales",
+      "source_status": "tracked",
+      "canonical_source": "supabase/migrations/20261121081916_nexora_merchant_daily_sales.sql",
+      "canonical_git_blob_sha": "5453538a623bacc038de16501bbb64ccfb6c800e",
+      "additional_variants": []
+    },
+    {
+      "version": "20261121082006",
+      "name": "nexora_merchant_bio_module_price",
+      "source_status": "tracked",
+      "canonical_source": "supabase/migrations/20261121082006_nexora_merchant_bio_module_price.sql",
+      "canonical_git_blob_sha": "38d59ee51493bb482c7690c4bcc6fc1187ca243f",
+      "additional_variants": []
     }
   ],
-  "tracked_migration_files_on_branch": 77,
-  "tracked_migration_files_on_main": 77,
+  "tracked_migration_files_on_branch": 83,
+  "tracked_migration_files_on_main": 80,
   "unmapped_local_migration_files_by_name": [
     "supabase/migrations/20261118180000_nexora_economy_rpcs.sql",
     "supabase/migrations/20261118183000_nexora_market_rpcs.sql",

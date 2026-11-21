@@ -493,7 +493,7 @@ export function getMarketPriceBounds(itemId: string): MarketPriceBounds | null {
 }
 
 export const COMPANY_MAX_LEVEL = 100;
-export const LISTING_MAX_QTY = 10_000;
+export const LISTING_MAX_QTY = 250;
 export const LISTING_MAX_PRICE = 1_000_000;
 
 export function sanitizePositiveInt(raw: unknown, fallback = 1, max = Number.MAX_SAFE_INTEGER): number {

@@ -365,18 +365,6 @@ export const MANUFACTURING_RECIPES: ManufacturingRecipe[] = [
     requiredIndustrySkill: 1,
   },
   {
-    id: 'rec_polymer_composite',
-    outputItemId: 'synth_polymer',
-    outputQty: 2,
-    inputs: [
-      { itemId: 'polymer_resin', qty: 2 },
-      { itemId: 'energy_cells', qty: 1 },
-    ],
-    processingCost: 90,
-    xpReward: 12,
-    requiredIndustrySkill: 1,
-  },
-  {
     id: 'rec_biotech_module',
     outputItemId: 'bio_module',
     outputQty: 1,

@@ -114,7 +114,7 @@ export function BuyMissingResourcesButton({ uid, requirements, inventory, wallet
     <>
       <button type="button" onClick={() => void openQuote()} disabled={busy}
         className="min-h-[44px] flex-1 px-3 rounded-xl bg-[#2468D8] hover:bg-[#347CF0] text-white text-xs font-semibold disabled:opacity-50">
-        {busy && !open ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : <span className="inline-flex items-center justify-center gap-1.5"><ShoppingCart className="w-3.5 h-3.5" />{isAr ? 'شراء النواقص' : 'Buy missing'}</span>}
+        {busy && !open ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : <span className="inline-flex items-center justify-center gap-1.5"><ShoppingCart className="w-3.5 h-3.5" />{isAr ? 'شراء الموارد' : 'Buy resources'}</span>}
       </button>
       {open && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 p-4" role="presentation">

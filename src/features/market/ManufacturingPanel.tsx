@@ -120,7 +120,7 @@ export function ManufacturingPanel({ profile, wallet, inventory, language, onNav
     } catch (error) {
       const code = error instanceof Error ? error.message : '';
       const messages: Record<string, string> = {
-        MISSING_INPUTS: isAr ? 'المدخلات غير كافية في المخزون.' : 'Insufficient input materials in inventory.',
+        MISSING_INPUTS: isAr ? 'الموارد غير كافية في المخزون.' : 'Insufficient resources in inventory.',
         INDUSTRY_SKILL_TOO_LOW: isAr ? 'مستوى مهارة الصناعة غير كافٍ لهذه الوصفة.' : 'Industry skill level too low for this recipe.',
         INSUFFICIENT_FUNDS: isAr ? 'الرصيد غير كافٍ لتكلفة التشغيل.' : 'Insufficient credits for processing cost.',
         MANUFACTURING_JOB_IN_PROGRESS: isAr ? 'لديك عملية تصنيع جارية بالفعل.' : 'You already have a manufacturing job in progress.',
