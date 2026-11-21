@@ -103,9 +103,9 @@ select extensions.ok(
 );
 
 select extensions.ok(
-  position('v_xp_gain:=least(80,greatest(0,floor((v_company.total_revenue+v_payout)::numeric/15)::bigint-floor(v_company.total_revenue::numeric/15)::bigint))' in lower(pg_get_functiondef('nexora.collect_company_revenue(text,text)'::regprocedure)))>0
+  position('v_xp_gain:=least(80,floor(v_payout/15)::integer)' in lower(pg_get_functiondef('nexora.collect_company_revenue(text,text)'::regprocedure)))>0
   and position('v_leadership' in lower(pg_get_functiondef('nexora.collect_company_revenue(text,text)'::regprocedure)))=0,
-  'company collection XP is capped and awarded only when cumulative revenue crosses fifteen-credit milestones'
+  'company collection XP is capped and awarded only for each fifteen credits actually collected'
 );
 
 select extensions.ok(
