@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { auth, googleAuthProvider } from '../lib/firebase';
 import { getUtcDateKey } from '../services/gameService';
 import { nexoraApi } from '../lib/nexoraApi';
+import { normalizeBootstrapProfile } from '../lib/bootstrapProfile';
 import type {
   Company,
   Factory,
@@ -238,7 +239,7 @@ export function useGameData(): GameDataState {
       try {
         const data = await nexoraApi<Record<string, any>>('bootstrap');
         if (cancelled) return;
-        setProfile(data.profile as PlayerProfile | null);
+        setProfile(normalizeBootstrapProfile(data.profile));
         setUserPrivate(data.userPrivate as UserPrivate | null);
         if (data.userPrivate?.language) setLanguageLocal(data.userPrivate.language as Language);
         setWallet(data.wallet as Wallet | null);
@@ -328,8 +329,6 @@ export function useGameData(): GameDataState {
   const registerWithEmail = useCallback(async (email: string, password: string) => {
     const credential = await createUserWithEmailAndPassword(auth, email.trim(), password);
     await sendEmailVerification(credential.user);
-    // Character creation requires a verified Firebase identity. Sign out so
-    // the player can verify their email, then sign in and continue onboarding.
     await signOut(auth);
   }, []);
 
