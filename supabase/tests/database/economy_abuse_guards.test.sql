@@ -97,15 +97,15 @@ select extensions.is(
 
 
 select extensions.ok(
-  position('reputation=reputation+round(2*v_leadership)' in lower(pg_get_functiondef('nexora.collect_company_revenue(text,text)'::regprocedure)))>0
-  and position('influence=influence+round(1*v_leadership)' in lower(pg_get_functiondef('nexora.collect_company_revenue(text,text)'::regprocedure)))>0,
-  'company revenue collection grants minimum reputation and influence with leadership scaling'
+  position('reputation=reputation+' in lower(pg_get_functiondef('nexora.collect_company_revenue(text,text)'::regprocedure)))=0
+  and position('influence=influence+' in lower(pg_get_functiondef('nexora.collect_company_revenue(text,text)'::regprocedure)))=0,
+  'company revenue collection grants no reputation or influence per API call'
 );
 
 select extensions.ok(
-  position('v_xp_gain:=least(80,greatest(10,floor(v_payout/15)::integer))' in lower(pg_get_functiondef('nexora.collect_company_revenue(text,text)'::regprocedure)))>0
-  and position('v_company.total_revenue+v_payout' in lower(pg_get_functiondef('nexora.collect_company_revenue(text,text)'::regprocedure)))=0,
-  'company collection XP has a ten-point minimum and an eighty-point cap based on payout'
+  position('v_xp_gain:=least(80,greatest(0,floor((v_company.total_revenue+v_payout)::numeric/15)::bigint-floor(v_company.total_revenue::numeric/15)::bigint))' in lower(pg_get_functiondef('nexora.collect_company_revenue(text,text)'::regprocedure)))>0
+  and position('v_leadership' in lower(pg_get_functiondef('nexora.collect_company_revenue(text,text)'::regprocedure)))=0,
+  'company collection XP is capped and awarded only when cumulative revenue crosses fifteen-credit milestones'
 );
 
 select extensions.ok(
