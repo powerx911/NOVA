@@ -817,7 +817,7 @@
       "additional_variants": []
     }
   ],
-  "tracked_migration_files_on_branch": 83,
+  "tracked_migration_files_on_branch": 87,
   "tracked_migration_files_on_main": 80,
   "unmapped_local_migration_files_by_name": [
     "supabase/migrations/20261118180000_nexora_economy_rpcs.sql",
@@ -851,7 +851,8 @@
     "The three NOVA hardening migrations were applied to production on 2026-11-20 and are recorded as ledger versions 20261120181539, 20261120181541, and 20261120181542.",
     "The financial idempotency and market history migration was applied on 2026-11-20 and is recorded as ledger version 20261120184839.",
     "The live player skill effects migration was applied on 2026-11-20 and is recorded as ledger version 20261120191611.",
-    "The production schema snapshot includes the live player skill effects triggers: 46 tables, 151 functions (138 SECURITY DEFINER), 40 triggers, 100 indexes, and 169 constraints.",
-    "The organization contract negotiation skill migration was applied on 2026-11-20 and is recorded as ledger version 20261120192229."
+    "The phase-one target production schema snapshot includes the org-contract claim trigger and updated RPC guards: 46 tables, 152 functions (139 SECURITY DEFINER), 41 triggers, 102 indexes, and 169 constraints.",
+    "The organization contract negotiation skill migration was applied on 2026-11-20 and is recorded as ledger version 20261120192229.",
+    "The four phase-one migration files are tracked locally but are not mapped to production ledger records until the PR is merged and migrations are applied."
   ]
 }
