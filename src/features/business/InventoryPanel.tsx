@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ArrowLeft, Package, ShoppingBag } from 'lucide-react';
 import { ResourceIcon } from '../../components/ui/ResourceIcon';
 import { ITEM_MAP } from '../../data/catalog';
@@ -59,12 +59,19 @@ export function InventoryPanel({ inventory, marketListings, uid, language, title
   };
   const inventoryQuantity = inventory.reduce((sum, item) => sum + Math.max(0, item.quantity), 0);
   const fallbackListedQuantity = marketListings.reduce((sum, listing) => sum + (listing.sellerUid === uid && listing.status === 'active' ? Math.max(0, listing.remainingQty) : 0), 0);
+  const inventoryCapacityFetchInFlight = useRef(false);
+
   useEffect(() => {
     let active = true;
     const refresh = () => {
-      void fetchInventoryCapacityUsage().then((usage) => {
-        if (active && Number.isFinite(usage)) setServerInventoryUsage(Math.max(0, usage));
-      }).catch(() => undefined);
+      if (!active || inventoryCapacityFetchInFlight.current) return;
+      inventoryCapacityFetchInFlight.current = true;
+      void fetchInventoryCapacityUsage()
+        .then((usage) => {
+          if (active && Number.isFinite(usage)) setServerInventoryUsage(Math.max(0, usage));
+        })
+        .catch(() => undefined)
+        .finally(() => { inventoryCapacityFetchInFlight.current = false; });
     };
     refresh();
     const timer = window.setInterval(refresh, 30_000);
