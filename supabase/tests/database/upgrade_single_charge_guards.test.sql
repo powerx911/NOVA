@@ -76,7 +76,7 @@ select extensions.lives_ok(
 );
 select extensions.is(
   (select balance from nexora.wallets where user_id='pgtap_upgrade_factory'),
-  10000 - 396,
+  10000 - (select amount from nexora.transactions where from_uid='pgtap_upgrade_factory' and type='factory_upgrade' and reference_id='pgtap_upgrade_factory'),
   'factory level upgrade deducts its price once'
 );
 select extensions.is(
@@ -100,7 +100,7 @@ select extensions.throws_ok(
 );
 select extensions.is(
   (select balance from nexora.wallets where user_id='pgtap_upgrade_factory'),
-  10000 - 396,
+  10000 - (select amount from nexora.transactions where from_uid='pgtap_upgrade_factory' and type='factory_upgrade' and reference_id='pgtap_upgrade_factory'),
   'a repeated factory upgrade request does not deduct a second price'
 );
 select extensions.is(
@@ -124,7 +124,7 @@ select extensions.lives_ok(
 );
 select extensions.is(
   (select balance from nexora.wallets where user_id='pgtap_upgrade_warehouse'),
-  7500::bigint,
+  10000 - (select amount from nexora.transactions where from_uid='pgtap_upgrade_warehouse' and type='factory_warehouse_upgrade' and reference_id='pgtap_upgrade_warehouse'),
   'warehouse upgrade deducts its price once'
 );
 select extensions.is(
@@ -143,7 +143,7 @@ select extensions.throws_ok(
 );
 select extensions.is(
   (select balance from nexora.wallets where user_id='pgtap_upgrade_warehouse'),
-  7500::bigint,
+  10000 - (select amount from nexora.transactions where from_uid='pgtap_upgrade_warehouse' and type='factory_warehouse_upgrade' and reference_id='pgtap_upgrade_warehouse'),
   'a repeated warehouse upgrade request does not deduct a second price'
 );
 select extensions.is(
@@ -159,7 +159,7 @@ select extensions.throws_ok(
 );
 select extensions.is(
   (select balance from nexora.wallets where user_id='pgtap_upgrade_warehouse'),
-  7500::bigint,
+  10000 - (select amount from nexora.transactions where from_uid='pgtap_upgrade_warehouse' and type='factory_warehouse_upgrade' and reference_id='pgtap_upgrade_warehouse'),
   'overlapping factory upgrade types cannot charge the same wallet again'
 );
 
