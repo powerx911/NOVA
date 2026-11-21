@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
-import { Package } from 'lucide-react';
+import { ArrowLeft, Package, ShoppingBag, Sparkles } from 'lucide-react';
 import { ResourceIcon } from '../../components/ui/ResourceIcon';
 import { ITEM_MAP } from '../../data/catalog';
 import type { InventoryItem, Language, MarketListing } from '../../types/game';
-import { fetchInventoryCapacityUsage } from '../../services/gameService';
+import { fetchInventoryCapacityUsage, sellToNexora } from '../../services/gameService';
 
 interface InventoryPanelProps {
   inventory: InventoryItem[];
@@ -18,6 +18,24 @@ interface InventoryPanelProps {
 
 export function InventoryPanel({ inventory, marketListings, uid, language, title, marketLabel, onGoToMarket, capacity }: InventoryPanelProps) {
   const [serverInventoryUsage, setServerInventoryUsage] = useState<number | null>(null);
+  const [merchantOpen, setMerchantOpen] = useState(false);
+  const [merchantStep, setMerchantStep] = useState<'welcome' | 'choose' | 'sell'>('welcome');
+  const [merchantItemId, setMerchantItemId] = useState<string | null>(null);
+  const [merchantQuantity, setMerchantQuantity] = useState(1);
+  const [merchantBusy, setMerchantBusy] = useState(false);
+  const [merchantNotice, setMerchantNotice] = useState('');
+  const selectedInv = inventory.find((entry) => entry.itemId === merchantItemId && entry.quantity > 0);
+  const selectedItem = merchantItemId ? ITEM_MAP[merchantItemId] : null;
+  const merchantPrice = selectedItem ? Math.round(selectedItem.basePrice * 0.6) : 0;
+  const merchantMax = selectedInv ? Math.min(250, selectedInv.quantity, Math.floor(1500 / Math.max(1, merchantPrice))) : 0;
+  const resetMerchant = () => { setMerchantStep('welcome'); setMerchantItemId(null); setMerchantQuantity(1); setMerchantNotice(''); };
+  const submitMerchantSale = async () => {
+    if (!merchantItemId || merchantQuantity < 1 || merchantQuantity > merchantMax || merchantBusy) return;
+    setMerchantBusy(true); setMerchantNotice('');
+    try { const result = await sellToNexora(merchantItemId, merchantQuantity); setMerchantNotice((language === 'ar' ? 'تم البيع بنجاح! استلمت ' : 'Sale complete! You received ') + result.total.toLocaleString() + (language === 'ar' ? ' رصيد.' : ' credits.')); setMerchantStep('welcome'); setMerchantItemId(null); }
+    catch (e) { const code = e instanceof Error ? e.message : 'NEXORA_SALE_FAILED'; const ar: Record<string,string> = { DAILY_SALE_LIMIT:'وصلت إلى حد البيع اليومي لدى NEXORA.', INSUFFICIENT_INVENTORY:'الكمية لم تعد متوفرة في مخزونك.', INVALID_QUANTITY:'الكمية المحددة غير صالحة.' }; setMerchantNotice(language === 'ar' ? (ar[code] || 'تعذر إتمام البيع. حاول مرة أخرى.') : code.replaceAll('_',' ').toLowerCase()); }
+    finally { setMerchantBusy(false); }
+  };
   const inventoryQuantity = inventory.reduce((sum, item) => sum + Math.max(0, item.quantity), 0);
   const fallbackListedQuantity = marketListings.reduce((sum, listing) => sum + (listing.sellerUid === uid && listing.status === 'active' ? Math.max(0, listing.remainingQty) : 0), 0);
   useEffect(() => {
@@ -38,8 +56,22 @@ export function InventoryPanel({ inventory, marketListings, uid, language, title
   const availableItems = inventory.filter((item) => item.quantity > 0);
 
   return (
+    <>
+        {merchantOpen && <div className="fixed inset-0 z-[100] overflow-y-auto bg-[#07090E] text-[#F4F5F7]" dir={language === 'ar' ? 'rtl' : 'ltr'}>
+      <div className="mx-auto flex min-h-screen max-w-6xl flex-col px-4 py-5 sm:px-8">
+        <header className="flex items-center justify-between border-b border-white/10 pb-5"><button onClick={() => setMerchantOpen(false)} className="inline-flex items-center gap-2 rounded-xl border border-white/10 px-4 py-2.5 text-sm"><ArrowLeft size={18}/>{language === 'ar' ? 'رجوع للمخزون' : 'Back to inventory'}</button><div className="text-end"><p className="text-xs tracking-[.3em] text-cyan-300">NEXORA CITY</p><p className="mt-1 text-[10px] text-white/40">PRIVATE EXCHANGE</p></div></header>
+        <main className="flex flex-1 items-center py-8"><div className="mx-auto grid w-full max-w-5xl gap-8 md:grid-cols-2 md:items-center">
+          <section className="rounded-[2rem] border border-cyan-200/15 bg-gradient-to-br from-[#192634] to-[#090B10] p-8 text-center"><div className="mx-auto flex h-40 w-40 items-center justify-center rounded-full border border-amber-200/20 bg-amber-100/5"><div className="flex h-28 w-28 flex-col items-center justify-center rounded-full border border-amber-100/20 bg-[#20212A]"><Sparkles className="mb-2 text-amber-200"/><span className="text-2xl tracking-[.2em] text-amber-100">NEXORA</span></div></div><p className="mt-6 text-[10px] tracking-[.3em] text-cyan-200/70">NEXORA CITY · MERCHANT</p><h2 className="mt-3 text-2xl font-semibold">{language === 'ar' ? 'أهلاً بك في متجري، ماذا لديك اليوم؟' : 'Welcome to my store. What do you have today?'}</h2><p className="mt-3 text-sm text-white/50">{language === 'ar' ? 'أشتري مواردك مباشرةً وأضيف عائدات البيع إلى رصيدك.' : 'I buy your resources directly and add the proceeds to your balance.'}</p></section>
+          <section className="rounded-[2rem] border border-white/10 bg-[#11151D] p-5 sm:p-8">
+            {merchantStep === 'welcome' && <div className="space-y-4"><p className="text-xs tracking-widest text-white/40">{language === 'ar' ? 'اختر ما تريد فعله' : 'CHOOSE AN ACTION'}</p><button onClick={() => { setMerchantStep('choose'); setMerchantNotice(''); }} className="w-full rounded-2xl border border-cyan-200/20 bg-cyan-200/[.06] p-5 text-start hover:bg-cyan-200/10"><span className="block text-lg font-semibold">{language === 'ar' ? 'لدي بعض الموارد' : 'I have some resources'}</span><span className="mt-1 block text-sm text-white/45">{language === 'ar' ? 'اعرض الموارد المتاحة للبيع' : 'Browse resources available to sell'}</span></button><button onClick={() => setMerchantOpen(false)} className="w-full rounded-2xl border border-white/10 p-5 text-start hover:bg-white/5"><span className="block text-lg font-semibold">{language === 'ar' ? 'سأعود لاحقاً' : 'I’ll come back later'}</span></button>{merchantNotice && <p role="status" className="rounded-xl bg-emerald-400/10 p-3 text-sm text-emerald-200">{merchantNotice}</p>}</div>}
+            {merchantStep === 'choose' && <div className="space-y-4"><button onClick={() => setMerchantStep('welcome')} className="text-sm text-cyan-200">← {language === 'ar' ? 'عودة للحوار' : 'Back'}</button><h3 className="text-xl font-semibold">{language === 'ar' ? 'اختر المورد الذي تريد بيعه' : 'Choose a resource to sell'}</h3><div className="max-h-[55vh] space-y-2 overflow-y-auto">{availableItems.map((inv) => { const item = ITEM_MAP[inv.itemId]; if (!item) return null; return <button key={inv.itemId} onClick={() => { setMerchantItemId(inv.itemId); setMerchantQuantity(1); setMerchantNotice(''); setMerchantStep('sell'); }} className="flex w-full items-center justify-between gap-3 rounded-xl border border-white/10 bg-[#0A0D13] p-3 text-start hover:border-cyan-200/40"><span className="flex items-center gap-3"><ResourceIcon itemId={inv.itemId} size="md"/><span><span className="block text-sm font-semibold">{language === 'ar' ? item.nameAr : item.nameEn}</span><span className="mt-1 block text-xs text-white/45">{language === 'ar' ? 'سعر الوحدة' : 'Unit price'}: {Math.round(item.basePrice*.6)} · {language === 'ar' ? 'المتاح' : 'Available'}: {inv.quantity}</span></span></span><span className="text-cyan-200">›</span></button>; })}{availableItems.length===0 && <p className="text-sm text-white/50">{language === 'ar' ? 'لا توجد موارد متاحة للبيع.' : 'No resources available to sell.'}</p>}</div></div>}
+            {merchantStep === 'sell' && selectedItem && <div className="space-y-5"><button onClick={() => setMerchantStep('choose')} className="text-sm text-cyan-200">← {language === 'ar' ? 'اختيار مورد آخر' : 'Choose another resource'}</button><div className="flex items-center gap-3"><ResourceIcon itemId={merchantItemId || ''} size="lg"/><div><h3 className="text-xl font-semibold">{language === 'ar' ? selectedItem.nameAr : selectedItem.nameEn}</h3><p className="mt-1 text-sm text-white/45">{language === 'ar' ? 'سعر الوحدة' : 'Unit price'}: {merchantPrice} {language === 'ar' ? 'رصيد' : 'credits'}</p></div></div><label className="block text-sm text-white/60">{language === 'ar' ? 'الكمية' : 'Quantity'}<input type="number" min={1} max={merchantMax} value={merchantQuantity} onChange={e => setMerchantQuantity(Math.max(1, Math.min(merchantMax || 1, Number(e.target.value)||1)))} className="mt-2 w-full rounded-xl border border-white/10 bg-[#090C12] px-4 py-3 text-lg text-white"/></label><div className="rounded-xl bg-white/[.04] p-4"><div className="flex justify-between text-sm"><span>{language === 'ar' ? 'إجمالي البيع' : 'Sale total'}</span><span>{(merchantPrice*merchantQuantity).toLocaleString()} {language === 'ar' ? 'رصيد' : 'credits'}</span></div><p className="mt-2 text-xs text-white/40">{language === 'ar' ? 'المتبقي من حد اليوم' : 'Daily limit remaining'}: {Math.max(0,1500-merchantPrice*merchantQuantity).toLocaleString()} / 1,500</p></div>{merchantNotice && <p role="alert" className="rounded-xl bg-rose-400/10 p-3 text-sm text-rose-200">{merchantNotice}</p>}<button disabled={merchantBusy || merchantMax<1 || merchantQuantity>merchantMax} onClick={() => void submitMerchantSale()} className="w-full rounded-xl bg-cyan-200 px-5 py-3.5 font-semibold text-[#071018] disabled:opacity-40">{merchantBusy ? (language === 'ar' ? 'جارٍ البيع…' : 'Selling…') : (language === 'ar' ? 'تأكيد البيع' : 'Confirm sale')}</button></div>}
+          </section></div></main><footer className="border-t border-white/10 pt-4 text-center text-[11px] text-white/30">NEXORA CITY · {language === 'ar' ? 'تجارة مباشرة وآمنة' : 'Direct, secure trade'}</footer>
+      </div>
+    </div>}
     <div className="bg-[#141821] border border-white/8 rounded-2xl p-5 space-y-4">
       <div className="flex items-center justify-between">
+        <button type="button" onClick={() => { resetMerchant(); setMerchantOpen(true); }} className="inline-flex items-center gap-2 rounded-xl border border-cyan-200/20 bg-cyan-200/[.06] px-3 py-2 text-xs font-semibold text-cyan-100 hover:bg-cyan-200/10"><ShoppingBag size={15} />{language === 'ar' ? 'البيع لـ NEXORA' : 'Sell to NEXORA'}</button>
         <h2 className="text-base font-semibold text-[#F4F5F7]">{title}</h2>
         <Package className="w-4 h-4 text-[#63A5FF]" />
       </div>
@@ -97,5 +129,6 @@ export function InventoryPanel({ inventory, marketListings, uid, language, title
         </div>
       )}
     </div>
+    </>
   );
 }
