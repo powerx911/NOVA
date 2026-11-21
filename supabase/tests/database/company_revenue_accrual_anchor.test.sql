@@ -14,6 +14,9 @@ values (
   0, 1, '{"management":0,"finance":0}'::jsonb, '{}'::jsonb
 );
 
+insert into nexora.wallets(user_id, balance, total_earned, total_spent)
+values ('pgtap_company_accrual_anchor', 0, 0, 0);
+
 insert into nexora.companies(
   id, owner_uid, owner_name, name, sector,
   base_revenue_per_hour, expense_per_hour, total_revenue,
