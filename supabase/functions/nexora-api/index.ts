@@ -118,7 +118,7 @@ Deno.serve(async (req: Request) => {
     if (body.action === "sell_to_nexora") {
       const itemId = typeof body.itemId === "string" ? body.itemId : "";
       const quantity = Number.isInteger(body.quantity) ? Number(body.quantity) : 0;
-      if (!itemId || quantity < 1 || quantity > 250) return json({ error: "INVALID_QUANTITY" }, 400, origin);
+      if (!itemId || quantity < 1 || quantity > 1500) return json({ error: "INVALID_QUANTITY" }, 400, origin);
       const { data, error } = await db.rpc("sell_to_nexora", { p_uid: identity.uid, p_item_id: itemId, p_qty: quantity });
       if (error) {
         const known = ["INVALID_ITEM","INVALID_QUANTITY","INSUFFICIENT_INVENTORY","DAILY_SALE_LIMIT","ACCOUNT_NOT_FOUND"].find((code) => error.message.includes(code));

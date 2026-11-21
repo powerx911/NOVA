@@ -104,7 +104,6 @@ function NovaAppContent() {
       language={game.language}
     >
       <GameMusic />
-      <VersionUpdateNotice />
 
       {!game.isOnline && (
         <div className="mb-4 px-4 py-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-xs text-amber-200">
@@ -210,6 +209,7 @@ export default function App() {
   return (
     <ToastProvider>
       <GameAudioFeedback />
+      <VersionUpdateNotice />
       <NovaAppContent />
     </ToastProvider>
   );

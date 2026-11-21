@@ -20,7 +20,7 @@
     "records_missing_source": 0,
     "records_recovered_only": 21,
     "records_with_additional_variants": 21,
-    "local_migration_files_not_mapped_to_applied_record": 18
+    "local_migration_files_not_mapped_to_applied_record": 19
   },
   "entries": [
     {
@@ -837,7 +837,8 @@
     "supabase/migrations/20261120230000_nova_company_upgrade_duration_rebalance.sql",
     "supabase/migrations/20261120231000_nova_company_upgrade_cost_rebalance.sql",
     "supabase/migrations/20261120232000_nova_company_upgrade_anchor_rebalance.sql",
-    "supabase/migrations/20261120233000_nova_company_upgrade_charge_reconciliation.sql"
+    "supabase/migrations/20261120233000_nova_company_upgrade_charge_reconciliation.sql",
+    "supabase/migrations/20261121100000_nexora_daily_sale_quantity_limit.sql"
   ],
   "notes": [
     "A source match is a name-based source mapping, not proof that a local file is byte-identical to the exact SQL executed in production.",
