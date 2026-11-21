@@ -202,6 +202,11 @@ export async function fetchMarketPriceHistory(): Promise<MarketPricePoint[]> {
 
 export interface NexoraSaleResult { quantity: number; unit_price: number; total: number; daily_sold: number; daily_remaining: number; }
 
+export async function fetchNexoraDailySales(): Promise<number> {
+  const result = await nexoraApi<{ daily_sold: number }>('fetch_nexora_daily_sales');
+  return Math.max(0, Number(result.daily_sold) || 0);
+}
+
 export async function sellToNexora(itemId: string, quantity: number): Promise<NexoraSaleResult> {
   if (!ITEM_MAP[itemId] || !Number.isInteger(quantity) || quantity < 1 || quantity > 1500) throw new Error('INVALID_QUANTITY');
   try {
