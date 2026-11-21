@@ -173,9 +173,9 @@ function NovaAppContent() {
         />
       )}
 
-      {activeTab === 'social' && (
+      <div className={activeTab === 'social' ? '' : 'hidden'} aria-hidden={activeTab !== 'social'}>
         <SocialHubView profile={game.profile} myOrgMember={game.myOrgMember} organizations={game.organizations} language={game.language} onUnreadCountChange={setSocialUnreadCount} />
-      )}
+      </div>
 
       {activeTab === 'profile' && (
         <ProfileHubView
