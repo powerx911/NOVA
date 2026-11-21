@@ -1689,7 +1689,7 @@ begin
   if v_payout<1 then raise exception 'NOTHING_TO_COLLECT'; end if;
   update nexora.wallets set balance=balance+v_payout,total_earned=total_earned+v_payout,last_tx_id=v_tx,updated_at=now() where user_id=p_uid;
   update nexora.companies set total_revenue=total_revenue+v_payout,vault_balance=0,last_collected_at=v_now,updated_at=now() where id=p_company_id;
-  v_xp_gain:=least(80,greatest(0,floor((v_company.total_revenue+v_payout)::numeric/15)::bigint-floor(v_company.total_revenue::numeric/15)::bigint));
+  v_xp_gain:=least(80,floor(v_payout/15)::integer);
   v_xp:=v_profile.xp+v_xp_gain;
   v_remaining:=v_xp;
   while v_level_after<200 loop
