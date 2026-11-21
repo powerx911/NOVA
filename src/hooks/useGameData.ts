@@ -328,6 +328,8 @@ export function useGameData(): GameDataState {
   const registerWithEmail = useCallback(async (email: string, password: string) => {
     const credential = await createUserWithEmailAndPassword(auth, email.trim(), password);
     await sendEmailVerification(credential.user);
+    // Character creation requires a verified Firebase identity. Sign out so
+    // the player can verify their email, then sign in and continue onboarding.
     await signOut(auth);
   }, []);
 
