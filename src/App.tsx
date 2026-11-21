@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { AppShell } from './components/ui/AppShell';
 import { GameAudioFeedback } from './components/ui/GameAudioFeedback';
 import { GameMusic } from './components/ui/GameMusic';
@@ -19,9 +19,29 @@ import { SocialHubView } from './features/social/SocialHubView';
 import { useGameData } from './hooks/useGameData';
 import type { MainTab, ProfileSubTab } from './types/game';
 
+const MAIN_TABS: MainTab[] = ['home', 'business', 'market', 'organization', 'social', 'profile'];
+
+function tabFromLocation(): MainTab {
+  const value = new URLSearchParams(window.location.search).get('tab');
+  return MAIN_TABS.includes(value as MainTab) ? value as MainTab : 'home';
+}
+
 function NovaAppContent() {
   const game = useGameData();
-  const [activeTab, setActiveTab] = useState<MainTab>('home');
+  const [activeTab, setActiveTab] = useState<MainTab>(tabFromLocation);
+  const navigateTab = useCallback((tab: MainTab) => {
+    setActiveTab(tab);
+    const url = new URL(window.location.href);
+    if (tab === 'home') url.searchParams.delete('tab');
+    else url.searchParams.set('tab', tab);
+    window.history.pushState({ novaTab: tab }, '', url.toString());
+  }, []);
+
+  useEffect(() => {
+    const handlePopState = () => setActiveTab(tabFromLocation());
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
   const [profileInitialSubTab, setProfileInitialSubTab] = useState<ProfileSubTab>('overview');
   const [socialUnreadCount, setSocialUnreadCount] = useState(0);
 
@@ -94,7 +114,7 @@ function NovaAppContent() {
   return (
     <AppShell
       activeTab={activeTab}
-      onTabChange={setActiveTab}
+      onTabChange={navigateTab}
       socialUnreadCount={socialUnreadCount}
       unclaimedAchievementCount={[...game.unlockedAchievements].filter((id) => !game.claimedAchievements.has(id)).length}
       dailyStipendReady={!game.claimedDailyToday}
@@ -124,8 +144,8 @@ function NovaAppContent() {
           worldEvents={game.worldEvents}
           marketListings={game.marketListings}
           language={game.language}
-          onNavigate={setActiveTab}
-          onOpenMissions={() => { setProfileInitialSubTab('missions'); setActiveTab('profile'); }}
+          onNavigate={navigateTab}
+          onOpenMissions={() => { setProfileInitialSubTab('missions'); navigateTab('profile'); }}
         />
       )}
 
@@ -142,7 +162,7 @@ function NovaAppContent() {
           notifications={game.notifications}
           organizationIncomeBonusRate={Math.min(10, game.organizations.find((org) => org.id === game.profile?.orgId)?.research?.commerce ?? 0) * 0.005}
           language={game.language}
-          onGoToMarket={() => setActiveTab('market')}
+          onGoToMarket={() => navigateTab('market')}
         />
       )}
 
