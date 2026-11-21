@@ -6,7 +6,7 @@ import {
   TrendingUp,
   Trash2,
 } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useToast } from '../../components/ui/ToastProvider';
 import { FactoriesPanel } from './FactoriesPanel';
 import { InventoryPanel } from './InventoryPanel';
@@ -94,6 +94,8 @@ export function BusinessHubView({
 
   const [subTab, setSubTab] = useState<BusinessSubTab>('companies');
   const [busyKey, setBusyKey] = useState<string | null>(null);
+  const completionAttempts = useRef(new Set<string>());
+  const auctionsFetchInFlight = useRef(false);
   const [nowMs, setNowMs] = useState(() => Date.now());
   const [companyView, setCompanyView] = useState<'overview' | 'found' | 'detail'>('overview');
   const [selectedCompanyId, setSelectedCompanyId] = useState('');
@@ -115,21 +117,63 @@ export function BusinessHubView({
   useEffect(() => {
     for (const company of companies) {
       const companyEndsAt = company.levelUpgradeEndsAt ? timestampToMs(company.levelUpgradeEndsAt) : 0;
-      if (companyEndsAt > 0 && companyEndsAt <= nowMs && busyKey !== `complete_company_${company.id}`) {
-        setBusyKey(`complete_company_${company.id}`);
-        void completeCompanyUpgrade(profile.uid, company.id).then(() => showToast(language === 'ar' ? 'اكتمل تطوير الشركة!' : 'Company upgrade completed!', 'success')).catch(() => undefined).finally(() => setBusyKey((current) => current === `complete_company_${company.id}` ? null : current));
+      const companyAttemptKey = `company-upgrade:${company.id}:${company.levelUpgradeEndsAt ?? ''}`;
+      if (companyEndsAt > 0 && companyEndsAt <= nowMs && !completionAttempts.current.has(companyAttemptKey)) {
+        completionAttempts.current.add(companyAttemptKey);
+        const key = `complete_company_${company.id}`;
+        setBusyKey(key);
+        void completeCompanyUpgrade(profile.uid, company.id)
+          .then(() => showToast(language === 'ar' ? 'اكتمل تطوير الشركة!' : 'Company upgrade completed!', 'success'))
+          .catch((error) => {
+            const code = error instanceof Error ? error.message : '';
+            if (code === 'UPGRADE_NOT_FINISHED') {
+              window.setTimeout(() => completionAttempts.current.delete(companyAttemptKey), 3000);
+            } else if (code === 'NO_UPGRADE_IN_PROGRESS') {
+              window.dispatchEvent(new Event('nova:refresh-game'));
+            } else {
+              showToast(language === 'ar' ? 'تعذر إكمال تطوير الشركة. حدّث بيانات اللعبة.' : 'Could not complete company upgrade. Refresh the game data.', 'error');
+            }
+          })
+          .finally(() => setBusyKey((current) => current === key ? null : current));
       }
+
       const vaultEndsAt = company.vaultUpgradeEndsAt ? timestampToMs(company.vaultUpgradeEndsAt) : 0;
-      if (vaultEndsAt > 0 && vaultEndsAt <= nowMs && busyKey !== `complete_vault_${company.id}`) {
-        setBusyKey(`complete_vault_${company.id}`);
-        void completeCompanyVaultUpgrade(profile.uid, company.id).then(() => showToast(language === 'ar' ? 'اكتمل تطوير الخزينة!' : 'Vault upgrade completed!', 'success')).catch(() => undefined).finally(() => setBusyKey((current) => current === `complete_vault_${company.id}` ? null : current));
+      const vaultAttemptKey = `company-vault-upgrade:${company.id}:${company.vaultUpgradeEndsAt ?? ''}`;
+      if (vaultEndsAt > 0 && vaultEndsAt <= nowMs && !completionAttempts.current.has(vaultAttemptKey)) {
+        completionAttempts.current.add(vaultAttemptKey);
+        const key = `complete_vault_${company.id}`;
+        setBusyKey(key);
+        void completeCompanyVaultUpgrade(profile.uid, company.id)
+          .then(() => showToast(language === 'ar' ? 'اكتمل تطوير الخزينة!' : 'Vault upgrade completed!', 'success'))
+          .catch((error) => {
+            const code = error instanceof Error ? error.message : '';
+            if (code === 'UPGRADE_NOT_FINISHED') {
+              window.setTimeout(() => completionAttempts.current.delete(vaultAttemptKey), 3000);
+            } else if (code === 'NO_UPGRADE_IN_PROGRESS') {
+              window.dispatchEvent(new Event('nova:refresh-game'));
+            } else {
+              showToast(language === 'ar' ? 'تعذر إكمال تطوير الخزينة. حدّث بيانات اللعبة.' : 'Could not complete vault upgrade. Refresh the game data.', 'error');
+            }
+          })
+          .finally(() => setBusyKey((current) => current === key ? null : current));
       }
     }
-  }, [companies, nowMs, busyKey, profile.uid, language, showToast]);
+  }, [companies, nowMs, profile.uid, language, showToast]);
 
   useEffect(() => {
     let active = true;
-    const refresh = async () => { try { const rows = await fetchCompanyAuctions(); if (active) setAuctions(rows); } catch { /* optional auction refresh */ } };
+    const refresh = async () => {
+      if (!active || auctionsFetchInFlight.current) return;
+      auctionsFetchInFlight.current = true;
+      try {
+        const rows = await fetchCompanyAuctions();
+        if (active) setAuctions(rows);
+      } catch {
+        // Optional auction refresh; retry on the next interval.
+      } finally {
+        auctionsFetchInFlight.current = false;
+      }
+    };
     void refresh();
     const timer = window.setInterval(() => { void refresh(); }, 15000);
     return () => { active = false; window.clearInterval(timer); };
@@ -145,7 +189,15 @@ export function BusinessHubView({
   const hasCompanySlot = occupiedCompanySlots < 3;
   const hasFactorySlot = factories.length + factoryBidReservations < 3;
   const canFoundCompany = hasCompanySlot && activeBidReservations === 0;
-  const refreshAuctions = async () => setAuctions(await fetchCompanyAuctions());
+  const refreshAuctions = async () => {
+    if (auctionsFetchInFlight.current) return;
+    auctionsFetchInFlight.current = true;
+    try {
+      setAuctions(await fetchCompanyAuctions());
+    } finally {
+      auctionsFetchInFlight.current = false;
+    }
+  };
   const formatAuctionRemaining = (endsAt: number) => {
     const remaining = Math.max(0, endsAt - nowMs);
     const hours = Math.floor(remaining / 3600000);

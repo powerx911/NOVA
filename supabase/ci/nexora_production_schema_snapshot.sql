@@ -1670,7 +1670,7 @@ declare
   v_xp bigint;
   v_level_after integer:=1;
   v_remaining bigint;
-  v_step bigint; v_leadership numeric;
+  v_step bigint;
 begin
   select * into v_company from nexora.companies where id=p_company_id for update;
   if not found then raise exception 'COMPANY_NOT_FOUND'; end if;
@@ -1689,7 +1689,7 @@ begin
   if v_payout<1 then raise exception 'NOTHING_TO_COLLECT'; end if;
   update nexora.wallets set balance=balance+v_payout,total_earned=total_earned+v_payout,last_tx_id=v_tx,updated_at=now() where user_id=p_uid;
   update nexora.companies set total_revenue=total_revenue+v_payout,vault_balance=0,last_collected_at=v_now,updated_at=now() where id=p_company_id;
-  v_xp_gain:=least(80,greatest(10,floor(v_payout/15)::integer));
+  v_xp_gain:=least(80,floor(v_payout/15)::integer);
   v_xp:=v_profile.xp+v_xp_gain;
   v_remaining:=v_xp;
   while v_level_after<200 loop
@@ -1698,7 +1698,7 @@ begin
     v_remaining:=v_remaining-v_step;
     v_level_after:=v_level_after+1;
   end loop;
-  v_leadership:=1+coalesce((v_profile.skills->>'leadership')::numeric,0)*0.1; update nexora.player_profiles set xp=v_xp,level=v_level_after,reputation=reputation+round(2*v_leadership)::bigint,influence=influence+round(1*v_leadership)::bigint,updated_at=now() where user_id=p_uid;
+  update nexora.player_profiles set xp=v_xp,level=v_level_after,updated_at=now() where user_id=p_uid;
   insert into nexora.transactions(id,from_uid,to_uid,amount,fee,net_amount,type,reference_id,description,status)
     values(v_tx,'SYSTEM',p_uid,v_payout,0,v_payout,'company_collect',p_company_id,'Company revenue collected: '||v_company.name,'completed');
   insert into nexora.company_logs(id,company_id,owner_uid,action,amount,details)
@@ -6175,7 +6175,15 @@ begin
  select * into v_factory from nexora.factories where id=p_factory_id for update;
  if not found then raise exception 'FACTORY_NOT_FOUND'; end if;
  if v_factory.owner_uid<>p_uid then raise exception 'UNAUTHORIZED'; end if;
- if v_factory.upgrade_ends_at is not null and v_factory.upgrade_ends_at>now() then raise exception 'UPGRADE_IN_PROGRESS'; end if;
+ if v_factory.upgrade_started_at is not null
+    or v_factory.upgrade_ends_at is not null
+    or v_factory.upgrade_target_level is not null
+    or v_factory.warehouse_upgrade_started_at is not null
+    or v_factory.warehouse_upgrade_ends_at is not null
+    or v_factory.warehouse_upgrade_target_level is not null then
+    raise exception 'UPGRADE_NOT_FINISHED';
+  end if;
+  if v_factory.upgrade_ends_at is not null and v_factory.upgrade_ends_at>now() then raise exception 'UPGRADE_IN_PROGRESS'; end if;
  if v_factory.level>=100 then raise exception 'MAX_LEVEL'; end if;
  select * into v_cfg from nexora.factory_resource_config(v_factory.resource_id);
  v_target:=v_factory.level+1;
@@ -6247,6 +6255,14 @@ begin
   select * into v_factory from nexora.factories where id=p_factory_id for update;
   if not found then raise exception 'FACTORY_NOT_FOUND'; end if;
   if v_factory.owner_uid<>p_uid then raise exception 'UNAUTHORIZED'; end if;
+  if v_factory.upgrade_started_at is not null
+    or v_factory.upgrade_ends_at is not null
+    or v_factory.upgrade_target_level is not null
+    or v_factory.warehouse_upgrade_started_at is not null
+    or v_factory.warehouse_upgrade_ends_at is not null
+    or v_factory.warehouse_upgrade_target_level is not null then
+    raise exception 'UPGRADE_NOT_FINISHED';
+  end if;
   if v_factory.warehouse_level>=5 then raise exception 'WAREHOUSE_MAX_LEVEL'; end if;
   if v_factory.warehouse_upgrade_ends_at is not null then raise exception 'UPGRADE_NOT_FINISHED'; end if;
   if v_factory.upgrade_ends_at is not null then raise exception 'UPGRADE_NOT_FINISHED'; end if;
@@ -6326,6 +6342,42 @@ begin
 end;
 $function$
 ;
+
+CREATE OR REPLACE FUNCTION nexora.lock_active_org_contract_claim()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO ''
+AS $function$
+begin
+  if new.scope = 'organization'
+     and new.claimed_by is not null
+     and new.status in ('accepted', 'processing', 'ready') then
+    perform pg_catalog.pg_advisory_xact_lock(
+      724190,
+      pg_catalog.hashtext(new.claimed_by)
+    );
+
+    if exists (
+      select 1
+      from nexora.contract_offers active_offer
+      where active_offer.scope = 'organization'
+        and active_offer.claimed_by = new.claimed_by
+        and active_offer.status in ('accepted', 'processing', 'ready')
+        and active_offer.id is distinct from new.id
+    ) then
+      raise exception 'ORG_ACTIVE_CONTRACT_LIMIT';
+    end if;
+  end if;
+
+  return new;
+end;
+$function$
+;
+
+REVOKE ALL ON FUNCTION nexora.lock_active_org_contract_claim() FROM PUBLIC, anon, authenticated;
+
+CREATE TRIGGER contract_offers_lock_active_org_claim BEFORE INSERT OR UPDATE OF scope, claimed_by, status ON nexora.contract_offers FOR EACH ROW EXECUTE FUNCTION nexora.lock_active_org_contract_claim();
 
 CREATE TRIGGER audit_logs_immutable BEFORE DELETE OR UPDATE ON nexora.audit_logs FOR EACH ROW EXECUTE FUNCTION nexora.reject_immutable_mutation();
 

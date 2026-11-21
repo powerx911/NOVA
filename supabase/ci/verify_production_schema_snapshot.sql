@@ -57,10 +57,28 @@ BEGIN
     RAISE EXCEPTION 'Biotechnology manufacturing recipe is not canonical in the production snapshot';
   END IF;
 
-  IF position('least(80,greatest(10,floor(v_payout/15)::integer))' in pg_get_functiondef('nexora.collect_company_revenue(text,text)'::regprocedure)) = 0
-     OR position('reputation=reputation+round(2*v_leadership)::bigint' in pg_get_functiondef('nexora.collect_company_revenue(text,text)'::regprocedure)) = 0
-     OR position('influence=influence+round(1*v_leadership)::bigint' in pg_get_functiondef('nexora.collect_company_revenue(text,text)'::regprocedure)) = 0 THEN
-    RAISE EXCEPTION 'Company revenue minimum rewards are missing from the production snapshot';
+  IF position('least(80,floor(v_payout/15)::integer)' in pg_get_functiondef('nexora.collect_company_revenue(text,text)'::regprocedure)) = 0
+     OR position('reputation=reputation+' in pg_get_functiondef('nexora.collect_company_revenue(text,text)'::regprocedure)) > 0
+     OR position('influence=influence+' in pg_get_functiondef('nexora.collect_company_revenue(text,text)'::regprocedure)) > 0 THEN
+    RAISE EXCEPTION 'Company revenue rewards are not proportional to the actual payout';
+  END IF;
+
+  IF position('upgrade_not_finished' in lower(pg_get_functiondef('nexora.upgrade_factory(text,text)'::regprocedure))) = 0
+     OR position('warehouse_upgrade_target_level' in lower(pg_get_functiondef('nexora.upgrade_factory(text,text)'::regprocedure))) = 0
+     OR position('upgrade_not_finished' in lower(pg_get_functiondef('nexora.upgrade_factory_warehouse(text,text)'::regprocedure))) = 0
+     OR position('upgrade_target_level' in lower(pg_get_functiondef('nexora.upgrade_factory_warehouse(text,text)'::regprocedure))) = 0 THEN
+    RAISE EXCEPTION 'Factory or warehouse upgrade double-charge guards are missing';
+  END IF;
+
+  IF NOT EXISTS (
+       SELECT 1 FROM pg_trigger
+       WHERE tgrelid='nexora.contract_offers'::regclass
+         AND tgname='contract_offers_lock_active_org_claim'
+         AND NOT tgisinternal
+     )
+     OR position('pg_advisory_xact_lock' in pg_get_functiondef('nexora.lock_active_org_contract_claim()'::regprocedure)) = 0
+     OR position('raise exception ''ORG_ACTIVE_CONTRACT_LIMIT''' in pg_get_functiondef('nexora.lock_active_org_contract_claim()'::regprocedure)) = 0 THEN
+    RAISE EXCEPTION 'Concurrent organization contract claim protection is missing';
   END IF;
 
   IF position('0.046::numeric' in pg_get_functiondef('nexora.factory_progression_multiplier(text,integer)'::regprocedure)) = 0
@@ -69,9 +87,9 @@ BEGIN
   END IF;
 
   IF v_tables <> 46
-     OR v_functions <> 151
-     OR v_security_definer <> 138
-     OR v_triggers <> 40
+     OR v_functions <> 152
+     OR v_security_definer <> 139
+     OR v_triggers <> 41
      OR v_indexes <> 102
      OR v_constraints <> 169
      OR v_rls_enabled <> 46

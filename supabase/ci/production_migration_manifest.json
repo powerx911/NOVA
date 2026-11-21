@@ -4,13 +4,13 @@
   "repository": "powerx911/NOVA",
   "production_project_id": "hmrprnjhyzyefocdmnxf",
   "production_ledger_records": 86,
-  "tracked_migration_files": 83,
+  "tracked_migration_files": 87,
   "recovered_history_sql_files": 55,
   "production_schema_inventory": {
     "tables": 46,
-    "functions": 151,
-    "security_definer_functions": 138,
-    "triggers": 40,
+    "functions": 152,
+    "security_definer_functions": 139,
+    "triggers": 41,
     "indexes": 102,
     "constraints": 169,
     "active_cron_jobs": 8
@@ -20,7 +20,7 @@
     "records_missing_source": 0,
     "records_recovered_only": 21,
     "records_with_additional_variants": 21,
-    "local_migration_files_not_mapped_to_applied_record": 19
+    "local_migration_files_not_mapped_to_applied_record": 23
   },
   "entries": [
     {
@@ -817,7 +817,7 @@
       "additional_variants": []
     }
   ],
-  "tracked_migration_files_on_branch": 83,
+  "tracked_migration_files_on_branch": 87,
   "tracked_migration_files_on_main": 80,
   "unmapped_local_migration_files_by_name": [
     "supabase/migrations/20261118180000_nexora_economy_rpcs.sql",
@@ -838,7 +838,11 @@
     "supabase/migrations/20261120231000_nova_company_upgrade_cost_rebalance.sql",
     "supabase/migrations/20261120232000_nova_company_upgrade_anchor_rebalance.sql",
     "supabase/migrations/20261120233000_nova_company_upgrade_charge_reconciliation.sql",
-    "supabase/migrations/20261121100000_nexora_daily_sale_quantity_limit.sql"
+    "supabase/migrations/20261121100000_nexora_daily_sale_quantity_limit.sql",
+    "supabase/migrations/20261121110000_nova_org_contract_claim_serialization.sql",
+    "supabase/migrations/20261121111500_nova_org_contract_claim_conflict_error.sql",
+    "supabase/migrations/20261121113000_nova_company_revenue_reward_abuse_fix.sql",
+    "supabase/migrations/20261121114000_nova_factory_upgrade_double_charge_guard.sql"
   ],
   "notes": [
     "A source match is a name-based source mapping, not proof that a local file is byte-identical to the exact SQL executed in production.",
@@ -847,7 +851,8 @@
     "The three NOVA hardening migrations were applied to production on 2026-11-20 and are recorded as ledger versions 20261120181539, 20261120181541, and 20261120181542.",
     "The financial idempotency and market history migration was applied on 2026-11-20 and is recorded as ledger version 20261120184839.",
     "The live player skill effects migration was applied on 2026-11-20 and is recorded as ledger version 20261120191611.",
-    "The production schema snapshot includes the live player skill effects triggers: 46 tables, 151 functions (138 SECURITY DEFINER), 40 triggers, 100 indexes, and 169 constraints.",
-    "The organization contract negotiation skill migration was applied on 2026-11-20 and is recorded as ledger version 20261120192229."
+    "The phase-one target production schema snapshot includes the org-contract claim trigger and updated RPC guards: 46 tables, 152 functions (139 SECURITY DEFINER), 41 triggers, 102 indexes, and 169 constraints.",
+    "The organization contract negotiation skill migration was applied on 2026-11-20 and is recorded as ledger version 20261120192229.",
+    "The four phase-one migration files are tracked locally but are not mapped to production ledger records until the PR is merged and migrations are applied."
   ]
 }
