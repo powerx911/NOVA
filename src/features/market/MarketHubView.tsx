@@ -69,7 +69,45 @@ export function MarketHubView({
   const t = useTranslations(language);
   const { showToast } = useToast();
 
-  const [subTab, setSubTab] = useState<MarketSubTab>('exchange');
+  const MARKET_SUBTABS: MarketSubTab[] = ['exchange', 'contracts', 'bank', 'manufacturing', 'records'];
+  const subTabFromLocation = (): MarketSubTab => {
+    const value = new URLSearchParams(window.location.search).get('marketSection');
+    return MARKET_SUBTABS.includes(value as MarketSubTab) ? value as MarketSubTab : 'exchange';
+  };
+  const [subTab, setSubTab] = useState<MarketSubTab>(subTabFromLocation);
+  const navigateSubTab = (next: MarketSubTab) => {
+    setSubTab(next);
+    const url = new URL(window.location.href);
+    if (next === 'exchange') url.searchParams.delete('marketSection');
+    else url.searchParams.set('marketSection', next);
+    window.history.pushState({ ...window.history.state, novaMarketSection: next }, '', url.toString());
+  };
+
+  useEffect(() => {
+    const handlePopState = () => setSubTab(subTabFromLocation());
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
+  useEffect(() => {
+    const storageKey = 'nova:market-scroll';
+    const restore = () => {
+      const saved = window.sessionStorage.getItem(storageKey);
+      if (saved !== null) {
+        const y = Number(saved);
+        if (Number.isFinite(y) && y >= 0) window.scrollTo(0, y);
+      }
+    };
+    const save = () => window.sessionStorage.setItem(storageKey, String(window.scrollY));
+    const frame = window.requestAnimationFrame(restore);
+    window.addEventListener('scroll', save, { passive: true });
+    window.addEventListener('pagehide', save);
+    return () => {
+      window.cancelAnimationFrame(frame);
+      window.removeEventListener('scroll', save);
+      window.removeEventListener('pagehide', save);
+    };
+  }, []);
   const [searchQuery, setSearchQuery] = useState('');
   const [itemFilter, setItemFilter] = useState<string>('all');
   const [buyQuantities, setBuyQuantities] = useState<Record<string, number>>({});
@@ -435,7 +473,7 @@ export function MarketHubView({
           <button
             key={tab.id}
             type="button"
-            onClick={() => setSubTab(tab.id)}
+            onClick={() => navigateSubTab(tab.id)}
             className={`min-h-[40px] px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap shrink-0 transition-colors ${
               subTab === tab.id
                 ? 'bg-[#B91C32] text-white'
@@ -905,7 +943,7 @@ export function MarketHubView({
           wallet={wallet}
           inventory={inventory}
           language={language}
-          onNavigateToExchange={() => setSubTab('exchange')}
+          onNavigateToExchange={() => navigateSubTab('exchange')}
         />
       )}
 
