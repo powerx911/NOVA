@@ -838,7 +838,11 @@
     "supabase/migrations/20261120231000_nova_company_upgrade_cost_rebalance.sql",
     "supabase/migrations/20261120232000_nova_company_upgrade_anchor_rebalance.sql",
     "supabase/migrations/20261120233000_nova_company_upgrade_charge_reconciliation.sql",
-    "supabase/migrations/20261121100000_nexora_daily_sale_quantity_limit.sql"
+    "supabase/migrations/20261121100000_nexora_daily_sale_quantity_limit.sql",
+    "supabase/migrations/20261121110000_nova_org_contract_claim_serialization.sql",
+    "supabase/migrations/20261121111500_nova_org_contract_claim_conflict_error.sql",
+    "supabase/migrations/20261121113000_nova_company_revenue_reward_abuse_fix.sql",
+    "supabase/migrations/20261121114000_nova_factory_upgrade_double_charge_guard.sql"
   ],
   "notes": [
     "A source match is a name-based source mapping, not proof that a local file is byte-identical to the exact SQL executed in production.",
