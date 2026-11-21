@@ -1,12 +1,12 @@
 import { auth } from './firebase';
+import { shouldDispatchGameRefresh } from './apiActionPolicy';
 
 const SUPABASE_URL =
   import.meta.env.VITE_SUPABASE_URL || 'https://hmrprnjhyzyefocdmnxf.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY =
   import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || 'sb_publishable_T0zWZ-2mi1K5CW7nVlWy5w_TL9AMWAj';
 const API_URL = `${SUPABASE_URL}/functions/v1/nexora-api`;
-const READ_ONLY_ACTIONS = new Set(['bootstrap', 'username_available', 'fetch_org_pending_requests', 'fetch_leaderboards', 'get_public_player_profile', 'search_players', 'list_blocked_players', 'list_direct_conversations', 'list_direct_messages', 'list_global_chat_messages', 'list_organization_invites', 'get_players_presence', 'touch_player_presence', 'get_org_donation_ranking', 'validate_transfer_recipient', 'get_dynamic_contract_board', 'get_org_weekly_goals', 'get_manufacturing_job', 'fetch_market_price_history', 'fetch_nexora_daily_sales']);
-const IDEMPOTENT_ACTIONS = new Set(['transfer_credits', 'buy_market_listing', 'buy_missing_resources', 'org_treasury_deposit']);
+const IDEMPOTENT_ACTIONS = new Set(['transfer_credits', 'buy_market_listing', 'buy_missing_resources', 'sell_to_nexora', 'org_treasury_deposit']);
 const inMemoryRequestIds = new Map<string, string>();
 
 function payloadFingerprint(payload: Record<string, unknown>): string {
@@ -79,7 +79,7 @@ export async function nexoraApi<T>(
     inMemoryRequestIds.delete(requestStorageKey);
     try { window.sessionStorage.removeItem(requestStorageKey); } catch { /* Ignore storage cleanup failures. */ }
   }
-  if (!READ_ONLY_ACTIONS.has(action) && action !== 'delete_account' && typeof window !== 'undefined') {
+  if (shouldDispatchGameRefresh(action) && typeof window !== 'undefined') {
     window.dispatchEvent(new Event('nova:refresh-game'));
   }
   return result.data as T;
