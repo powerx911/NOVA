@@ -129,10 +129,17 @@ Deno.serve(async (req: Request) => {
     if (body.action === "sell_to_nexora") {
       const itemId = typeof body.itemId === "string" ? body.itemId : "";
       const quantity = Number.isInteger(body.quantity) ? Number(body.quantity) : 0;
+      const requestId = typeof body.requestId === "string" ? body.requestId : "";
       if (!itemId || quantity < 1 || quantity > 1500) return json({ error: "INVALID_QUANTITY" }, 400, origin);
-      const { data, error } = await db.rpc("sell_to_nexora", { p_uid: identity.uid, p_item_id: itemId, p_qty: quantity });
+      if (!requestId) return json({ error: "IDEMPOTENCY_KEY_REQUIRED" }, 400, origin);
+      const { data, error } = await db.rpc("sell_to_nexora_idempotent", {
+        p_uid: identity.uid, p_item_id: itemId, p_qty: quantity, p_request_id: requestId,
+      });
       if (error) {
-        const known = ["INVALID_ITEM","INVALID_QUANTITY","INSUFFICIENT_INVENTORY","DAILY_SALE_LIMIT","ACCOUNT_NOT_FOUND"].find((code) => error.message.includes(code));
+        const known = [
+          "INVALID_ITEM","INVALID_QUANTITY","INVALID_IDEMPOTENCY_KEY","IDEMPOTENCY_KEY_REUSED",
+          "INSUFFICIENT_INVENTORY","DAILY_SALE_LIMIT","ACCOUNT_NOT_FOUND",
+        ].find((code) => error.message.includes(code));
         return json({ error: known ?? "NEXORA_SALE_FAILED" }, 409, origin);
       }
       return json({ ok: true, data }, 200, origin);
