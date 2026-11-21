@@ -34,7 +34,7 @@ function NovaAppContent() {
     const url = new URL(window.location.href);
     if (tab === 'home') url.searchParams.delete('tab');
     else url.searchParams.set('tab', tab);
-    window.history.pushState({ novaTab: tab }, '', url);
+    window.history.pushState({ novaTab: tab }, '', url.toString());
   }, []);
 
   useEffect(() => {
