@@ -6183,6 +6183,7 @@ begin
     or v_factory.warehouse_upgrade_target_level is not null then
     raise exception 'UPGRADE_NOT_FINISHED';
   end if;
+  if v_factory.upgrade_ends_at is not null and v_factory.upgrade_ends_at>now() then raise exception 'UPGRADE_IN_PROGRESS'; end if;
  if v_factory.level>=100 then raise exception 'MAX_LEVEL'; end if;
  select * into v_cfg from nexora.factory_resource_config(v_factory.resource_id);
  v_target:=v_factory.level+1;
@@ -6263,6 +6264,8 @@ begin
      or v_factory.upgrade_target_level is not null then
     raise exception 'UPGRADE_NOT_FINISHED';
   end if;
+  if v_factory.warehouse_upgrade_ends_at is not null then raise exception 'UPGRADE_NOT_FINISHED'; end if;
+  if v_factory.upgrade_ends_at is not null then raise exception 'UPGRADE_NOT_FINISHED'; end if;
   v_target:=greatest(1,v_factory.warehouse_level)+1;
   v_cost:=v_costs[v_factory.warehouse_level];
   select * into v_wallet from nexora.wallets where user_id=p_uid for update;
