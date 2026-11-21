@@ -6255,7 +6255,6 @@ begin
   select * into v_factory from nexora.factories where id=p_factory_id for update;
   if not found then raise exception 'FACTORY_NOT_FOUND'; end if;
   if v_factory.owner_uid<>p_uid then raise exception 'UNAUTHORIZED'; end if;
-  if v_factory.warehouse_level>=5 then raise exception 'WAREHOUSE_MAX_LEVEL'; end if;
   if v_factory.warehouse_upgrade_started_at is not null
      or v_factory.warehouse_upgrade_ends_at is not null
      or v_factory.warehouse_upgrade_target_level is not null
@@ -6264,6 +6263,7 @@ begin
      or v_factory.upgrade_target_level is not null then
     raise exception 'UPGRADE_NOT_FINISHED';
   end if;
+  if v_factory.warehouse_level>=5 then raise exception 'WAREHOUSE_MAX_LEVEL'; end if;
   if v_factory.warehouse_upgrade_ends_at is not null then raise exception 'UPGRADE_NOT_FINISHED'; end if;
   if v_factory.upgrade_ends_at is not null then raise exception 'UPGRADE_NOT_FINISHED'; end if;
   v_target:=greatest(1,v_factory.warehouse_level)+1;
