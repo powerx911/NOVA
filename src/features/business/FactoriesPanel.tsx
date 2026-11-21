@@ -77,7 +77,7 @@ export function FactoriesPanel({ factories, inventory, profile, wallet, language
         .catch((error) => {
           const message = error instanceof Error ? error.message : '';
           if (message === 'UPGRADE_NOT_FINISHED') {
-            completionAttempts.current.delete(attemptKey);
+            window.setTimeout(() => completionAttempts.current.delete(attemptKey), 3000);
           } else if (message === 'NO_UPGRADE_IN_PROGRESS') {
             // Another request already completed the upgrade; refresh instead of showing a false failure.
             window.dispatchEvent(new Event('nova:refresh-game'));
@@ -104,7 +104,7 @@ export function FactoriesPanel({ factories, inventory, profile, wallet, language
         .catch((error) => {
           const message = error instanceof Error ? error.message : '';
           if (message === 'UPGRADE_NOT_FINISHED') {
-            completionAttempts.current.delete(attemptKey);
+            window.setTimeout(() => completionAttempts.current.delete(attemptKey), 3000);
           } else if (message === 'NO_UPGRADE_IN_PROGRESS') {
             window.dispatchEvent(new Event('nova:refresh-game'));
           } else {
@@ -151,6 +151,7 @@ export function FactoriesPanel({ factories, inventory, profile, wallet, language
         SKILL_MAXED: isAr ? 'وصلت مهارة المصنع إلى الحد الأقصى.' : 'Factory skill is already at maximum level.',
         WAREHOUSE_INSUFFICIENT_STOCK: isAr ? 'الكمية المطلوبة غير متوفرة في المستودع.' : 'The warehouse does not contain that quantity.',
         UPGRADE_IN_PROGRESS: isAr ? 'هناك تطوير جارٍ بالفعل.' : 'An upgrade is already in progress.',
+        UPGRADE_NOT_FINISHED: isAr ? 'اكتمل المؤقت؛ أكمل التطوير الحالي أولاً.' : 'The timer elapsed; complete the current upgrade first.',
       };
       showToast(messages[message] ?? (isAr ? 'تعذرت العملية.' : 'Operation failed.'), 'error');
     } finally {
@@ -218,11 +219,11 @@ export function FactoriesPanel({ factories, inventory, profile, wallet, language
                 <span className="text-xs font-mono-num text-emerald-300">{warehouseLevel < 5 ? '+' + Math.max(0, Math.floor(warehouseValueCaps[warehouseLevel] / warehouseUnitPrice) - warehouseCapacity) : 'MAX'}</span>
               </div>
               {selectedWarehouseUpgradeEnd > 0 ? <p className="text-xs text-amber-300">{warehouseRemainingMs > 0 ? (isAr ? `توسعة المستودع قيد التنفيذ · المتبقي ${warehouseRemainingLabel}` : `Warehouse expansion in progress · ${warehouseRemainingLabel} left`) : (isAr ? 'اكتمل الوقت، جارٍ إنهاء التوسعة.' : 'Timer complete; finalizing expansion.')}</p> : warehouseLevel < 5 ? <p className="text-xs text-[#A9B9D4]">{isAr ? `مدة التوسعة القادمة: ${warehouseDurationLabel}` : `Next expansion duration: ${warehouseDurationLabel}`}</p> : null}
-              <button type="button" disabled={warehouseLevel >= 5 || selectedWarehouseUpgradeEnd > now || selectedUpgradeEnd > now || (wallet?.balance ?? 0) < warehouseUpgradeCostValue || busyKey === `warehouse_${selected.id}`} onClick={() => void runAction(`warehouse_${selected.id}`, () => upgradeFactoryWarehouse(selected.id), isAr ? 'بدأت توسعة المستودع.' : 'Warehouse expansion started.')} className="w-full min-h-[40px] rounded-lg border border-white/10 bg-[#0B0D12] px-3 text-xs font-semibold text-[#F4F5F7] disabled:opacity-40">{warehouseLevel >= 5 ? (isAr ? 'وصل المستودع إلى المستوى الأقصى' : 'Warehouse max level reached') : (isAr ? `توسعة المستودع · ${warehouseUpgradeCostValue.toLocaleString()} $` : `Expand warehouse · ${warehouseUpgradeCostValue.toLocaleString()} $`)}</button>
+              <button type="button" disabled={warehouseLevel >= 5 || selectedWarehouseUpgradeEnd > 0 || selectedUpgradeEnd > 0 || (wallet?.balance ?? 0) < warehouseUpgradeCostValue || busyKey === `warehouse_${selected.id}`} onClick={() => void runAction(`warehouse_${selected.id}`, () => upgradeFactoryWarehouse(selected.id), isAr ? 'بدأت توسعة المستودع.' : 'Warehouse expansion started.')} className="w-full min-h-[40px] rounded-lg border border-white/10 bg-[#0B0D12] px-3 text-xs font-semibold text-[#F4F5F7] disabled:opacity-40">{warehouseLevel >= 5 ? (isAr ? 'وصل المستودع إلى المستوى الأقصى' : 'Warehouse max level reached') : (isAr ? `توسعة المستودع · ${warehouseUpgradeCostValue.toLocaleString()} $` : `Expand warehouse · ${warehouseUpgradeCostValue.toLocaleString()} $`)}</button>
             </div>
             {selectedUpgradeEnd > 0 && <p className="text-xs text-amber-300">{remainingMs > 0 ? (isAr ? `التطوير جارٍ · متبقٍ ${remainingLabel}` : `Upgrade in progress · ${remainingLabel} left`) : (isAr ? 'اكتمل الوقت، جارٍ إنهاء التطوير.' : 'Timer complete; finalizing upgrade.')}</p>}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              <button type="button" disabled={selected.level >= 100 || Boolean(selectedUpgradeEnd > now) || selectedResourceOwned < upgradeMaterials || (wallet?.balance ?? 0) < upgradeCost || busyKey === `upgrade_${selected.id}`} onClick={() => void runAction(`upgrade_${selected.id}`, () => upgradeFactory(selected.id), isAr ? 'بدأ تطوير المصنع، وسيكتمل تلقائياً.' : 'Factory upgrade started and will complete automatically.')} className="min-h-[42px] rounded-xl bg-[#397BFF] px-3 text-xs font-semibold text-white hover:bg-[#2F6DE0] disabled:opacity-40"><ArrowUpCircle className="me-1 inline h-4 w-4" />{isAr ? `تطوير المصنع · ${upgradeCost.toLocaleString()} · ${Math.ceil(upgradeDurationSeconds / 60)} دقيقة` : `Upgrade · ${upgradeCost.toLocaleString()} · ${Math.ceil(upgradeDurationSeconds / 60)} min`}</button>
+              <button type="button" disabled={selected.level >= 100 || Boolean(selectedUpgradeEnd > 0 || selectedWarehouseUpgradeEnd > 0) || selectedResourceOwned < upgradeMaterials || (wallet?.balance ?? 0) < upgradeCost || busyKey === `upgrade_${selected.id}`} onClick={() => void runAction(`upgrade_${selected.id}`, () => upgradeFactory(selected.id), isAr ? 'بدأ تطوير المصنع، وسيكتمل تلقائياً.' : 'Factory upgrade started and will complete automatically.')} className="min-h-[42px] rounded-xl bg-[#397BFF] px-3 text-xs font-semibold text-white hover:bg-[#2F6DE0] disabled:opacity-40"><ArrowUpCircle className="me-1 inline h-4 w-4" />{isAr ? `تطوير المصنع · ${upgradeCost.toLocaleString()} · ${Math.ceil(upgradeDurationSeconds / 60)} دقيقة` : `Upgrade · ${upgradeCost.toLocaleString()} · ${Math.ceil(upgradeDurationSeconds / 60)} min`}</button>
               <button type="button" disabled={selected.skillLevel >= 10 || selectedResourceOwned < skillMaterials || (wallet?.balance ?? 0) < skillCost || busyKey === `skill_${selected.id}`} onClick={() => void runAction(`skill_${selected.id}`, () => upgradeFactorySkill(selected.id), isAr ? 'تم تطوير مهارة تشغيل المصنع.' : 'Factory operator skill upgraded.')} className="min-h-[42px] rounded-xl border border-white/10 bg-[#141821] px-3 text-xs font-semibold text-[#F4F5F7] disabled:opacity-40"><Wrench className="me-1 inline h-4 w-4" />{isAr ? `تطوير المهارة · ${skillCost.toLocaleString()}` : `Train skill · ${skillCost.toLocaleString()}`}</button>
             </div>
             <p className="text-[11px] text-[#77808F]">{isAr ? 'يعمل المصنع تلقائيًا، وتتم مزامنة الإنتاج ومصاريفه دوريًا. عند نفاد رصيد التشغيل يتوقف مؤقتًا ويستأنف وحده عند توفر الرصيد.' : 'The factory runs automatically and synchronizes production and operating costs periodically. It pauses when funds run out and resumes automatically when funds are available.'}</p>
