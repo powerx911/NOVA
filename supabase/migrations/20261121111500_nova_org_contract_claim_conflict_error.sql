@@ -22,7 +22,7 @@ begin
       where active_offer.scope = 'organization'
         and active_offer.claimed_by = new.claimed_by
         and active_offer.status in ('accepted', 'processing', 'ready')
-        and active_offer.id <> new.id
+        and active_offer.id is distinct from new.id
     ) then
       raise exception 'ORG_ACTIVE_CONTRACT_LIMIT';
     end if;
