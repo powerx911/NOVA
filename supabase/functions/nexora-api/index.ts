@@ -39,7 +39,10 @@ Deno.serve(async (req: Request) => {
       const { error } = await admin.from("world_events").select("id").limit(1);
       if (error) throw error;
       return json({ ok: true, service: "nexora-api", schema: "nexora" }, 200, origin);
-    } catch {
+    } catch (error) {
+      if (Deno.env.get("NOVA_E2E_ALLOW_LOCAL_AUTH") === "true") {
+        console.error("NOVA_E2E_DATABASE_HEALTH_ERROR", error);
+      }
       return json({ ok: false, error: "DATABASE_UNAVAILABLE" }, 503, origin);
     }
   }
@@ -82,6 +85,10 @@ Deno.serve(async (req: Request) => {
       // The database cleanup is idempotent. If Firebase Auth deletion times out,
       // the player can retry while still signed in; the database RPC will safely
       // return already_deleted and this call will retry the Auth deletion.
+      if (identity.isE2E) {
+        return json({ ok: true, data: { deleted: true, database: deletion, auth: "emulator" } }, 200, origin);
+      }
+
       const firebaseApiKey = Deno.env.get("FIREBASE_WEB_API_KEY") || "AIzaSyD8lDEEHIeMIC4E96Zebn_rTtVjwONfSSM";
       let firebaseError = "";
       try {

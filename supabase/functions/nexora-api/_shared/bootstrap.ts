@@ -1,6 +1,16 @@
 import { getAdminClient } from "./auth.ts";
 import { camelRow, queryData } from "./serialization.ts";
 
+const asRecord = (value: unknown): Record<string, unknown> =>
+  value && typeof value === "object" && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : {};
+
+const nonNegativeNumber = (value: unknown): number => {
+  const parsed = typeof value === "number" ? value : Number(value);
+  return Number.isFinite(parsed) ? Math.max(0, parsed) : 0;
+};
+
 export async function bootstrap(admin: ReturnType<typeof getAdminClient>, uid: string) {
   const db = admin.schema("nexora");
   // Daily operating rewards are claimable as soon as the UTC day rolls over.
@@ -73,11 +83,33 @@ export async function bootstrap(admin: ReturnType<typeof getAdminClient>, uid: s
     (a, b) => new Date(String(b.created_at)).getTime() - new Date(String(a.created_at)).getTime(),
   ).slice(0, 40);
 
-  return {
-    profile: {
-      ...(camelRow(profile) as Record<string, unknown>),
-      ...((missionProgress ?? {}) as Record<string, unknown>),
+  // A missing player_profiles row means the player has not created a character.
+  // Do not turn null into an empty object: the client must remain on onboarding.
+  const profileRow = profile ? camelRow(profile) as Record<string, unknown> : null;
+  const rawSkills = asRecord(profileRow?.skills);
+  const rawStats = asRecord(profileRow?.stats);
+  const normalizedProfile = profileRow ? {
+    ...profileRow,
+    skills: {
+      trade: nonNegativeNumber(rawSkills.trade),
+      management: nonNegativeNumber(rawSkills.management),
+      industry: nonNegativeNumber(rawSkills.industry),
+      negotiation: nonNegativeNumber(rawSkills.negotiation),
+      finance: nonNegativeNumber(rawSkills.finance),
+      leadership: nonNegativeNumber(rawSkills.leadership),
     },
+    stats: {
+      ...rawStats,
+      missionsCompleted: nonNegativeNumber(rawStats.missionsCompleted ?? rawStats.missions_completed),
+      tradesCount: nonNegativeNumber(rawStats.tradesCount ?? rawStats.trades_count),
+      companiesOwned: nonNegativeNumber(rawStats.companiesOwned ?? rawStats.companies_owned),
+      totalProduced: nonNegativeNumber(rawStats.totalProduced ?? rawStats.total_produced),
+    },
+    ...((missionProgress ?? {}) as Record<string, unknown>),
+  } : null;
+
+  return {
+    profile: normalizedProfile,
     userPrivate: camelRow(userPrivate),
     wallet: camelRow(wallet),
     inventory: camelRow(inventory),

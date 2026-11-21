@@ -1,0 +1,221 @@
+name: NOVA zero-cost isolated E2E
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches:
+      - main
+      - "feature/**"
+      - "fix/**"
+    paths:
+      - "src/**"
+      - "supabase/**"
+      - "e2e/**"
+      - "playwright.config.mjs"
+      - "scripts/prepare-nova-e2e-db.sh"
+      - ".github/workflows/nova-e2e-isolated.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nova-e2e-isolated-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  isolated-e2e:
+    name: Full app + local Supabase + Firebase Auth emulator
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      NOVA_E2E_BASE_URL: http://localhost:3000
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install application dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Install Supabase CLI
+        uses: supabase/setup-cli@v3
+        with:
+          version: v2.stable
+
+      - name: Start disposable local Supabase stack
+        shell: bash
+        run: |
+          set -euo pipefail
+          migrations_dir="supabase/migrations"
+          parked_dir="$(mktemp -d)/migrations"
+          mv "$migrations_dir" "$parked_dir"
+          mkdir -p "$migrations_dir"
+          restore_migrations() {
+            rmdir "$migrations_dir" 2>/dev/null || true
+            if [ -d "$parked_dir" ]; then
+              mv "$parked_dir" "$migrations_dir"
+            fi
+          }
+          trap restore_migrations EXIT
+          # Keep only the services required by NOVA's API and Edge Function.
+          supabase start --exclude realtime,storage-api,imgproxy,studio,logflare,mailpit,postgres-meta,supavisor,vector
+          restore_migrations
+          trap - EXIT
+
+      - name: Restore NOVA schema and apply pending migrations
+        run: bash scripts/prepare-nova-e2e-db.sh
+
+      - name: Start Firebase Auth emulator and create disposable test user
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > /tmp/firebase-e2e.json <<'JSON'
+          {
+            "emulators": {
+              "auth": { "host": "127.0.0.1", "port": 9099 },
+              "ui": { "enabled": false }
+            }
+          }
+          JSON
+          npx --yes firebase-tools@latest emulators:start --only auth \
+            --project gen-lang-client-0074900177 --config /tmp/firebase-e2e.json --non-interactive \
+            > /tmp/nova-firebase-auth.log 2>&1 &
+          email="nova-e2e@example.test"
+          password="$(openssl rand -hex 24)"
+          payload="$(jq -n --arg email "$email" --arg password "$password" \
+            '{email:$email,password:$password,returnSecureToken:true}')"
+          response=""
+          for attempt in $(seq 1 60); do
+            response="$(curl -sS -X POST \
+              'http://127.0.0.1:9099/identitytoolkit.googleapis.com/v1/accounts:signUp?key=fake-api-key' \
+              -H 'Content-Type: application/json' -d "$payload" 2>/dev/null || true)"
+            if printf '%s' "$response" | jq -e '.localId' >/dev/null 2>&1; then break; fi
+            sleep 1
+          done
+          uid="$(printf '%s' "$response" | jq -r '.localId // empty')"
+          id_token="$(printf '%s' "$response" | jq -r '.idToken // empty')"
+          test -n "$uid" && test -n "$id_token" || { echo "Firebase Auth emulator failed to create the disposable account"; exit 1; }
+          # Verify this disposable account through the Auth emulator's OOB flow.
+          curl -fsS -X POST \
+            'http://127.0.0.1:9099/identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key=fake-api-key' \
+            -H 'Content-Type: application/json' \
+            -d "$(jq -n --arg idToken "$id_token" '{requestType:"VERIFY_EMAIL",idToken:$idToken}')" \
+            >/dev/null
+          oob_code=""
+          for attempt in $(seq 1 30); do
+            oob_response="$(curl -fsS \
+              'http://127.0.0.1:9099/emulator/v1/projects/gen-lang-client-0074900177/oobCodes')"
+            oob_code="$(printf '%s' "$oob_response" | jq -r --arg email "$email" \
+              '[.oobCodes[] | select(.email == $email and .requestType == "VERIFY_EMAIL")][0].oobCode // empty')"
+            test -n "$oob_code" && break
+            sleep 1
+          done
+          test -n "$oob_code" || { echo "Firebase Auth emulator did not produce an email verification code"; exit 1; }
+          curl -fsS -X POST \
+            'http://127.0.0.1:9099/identitytoolkit.googleapis.com/v1/accounts:update?key=fake-api-key' \
+            -H 'Content-Type: application/json' \
+            -d "$(jq -n --arg oobCode "$oob_code" '{oobCode:$oobCode}')" \
+            >/dev/null
+          verified="$(curl -fsS -X POST \
+            'http://127.0.0.1:9099/identitytoolkit.googleapis.com/v1/accounts:lookup?key=fake-api-key' \
+            -H 'Content-Type: application/json' \
+            -d "$(jq -n --arg idToken "$id_token" '{idToken:$idToken}')" | jq -r '.users[0].emailVerified // false')"
+          test "$verified" = "true" || { echo "Firebase Auth emulator account remained unverified"; exit 1; }
+          token="$(openssl rand -hex 32)"
+          # These are disposable credentials, but mask them from public workflow logs.
+          echo "::add-mask::$password"
+          echo "::add-mask::$uid"
+          echo "::add-mask::$token"
+          {
+            echo "NOVA_E2E_EMAIL=$email"
+            echo "NOVA_E2E_PASSWORD=$password"
+            echo "NOVA_E2E_UID=$uid"
+            echo "NOVA_E2E_AUTH_TOKEN=$token"
+          } >> "$GITHUB_ENV"
+
+      - name: Start local NOVA Edge Function
+        shell: bash
+        run: |
+          set -euo pipefail
+          eval "$(supabase status -o env)"
+          : "${API_URL:?Supabase local API_URL is required}"
+          : "${ANON_KEY:?Supabase local ANON_KEY is required}"
+          : "${SERVICE_ROLE_KEY:?Supabase local SERVICE_ROLE_KEY is required}"
+          cat > /tmp/nova-e2e-edge.env <<EOF
+          NOVA_E2E_SUPABASE_URL=http://kong:8000
+          NOVA_E2E_SERVICE_ROLE_KEY=$SERVICE_ROLE_KEY
+          NOVA_E2E_ALLOW_LOCAL_AUTH=true
+          NOVA_E2E_AUTH_TOKEN=$NOVA_E2E_AUTH_TOKEN
+          NOVA_E2E_UID=$NOVA_E2E_UID
+          NOVA_E2E_EMAIL=$NOVA_E2E_EMAIL
+          EOF
+          supabase functions serve nexora-api --env-file /tmp/nova-e2e-edge.env \
+            > /tmp/nova-e2e-edge.log 2>&1 &
+          for attempt in $(seq 1 20); do
+            health_response="$(curl --connect-timeout 2 --max-time 4 -sS "$API_URL/functions/v1/nexora-api" \
+              -H "apikey: $ANON_KEY" -H "Authorization: Bearer $ANON_KEY" 2>&1 || true)"
+            if printf '%s' "$health_response" | jq -e '.ok == true' >/dev/null 2>&1; then
+              {
+                echo "NOVA_E2E_SUPABASE_URL=$API_URL"
+                echo "NOVA_E2E_SUPABASE_ANON_KEY=$ANON_KEY"
+                # Vite reads these at build time; force every browser API call to the local stack.
+                echo "VITE_SUPABASE_URL=$API_URL"
+                echo "VITE_SUPABASE_PUBLISHABLE_KEY=$ANON_KEY"
+                echo "VITE_NOVA_E2E_AUTH_TOKEN=$NOVA_E2E_AUTH_TOKEN"
+              } >> "$GITHUB_ENV"
+              exit 0
+            fi
+            if [ -n "$health_response" ]; then
+              echo "Local Edge Function health attempt $attempt: $health_response"
+            fi
+            sleep 2
+          done
+          echo "Local NOVA Edge Function did not become healthy"
+          cat /tmp/nova-e2e-edge.log
+          exit 1
+
+      - name: Start NOVA web app against local services
+        shell: bash
+        run: |
+          set -euo pipefail
+          VITE_SUPABASE_URL="$NOVA_E2E_SUPABASE_URL" \
+          VITE_SUPABASE_PUBLISHABLE_KEY="$NOVA_E2E_SUPABASE_ANON_KEY" \
+          VITE_NOVA_E2E_AUTH_TOKEN="$NOVA_E2E_AUTH_TOKEN" \
+          VITE_NOVA_E2E_AUTH_EMULATOR=true \
+          npm run dev -- --host 0.0.0.0 > /tmp/nova-vite.log 2>&1 &
+          for attempt in $(seq 1 60); do
+            if curl -fsS "$NOVA_E2E_BASE_URL" >/dev/null; then exit 0; fi
+            sleep 2
+          done
+          cat /tmp/nova-vite.log
+          exit 1
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Run NOVA browser E2E
+        run: npm run test:e2e
+
+      - name: Upload browser diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nova-e2e-diagnostics
+          path: |
+            test-results/
+            playwright-report/
+          if-no-files-found: ignore
+          retention-days: 7
+
+      - name: Stop disposable Supabase stack
+        if: always()
+        run: supabase stop || true
