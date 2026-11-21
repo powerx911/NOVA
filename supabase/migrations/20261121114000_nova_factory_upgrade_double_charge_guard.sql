@@ -1,51 +1,38 @@
 -- Prevent a second factory or warehouse upgrade charge until the pending upgrade is completed.
--- An elapsed timer is still pending until its completion RPC clears the state markers.
+-- An elapsed timer is still pending until its completion RPC clears every state marker.
 do $patch$
 declare
   v_definition text;
-  v_old text;
-  v_new text;
+  v_owner_check text;
+  v_new_guard text;
 begin
-  select pg_get_functiondef('nexora.upgrade_factory(text,text)'::regprocedure)
-    into v_definition;
-
-  v_old := $old$if v_factory.upgrade_ends_at is not null and v_factory.upgrade_ends_at>now() then raise exception 'UPGRADE_IN_PROGRESS'; end if;$old$;
-  v_new := $new$if v_factory.upgrade_started_at is not null
+  v_owner_check := $owner$if v_factory.owner_uid<>p_uid then raise exception 'UNAUTHORIZED'; end if;$owner$;
+  v_new_guard := $guard$if v_factory.upgrade_started_at is not null
     or v_factory.upgrade_ends_at is not null
     or v_factory.upgrade_target_level is not null
     or v_factory.warehouse_upgrade_started_at is not null
     or v_factory.warehouse_upgrade_ends_at is not null
     or v_factory.warehouse_upgrade_target_level is not null then
     raise exception 'UPGRADE_NOT_FINISHED';
-  end if;$new$;
+  end if;$guard$;
 
-  if position(v_new in v_definition) = 0 then
-    if position(v_old in v_definition) = 0 then
-      raise exception 'FACTORY_UPGRADE_PENDING_GUARD_PATCH_ANCHOR_NOT_FOUND';
+  select pg_get_functiondef('nexora.upgrade_factory(text,text)'::regprocedure)
+    into v_definition;
+  if position(v_new_guard in v_definition) = 0 then
+    if position(v_owner_check in v_definition) = 0 then
+      raise exception 'FACTORY_UPGRADE_OWNER_CHECK_PATCH_ANCHOR_NOT_FOUND';
     end if;
-    v_definition := replace(v_definition, v_old, v_new);
+    v_definition := replace(v_definition, v_owner_check, v_owner_check || E'\n  ' || v_new_guard);
   end if;
   execute v_definition;
 
   select pg_get_functiondef('nexora.upgrade_factory_warehouse(text,text)'::regprocedure)
     into v_definition;
-
-  v_old := $old$if v_factory.warehouse_upgrade_ends_at is not null then raise exception 'UPGRADE_NOT_FINISHED'; end if;
-  if v_factory.upgrade_ends_at is not null then raise exception 'UPGRADE_NOT_FINISHED'; end if;$old$;
-  v_new := $new$if v_factory.warehouse_upgrade_started_at is not null
-     or v_factory.warehouse_upgrade_ends_at is not null
-     or v_factory.warehouse_upgrade_target_level is not null
-     or v_factory.upgrade_started_at is not null
-     or v_factory.upgrade_ends_at is not null
-     or v_factory.upgrade_target_level is not null then
-    raise exception 'UPGRADE_NOT_FINISHED';
-  end if;$new$;
-
-  if position(v_new in v_definition) = 0 then
-    if position(v_old in v_definition) = 0 then
-      raise exception 'FACTORY_WAREHOUSE_PENDING_GUARD_PATCH_ANCHOR_NOT_FOUND';
+  if position(v_new_guard in v_definition) = 0 then
+    if position(v_owner_check in v_definition) = 0 then
+      raise exception 'FACTORY_WAREHOUSE_OWNER_CHECK_PATCH_ANCHOR_NOT_FOUND';
     end if;
-    v_definition := replace(v_definition, v_old, v_new);
+    v_definition := replace(v_definition, v_owner_check, v_owner_check || E'\n  ' || v_new_guard);
   end if;
   execute v_definition;
 
