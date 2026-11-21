@@ -74,7 +74,10 @@ export async function bootstrap(admin: ReturnType<typeof getAdminClient>, uid: s
   ).slice(0, 40);
 
   return {
-    profile: {
+    // A user can authenticate before creating a player profile. Preserve that
+    // state as null so the client routes them to character onboarding instead
+    // of treating an empty object as an initialized profile.
+    profile: profile == null ? null : {
       ...(camelRow(profile) as Record<string, unknown>),
       ...((missionProgress ?? {}) as Record<string, unknown>),
     },
