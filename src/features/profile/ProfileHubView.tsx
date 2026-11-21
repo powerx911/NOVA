@@ -1,4 +1,4 @@
-import { Activity, Award, Clock3, Globe, Lightbulb, LogOut, Medal, MessageSquareWarning, ShieldCheck, Sliders, Trash2, Trophy, Volume2, Zap } from 'lucide-react';
+import { Activity, Award, Clock3, Globe, Lightbulb, LogOut, Medal, MessageSquareWarning, RefreshCw, ShieldCheck, Sliders, Trash2, Trophy, Volume2, Zap } from 'lucide-react';
 import { lazy, Suspense, useCallback, useEffect, useState } from 'react';
 import { EmailAuthProvider, reauthenticateWithCredential, reauthenticateWithPopup } from 'firebase/auth';
 import { auth, googleAuthProvider } from '../../lib/firebase';
@@ -88,6 +88,7 @@ export function ProfileHubView({
   const [lbLoading, setLbLoading] = useState(false);
   const [lbError, setLbError] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [resetSkillsConfirmOpen, setResetSkillsConfirmOpen] = useState(false);
   const [deletePassword, setDeletePassword] = useState('');
   const [deleteBusy, setDeleteBusy] = useState(false);
   const [feedbackText, setFeedbackText] = useState('');
@@ -181,12 +182,10 @@ export function ProfileHubView({
   }
 
   async function handleResetSkills() {
-    if (!window.confirm(language === 'ar'
-      ? 'إعادة تعيين جميع المهارات مقابل 2,500؟ ستعود نقاط المهارات التي أنفقتها إلى رصيدك.'
-      : 'Reset all skills for 2,500? All spent skill points will be refunded.')) return;
     setBusyKey('reset_skills');
     try {
       await resetSkills(profile.uid);
+      setResetSkillsConfirmOpen(false);
       showToast(language === 'ar' ? 'تمت إعادة تعيين المهارات وإرجاع النقاط.' : 'Skills reset and points refunded.', 'success');
     } catch (err) {
       const code = err instanceof Error ? err.message : '';
@@ -500,19 +499,14 @@ export function ProfileHubView({
       {/* 2. SKILLS TREE */}
       {subTab === 'skills' && (
         <div className="space-y-4">
-          <div className="bg-[#141821] border border-white/8 rounded-2xl p-4 flex items-center justify-between">
+          <div className="bg-[#141821] border border-white/8 rounded-2xl p-4 flex items-center justify-between gap-3">
             <span className="text-sm font-medium text-[#F4F5F7]">{t.skillPoints}</span>
-            <span className="text-lg font-bold font-mono-num text-[#E04455]">
-              {profile.skillPoints}
-            </span>
-          </div>
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-2xl border border-rose-500/20 bg-[#141821] p-4">
-            <div>
-              <p className="text-sm font-semibold text-[#F4F5F7]">{language === 'ar' ? 'إعادة توزيع المهارات' : 'Respec skills'}</p>
-              <p className="mt-1 text-xs text-[#9299A6]">{language === 'ar' ? 'التكلفة 2,500، وتُعاد جميع النقاط التي أنفقتها إلى رصيد نقاط المهارة.' : 'Costs 2,500 credits and refunds all skill points you have spent.'}</p>
+            <div className="flex items-center gap-3">
+              <span className="text-lg font-bold font-mono-num text-[#E04455]">{profile.skillPoints}</span>
+              <button type="button" aria-label={language === 'ar' ? 'إعادة تعيين المهارات' : 'Reset skills'} title={language === 'ar' ? 'إعادة تعيين المهارات' : 'Reset skills'} onClick={() => setResetSkillsConfirmOpen(true)} disabled={busyKey === 'reset_skills'} className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-white/10 bg-[#1B2230] text-[#F4F5F7] hover:bg-[#2A3548] disabled:opacity-50"><RefreshCw className="h-4 w-4" /></button>
             </div>
-            <button type="button" disabled={busyKey === 'reset_skills'} onClick={() => void handleResetSkills()} className="min-h-[42px] shrink-0 rounded-xl bg-[#B91C32] px-4 text-xs font-semibold text-white hover:bg-[#E04455] disabled:opacity-50">{busyKey === 'reset_skills' ? '...' : (language === 'ar' ? 'إعادة التعيين · 2,500' : 'Reset · 2,500')}</button>
           </div>
+          {resetSkillsConfirmOpen && <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 p-4"><section role="dialog" aria-modal="true" className="w-full max-w-sm rounded-2xl border border-white/10 bg-[#141821] p-5 space-y-4"><h3 className="text-base font-bold text-white">{language === 'ar' ? 'تأكيد إعادة تعيين المهارات' : 'Confirm skill reset'}</h3><p className="text-sm leading-6 text-[#B8C0CE]">{language === 'ar' ? 'التكلفة: 2,500. ستعود جميع نقاط المهارات التي أنفقتها إلى رصيدك.' : 'Cost: 2,500 credits. All spent skill points will be refunded.'}</p><div className="flex gap-2"><button type="button" onClick={() => setResetSkillsConfirmOpen(false)} disabled={busyKey === 'reset_skills'} className="flex-1 min-h-[42px] rounded-xl border border-white/10 text-sm text-[#D7DCE5]">{language === 'ar' ? 'إلغاء' : 'Cancel'}</button><button type="button" onClick={() => void handleResetSkills()} disabled={busyKey === 'reset_skills'} className="flex-1 min-h-[42px] rounded-xl bg-[#B91C32] text-sm font-semibold text-white disabled:opacity-50">{busyKey === 'reset_skills' ? '...' : (language === 'ar' ? 'تأكيد · 2,500' : 'Confirm · 2,500')}</button></div></section></div>}
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {SKILL_DEFINITIONS.map((sk) => {
