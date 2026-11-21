@@ -6,11 +6,18 @@ export async function bootstrap(admin: ReturnType<typeof getAdminClient>, uid: s
   // Daily operating rewards are claimable as soon as the UTC day rolls over.
   // Keep bootstrap available even if this auxiliary notification check fails.
   try { await db.rpc("notify_daily_stipend_ready_for_user", { p_uid: uid }); } catch { /* Notification is retried by the server cron. */ }
-  const [profile, userPrivate, wallet, inventory, sent, received, marketListings,
+
+  // Authentication accounts can exist before a player profile is created.
+  // Resolve the profile first so we don't call profile-dependent RPCs for a
+  // brand-new account (get_mission_progress expects an initialized player).
+  const profile = await queryData(
+    db.from("player_profiles").select("*").eq("user_id", uid).maybeSingle(),
+  );
+
+  const [userPrivate, wallet, inventory, sent, received, marketListings,
     marketOrders, companies, factories, organizations,
     organizationMembers, organizationRequests, playerMissions, dailyClaims, missionProgress,
     contractClaims, playerAchievements, notifications, worldEvents] = await Promise.all([
-    queryData(db.from("player_profiles").select("*").eq("user_id", uid).maybeSingle()),
     queryData(db.from("player_private").select("*").eq("user_id", uid).maybeSingle()),
     queryData(db.from("wallets").select("*").eq("user_id", uid).maybeSingle()),
     queryData(db.from("inventory").select("*").eq("user_id", uid)),
@@ -25,7 +32,7 @@ export async function bootstrap(admin: ReturnType<typeof getAdminClient>, uid: s
     queryData(db.from("organization_requests").select("*").eq("user_id", uid)),
     queryData(db.from("player_missions").select("*").eq("user_id", uid)),
     queryData(db.from("daily_claims").select("*").eq("user_id", uid).eq("date_key", new Date().toISOString().slice(0, 10)).maybeSingle()),
-    queryData(db.rpc("get_mission_progress", { p_uid: uid })),
+    profile ? queryData(db.rpc("get_mission_progress", { p_uid: uid })) : Promise.resolve({}),
     queryData(db.from("contract_claims").select("*").eq("user_id", uid)),
     queryData(db.from("player_achievements").select("*").eq("user_id", uid)),
     queryData(db.from("notifications").select("*").eq("user_id", uid).order("created_at", { ascending: false }).limit(30)),
@@ -74,9 +81,6 @@ export async function bootstrap(admin: ReturnType<typeof getAdminClient>, uid: s
   ).slice(0, 40);
 
   return {
-    // A user can authenticate before creating a player profile. Preserve that
-    // state as null so the client routes them to character onboarding instead
-    // of treating an empty object as an initialized profile.
     profile: profile == null ? null : {
       ...(camelRow(profile) as Record<string, unknown>),
       ...((missionProgress ?? {}) as Record<string, unknown>),
