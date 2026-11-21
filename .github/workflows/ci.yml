@@ -98,7 +98,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     needs: validate
-    if: ${{ github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch' }}
+    # E2E remains opt-in and disabled until explicitly requested by the project owner.
+    if: ${{ github.event_name == 'workflow_dispatch' && vars.NOVA_E2E_ENABLED == 'true' }}
     env:
       NOVA_E2E_BASE_URL: ${{ secrets.NOVA_E2E_BASE_URL }}
       NOVA_E2E_EMAIL: ${{ secrets.NOVA_E2E_EMAIL }}

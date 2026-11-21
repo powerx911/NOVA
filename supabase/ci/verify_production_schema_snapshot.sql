@@ -86,9 +86,16 @@ BEGIN
     RAISE EXCEPTION 'Resource-specific factory progression curves are missing from the production snapshot';
   END IF;
 
+  IF to_regprocedure('nexora.sell_to_nexora_idempotent(text,text,integer,text)') IS NULL
+     OR has_function_privilege('anon', 'nexora.sell_to_nexora_idempotent(text,text,integer,text)', 'EXECUTE')
+     OR has_function_privilege('authenticated', 'nexora.sell_to_nexora_idempotent(text,text,integer,text)', 'EXECUTE')
+     OR NOT has_function_privilege('service_role', 'nexora.sell_to_nexora_idempotent(text,text,integer,text)', 'EXECUTE') THEN
+    RAISE EXCEPTION 'NEXORA merchant sale idempotency RPC or its access controls are missing';
+  END IF;
+
   IF v_tables <> 46
-     OR v_functions <> 152
-     OR v_security_definer <> 139
+     OR v_functions <> 153
+     OR v_security_definer <> 140
      OR v_triggers <> 41
      OR v_indexes <> 102
      OR v_constraints <> 169

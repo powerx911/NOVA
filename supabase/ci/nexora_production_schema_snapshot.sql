@@ -7363,3 +7363,58 @@ begin
     'reputation',round(v_contract.reputation_reward*v_leadership));
 end;
 $function$;
+
+
+-- Phase 2: idempotent retry boundary for NEXORA merchant sales.
+CREATE OR REPLACE FUNCTION nexora.sell_to_nexora_idempotent(
+  p_uid text,
+  p_item_id text,
+  p_qty integer,
+  p_request_id text
+)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO ''
+AS $function$
+DECLARE
+  v_hash text;
+  v_existing nexora.idempotency_requests%rowtype;
+  v_response jsonb;
+BEGIN
+  IF p_qty IS NULL OR p_qty < 1 THEN
+    RAISE EXCEPTION 'INVALID_QUANTITY';
+  END IF;
+  IF p_request_id IS NULL OR p_request_id !~ '^[A-Za-z0-9:_-]{16,128}$' THEN
+    RAISE EXCEPTION 'INVALID_IDEMPOTENCY_KEY';
+  END IF;
+
+  v_hash := md5(jsonb_build_object('item_id', p_item_id, 'quantity', p_qty)::text);
+
+  INSERT INTO nexora.idempotency_requests(user_id, action, request_id, request_hash)
+  VALUES (p_uid, 'sell_to_nexora', p_request_id, v_hash)
+  ON CONFLICT (user_id, action, request_id) DO NOTHING;
+
+  SELECT * INTO v_existing
+  FROM nexora.idempotency_requests
+  WHERE user_id = p_uid AND action = 'sell_to_nexora' AND request_id = p_request_id
+  FOR UPDATE;
+
+  IF v_existing.request_hash IS DISTINCT FROM v_hash THEN
+    RAISE EXCEPTION 'IDEMPOTENCY_KEY_REUSED';
+  END IF;
+  IF v_existing.response IS NOT NULL THEN
+    RETURN v_existing.response || jsonb_build_object('idempotent_replay', true);
+  END IF;
+
+  v_response := nexora.sell_to_nexora(p_uid, p_item_id, p_qty);
+
+  UPDATE nexora.idempotency_requests SET response = v_response
+  WHERE user_id = p_uid AND action = 'sell_to_nexora' AND request_id = p_request_id;
+
+  RETURN v_response;
+END;
+$function$;
+
+REVOKE ALL ON FUNCTION nexora.sell_to_nexora_idempotent(text, text, integer, text) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION nexora.sell_to_nexora_idempotent(text, text, integer, text) TO service_role;
