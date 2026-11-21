@@ -102,7 +102,7 @@ export function AuthOnboardingView({
       if (isRegistering) {
         await onRegisterWithEmail(emailAddress, password);
         setPassword('');
-        showToast(language === 'ar' ? 'تم إنشاء الحساب وإرسال رابط التحقق. أكمل إنشاء شخصيتك الآن.' : 'Account created and verification email sent. Continue creating your character now.', 'success');
+        showToast(language === 'ar' ? 'تم إنشاء الحساب وإرسال رابط التحقق. وثّق بريدك ثم سجّل الدخول لإكمال إنشاء الشخصية.' : 'Account created and verification email sent. Verify your email, then sign in to finish creating your character.', 'success');
       } else {
         await onLoginWithEmail(emailAddress, password);
       }
