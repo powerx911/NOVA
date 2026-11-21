@@ -1,4 +1,4 @@
--- CI-ONLY, DATA-FREE snapshot synchronized from the live NOVA production catalog on 2026-11-20 after migrations through 20261120202341.
+-- CI-ONLY, DATA-FREE snapshot synchronized from NOVA production on 2026-11-21 after migration 20261121120526.
 -- Never apply this file to production. It is an isolated-test baseline only.
 SET check_function_bodies = off;
 CREATE SCHEMA IF NOT EXISTS nexora;
