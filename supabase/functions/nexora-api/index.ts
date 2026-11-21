@@ -182,19 +182,27 @@ Deno.serve(async (req: Request) => {
         .eq("user_id", identity.uid)
         .maybeSingle();
       if (profileError) throw profileError;
+      // Load the player's core account state first. Ancillary refresh jobs must
+      // never turn a valid account into a failed bootstrap when one notification
+      // or settlement RPC temporarily fails.
+      const accountData = await bootstrap(admin, identity.uid);
       if (existingProfile) {
-        const { error: achievementError } = await db.rpc("unlock_eligible_achievements", { p_uid: identity.uid });
-        if (achievementError) throw achievementError;
-        const [{ error: missionNoticeError }, { error: contractSettleError }] = await Promise.all([
+        const refreshJobs = [
+          db.rpc("unlock_eligible_achievements", { p_uid: identity.uid }),
           db.rpc("notify_ready_missions", { p_uid: identity.uid }),
           db.rpc("settle_dynamic_contracts", { p_uid: identity.uid }),
-        ]);
-        if (missionNoticeError) throw missionNoticeError;
-        if (contractSettleError) throw contractSettleError;
-        const { error: readyContractNoticeError } = await db.rpc("notify_ready_contracts", { p_uid: identity.uid });
-        if (readyContractNoticeError) throw readyContractNoticeError;
+          db.rpc("notify_ready_contracts", { p_uid: identity.uid }),
+        ];
+        const refreshResults = await Promise.allSettled(refreshJobs);
+        for (const result of refreshResults) {
+          if (result.status === "rejected") {
+            console.warn("NOVA bootstrap ancillary refresh failed:", result.reason);
+          } else if (result.value.error) {
+            console.warn("NOVA bootstrap ancillary refresh failed:", result.value.error.message);
+          }
+        }
       }
-      return json({ ok: true, data: await bootstrap(admin, identity.uid) }, 200, origin);
+      return json({ ok: true, data: accountData }, 200, origin);
     }
 
     if (body.action === "claim_mission_reward") {
