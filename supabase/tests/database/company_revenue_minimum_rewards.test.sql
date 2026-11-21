@@ -1,4 +1,4 @@
--- Verify collection rewards are proportional to cumulative collected company revenue.
+-- Verify collection rewards are proportional to the actual company payout.
 create extension if not exists pgtap with schema extensions;
 
 begin;
@@ -24,7 +24,7 @@ values
 insert into nexora.companies(id, owner_uid, owner_name, name, sector, base_revenue_per_hour, expense_per_hour, total_revenue, vault_level, vault_balance)
 values
   ('pgtap_company_reward_base', 'pgtap_company_reward_base', 'pgTAP Company Reward Base', 'pgTAP Reward Base', 'trade', 100, 0, 0, 1, 1),
-  ('pgtap_company_reward_leader', 'pgtap_company_reward_leader', 'pgTAP Company Reward Leader', 'pgTAP Reward Leader', 'trade', 100, 0, 14, 1, 1),
+  ('pgtap_company_reward_leader', 'pgtap_company_reward_leader', 'pgTAP Company Reward Leader', 'pgTAP Reward Leader', 'trade', 100, 0, 0, 1, 15),
   ('pgtap_company_reward_cap', 'pgtap_company_reward_cap', 'pgTAP Company Reward Cap', 'pgTAP Reward Cap', 'trade', 100, 0, 0, 1, 3500);
 
 select extensions.lives_ok(
@@ -44,7 +44,7 @@ select extensions.lives_ok(
   $lead$insert into company_reward_results values ('leader', nexora.collect_company_revenue('pgtap_company_reward_leader', 'pgtap_company_reward_leader'))$lead$,
   'a player with leadership skill can collect company revenue'
 );
-select extensions.is((select xp from nexora.player_profiles where user_id='pgtap_company_reward_leader'), 1::bigint, 'crossing the cumulative fifteen-credit milestone grants exactly one XP');
+select extensions.is((select xp from nexora.player_profiles where user_id='pgtap_company_reward_leader'), 1::bigint, 'a fifteen-credit payout grants exactly one XP');
 
 select extensions.is((select reputation from nexora.player_profiles where user_id='pgtap_company_reward_leader'), 0::bigint, 'leadership does not multiply a per-collection reputation reward');
 select extensions.is((select influence from nexora.player_profiles where user_id='pgtap_company_reward_leader'), 0::bigint, 'leadership does not multiply a per-collection influence reward');
