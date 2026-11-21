@@ -123,6 +123,9 @@ jobs:
             supabase/migrations/20261121004000_nova_biotech_recipe_integrity_fix.sql \
             supabase/migrations/20261121005000_nova_company_revenue_minimum_rewards.sql \
             supabase/migrations/20261121006000_nova_manufacturing_rls_auction_fk_indexes.sql \
+            supabase/migrations/20261121081031_market_listing_limits.sql \
+            supabase/migrations/20261121081916_nexora_merchant_daily_sales.sql \
+            supabase/migrations/20261121082006_nexora_merchant_bio_module_price.sql \
             supabase/migrations/20261120184839_nova_financial_idempotency_market_history.sql \
             supabase/migrations/20261120191611_nova_live_player_skill_effects.sql \
             supabase/migrations/20261120192229_nova_org_contract_negotiation_bonus.sql
