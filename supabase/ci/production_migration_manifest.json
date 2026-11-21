@@ -1,26 +1,26 @@
 {
   "manifest_version": 1,
-  "captured_at": "2026-11-20",
+  "captured_at": "2026-11-21",
   "repository": "powerx911/NOVA",
   "production_project_id": "hmrprnjhyzyefocdmnxf",
-  "production_ledger_records": 86,
+  "production_ledger_records": 91,
   "tracked_migration_files": 88,
   "recovered_history_sql_files": 55,
   "production_schema_inventory": {
     "tables": 46,
-    "functions": 152,
-    "security_definer_functions": 139,
+    "functions": 153,
+    "security_definer_functions": 140,
     "triggers": 41,
     "indexes": 102,
     "constraints": 169,
     "active_cron_jobs": 8
   },
   "matching_summary": {
-    "records_with_source": 86,
+    "records_with_source": 91,
     "records_missing_source": 0,
     "records_recovered_only": 21,
     "records_with_additional_variants": 21,
-    "local_migration_files_not_mapped_to_applied_record": 24
+    "local_migration_files_not_mapped_to_applied_record": 19
   },
   "entries": [
     {
@@ -815,6 +815,46 @@
       "canonical_source": "supabase/migrations/20261121082006_nexora_merchant_bio_module_price.sql",
       "canonical_git_blob_sha": "38d59ee51493bb482c7690c4bcc6fc1187ca243f",
       "additional_variants": []
+    },
+    {
+      "version": "20261121115325",
+      "name": "nova_org_contract_claim_serialization",
+      "source_status": "tracked",
+      "canonical_source": "supabase/migrations/20261121110000_nova_org_contract_claim_serialization.sql",
+      "canonical_git_blob_sha": "9759deae442f5d40a2aa05ae4e3f611d684566f7",
+      "additional_variants": []
+    },
+    {
+      "version": "20261121115332",
+      "name": "nova_org_contract_claim_conflict_error",
+      "source_status": "tracked",
+      "canonical_source": "supabase/migrations/20261121111500_nova_org_contract_claim_conflict_error.sql",
+      "canonical_git_blob_sha": "2759c0f0bf858d2a4d671fbbd3a0668a77127f04",
+      "additional_variants": []
+    },
+    {
+      "version": "20261121115340",
+      "name": "nova_company_revenue_reward_abuse_fix",
+      "source_status": "tracked",
+      "canonical_source": "supabase/migrations/20261121113000_nova_company_revenue_reward_abuse_fix.sql",
+      "canonical_git_blob_sha": "24f2347c8c8213f2ebe193d5184d9358f780a831",
+      "additional_variants": []
+    },
+    {
+      "version": "20261121115410",
+      "name": "nova_factory_upgrade_double_charge_guard",
+      "source_status": "tracked",
+      "canonical_source": "supabase/migrations/20261121114000_nova_factory_upgrade_double_charge_guard.sql",
+      "canonical_git_blob_sha": "0a92030bb2885b2975cec120d80419c08aeaf285",
+      "additional_variants": []
+    },
+    {
+      "version": "20261121120526",
+      "name": "nova_nexora_sale_idempotency",
+      "source_status": "tracked",
+      "canonical_source": "supabase/migrations/20261121123000_nova_nexora_sale_idempotency.sql",
+      "canonical_git_blob_sha": "8ea57dba5dc507f9a6dfb307842127c1b978cce9",
+      "additional_variants": []
     }
   ],
   "tracked_migration_files_on_branch": 87,
@@ -851,8 +891,9 @@
     "The three NOVA hardening migrations were applied to production on 2026-11-20 and are recorded as ledger versions 20261120181539, 20261120181541, and 20261120181542.",
     "The financial idempotency and market history migration was applied on 2026-11-20 and is recorded as ledger version 20261120184839.",
     "The live player skill effects migration was applied on 2026-11-20 and is recorded as ledger version 20261120191611.",
-    "The phase-one target production schema snapshot includes the org-contract claim trigger and updated RPC guards: 46 tables, 152 functions (139 SECURITY DEFINER), 41 triggers, 102 indexes, and 169 constraints.",
     "The organization contract negotiation skill migration was applied on 2026-11-20 and is recorded as ledger version 20261120192229.",
-    "The four phase-one migration files are tracked locally but are not mapped to production ledger records until the PR is merged and migrations are applied."
+    "The four phase-one hardening migrations were applied on 2026-11-21 and are recorded as ledger versions 20261121115325, 20261121115332, 20261121115340, and 20261121115410.",
+    "The phase-two NEXORA merchant sale idempotency migration was applied on 2026-11-21 and is recorded as ledger version 20261121120526.",
+    "The phase-two production schema snapshot includes the NEXORA merchant sale idempotency RPC: 46 tables, 153 functions (140 SECURITY DEFINER), 41 triggers, 102 indexes, and 169 constraints."
   ]
 }
