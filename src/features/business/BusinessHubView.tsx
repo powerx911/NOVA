@@ -94,6 +94,7 @@ export function BusinessHubView({
 
   const [subTab, setSubTab] = useState<BusinessSubTab>('companies');
   const [busyKey, setBusyKey] = useState<string | null>(null);
+  const [attemptedCompanyUpgrades, setAttemptedCompanyUpgrades] = useState<Set<string>>(() => new Set());
   const [nowMs, setNowMs] = useState(() => Date.now());
   const [companyView, setCompanyView] = useState<'overview' | 'found' | 'detail'>('overview');
   const [selectedCompanyId, setSelectedCompanyId] = useState('');
@@ -115,7 +116,9 @@ export function BusinessHubView({
   useEffect(() => {
     for (const company of companies) {
       const companyEndsAt = company.levelUpgradeEndsAt ? timestampToMs(company.levelUpgradeEndsAt) : 0;
-      if (companyEndsAt > 0 && companyEndsAt <= nowMs && busyKey !== `complete_company_${company.id}`) {
+      const completionKey = `${company.id}:${company.levelUpgradeEndsAt ?? ''}`;
+      if (companyEndsAt > 0 && companyEndsAt <= nowMs && busyKey !== `complete_company_${company.id}` && !attemptedCompanyUpgrades.has(completionKey)) {
+        setAttemptedCompanyUpgrades((current) => new Set(current).add(completionKey));
         setBusyKey(`complete_company_${company.id}`);
         void completeCompanyUpgrade(profile.uid, company.id).then(() => showToast(language === 'ar' ? 'اكتمل تطوير الشركة!' : 'Company upgrade completed!', 'success')).catch(() => undefined).finally(() => setBusyKey((current) => current === `complete_company_${company.id}` ? null : current));
       }
@@ -125,7 +128,7 @@ export function BusinessHubView({
         void completeCompanyVaultUpgrade(profile.uid, company.id).then(() => showToast(language === 'ar' ? 'اكتمل تطوير الخزينة!' : 'Vault upgrade completed!', 'success')).catch(() => undefined).finally(() => setBusyKey((current) => current === `complete_vault_${company.id}` ? null : current));
       }
     }
-  }, [companies, nowMs, busyKey, profile.uid, language, showToast]);
+  }, [companies, nowMs, busyKey, attemptedCompanyUpgrades, profile.uid, language, showToast]);
 
   useEffect(() => {
     let active = true;
