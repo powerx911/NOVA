@@ -12,6 +12,8 @@ on:
       - "supabase/migrations/**"
       - "supabase/tests/**"
       - ".github/workflows/ci.yml"
+      - "PROJECT_STATUS.md"
+      - "docs/**"
       - "playwright.config.mjs"
       - "e2e/**"
       - ".github/workflows/database-history-replay.yml"
@@ -19,6 +21,11 @@ on:
     branches:
       - main
     paths:
+      - ".github/workflows/ci.yml"
+      - "playwright.config.mjs"
+      - "e2e/**"
+      - "PROJECT_STATUS.md"
+      - "docs/**"
       - "supabase/recovered-history/**"
       - "supabase/ci/**"
       - "scripts/validate_migration_manifest.py"
