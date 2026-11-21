@@ -57,10 +57,10 @@ BEGIN
     RAISE EXCEPTION 'Biotechnology manufacturing recipe is not canonical in the production snapshot';
   END IF;
 
-  IF position('least(80,greatest(0,floor((v_company.total_revenue+v_payout)::numeric/15)::bigint-floor(v_company.total_revenue::numeric/15)::bigint))' in pg_get_functiondef('nexora.collect_company_revenue(text,text)'::regprocedure)) = 0
+  IF position('least(80,floor(v_payout/15)::integer)' in pg_get_functiondef('nexora.collect_company_revenue(text,text)'::regprocedure)) = 0
      OR position('reputation=reputation+' in pg_get_functiondef('nexora.collect_company_revenue(text,text)'::regprocedure)) > 0
      OR position('influence=influence+' in pg_get_functiondef('nexora.collect_company_revenue(text,text)'::regprocedure)) > 0 THEN
-    RAISE EXCEPTION 'Company revenue rewards are not proportional to cumulative collected revenue';
+    RAISE EXCEPTION 'Company revenue rewards are not proportional to the actual payout';
   END IF;
 
   IF position('upgrade_not_finished' in lower(pg_get_functiondef('nexora.upgrade_factory(text,text)'::regprocedure))) = 0
