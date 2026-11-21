@@ -427,6 +427,7 @@ export async function upgradeCompanyVault(_uid: string, companyId: string): Prom
 
 export async function completeCompanyUpgrade(_uid: string, companyId: string): Promise<void> {
   await callSupabaseCompanyAction('company_complete', companyId);
+  if (typeof window !== 'undefined') window.dispatchEvent(new Event('nova:refresh-game'));
 }
 
 export async function completeCompanyVaultUpgrade(_uid: string, companyId: string): Promise<void> {
