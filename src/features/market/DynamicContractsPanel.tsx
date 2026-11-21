@@ -178,7 +178,7 @@ export function DynamicContractsPanel({ profile, inventory, wallet, language, no
         ACTIVE_CONTRACT_LIMIT: ['لديك 3 عقود شخصية نشطة بالفعل.', 'You already have three active personal contracts.'],
         ORG_ACTIVE_CONTRACT_LIMIT: ['لديك ثلاثة عقود منظمة نشطة بالفعل.', 'You already have three active organization contracts.'],
         ORG_MEMBERSHIP_TOO_NEW: ['يجب أن تمر 8 ساعات على عضويتك في المنظمة.', 'Organization membership must be at least 8 hours old.'],
-        MISSING_INPUTS: ['المواد المطلوبة غير متوفرة في المخزون.', 'Required materials are missing from inventory.'],
+        MISSING_INPUTS: ['الموارد غير كافية في المخزون.', 'Insufficient resources in inventory.'],
         INSUFFICIENT_FUNDS: ['رصيدك لا يكفي لرسوم المعالجة.', 'Your balance cannot cover the processing fee.'],
         CONTRACT_NOT_READY: ['لم تنتهِ المعالجة بعد.', 'Processing is not finished yet.'],
         CONTRACT_EXPIRED: ['انتهت مهلة العقد وتم استبداله بعرض جديد.', 'The contract expired and was replaced with a new offer.'],
