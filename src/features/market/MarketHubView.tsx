@@ -278,6 +278,10 @@ export function MarketHubView({
           ? language === 'ar'
             ? `السعر أعلى من الحد الأقصى المسموح: ${sellPriceBounds?.maxPrice ?? LISTING_MAX_PRICE}.`
             : `Price exceeds the maximum allowed: ${sellPriceBounds?.maxPrice ?? LISTING_MAX_PRICE}.`
+          : code === 'ACTIVE_LISTING_EXISTS'
+          ? language === 'ar'
+            ? 'لديك عرض نشط لهذا المورد بالفعل. ألغِ العرض الحالي أو انتظر نفاده قبل إنشاء عرض جديد.'
+            : 'You already have an active offer for this resource. Cancel it or wait until it sells out before creating another.'
           : code === 'INVALID_LISTING_PARAMS'
           ? language === 'ar'
             ? 'تأكد من إدخال كمية وسعر صالحين ضمن الحدود المسموحة.'
