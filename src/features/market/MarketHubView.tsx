@@ -7,7 +7,7 @@ import {
   ArrowDownLeft,
   ArrowUpRight,
 } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { ManufacturingPanel } from './ManufacturingPanel';
 import { DynamicContractsPanel } from './DynamicContractsPanel';
@@ -79,12 +79,19 @@ export function MarketHubView({
   const [activityLoading, setActivityLoading] = useState(false);
   const [activityFilter, setActivityFilter] = useState<'all' | 'purchases' | 'sales'>('all');
   const [marketPriceHistory, setMarketPriceHistory] = useState<MarketPricePoint[]>([]);
+  const marketListingsFetchInFlight = useRef(false);
+  const marketHistoryFetchInFlight = useRef(false);
+  const marketActivityFetchInFlight = useRef(false);
 
   useEffect(() => {
     let active = true;
     const refresh = () => {
-      if (document.visibilityState !== 'visible') return;
-      void fetchMarketListings().then((rows) => { if (active) setLiveListings(rows); }).catch(() => undefined);
+      if (document.visibilityState !== 'visible' || marketListingsFetchInFlight.current) return;
+      marketListingsFetchInFlight.current = true;
+      void fetchMarketListings()
+        .then((rows) => { if (active) setLiveListings(rows); })
+        .catch(() => undefined)
+        .finally(() => { marketListingsFetchInFlight.current = false; });
     };
     refresh();
     const timer = window.setInterval(refresh, 15_000);
@@ -96,8 +103,12 @@ export function MarketHubView({
   useEffect(() => {
     let active = true;
     const refresh = () => {
-      if (document.visibilityState !== 'visible') return;
-      void fetchMarketPriceHistory().then((rows) => { if (active) setMarketPriceHistory(rows); }).catch(() => undefined);
+      if (document.visibilityState !== 'visible' || marketHistoryFetchInFlight.current) return;
+      marketHistoryFetchInFlight.current = true;
+      void fetchMarketPriceHistory()
+        .then((rows) => { if (active) setMarketPriceHistory(rows); })
+        .catch(() => undefined)
+        .finally(() => { marketHistoryFetchInFlight.current = false; });
     };
     refresh();
     const timer = window.setInterval(refresh, 5 * 60_000);
@@ -112,11 +123,16 @@ export function MarketHubView({
     if (subTab !== 'records') return;
     let active = true;
     const refresh = () => {
+      if (document.visibilityState !== 'visible' || marketActivityFetchInFlight.current) return;
+      marketActivityFetchInFlight.current = true;
       setActivityLoading(true);
       void fetchMarketActivity()
         .then((rows) => { if (active) setMarketActivity(rows); })
         .catch(() => undefined)
-        .finally(() => { if (active) setActivityLoading(false); });
+        .finally(() => {
+          marketActivityFetchInFlight.current = false;
+          if (active) setActivityLoading(false);
+        });
     };
     refresh();
     const timer = window.setInterval(refresh, 15_000);
