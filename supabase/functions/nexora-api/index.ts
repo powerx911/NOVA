@@ -115,6 +115,17 @@ Deno.serve(async (req: Request) => {
       return json({ ok: true, data: { deleted: true, database: deletion } }, 200, origin);
     }
 
+    if (body.action === "fetch_nexora_daily_sales") {
+      const saleDate = new Date().toISOString().slice(0, 10);
+      const { data, error } = await db.from("nexora_daily_sales")
+        .select("quantity_sold")
+        .eq("user_id", identity.uid)
+        .eq("sale_date", saleDate)
+        .maybeSingle();
+      if (error) return json({ error: "NEXORA_DAILY_SALES_FETCH_FAILED" }, 500, origin);
+      return json({ ok: true, data: { daily_sold: Number(data?.quantity_sold ?? 0) } }, 200, origin);
+    }
+
     if (body.action === "sell_to_nexora") {
       const itemId = typeof body.itemId === "string" ? body.itemId : "";
       const quantity = Number.isInteger(body.quantity) ? Number(body.quantity) : 0;
