@@ -3,7 +3,7 @@ import { ArrowLeft, Package, ShoppingBag } from 'lucide-react';
 import { ResourceIcon } from '../../components/ui/ResourceIcon';
 import { ITEM_MAP } from '../../data/catalog';
 import type { InventoryItem, Language, MarketListing } from '../../types/game';
-import { fetchInventoryCapacityUsage, sellToNexora } from '../../services/gameService';
+import { fetchInventoryCapacityUsage, fetchNexoraDailySales, sellToNexora } from '../../services/gameService';
 
 interface InventoryPanelProps {
   inventory: InventoryItem[];
@@ -25,6 +25,14 @@ export function InventoryPanel({ inventory, marketListings, uid, language, title
   const [merchantBusy, setMerchantBusy] = useState(false);
   const [merchantNotice, setMerchantNotice] = useState('');
   const [merchantDailySold, setMerchantDailySold] = useState<number | null>(null);
+  useEffect(() => {
+    if (!merchantOpen) return;
+    let active = true;
+    void fetchNexoraDailySales().then((sold) => {
+      if (active) setMerchantDailySold((current) => Math.max(current ?? 0, sold));
+    }).catch(() => undefined);
+    return () => { active = false; };
+  }, [merchantOpen]);
   const selectedInv = inventory.find((entry) => entry.itemId === merchantItemId && entry.quantity > 0);
   const selectedItem = merchantItemId ? ITEM_MAP[merchantItemId] : null;
   const merchantPrice = selectedItem ? Math.round(selectedItem.basePrice * 0.6) : 0;
@@ -72,7 +80,7 @@ export function InventoryPanel({ inventory, marketListings, uid, language, title
     </div>}
     <div className="bg-[#141821] border border-white/8 rounded-2xl p-5 space-y-4">
       <div className="flex items-center justify-between">
-        <button type="button" onClick={() => { resetMerchant(); setMerchantOpen(true); }} className="inline-flex items-center gap-2 rounded-xl border border-cyan-200/20 bg-cyan-200/[.06] px-3 py-2 text-xs font-semibold text-[#9CBFFF] hover:bg-cyan-200/10"><ShoppingBag size={15} />{language === 'ar' ? 'البيع لـ NEXORA' : 'Sell to NEXORA'}</button>
+        <button type="button" onClick={() => { resetMerchant(); setMerchantDailySold(null); setMerchantOpen(true); }} className="inline-flex items-center gap-2 rounded-xl border border-cyan-200/20 bg-cyan-200/[.06] px-3 py-2 text-xs font-semibold text-[#9CBFFF] hover:bg-cyan-200/10"><ShoppingBag size={15} />{language === 'ar' ? 'البيع لـ NEXORA' : 'Sell to NEXORA'}</button>
         <h2 className="text-base font-semibold text-[#F4F5F7]">{title}</h2>
         <Package className="w-4 h-4 text-[#63A5FF]" />
       </div>
