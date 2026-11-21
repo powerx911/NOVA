@@ -19,6 +19,7 @@ on:
     branches:
       - main
     paths:
+      - ".github/workflows/ci.yml"
       - "supabase/recovered-history/**"
       - "supabase/ci/**"
       - "scripts/validate_migration_manifest.py"
