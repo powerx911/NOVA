@@ -327,8 +327,10 @@ export function useGameData(): GameDataState {
 
   const registerWithEmail = useCallback(async (email: string, password: string) => {
     const credential = await createUserWithEmailAndPassword(auth, email.trim(), password);
+    // Keep the newly created account signed in so the auth-state listener
+    // routes it to character creation instead of treating it as a returning
+    // player who must already have a profile.
     await sendEmailVerification(credential.user);
-    await signOut(auth);
   }, []);
 
   const loginAsGuest = useCallback(async () => {
