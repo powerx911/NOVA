@@ -33,7 +33,7 @@ select extensions.lives_ok(
 );
 
 select extensions.is((select (payload->>'payout')::bigint from company_reward_results where result_id='base'), 1::bigint, 'the base test collects one credit');
-select extensions.is((select xp from nexora.player_profiles where user_id='pgtap_company_reward_base'), 0::bigint, 'a one-credit collection below the next revenue milestone grants no XP');
+select extensions.is((select xp from nexora.player_profiles where user_id='pgtap_company_reward_base'), 0::bigint, 'a one-credit collection below fifteen credits grants no XP');
 select extensions.is((select reputation from nexora.player_profiles where user_id='pgtap_company_reward_base'), 0::bigint, 'company collection does not grant reputation per request');
 select extensions.is((select influence from nexora.player_profiles where user_id='pgtap_company_reward_base'), 0::bigint, 'company collection does not grant influence per request');
 select extensions.is((select balance from nexora.wallets where user_id='pgtap_company_reward_base'), 1::bigint, 'the collected payout reaches the wallet');
