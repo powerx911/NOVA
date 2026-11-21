@@ -1,10 +1,10 @@
 -- Remove per-request XP/reputation/influence farming from company revenue collection.
--- XP is awarded only for cumulative $15 revenue milestones, capped at 80 per collection.
+-- XP is awarded only for each $15 actually collected, capped at 80 per collection.
 do $patch$
 declare
   v_definition text;
   v_old_xp text := $old$v_xp_gain:=least(80,greatest(10,floor(v_payout/15)::integer));$old$;
-  v_new_xp text := $new$v_xp_gain:=least(80,greatest(0,floor((v_company.total_revenue+v_payout)::numeric/15)::bigint-floor(v_company.total_revenue::numeric/15)::bigint));$new$;
+  v_new_xp text := $new$v_xp_gain:=least(80,floor(v_payout/15)::integer);$new$;
   v_old_rewards text := $old$v_leadership:=1+coalesce((v_profile.skills->>'leadership')::numeric,0)*0.1; update nexora.player_profiles set xp=v_xp,level=v_level_after,reputation=reputation+round(2*v_leadership)::bigint,influence=influence+round(1*v_leadership)::bigint,updated_at=now() where user_id=p_uid;$old$;
   v_new_rewards text := $new$update nexora.player_profiles set xp=v_xp,level=v_level_after,updated_at=now() where user_id=p_uid;$new$;
 begin
