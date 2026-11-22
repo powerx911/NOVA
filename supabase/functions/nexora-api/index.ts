@@ -57,7 +57,7 @@ Deno.serve(async (req: Request) => {
     if (banLookupError) throw banLookupError;
     const activeBan = storedBan && (!storedBan.expires_at || new Date(storedBan.expires_at).getTime() > Date.now()) ? storedBan : null;
     if (body.action === "check_account_ban") {
-      return json({ banned: Boolean(activeBan), reason: activeBan?.reason ?? null, expiresAt: activeBan?.expires_at ? Date.parse(activeBan.expires_at) : null }, 200, origin);
+      return json({ banned: Boolean(activeBan), reason: activeBan?.reason ?? null, expiresAt: activeBan?.expires_at ? Date.parse(activeBan.expires_at) : null, createdAt: activeBan?.created_at ? Date.parse(activeBan.created_at) : null }, 200, origin);
     }
     if (activeBan) return json({ error: "ACCOUNT_BANNED" }, 403, origin);
     const ensureAttachmentBucket = async () => {
