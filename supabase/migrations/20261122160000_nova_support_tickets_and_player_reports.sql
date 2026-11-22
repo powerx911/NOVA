@@ -1,4 +1,4 @@
--- Support tickets, free-form player reports, and private image attachments.
+-- Support tickets, free-form player reports, and private image attachments (never public).
 alter table nexora.player_reports drop constraint if exists player_reports_reason_check;
 alter table nexora.player_reports add column if not exists message text;
 alter table nexora.player_reports add column if not exists attachment_paths text[] not null default '{}';
