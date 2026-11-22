@@ -424,6 +424,7 @@ export function useTranslations(lang: Language) {
 const TX_TYPE_LABELS: Record<Language, Record<string, string>> = {
   ar: {
     transfer: 'تحويل مالي',
+    admin_adjustment: 'تعديل رصيد من الإدارة',
     market_buy: 'شراء من السوق',
     mission_reward: 'مكافأة مهمة',
     daily_stipend: 'العائد اليومي',
@@ -454,6 +455,7 @@ const TX_TYPE_LABELS: Record<Language, Record<string, string>> = {
   },
   en: {
     transfer: 'Transfer',
+    admin_adjustment: 'Admin balance adjustment',
     market_buy: 'Market Purchase',
     mission_reward: 'Mission Reward',
     daily_stipend: 'Daily Stipend',
@@ -527,7 +529,14 @@ export function isVisibleActivityType(type: string): boolean {
   return !HIDDEN_ACTIVITY_TYPES.has(type);
 }
 
-export function formatTxDescription(description: string, type: string, lang: Language): string {
+export function formatTxDescription(description: string, type: string, lang: Language, counterpartyName?: string | null, incoming?: boolean): string {
+  if (type === 'transfer' && counterpartyName) {
+    const generatedDescription = /^Transfer to /i.test(description);
+    const note = generatedDescription ? '' : description.trim();
+    const direction = incoming ? (lang === 'ar' ? 'تحويل من' : 'Transfer from') : (lang === 'ar' ? 'تحويل إلى' : 'Transfer to');
+    return `${direction} ${counterpartyName}${note ? ` — ${note}` : ''}`;
+  }
+  if (type === 'admin_adjustment') return description || formatTxType(type, lang);
   if (type === 'game_compensation') return lang === 'ar' ? 'تعويض عن مشكلة سابقة' : 'Previous issue compensation';
   if (type === 'company_upgrade_refund') return lang === 'ar' ? 'استرجاع فرق رسوم تطوير الشركة' : 'Company upgrade charge refund';
   if (type === 'company_collect') return lang === 'ar' ? 'تحصيل إيرادات الشركة' : 'Company revenue collected';

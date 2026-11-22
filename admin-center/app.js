@@ -76,7 +76,8 @@ async function api(action, data = {}) {
  });
  const result = await response.json().catch(() => ({}));
  if (!response.ok) {
-  const error = new Error(explain(result.error));
+  const detail = typeof result.detail === "string" ? result.detail : "";
+  const error = new Error(detail ? `${explain(result.error)} (${detail})` : explain(result.error));
   error.status = response.status;
   error.code = result.error || "REQUEST_FAILED";
   throw error;

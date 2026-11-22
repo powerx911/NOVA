@@ -79,6 +79,18 @@ export async function bootstrap(admin: ReturnType<typeof getAdminClient>, uid: s
   const transactions = [...txMap.values()].sort(
     (a, b) => new Date(String(b.created_at)).getTime() - new Date(String(a.created_at)).getTime(),
   ).slice(0, 40);
+  const counterpartIds = [...new Set(transactions
+    .flatMap((tx) => [String(tx.from_uid ?? ""), String(tx.to_uid ?? "")])
+    .filter((id) => id && id !== uid && id !== "SYSTEM"))];
+  const counterpartProfiles = counterpartIds.length
+    ? await queryData(db.from("player_profiles").select("user_id,username").in("user_id", counterpartIds))
+    : [];
+  const counterpartNames = new Map((counterpartProfiles as Record<string, unknown>[])
+    .map((item) => [String(item.user_id), String(item.username ?? "")]));
+  const transactionsWithCounterparty = transactions.map((tx) => ({
+    ...tx,
+    counterparty_name: counterpartNames.get(String(tx.from_uid === uid ? tx.to_uid ?? "" : tx.from_uid ?? "")) ?? null,
+  }));
 
   return {
     profile: profile == null ? null : {
@@ -88,7 +100,7 @@ export async function bootstrap(admin: ReturnType<typeof getAdminClient>, uid: s
     userPrivate: camelRow(userPrivate),
     wallet: camelRow(wallet),
     inventory: camelRow(inventory),
-    transactions: camelRow(transactions),
+    transactions: camelRow(transactionsWithCounterparty),
     marketListings: camelRow(marketListings),
     marketOrders: camelRow(marketOrders),
     companies: camelRow(companiesWithAuthoritativeEconomy),
