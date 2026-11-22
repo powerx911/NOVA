@@ -547,7 +547,7 @@ export function formatTxDescription(description: string, type: string, lang: Lan
       : `Company upgrade${targetLevel ? ` to Level ${targetLevel}` : ''}`;
   }
   if (type === 'factory_operating' || type === 'company_upgrade_refund_reversal') return '';
-  return description || formatTxType(type, lang);
+  return lang === 'ar' ? formatTxType(type, lang) : description || formatTxType(type, lang);
 }
 
 export function formatMissionCategory(category: string, lang: Language): string {
