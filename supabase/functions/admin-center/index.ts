@@ -390,10 +390,10 @@ Deno.serve(async req=>{
     const {error:authDeleteError}=await db.auth.admin.deleteUser(targetId);
     if(authDeleteError) {
      console.error("Player auth deletion failed after gameplay cleanup",{code:authDeleteError.code,message:authDeleteError.message,audit_logged:auditLogged});
-     return reply({ok:true,auth_deleted:false,audit_logged:auditLogged},200,origin);
+     return reply({ok:true,gameplay_deleted:true,auth_deleted:false,auth_provider:"supabase",audit_logged:auditLogged},200,origin);
     }
    }
-   return reply({ok:true,auth_deleted:isAuthUuid,audit_logged:auditLogged},200,origin);
+   return reply({ok:true,gameplay_deleted:true,auth_deleted:isAuthUuid?true:null,auth_provider:isAuthUuid?"supabase":"firebase",audit_logged:auditLogged},200,origin);
   }
   if(body.action==="search_players") {
    const query=typeof body.query==="string"?body.query.trim().slice(0,128):"";
