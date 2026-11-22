@@ -13,6 +13,9 @@ describe('recent activity formatting', () => {
     expect(formatTxDescription('Company revenue collected: Alpha', 'company_collect', 'ar')).toBe('تحصيل إيرادات الشركة');
     expect(formatTxDescription('Started upgrade to Lv.13', 'company_upgrade', 'ar')).toBe('ترقية الشركة إلى المستوى 13');
     expect(formatTxType('game_compensation', 'ar')).toBe('تعويض عن مشكلة سابقة');
+    expect(formatTxDescription('إضافة رصيد بواسطة إدارة اللعبة — تعويض', 'admin_adjustment', 'ar')).toBe('إضافة رصيد بواسطة إدارة اللعبة — تعويض');
+    expect(formatTxDescription('Transfer to Lina', 'transfer', 'ar', 'Lina', false)).toBe('تحويل إلى Lina');
+    expect(formatTxDescription('رسوم إيجار', 'transfer', 'ar', 'Lina', true)).toBe('تحويل من Lina — رسوم إيجار');
     expect(formatTxType('company_auction_escrow', 'ar')).toBe('حجز مبلغ مزاد الشركة');
     expect(formatTxType('company_auction_refund', 'ar')).toBe('استرجاع مبلغ مزاد الشركة');
     expect(formatTxType('skill_reset', 'ar')).toBe('إعادة تعيين المهارات');
