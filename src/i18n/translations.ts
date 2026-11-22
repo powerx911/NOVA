@@ -538,8 +538,8 @@ export function formatTxDescription(description: string, type: string, lang: Lan
   }
   if (type === 'admin_adjustment') {
     const reason = description
-      .replace(/^إضافة رصيد بواسطة إدارة اللعبة\\s*[—–-]?\\s*/i, '')
-      .replace(/^Admin balance adjustment\\s*[—–-]?\\s*/i, '')
+      .replace(/^إضافة رصيد بواسطة إدارة اللعبة\s*[—–-]?\s*/i, '')
+      .replace(/^Admin balance adjustment\s*[—–-]?\s*/i, '')
       .trim();
     return reason || (lang === 'ar' ? 'لا يوجد سبب مرفق' : 'No reason provided');
   }
