@@ -82,8 +82,9 @@
   <section class="view" id="view-admins">
    <div class="panel" id="owner-panel">
     <div class="panel-head"><div><p class="eyebrow">إدارة الوصول</p><h2>حسابات المشرفين</h2></div><span class="pill">Owner فقط</span></div>
-    <p class="muted">إنشاء حسابات Admin وإدارتها متاح لحساب Owner فقط. لا تظهر هذه الصفحة لحسابات Admin.</p>
+    <p class="muted">يمكنك تحديد الاسم الذي يظهر للاعبين لكل مشرف، وتعديله لاحقًا. لا تظهر هذه الصفحة إلا للأونر.</p>
     <form id="create-admin-form">
+     <label>الاسم الظاهر للاعبين<input name="display_name" type="text" autocomplete="off" required minlength="2" maxlength="40" placeholder="مثال: مشرف الدعم"></label>
      <label>البريد الإلكتروني<input name="email" type="email" autocomplete="off" required></label>
      <label>كلمة مرور مؤقتة<input name="password" type="password" autocomplete="new-password" required minlength="12"></label>
      <button type="submit">إنشاء حساب Admin</button>
