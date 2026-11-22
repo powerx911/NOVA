@@ -355,6 +355,31 @@ Deno.serve(async req=>{
    await writeAudit(db,userData.user.id,"admin_player_message_sent","player",targetId,{message_length:message.length});
    return reply({ok:true},200,origin);
   }
+  if(body.action==="delete_player_account") {
+   if(actor.role!=="owner") return reply({error:"OWNER_REQUIRED"},403,origin);
+   const targetId=typeof body.user_id==="string"?body.user_id.trim():"";
+   if(!targetId||targetId.length>128||targetId===userData.user.id) return reply({error:"INVALID_PLAYER_TARGET"},400,origin);
+   const {data:targetAdmin,error:adminLookupError}=await db.from("admin_accounts").select("user_id").eq("user_id",targetId).maybeSingle();
+   if(adminLookupError) return reply({error:"PLAYER_ACCOUNT_DELETE_FAILED"},500,origin);
+   if(targetAdmin) return reply({error:"INVALID_PLAYER_TARGET"},400,origin);
+   const {data:profile,error:profileError}=await db.schema("nexora").from("player_profiles").select("user_id,username").eq("user_id",targetId).maybeSingle();
+   if(profileError||!profile) return reply({error:"PLAYER_NOT_FOUND"},404,origin);
+   const {data:deleted,error:cleanupError}=await db.schema("nexora").rpc("delete_player_account",{p_uid:targetId});
+   if(cleanupError||!deleted?.ok) {
+    const raw=String(cleanupError?.message??"");
+    const code=["ACCOUNT_HAS_ACTIVE_AUCTION_BID","LEADER_MUST_TRANSFER","INVALID_ACCOUNT"].find(value=>raw.includes(value));
+    if(code) return reply({error:code},409,origin);
+    console.error("Player account cleanup failed",{code:cleanupError?.code,message:cleanupError?.message});
+    return reply({error:"PLAYER_ACCOUNT_DELETE_FAILED"},500,origin);
+   }
+   await writeAudit(db,userData.user.id,"admin_player_account_deleted","player_account",targetId,{username:profile.username,auction_refunds:deleted.auction_refunds??0,archived_companies:deleted.archived_companies??0,archived_factories:deleted.archived_factories??0});
+   const {error:authDeleteError}=await db.auth.admin.deleteUser(targetId);
+   if(authDeleteError) {
+    console.error("Player auth deletion failed after gameplay cleanup",{code:authDeleteError.code,message:authDeleteError.message});
+    return reply({ok:true,auth_deleted:false},200,origin);
+   }
+   return reply({ok:true,auth_deleted:true},200,origin);
+  }
   if(body.action==="search_players") {
    const query=typeof body.query==="string"?body.query.trim().slice(0,128):"";
    if(query.length<1) return reply({error:"PLAYER_SEARCH_TOO_SHORT"},400,origin);
