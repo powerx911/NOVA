@@ -3,8 +3,8 @@
   "captured_at": "2026-11-22",
   "repository": "powerx911/NOVA",
   "production_project_id": "hmrprnjhyzyefocdmnxf",
-  "production_ledger_records": 93,
-  "tracked_migration_files": 89,
+  "production_ledger_records": 94,
+  "tracked_migration_files": 90,
   "recovered_history_sql_files": 55,
   "production_schema_inventory": {
     "tables": 46,
@@ -870,6 +870,14 @@
       "source_status": "tracked",
       "canonical_source": "supabase/migrations/20261122134726_grant_admin_player_report_access.sql",
       "canonical_git_blob_sha": "a2b5393bdce2dded4f05337de2be4316c3d5e05d",
+      "additional_variants": []
+    },
+    {
+      "version": "20261122143000",
+      "name": "create_player_feedback",
+      "source_status": "tracked",
+      "canonical_source": "supabase/migrations/20261122143000_create_player_feedback.sql",
+      "canonical_git_blob_sha": "e84134b54516663c50b25987a7c5e20754e2b01a",
       "additional_variants": []
     }
   ],
