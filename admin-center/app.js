@@ -9,7 +9,11 @@ const REASON_LABELS = { harassment: "مضايقة", spam: "رسائل مزعجة
 const ACTION_LABELS = {
  admin_account_created: "إنشاء حساب مشرف",
  admin_account_deleted: "حذف حساب مشرف",
- admin_report_status_changed: "تحديث حالة بلاغ لاعب"
+ admin_report_status_changed: "تحديث حالة بلاغ لاعب",
+ admin_report_notification_sent: "إرسال إشعار لصاحب البلاغ",
+ admin_ticket_claimed: "استلام تذكرة دعم",
+ admin_ticket_message_sent: "الرد على تذكرة دعم",
+ admin_ticket_closed: "إغلاق تذكرة دعم"
 };
 function saveSession(session) {
  accessToken = session.access_token;
