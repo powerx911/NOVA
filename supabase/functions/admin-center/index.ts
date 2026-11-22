@@ -8,6 +8,13 @@ const cors = (origin:string|null) => ({"Access-Control-Allow-Origin":origin && O
 const reply=(body:unknown,status:number,origin:string|null)=>new Response(JSON.stringify(body),{status,headers:{...cors(origin),"Content-Type":"application/json","Cache-Control":"no-store"}});
 const service=()=>createClient(URL,SERVICE,{auth:{persistSession:false,autoRefreshToken:false}});
 const auth=()=>createClient(URL,ANON,{auth:{persistSession:false,autoRefreshToken:false}});
+const signedImages=async(db:any,paths:string[]|null|undefined)=>{
+ const values=await Promise.all((paths??[]).map(async(path:string)=>{
+  const {data,error}=await db.storage.from("player-support-attachments").createSignedUrl(path,60*60);
+  return error||!data?.signedUrl?null:data.signedUrl;
+ }));
+ return values.filter((value):value is string=>Boolean(value));
+};
 const writeAudit=async(db:any,actorId:string,action:string,entityType:string,entityId:string,details:Record<string,unknown>)=>{
  const {error}=await db.schema("nexora").from("audit_logs").insert({
   id:`admin_${crypto.randomUUID()}`,user_id:actorId,action,entity_type:entityType,entity_id:entityId,details
@@ -104,15 +111,15 @@ Deno.serve(async req=>{
 
   if(body.action==="list_player_reports") {
    const [{data:reports,error:reportsError},{data:feedback,error:feedbackError}]=await Promise.all([
-    db.schema("nexora").from("player_reports").select("id,reporter_uid,target_uid,reason,status,created_at").order("created_at",{ascending:false}).limit(100),
-    db.schema("nexora").from("player_feedback").select("id,user_id,feedback_type,message,status,created_at").order("created_at",{ascending:false}).limit(100)
+    db.schema("nexora").from("player_reports").select("id,reporter_uid,target_uid,reason,message,attachment_paths,status,created_at").order("created_at",{ascending:false}).limit(100),
+    db.schema("nexora").from("player_feedback").select("id,user_id,feedback_type,message,attachment_paths,status,created_at").order("created_at",{ascending:false}).limit(100)
    ]);
    if(reportsError||feedbackError) return reply({error:"REPORT_LIST_FAILED"},500,origin);
    const ids=[...new Set([...(reports??[]).flatMap((r:any)=>[r.reporter_uid,r.target_uid]),...(feedback??[]).map((f:any)=>f.user_id)])];
    const {data:profiles}=ids.length?await db.schema("nexora").from("player_profiles").select("user_id,username").in("user_id",ids):{data:[]};
    const names=new Map((profiles??[]).map((p:any)=>[p.user_id,p.username]));
-   const playerReports=(reports??[]).map((r:any)=>({...r,source:"player_report",kind:"player_report",reporter_name:names.get(r.reporter_uid)??"لاعب غير معروف",target_name:names.get(r.target_uid)??"لاعب غير معروف"}));
-   const playerFeedback=(feedback??[]).map((f:any)=>({id:f.id,source:"player_feedback",kind:f.feedback_type,user_id:f.user_id,reporter_uid:f.user_id,reporter_name:names.get(f.user_id)??"لاعب غير معروف",message:f.message,reason:f.feedback_type,status:f.status,created_at:f.created_at}));
+   const playerReports=await Promise.all((reports??[]).map(async(r:any)=>({...r,source:"player_report",kind:"player_report",reporter_name:names.get(r.reporter_uid)??"لاعب غير معروف",target_name:names.get(r.target_uid)??"لاعب غير معروف",message:r.message||r.reason||"لم يكتب اللاعب سببًا",attachments:await signedImages(db,r.attachment_paths)})));
+   const playerFeedback=await Promise.all((feedback??[]).map(async(f:any)=>({id:f.id,source:"player_feedback",kind:f.feedback_type,user_id:f.user_id,reporter_uid:f.user_id,reporter_name:names.get(f.user_id)??"لاعب غير معروف",target_name:null,message:f.message||"—",reason:f.feedback_type,status:f.status,created_at:f.created_at,attachments:await signedImages(db,f.attachment_paths)})));
    return reply({reports:[...playerReports,...playerFeedback].sort((a:any,b:any)=>new Date(b.created_at).getTime()-new Date(a.created_at).getTime()).slice(0,150)},200,origin);
   }
   if(body.action==="update_player_report") {
@@ -120,7 +127,7 @@ Deno.serve(async req=>{
    const status=typeof body.status==="string"?body.status:"";
    const source=body.source==="player_feedback"?"player_feedback":"player_report";
    const reason=typeof body.reason==="string"?body.reason.trim():"";
-   const validStatuses=source==="player_feedback"?["new","reviewing","resolved","dismissed"]:["open","reviewing","closed"];
+   const validStatuses=["open","reviewing","closed"];
    if(!reportId||reportId.length>180||!validStatuses.includes(status)||reason.length<8||reason.length>500)
     return reply({error:"INVALID_REPORT_UPDATE"},400,origin);
    if(source==="player_feedback") {
@@ -137,6 +144,77 @@ Deno.serve(async req=>{
    if(updateError||!updated) return reply({error:"REPORT_UPDATE_FAILED"},500,origin);
    await writeAudit(db,userData.user.id,"admin_report_status_changed","player_report",reportId,{previous_status:before.status,new_status:status,reason});
    return reply({ok:true,report:updated},200,origin);
+  }
+  if(body.action==="send_player_report_notification") {
+   const reportId=typeof body.report_id==="string"?body.report_id.trim():"";
+   const source=body.source==="player_feedback"?"player_feedback":"player_report";
+   const message=typeof body.message==="string"?body.message.trim():"";
+   if(!reportId||message.length<3||message.length>2000) return reply({error:"INVALID_NOTIFICATION"},400,origin);
+   const table=source==="player_feedback"?"player_feedback":"player_reports";
+   const key=source==="player_feedback"?"id":"id";
+   const {data:report,error:reportError}=await db.schema("nexora").from(table).select(source==="player_feedback"?"user_id":"reporter_uid").eq(key,reportId).maybeSingle();
+   const targetUid=source==="player_feedback"?report?.user_id:report?.reporter_uid;
+   if(reportError||!targetUid) return reply({error:"REPORT_NOT_FOUND"},404,origin);
+   const {error:notifyError}=await db.schema("nexora").from("notifications").insert({id:`admin-report-${crypto.randomUUID()}`,user_id:targetUid,title:"رسالة من الإدارة",body:message,type:"system",is_read:false,event_key:`admin-report:${reportId}:${crypto.randomUUID()}`});
+   if(notifyError) return reply({error:"PLAYER_NOTIFICATION_FAILED"},500,origin);
+   await writeAudit(db,userData.user.id,"admin_report_notification_sent",source,reportId,{message});
+   return reply({ok:true},200,origin);
+  }
+  if(body.action==="list_support_tickets") {
+   const {data:tickets,error}=await db.schema("nexora").from("support_tickets").select("id,user_id,subject,status,claimed_by,claimed_at,closed_at,created_at,updated_at").order("updated_at",{ascending:false}).limit(150);
+   if(error) return reply({error:"TICKET_LIST_FAILED"},500,origin);
+   const ids=[...new Set((tickets??[]).map((ticket:any)=>ticket.user_id))];
+   const {data:profiles}=ids.length?await db.schema("nexora").from("player_profiles").select("user_id,username").in("user_id",ids):{data:[]};
+   const names=new Map((profiles??[]).map((p:any)=>[p.user_id,p.username]));
+   const ticketIds=(tickets??[]).map((ticket:any)=>ticket.id);
+   const {data:messages,error:messagesError}=ticketIds.length?await db.schema("nexora").from("support_ticket_messages").select("id,ticket_id,sender_type,sender_id,message,attachment_paths,created_at").in("ticket_id",ticketIds).order("created_at",{ascending:true}):{data:[],error:null};
+   if(messagesError) return reply({error:"TICKET_MESSAGES_FAILED"},500,origin);
+   const result=await Promise.all((tickets??[]).map(async(ticket:any)=>({
+    ...ticket,player_name:names.get(ticket.user_id)??"لاعب غير معروف",
+    messages:await Promise.all((messages??[]).filter((m:any)=>m.ticket_id===ticket.id).map(async(m:any)=>({...m,attachments:await signedImages(db,m.attachment_paths)})))
+   })));
+   return reply({tickets:result},200,origin);
+  }
+  if(body.action==="claim_support_ticket") {
+   const ticketId=typeof body.ticket_id==="string"?body.ticket_id:"";
+   if(!ticketId) return reply({error:"INVALID_TICKET"},400,origin);
+   const {data:ticket,error:readError}=await db.schema("nexora").from("support_tickets").select("id,user_id,status,claimed_by").eq("id",ticketId).maybeSingle();
+   if(readError||!ticket) return reply({error:"TICKET_NOT_FOUND"},404,origin);
+   if(ticket.status==="closed") return reply({error:"TICKET_CLOSED"},409,origin);
+   if(ticket.claimed_by&&ticket.claimed_by!==userData.user.id) return reply({error:"TICKET_ALREADY_CLAIMED"},409,origin);
+   const now=new Date().toISOString();
+   const {error:updateError}=await db.schema("nexora").from("support_tickets").update({status:"claimed",claimed_by:userData.user.id,claimed_at:ticket.claimed_at??now,updated_at:now}).eq("id",ticketId);
+   if(updateError) return reply({error:"TICKET_UPDATE_FAILED"},500,origin);
+   await db.schema("nexora").from("notifications").insert({id:`ticket-claimed-${crypto.randomUUID()}`,user_id:ticket.user_id,title:"تم استلام تذكرتك",body:"تم استلام التذكرة من أحد الإداريين، ويمكنك متابعة المحادثة من صفحة التذاكر.",type:"system",is_read:false,event_key:`ticket-claimed:${ticketId}`});
+   await writeAudit(db,userData.user.id,"admin_ticket_claimed","support_ticket",ticketId,{});
+   return reply({ok:true},200,origin);
+  }
+  if(body.action==="send_support_ticket_message") {
+   const ticketId=typeof body.ticket_id==="string"?body.ticket_id:"";
+   const message=typeof body.message==="string"?body.message.trim():"";
+   if(!ticketId||message.length<1||message.length>3000) return reply({error:"INVALID_TICKET_MESSAGE"},400,origin);
+   const {data:ticket,error:ticketError}=await db.schema("nexora").from("support_tickets").select("id,user_id,status,claimed_by").eq("id",ticketId).maybeSingle();
+   if(ticketError||!ticket) return reply({error:"TICKET_NOT_FOUND"},404,origin);
+   if(ticket.status==="closed") return reply({error:"TICKET_CLOSED"},409,origin);
+   if(ticket.claimed_by&&ticket.claimed_by!==userData.user.id) return reply({error:"TICKET_OWNED_BY_OTHER_ADMIN"},403,origin);
+   const {error:insertError}=await db.schema("nexora").from("support_ticket_messages").insert({ticket_id:ticketId,sender_type:"admin",sender_id:userData.user.id,message});
+   if(insertError) return reply({error:"TICKET_MESSAGE_FAILED"},500,origin);
+   await db.schema("nexora").from("support_tickets").update({updated_at:new Date().toISOString()}).eq("id",ticketId);
+   await db.schema("nexora").from("notifications").insert({id:`ticket-message-${crypto.randomUUID()}`,user_id:ticket.user_id,title:"رسالة من الإدارة",body:message,type:"system",is_read:false,event_key:`ticket-message:${ticketId}:${crypto.randomUUID()}`});
+   await writeAudit(db,userData.user.id,"admin_ticket_message_sent","support_ticket",ticketId,{message});
+   return reply({ok:true},200,origin);
+  }
+  if(body.action==="close_support_ticket") {
+   const ticketId=typeof body.ticket_id==="string"?body.ticket_id:"";
+   if(!ticketId) return reply({error:"INVALID_TICKET"},400,origin);
+   const {data:ticket,error:ticketError}=await db.schema("nexora").from("support_tickets").select("id,status,claimed_by").eq("id",ticketId).maybeSingle();
+   if(ticketError||!ticket) return reply({error:"TICKET_NOT_FOUND"},404,origin);
+   if(ticket.claimed_by&&ticket.claimed_by!==userData.user.id) return reply({error:"TICKET_OWNED_BY_OTHER_ADMIN"},403,origin);
+   const now=new Date().toISOString();
+   const {error}=await db.schema("nexora").from("support_tickets").update({status:"closed",closed_at:now,updated_at:now}).eq("id",ticketId);
+   if(error) return reply({error:"TICKET_UPDATE_FAILED"},500,origin);
+   await writeAudit(db,userData.user.id,"admin_ticket_closed","support_ticket",ticketId,{});
+   return reply({ok:true},200,origin);
   }
   if(body.action==="search_players") {
    const query=typeof body.query==="string"?body.query.trim().slice(0,128):"";
