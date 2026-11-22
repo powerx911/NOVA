@@ -59,6 +59,9 @@ function explain(code) {
   INVALID_PLAYER_BAN: "تحقق من مدة الحظر والسبب.",
   PLAYER_NOT_FOUND: "لم يتم العثور على اللاعب.",
   PLAYER_MESSAGE_FAILED: "تعذر إرسال رسالة إدارة اللعبة.",
+  INVALID_PLAYER_MESSAGE: "اكتب رسالة صحيحة لا تتجاوز 1000 حرف.",
+  WALLET_ADJUSTMENT_FAILED: "تعذر تعديل رصيد اللاعب.",
+  PLAYER_BAN_FAILED: "تعذر تبنيد حساب اللاعب.",
   AUDIT_LOG_WRITE_FAILED: "تعذر حفظ سجل التدقيق؛ لم يكتمل الإجراء."
  };
  return messages[code] || code || "تعذر إكمال الطلب.";
@@ -370,7 +373,7 @@ async function loadPlayers(query) {
     sendMessage.addEventListener("click", async () => {
      if (!messageInput.value.trim()) { message("اكتب الرسالة أولاً.", true); return; }
      sendMessage.disabled = true;
-     try { await api("send_player_admin_message", { user_id: player.user_id, message: messageInput.value.trim() }); message("تم إرسال الرسالة إلى التواصل."); messageInput.value = ""; await loadActivity(); }
+     try { await api("send_player_admin_message", { user_id: player.user_id, message: messageInput.value.trim() }); message("تم إرسال الرسالة إلى التواصل."); messageInput.value = ""; sendMessage.disabled = false; await loadActivity(); }
      catch (error) { message(error.message, true); sendMessage.disabled = false; }
     });
     controls.append(messageInput, sendMessage);
