@@ -39,7 +39,7 @@ Deno.serve(async req=>{
    if(actor.role!=="owner") return reply({error:"OWNER_REQUIRED"},403,origin);
    const email=typeof body.email==="string"?body.email.trim().toLowerCase():"";
    const password=typeof body.password==="string"?body.password:"";
-   if(!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email)||password.length<12||password.length>128) return reply({error:"INVALID_ADMIN_CREDENTIALS"},400,origin);
+   if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)||password.length<12||password.length>128) return reply({error:"INVALID_ADMIN_CREDENTIALS"},400,origin);
    const {data:created,error:createError}=await db.auth.admin.createUser({email,password,email_confirm:true});
    if(createError||!created.user) return reply({error:"ADMIN_ACCOUNT_CREATE_FAILED"},409,origin);
    const {error:roleError}=await db.from("admin_accounts").insert({user_id:created.user.id,role:"admin",enabled:true,created_by:userData.user.id});
