@@ -52,6 +52,32 @@ Deno.serve(async (req: Request) => {
     if (!body || typeof body.action !== "string") return json({ error: "INVALID_REQUEST" }, 400, origin);
     const admin = getAdminClient();
     const db = admin.schema("nexora");
+    const uploadImages = async (rawImages: unknown, ownerUid: string, scope: string): Promise<string[]> => {
+      if (rawImages === undefined || rawImages === null) return [];
+      if (!Array.isArray(rawImages) || rawImages.length > 3) throw new Error("INVALID_ATTACHMENTS");
+      const paths: string[] = [];
+      for (const raw of rawImages) {
+        if (typeof raw !== "string") throw new Error("INVALID_ATTACHMENTS");
+        const match = /^data:(image\/(?:jpeg|png|webp));base64,([A-Za-z0-9+/=]+)$/.exec(raw);
+        if (!match) throw new Error("INVALID_ATTACHMENT_TYPE");
+        const bytes = Uint8Array.from(atob(match[2]), (char) => char.charCodeAt(0));
+        if (bytes.byteLength < 1 || bytes.byteLength > 3 * 1024 * 1024) throw new Error("ATTACHMENT_TOO_LARGE");
+        const extension = match[1] === "image/jpeg" ? "jpg" : match[1].split("/")[1];
+        const objectPath = `${scope}/${ownerUid}/${crypto.randomUUID()}.${extension}`;
+        const { error } = await admin.storage.from("player-support-attachments").upload(objectPath, bytes, { contentType: match[1], upsert: false });
+        if (error) throw new Error("ATTACHMENT_UPLOAD_FAILED");
+        paths.push(objectPath);
+      }
+      return paths;
+    };
+    const signedImages = async (paths: string[] | null | undefined) => {
+      const values = await Promise.all((paths ?? []).map(async (path: string) => {
+        const { data, error } = await admin.storage.from("player-support-attachments").createSignedUrl(path, 60 * 60);
+        if (error || !data?.signedUrl) return null;
+        return data.signedUrl;
+      }));
+      return values.filter((value): value is string => Boolean(value));
+    };
 
     if (body.action === "submit_game_feedback") {
       const type = body.type === "issue" ? "issue" : body.type === "suggestion" ? "suggestion" : "";
@@ -61,9 +87,69 @@ Deno.serve(async (req: Request) => {
       const { count, error: rateLimitError } = await db.from("player_feedback").select("id", { count: "exact", head: true }).eq("user_id", identity.uid).gte("created_at", windowStart);
       if (rateLimitError) throw rateLimitError;
       if ((count ?? 0) >= 5) return json({ error: "FEEDBACK_RATE_LIMIT" }, 429, origin);
-      const { data, error } = await db.from("player_feedback").insert({ user_id: identity.uid, feedback_type: type, message }).select("id,created_at").single();
+      const attachmentPaths = await uploadImages(body.images, identity.uid, "feedback");
+      const { data, error } = await db.from("player_feedback").insert({ user_id: identity.uid, feedback_type: type, message, attachment_paths: attachmentPaths }).select("id,created_at").single();
       if (error) throw error;
       return json({ ok: true, data: { id: data.id, createdAt: data.created_at } }, 200, origin);
+    }
+
+    if (body.action === "submit_player_report") {
+      const targetUid = typeof body.targetUid === "string" ? body.targetUid.trim() : "";
+      const message = typeof body.message === "string" ? body.message.trim() : "";
+      if (!targetUid || targetUid === identity.uid || message.length < 10 || message.length > 3000) return json({ error: "INVALID_REPORT" }, 400, origin);
+      const { data: target, error: targetError } = await db.from("player_profiles").select("user_id").eq("user_id", targetUid).maybeSingle();
+      if (targetError || !target) return json({ error: "PLAYER_NOT_FOUND" }, 404, origin);
+      const windowStart = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+      const { count, error: rateLimitError } = await db.from("player_reports").select("id", { count: "exact", head: true }).eq("reporter_uid", identity.uid).gte("created_at", windowStart);
+      if (rateLimitError) throw rateLimitError;
+      if ((count ?? 0) >= 5) return json({ error: "REPORT_RATE_LIMIT" }, 429, origin);
+      const attachmentPaths = await uploadImages(body.images, identity.uid, "reports");
+      const reportId = crypto.randomUUID();
+      const { error } = await db.from("player_reports").insert({ id: reportId, reporter_uid: identity.uid, target_uid: targetUid, reason: message, message, attachment_paths: attachmentPaths, status: "open" });
+      if (error) throw error;
+      return json({ ok: true, data: { id: reportId } }, 200, origin);
+    }
+
+    if (body.action === "create_support_ticket") {
+      const subject = typeof body.subject === "string" ? body.subject.trim() : "";
+      const message = typeof body.message === "string" ? body.message.trim() : "";
+      if (subject.length < 3 || subject.length > 120 || message.length < 1 || message.length > 3000) return json({ error: "INVALID_TICKET" }, 400, origin);
+      const attachmentPaths = await uploadImages(body.images, identity.uid, "tickets");
+      const { data: ticket, error: ticketError } = await db.from("support_tickets").insert({ user_id: identity.uid, subject }).select("id,status,created_at").single();
+      if (ticketError) throw ticketError;
+      const { data: firstMessage, error: messageError } = await db.from("support_ticket_messages").insert({ ticket_id: ticket.id, sender_type: "player", sender_id: identity.uid, message, attachment_paths: attachmentPaths }).select("id,created_at").single();
+      if (messageError) {
+        await db.from("support_tickets").delete().eq("id", ticket.id).eq("user_id", identity.uid);
+        throw messageError;
+      }
+      return json({ ok: true, data: { ...ticket, firstMessageId: firstMessage.id } }, 201, origin);
+    }
+
+    if (body.action === "list_my_support_tickets") {
+      const { data: tickets, error } = await db.from("support_tickets").select("id,user_id,subject,status,claimed_at,created_at,updated_at").eq("user_id", identity.uid).order("updated_at", { ascending: false }).limit(50);
+      if (error) throw error;
+      const ids = (tickets ?? []).map((ticket: any) => ticket.id);
+      const { data: messages, error: messagesError } = ids.length ? await db.from("support_ticket_messages").select("id,ticket_id,sender_type,sender_id,message,attachment_paths,created_at").in("ticket_id", ids).order("created_at", { ascending: true }) : { data: [], error: null };
+      if (messagesError) throw messagesError;
+      const result = await Promise.all((tickets ?? []).map(async (ticket: any) => ({
+        ...ticket,
+        messages: await Promise.all((messages ?? []).filter((message: any) => message.ticket_id === ticket.id).map(async (message: any) => ({ ...message, attachments: await signedImages(message.attachment_paths) }))),
+      })));
+      return json({ ok: true, data: result }, 200, origin);
+    }
+
+    if (body.action === "send_support_ticket_message") {
+      const ticketId = typeof body.ticketId === "string" ? body.ticketId : "";
+      const message = typeof body.message === "string" ? body.message.trim() : "";
+      if (!ticketId || message.length < 1 || message.length > 3000) return json({ error: "INVALID_TICKET_MESSAGE" }, 400, origin);
+      const { data: ticket, error: ticketError } = await db.from("support_tickets").select("id,status").eq("id", ticketId).eq("user_id", identity.uid).maybeSingle();
+      if (ticketError || !ticket) return json({ error: "TICKET_NOT_FOUND" }, 404, origin);
+      if (ticket.status === "closed") return json({ error: "TICKET_CLOSED" }, 409, origin);
+      const attachmentPaths = await uploadImages(body.images, identity.uid, "tickets");
+      const { data, error } = await db.from("support_ticket_messages").insert({ ticket_id: ticketId, sender_type: "player", sender_id: identity.uid, message, attachment_paths: attachmentPaths }).select("id,created_at").single();
+      if (error) throw error;
+      await db.from("support_tickets").update({ updated_at: new Date().toISOString() }).eq("id", ticketId);
+      return json({ ok: true, data }, 200, origin);
     }
 
     if (body.action === "delete_account") {
