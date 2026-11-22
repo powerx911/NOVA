@@ -62,6 +62,7 @@ function explain(code) {
   INVALID_PLAYER_MESSAGE: "اكتب رسالة صحيحة لا تتجاوز 1000 حرف.",
   WALLET_ADJUSTMENT_FAILED: "تعذر تعديل رصيد اللاعب.",
   PLAYER_BAN_FAILED: "تعذر تبنيد حساب اللاعب.",
+  PLAYER_UNBAN_FAILED: "تعذر فك الحظر عن حساب اللاعب.",
   AUDIT_LOG_WRITE_FAILED: "تعذر حفظ سجل التدقيق؛ لم يكتمل الإجراء."
  };
  return messages[code] || code || "تعذر إكمال الطلب.";
@@ -355,18 +356,34 @@ async function loadPlayers(query) {
     walletRow.append(amount, walletReason, add, remove);
     controls.append(walletRow);
     controls.append(node("strong", "owner-controls-title", "تبنيد الحساب"));
-    const duration = node("select", "reason-input");
-    [["1","ساعة واحدة"],["24","يوم واحد"],["72","3 أيام"],["168","7 أيام"],["720","30 يومًا"],["8760","سنة واحدة"],["0","دائم"]].forEach(([value,label]) => { const option=node("option","",label); option.value=value; duration.append(option); });
+    const permanentLabel = node("label", "owner-control-row");
+    const permanent = node("input", ""); permanent.type = "checkbox";
+    const permanentText = node("span", "", "حظر دائم");
+    permanentLabel.append(permanent, permanentText);
+    const duration = node("input", "reason-input"); duration.type = "number"; duration.min = "1"; duration.step = "1"; duration.placeholder = "مدة الحظر بالدقائق";
+    permanent.addEventListener("change", () => { duration.hidden = permanent.checked; duration.required = !permanent.checked; if (permanent.checked) duration.value = ""; });
     const banReason = node("textarea", "reason-input"); banReason.maxLength = 500; banReason.placeholder = "سبب التبنيد (إلزامي)";
     const banButton = node("button", "small-button danger", player.is_banned ? "تحديث الحظر" : "تبنيد الحساب");
     banButton.addEventListener("click", async () => {
+     const durationMinutes = Number(duration.value);
+     if (!permanent.checked && (!Number.isSafeInteger(durationMinutes) || durationMinutes < 1 || durationMinutes > 525600)) { message("أدخل مدة صحيحة بالدقائق (من 1 إلى 525600)، أو اختر الحظر الدائم.", true); return; }
      if (banReason.value.trim().length < 3) { message("اكتب سببًا واضحًا للتبنيد (3 أحرف على الأقل).", true); return; }
-     if (!window.confirm("تأكيد تبنيد اللاعب " + player.username + "؟")) return;
+     if (!window.confirm("تأكيد تبنيد اللاعب " + player.username + (permanent.checked ? " بشكل دائم؟" : " لمدة " + durationMinutes + " دقيقة؟"))) return;
      banButton.disabled = true;
-     try { await api("ban_player_account", { user_id: player.user_id, duration_hours: Number(duration.value), reason: banReason.value.trim() }); message("تم تبنيد الحساب."); await loadPlayers(query); await loadActivity(); }
+     try { await api("ban_player_account", { user_id: player.user_id, duration_minutes: permanent.checked ? null : durationMinutes, permanent: permanent.checked, reason: banReason.value.trim() }); message("تم تبنيد الحساب."); await loadPlayers(query); await loadActivity(); }
      catch (error) { message(error.message, true); banButton.disabled = false; }
     });
-    controls.append(duration, banReason, banButton);
+    controls.append(permanentLabel, duration, banReason, banButton);
+    if (player.is_banned) {
+     const unbanButton = node("button", "small-button secondary", "فك الحظر");
+     unbanButton.addEventListener("click", async () => {
+      if (!window.confirm("تأكيد فك الحظر عن اللاعب " + player.username + "؟")) return;
+      unbanButton.disabled = true;
+      try { await api("unban_player_account", { user_id: player.user_id }); message("تم فك الحظر عن الحساب."); await loadPlayers(query); await loadActivity(); }
+      catch (error) { message(error.message, true); unbanButton.disabled = false; }
+     });
+     controls.append(unbanButton);
+    }
     controls.append(node("strong", "owner-controls-title", "رسالة إدارة اللعبة"));
     const messageInput = node("textarea", "reason-input"); messageInput.maxLength = 1000; messageInput.placeholder = "اكتب رسالة تظهر للاعب في صفحة التواصل";
     const sendMessage = node("button", "small-button", "إرسال رسالة للاعب");
