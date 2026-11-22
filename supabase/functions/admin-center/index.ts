@@ -37,25 +37,25 @@ Deno.serve(async req=>{
    if(!email||!password||password.length>256) return reply({error:"INVALID_CREDENTIALS"},400,origin);
    const {data,error}=await auth().auth.signInWithPassword({email,password});
    if(error||!data.user||!data.session) return reply({error:"INVALID_CREDENTIALS"},401,origin);
-   const {data:account,error:lookupError}=await db.from("admin_accounts").select("role,enabled").eq("user_id",data.user.id).maybeSingle();
+   const {data:account,error:lookupError}=await db.from("admin_accounts").select("role,enabled,display_name").eq("user_id",data.user.id).maybeSingle();
    if(lookupError||!account||!account.enabled||!["admin","owner"].includes(account.role)) return reply({error:"ADMIN_ACCESS_DENIED"},403,origin);
-   return reply({session:{access_token:data.session.access_token,refresh_token:data.session.refresh_token,email:data.user.email,role:account.role}},200,origin);
+   return reply({session:{access_token:data.session.access_token,refresh_token:data.session.refresh_token,email:data.user.email,role:account.role,display_name:account.display_name}},200,origin);
   }
   if(body.action==="refresh_session") {
    const refreshToken=typeof body.refresh_token==="string"?body.refresh_token:"";
    if(!refreshToken) return reply({error:"UNAUTHENTICATED"},401,origin);
    const {data:refreshed,error:refreshError}=await auth().auth.refreshSession({refresh_token:refreshToken});
    if(refreshError||!refreshed.user||!refreshed.session) return reply({error:"UNAUTHENTICATED"},401,origin);
-   const {data:account,error:accountError}=await db.from("admin_accounts").select("role,enabled").eq("user_id",refreshed.user.id).maybeSingle();
+   const {data:account,error:accountError}=await db.from("admin_accounts").select("role,enabled,display_name").eq("user_id",refreshed.user.id).maybeSingle();
    if(accountError||!account||!account.enabled||!["admin","owner"].includes(account.role)) return reply({error:"ADMIN_ACCESS_DENIED"},403,origin);
-   return reply({session:{access_token:refreshed.session.access_token,refresh_token:refreshed.session.refresh_token,email:refreshed.user.email,role:account.role}},200,origin);
+   return reply({session:{access_token:refreshed.session.access_token,refresh_token:refreshed.session.refresh_token,email:refreshed.user.email,role:account.role,display_name:account.display_name}},200,origin);
   }
   const bearer=req.headers.get("Authorization")??"";
   const token=bearer.startsWith("Bearer ")?bearer.slice(7):"";
   if(!token) return reply({error:"UNAUTHENTICATED"},401,origin);
   const {data:userData,error:userError}=await db.auth.getUser(token);
   if(userError||!userData.user) return reply({error:"UNAUTHENTICATED"},401,origin);
-  const {data:actor,error:actorError}=await db.from("admin_accounts").select("role,enabled").eq("user_id",userData.user.id).maybeSingle();
+  const {data:actor,error:actorError}=await db.from("admin_accounts").select("role,enabled,display_name").eq("user_id",userData.user.id).maybeSingle();
   if(actorError||!actor||!actor.enabled) return reply({error:"ADMIN_ACCESS_DENIED"},403,origin);
   if(body.action==="create_admin") {
    if(actor.role!=="owner") return reply({error:"OWNER_REQUIRED"},403,origin);
@@ -70,20 +70,20 @@ Deno.serve(async req=>{
     if(code==="weak_password"||code==="password_too_short") return reply({error:"ADMIN_PASSWORD_REJECTED"},400,origin);
     return reply({error:"ADMIN_ACCOUNT_CREATE_FAILED",detail:code||"AUTH_CREATE_ERROR"},409,origin);
    }
-   const {error:roleError}=await db.from("admin_accounts").insert({user_id:created.user.id,role:"admin",enabled:true,created_by:userData.user.id});
+   const {error:roleError}=await db.from("admin_accounts").insert({user_id:created.user.id,role:"admin",enabled:true,display_name:displayName,created_by:userData.user.id});
    if(roleError){await db.auth.admin.deleteUser(created.user.id);return reply({error:"ADMIN_ROLE_ASSIGNMENT_FAILED"},500,origin);}
-   await writeAudit(db,userData.user.id,"admin_account_created","admin_account",created.user.id,{email,role:"admin"});
+   await writeAudit(db,userData.user.id,"admin_account_created","admin_account",created.user.id,{email,role:"admin",display_name:displayName});
    return reply({ok:true},201,origin);
   }
   if(body.action==="list_admins") {
    if(actor.role!=="owner") return reply({error:"OWNER_REQUIRED"},403,origin);
-   const {data:accounts,error:accountsError}=await db.from("admin_accounts").select("user_id,enabled,created_at").eq("role","admin").order("created_at",{ascending:false});
+   const {data:accounts,error:accountsError}=await db.from("admin_accounts").select("user_id,enabled,created_at,display_name").eq("role","admin").order("created_at",{ascending:false});
    if(accountsError) return reply({error:"ADMIN_LIST_FAILED"},500,origin);
    const users=[];
    for(const account of accounts??[]) {
     const {data,error}=await db.auth.admin.getUserById(account.user_id);
     if(error) { console.error("Admin listing could not resolve account",error); continue; }
-    users.push({user_id:account.user_id,email:data.user?.email??"—",enabled:account.enabled,created_at:account.created_at??null});
+    users.push({user_id:account.user_id,email:data.user?.email??"—",display_name:account.display_name||data.user?.email?.split("@")[0]||"مشرف",enabled:account.enabled,created_at:account.created_at??null});
    }
    return reply({admins:users},200,origin);
   }
@@ -128,20 +128,24 @@ Deno.serve(async req=>{
    const source=body.source==="player_feedback"?"player_feedback":"player_report";
    const reason=typeof body.reason==="string"?body.reason.trim():"";
    const validStatuses=["open","reviewing","closed"];
-   if(!reportId||reportId.length>180||!validStatuses.includes(status)||reason.length<8||reason.length>500)
+   if(!reportId||reportId.length>180||!validStatuses.includes(status)||reason.length>500)
     return reply({error:"INVALID_REPORT_UPDATE"},400,origin);
    if(source==="player_feedback") {
     const {data:before,error:readError}=await db.schema("nexora").from("player_feedback").select("id,status,user_id").eq("id",reportId).maybeSingle();
     if(readError||!before) return reply({error:"REPORT_NOT_FOUND"},404,origin);
-    const {data:updated,error:updateError}=await db.schema("nexora").from("player_feedback").update({status}).eq("id",reportId).select("id,status").maybeSingle();
-    if(updateError||!updated) return reply({error:"REPORT_UPDATE_FAILED"},500,origin);
+    const {error:updateError}=await db.schema("nexora").from("player_feedback").update({status}).eq("id",reportId);
+    if(updateError) { console.error("Player feedback status update failed",{code:updateError.code,message:updateError.message,details:updateError.details,hint:updateError.hint}); return reply({error:"REPORT_UPDATE_FAILED",detail:updateError.code||"DATABASE_UPDATE_ERROR"},500,origin); }
+    const {data:updated,error:verifyError}=await db.schema("nexora").from("player_feedback").select("id,status").eq("id",reportId).maybeSingle();
+    if(verifyError||!updated||updated.status!==status) { console.error("Player feedback status verification failed",{code:verifyError?.code,message:verifyError?.message,actual:updated?.status,expected:status}); return reply({error:"REPORT_UPDATE_FAILED",detail:verifyError?.code||"STATUS_NOT_PERSISTED"},500,origin); }
     await writeAudit(db,userData.user.id,"admin_report_status_changed","player_feedback",reportId,{previous_status:before.status,new_status:status,reason});
     return reply({ok:true,report:updated},200,origin);
    }
    const {data:before,error:readError}=await db.schema("nexora").from("player_reports").select("id,status,reporter_uid,target_uid").eq("id",reportId).maybeSingle();
    if(readError||!before) return reply({error:"REPORT_NOT_FOUND"},404,origin);
-   const {data:updated,error:updateError}=await db.schema("nexora").from("player_reports").update({status}).eq("id",reportId).select("id,status").maybeSingle();
-   if(updateError||!updated) return reply({error:"REPORT_UPDATE_FAILED"},500,origin);
+   const {error:updateError}=await db.schema("nexora").from("player_reports").update({status}).eq("id",reportId);
+   if(updateError) { console.error("Player report status update failed",{code:updateError.code,message:updateError.message,details:updateError.details,hint:updateError.hint}); return reply({error:"REPORT_UPDATE_FAILED",detail:updateError.code||"DATABASE_UPDATE_ERROR"},500,origin); }
+   const {data:updated,error:verifyError}=await db.schema("nexora").from("player_reports").select("id,status").eq("id",reportId).maybeSingle();
+   if(verifyError||!updated||updated.status!==status) { console.error("Player report status verification failed",{code:verifyError?.code,message:verifyError?.message,actual:updated?.status,expected:status}); return reply({error:"REPORT_UPDATE_FAILED",detail:verifyError?.code||"STATUS_NOT_PERSISTED"},500,origin); }
    await writeAudit(db,userData.user.id,"admin_report_status_changed","player_report",reportId,{previous_status:before.status,new_status:status,reason});
    return reply({ok:true,report:updated},200,origin);
   }
@@ -259,7 +263,10 @@ Deno.serve(async req=>{
     .select("id,user_id,action,entity_type,entity_id,details,created_at")
     .like("action","admin_%").order("created_at",{ascending:false}).limit(100);
    if(error) return reply({error:"ADMIN_ACTIVITY_FAILED"},500,origin);
-   return reply({events:events??[]},200,origin);
+   const actorIds=[...new Set((events??[]).map((event:any)=>event.user_id).filter(Boolean))];
+   const {data:adminNames}=actorIds.length?await db.from("admin_accounts").select("user_id,display_name").in("user_id",actorIds):{data:[]};
+   const actorNames=new Map((adminNames??[]).map((account:any)=>[account.user_id,account.display_name]));
+   return reply({events:(events??[]).map((event:any)=>({...event,actor_name:actorNames.get(event.user_id)??"مشرف"}))},200,origin);
   }
   return reply({error:"UNKNOWN_ACTION"},400,origin);
  } catch(error) { console.error("Admin center request failed",error); return reply({error:"INTERNAL_ERROR"},500,origin); }
