@@ -372,13 +372,19 @@ Deno.serve(async req=>{
     console.error("Player account cleanup failed",{code:cleanupError?.code,message:cleanupError?.message});
     return reply({error:"PLAYER_ACCOUNT_DELETE_FAILED"},500,origin);
    }
-   await writeAudit(db,userData.user.id,"admin_player_account_deleted","player_account",targetId,{username:profile.username,auction_refunds:deleted.auction_refunds??0,archived_companies:deleted.archived_companies??0,archived_factories:deleted.archived_factories??0});
+   let auditLogged=true;
+   try {
+    await writeAudit(db,userData.user.id,"admin_player_account_deleted","player_account",targetId,{username:profile.username,auction_refunds:deleted.auction_refunds??0,archived_companies:deleted.archived_companies??0,archived_factories:deleted.archived_factories??0});
+   } catch(auditError) {
+    auditLogged=false;
+    console.error("Player account deletion audit failed after gameplay cleanup",{message:String(auditError)});
+   }
    const {error:authDeleteError}=await db.auth.admin.deleteUser(targetId);
    if(authDeleteError) {
-    console.error("Player auth deletion failed after gameplay cleanup",{code:authDeleteError.code,message:authDeleteError.message});
-    return reply({ok:true,auth_deleted:false},200,origin);
+    console.error("Player auth deletion failed after gameplay cleanup",{code:authDeleteError.code,message:authDeleteError.message,audit_logged:auditLogged});
+    return reply({ok:true,auth_deleted:false,audit_logged:auditLogged},200,origin);
    }
-   return reply({ok:true,auth_deleted:true},200,origin);
+   return reply({ok:true,auth_deleted:true,audit_logged:auditLogged},200,origin);
   }
   if(body.action==="search_players") {
    const query=typeof body.query==="string"?body.query.trim().slice(0,128):"";
