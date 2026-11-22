@@ -1,9 +1,9 @@
 {
   "manifest_version": 1,
-  "captured_at": "2026-11-21",
+  "captured_at": "2026-11-22",
   "repository": "powerx911/NOVA",
   "production_project_id": "hmrprnjhyzyefocdmnxf",
-  "production_ledger_records": 91,
+  "production_ledger_records": 92,
   "tracked_migration_files": 88,
   "recovered_history_sql_files": 55,
   "production_schema_inventory": {
@@ -16,7 +16,7 @@
     "active_cron_jobs": 8
   },
   "matching_summary": {
-    "records_with_source": 91,
+    "records_with_source": 92,
     "records_missing_source": 0,
     "records_recovered_only": 21,
     "records_with_additional_variants": 21,
@@ -854,6 +854,14 @@
       "source_status": "tracked",
       "canonical_source": "supabase/migrations/20261121123000_nova_nexora_sale_idempotency.sql",
       "canonical_git_blob_sha": "8ea57dba5dc507f9a6dfb307842127c1b978cce9",
+      "additional_variants": []
+    },
+    {
+      "version": "20261122124652",
+      "name": "create_admin_accounts",
+      "source_status": "tracked",
+      "canonical_source": "supabase/migrations/20261122124652_create_admin_accounts.sql",
+      "canonical_git_blob_sha": "1361c62d7b6540b13fd9cbff533b8257ec0cbd82",
       "additional_variants": []
     }
   ],
