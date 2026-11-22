@@ -14,11 +14,12 @@ const ACTION_LABELS = {
  admin_report_notification_sent: "إرسال إشعار لصاحب البلاغ",
  admin_ticket_claimed: "استلام تذكرة دعم",
  admin_ticket_message_sent: "الرد على تذكرة دعم",
- admin_ticket_closed: "إغلاق تذكرة دعم"
+ admin_ticket_closed: "إغلاق تذكرة دعم",
+ admin_account_renamed: "تغيير اسم مشرف"
 };
 function saveSession(session) {
  accessToken = session.access_token;
- localStorage.setItem(SESSION_KEY, JSON.stringify({ refresh_token: session.refresh_token, email: session.email, role: session.role }));
+ localStorage.setItem(SESSION_KEY, JSON.stringify({ refresh_token: session.refresh_token, email: session.email, role: session.role, display_name: session.display_name }));
 }
 function clearSession() { accessToken = ""; localStorage.removeItem(SESSION_KEY); }
 function message(text, error = false) {
