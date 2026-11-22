@@ -765,7 +765,7 @@ export const deleteFirebasePlayerAuth = onRequest(
 
     const authorization = req.get('authorization') ?? '';
     const uid = typeof req.body?.uid === 'string' ? req.body.uid.trim() : '';
-    if (!authorization.startsWith('Bearer ') || !uid || uid.length > 128 || /[\\/\\s]/.test(uid)) {
+    if (!authorization.startsWith('Bearer ') || !uid || uid.length > 128 || /[\/\s]/.test(uid)) {
       res.status(400).json({ error: 'INVALID_REQUEST' });
       return;
     }
@@ -798,10 +798,12 @@ export const deleteFirebasePlayerAuth = onRequest(
       const code = typeof error === 'object' && error !== null && 'code' in error
         ? String((error as { code?: unknown }).code)
         : 'FIREBASE_AUTH_DELETE_FAILED';
-      console.error('Firebase player Auth deletion failed', { uid, code });
-      res.status(code === 'auth/user-not-found' ? 404 : 500).json({
-        error: code === 'auth/user-not-found' ? 'FIREBASE_AUTH_USER_NOT_FOUND' : 'FIREBASE_AUTH_DELETE_FAILED',
-      });
+      if (code === 'auth/user-not-found') {
+        res.status(200).json({ ok: true, auth_deleted: true, already_absent: true });
+        return;
+      }
+      console.error('Firebase player Auth deletion failed', { uid: uid.length > 8 ? `${uid.slice(0, 4)}...${uid.slice(-4)}` : '[masked]', code });
+      res.status(500).json({ error: 'FIREBASE_AUTH_DELETE_FAILED' });
     }
   }
 );
