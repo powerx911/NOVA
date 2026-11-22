@@ -343,11 +343,11 @@ Deno.serve(async req=>{
     participant_avatars:{[targetId]:profile.avatar_id,[systemUid]:"system"},
     last_message:message,last_message_at:now,last_sender_uid:systemUid,created_at:now,updated_at:now
    },{onConflict:"id"});
-   if(conversationError) return reply({error:"PLAYER_MESSAGE_FAILED"},500,origin);
+   if(conversationError) { console.error("Admin player conversation upsert failed",{code:conversationError.code,message:conversationError.message,details:conversationError.details,hint:conversationError.hint}); return reply({error:"PLAYER_MESSAGE_FAILED",detail:conversationError.code||"CONVERSATION_WRITE_FAILED"},500,origin); }
    const {error:messageError}=await db.schema("nexora").from("conversation_messages").insert({
     id:"admin-message-"+crypto.randomUUID(),conversation_id:conversationId,sender_uid:systemUid,sender_name:"إدارة اللعبة",message_text:message,created_at:now
    });
-   if(messageError) return reply({error:"PLAYER_MESSAGE_FAILED"},500,origin);
+   if(messageError) { console.error("Admin player message insert failed",{code:messageError.code,message:messageError.message,details:messageError.details,hint:messageError.hint}); return reply({error:"PLAYER_MESSAGE_FAILED",detail:messageError.code||"MESSAGE_INSERT_FAILED"},500,origin); }
    await writeAudit(db,userData.user.id,"admin_player_message_sent","player",targetId,{message_length:message.length});
    return reply({ok:true},200,origin);
   }
