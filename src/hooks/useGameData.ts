@@ -31,7 +31,7 @@ export interface GameDataState {
   profile: PlayerProfile | null;
   profileLoading: boolean;
   profileLoadError: boolean;
-  accountBan: { reason: string; expiresAt: number | null } | null;
+  accountBan: { reason: string; expiresAt: number | null; createdAt: number | null } | null;
   retryProfileLoad: () => void;
   userPrivate: UserPrivate | null;
   wallet: Wallet | null;
@@ -71,7 +71,7 @@ export function useGameData(): GameDataState {
   const [profile, setProfile] = useState<PlayerProfile | null>(null);
   const [profileLoading, setProfileLoading] = useState(true);
   const [profileLoadError, setProfileLoadError] = useState(false);
-  const [accountBan, setAccountBan] = useState<{ reason: string; expiresAt: number | null } | null>(null);
+  const [accountBan, setAccountBan] = useState<{ reason: string; expiresAt: number | null; createdAt: number | null } | null>(null);
   const [bootstrapRetryKey, setBootstrapRetryKey] = useState(0);
   const [userPrivate, setUserPrivate] = useState<UserPrivate | null>(null);
   const [wallet, setWallet] = useState<Wallet | null>(null);
@@ -240,10 +240,10 @@ export function useGameData(): GameDataState {
       if (refreshInFlight) return;
       refreshInFlight = true;
       try {
-        const ban = await nexoraApi<{banned:boolean;reason?:string|null;expiresAt?:number|null}>('check_account_ban');
+        const ban = await nexoraApi<{banned:boolean;reason?:string|null;expiresAt?:number|null;createdAt?:number|null}>('check_account_ban');
         if (cancelled) return;
         if (ban.banned) {
-          setAccountBan({ reason: ban.reason || 'لم يتم تحديد السبب.', expiresAt: ban.expiresAt ?? null });
+          setAccountBan({ reason: ban.reason || 'لم يتم تحديد السبب.', expiresAt: ban.expiresAt ?? null, createdAt: ban.createdAt ?? null });
           setProfile(null); setProfileLoadError(false); setProfileLoading(false);
           return;
         }
