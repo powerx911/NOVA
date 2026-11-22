@@ -44,6 +44,12 @@ function NovaAppContent() {
   }, []);
   const [profileInitialSubTab, setProfileInitialSubTab] = useState<ProfileSubTab>('overview');
   const [socialUnreadCount, setSocialUnreadCount] = useState(0);
+  const [banClock, setBanClock] = useState(Date.now());
+  useEffect(() => {
+    if (!game.accountBan?.expiresAt) return;
+    const timer = window.setInterval(() => setBanClock(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, [game.accountBan?.expiresAt]);
 
   if (!game.authReady || (game.authUser && game.profileLoading)) {
     return (
@@ -52,6 +58,28 @@ function NovaAppContent() {
           <div className="h-12 rounded-2xl bg-[#141821] animate-pulse" />
           <div className="h-36 rounded-2xl bg-[#141821] animate-pulse" />
           <div className="h-24 rounded-2xl bg-[#141821] animate-pulse" />
+        </div>
+      </div>
+    );
+  }
+
+  if (game.authUser && game.accountBan) {
+    const remaining = game.accountBan.expiresAt ? Math.max(0, Math.ceil((game.accountBan.expiresAt - banClock) / 1000)) : null;
+    const days = remaining === null ? 0 : Math.floor(remaining / 86400);
+    const hours = remaining === null ? 0 : Math.floor((remaining % 86400) / 3600);
+    const minutes = remaining === null ? 0 : Math.floor((remaining % 3600) / 60);
+    const seconds = remaining === null ? 0 : remaining % 60;
+    const remainingLabel = remaining === null ? 'حظر دائم' : remaining <= 0 ? 'انتهت مدة الحظر' : [days ? days + ' يوم' : '', hours ? hours + ' ساعة' : '', minutes ? minutes + ' دقيقة' : '', seconds + ' ثانية'].filter(Boolean).join(' و');
+    return (
+      <div className="min-h-screen bg-[#0B0D12] text-[#F4F5F7] flex items-center justify-center p-6">
+        <div className="w-full max-w-md rounded-2xl border border-red-500/30 bg-[#141821] p-7 space-y-5 text-center">
+          <div className="mx-auto h-14 w-14 rounded-full bg-red-500/10 flex items-center justify-center text-red-300 text-2xl">!</div>
+          <h1 className="text-xl font-bold">تم تبنيد حسابك</h1>
+          <p className="text-sm leading-7 text-[#AAB1BE]">تم تبنيد حسابك {game.accountBan.expiresAt ? 'لمدة محددة' : 'بشكل دائم'} بسبب:</p>
+          <p className="rounded-xl bg-[#0B0D12] p-4 text-sm leading-7 text-red-200 whitespace-pre-wrap">{game.accountBan.reason}</p>
+          <p className="text-sm text-[#F4C66A]">{remainingLabel === 'انتهت مدة الحظر' ? 'انتهت مدة الحظر، يمكنك إعادة التحقق للدخول.' : 'المتبقي لفك الحظر: ' + remainingLabel}</p>
+          <button type="button" onClick={game.retryProfileLoad} className="w-full min-h-[46px] rounded-xl bg-[#B91C32] text-white text-sm font-semibold">إعادة التحقق من حالة الحساب</button>
+          <button type="button" onClick={() => void game.logout()} className="w-full min-h-[42px] rounded-xl bg-[#252B36] text-[#F4F5F7] text-sm">تسجيل الخروج</button>
         </div>
       </div>
     );
