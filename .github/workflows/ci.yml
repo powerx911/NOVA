@@ -49,6 +49,9 @@ jobs:
           cache-dependency-path: |
             functions/package-lock.json
 
+      - name: Syntax-check Admin Center browser script
+        run: node --check admin-center/app.js
+
       - name: Set up Bun
         uses: oven-sh/setup-bun@v2
 
