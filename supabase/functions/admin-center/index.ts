@@ -8,6 +8,12 @@ const cors = (origin:string|null) => ({"Access-Control-Allow-Origin":origin && O
 const reply=(body:unknown,status:number,origin:string|null)=>new Response(JSON.stringify(body),{status,headers:{...cors(origin),"Content-Type":"application/json","Cache-Control":"no-store"}});
 const service=()=>createClient(URL,SERVICE,{auth:{persistSession:false,autoRefreshToken:false}});
 const auth=()=>createClient(URL,ANON,{auth:{persistSession:false,autoRefreshToken:false}});
+const writeAudit=async(db:any,actorId:string,action:string,entityType:string,entityId:string,details:Record<string,unknown>)=>{
+ const {error}=await db.schema("nexora").from("audit_logs").insert({
+  id:`admin_${crypto.randomUUID()}`,user_id:actorId,action,entity_type:entityType,entity_id:entityId,details
+ });
+ if(error) throw new Error("AUDIT_LOG_WRITE_FAILED");
+};
 Deno.serve(async req=>{
  const origin=req.headers.get("Origin");
  if(origin&&!ORIGINS.has(origin)) return reply({error:"FORBIDDEN_ORIGIN"},403,origin);
@@ -59,7 +65,7 @@ Deno.serve(async req=>{
    }
    const {error:roleError}=await db.from("admin_accounts").insert({user_id:created.user.id,role:"admin",enabled:true,created_by:userData.user.id});
    if(roleError){await db.auth.admin.deleteUser(created.user.id);return reply({error:"ADMIN_ROLE_ASSIGNMENT_FAILED"},500,origin);}
-   return reply({ok:true},201,origin);
+   await writeAudit(db,userData.user.id,"admin_account_created","admin_account",created.user.id,{email,role:"admin"});\n   return reply({ok:true},201,origin);
   }
   if(body.action==="list_admins") {
    if(actor.role!=="owner") return reply({error:"OWNER_REQUIRED"},403,origin);
