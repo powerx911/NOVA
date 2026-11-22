@@ -105,7 +105,7 @@ BEGIN
      OR v_functions <> 154
      OR v_security_definer <> 140
      OR v_triggers <> 41
-     OR v_indexes <> 103
+     OR v_indexes <> 104
      OR v_constraints <> 172
      OR v_rls_enabled <> 47
      OR v_rls_disabled <> 0 THEN
