@@ -2,6 +2,7 @@ import { Activity, Award, Clock3, Globe, Lightbulb, LogOut, Medal, MessageSquare
 import { lazy, Suspense, useCallback, useEffect, useState } from 'react';
 import { EmailAuthProvider, reauthenticateWithCredential, reauthenticateWithPopup } from 'firebase/auth';
 import { auth, googleAuthProvider } from '../../lib/firebase';
+import { nexoraApi } from '../../lib/nexoraApi';
 import { useToast } from '../../components/ui/ToastProvider';
 import { ACHIEVEMENTS, AVATARS, MISSIONS, SKILL_DEFINITIONS } from '../../data/catalog';
 import { formatMissionCategory, useTranslations } from '../../i18n/translations';
@@ -303,19 +304,7 @@ export function ProfileHubView({
     }
     setFeedbackBusy(true);
     try {
-      const user = auth.currentUser;
-      if (!user) throw new Error('UNAUTHENTICATED');
-      const idToken = await user.getIdToken();
-      const response = await fetch('/api/game-feedback', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${idToken}`,
-        },
-        body: JSON.stringify({ type, message }),
-      });
-      const result = await response.json().catch(() => ({})) as { error?: string };
-      if (!response.ok) throw new Error(result.error || 'FEEDBACK_DELIVERY_FAILED');
+      await nexoraApi<{ id: string; createdAt: string }>('submit_game_feedback', { type, message });
       setFeedbackText('');
       showToast(language === 'ar' ? 'تم إرسال رسالتك بنجاح. شكراً لمساعدتنا في تحسين NOVA.' : 'Your message was sent. Thank you for helping improve NOVA.', 'success');
     } catch {
