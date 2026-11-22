@@ -885,7 +885,7 @@
       "name": "nova_support_tickets_and_player_reports",
       "source_status": "tracked",
       "canonical_source": "supabase/migrations/20261122160000_nova_support_tickets_and_player_reports.sql",
-      "canonical_git_blob_sha": "844d4c40f32f6df4e6a780cd93eaf7de68cba73d",
+      "canonical_git_blob_sha": "151cf95ece8dab52db2d0ba993e7fdee85149060",
       "additional_variants": []
     },
     {
