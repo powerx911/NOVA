@@ -861,7 +861,7 @@
       "name": "create_admin_accounts",
       "source_status": "tracked",
       "canonical_source": "supabase/migrations/20261122124652_create_admin_accounts.sql",
-      "canonical_git_blob_sha": "1361c62d7b6540b13fd9cbff533b8257ec0cbd82",
+      "canonical_git_blob_sha": "57b4c840c8fa7eb7deda4dcdda22eb8bf58b3598",
       "additional_variants": []
     }
   ],
