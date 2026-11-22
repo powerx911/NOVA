@@ -28,6 +28,7 @@ export function SupportTicketsPanel({ language }: { language: Language }) {
   const [replyImages, setReplyImages] = useState<Record<string, File[]>>({});
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [ticketFormOpen, setTicketFormOpen] = useState(false);
 
   const refresh = useCallback(async () => {
     try { setTickets(await nexoraApi<Ticket[]>('list_my_support_tickets')); setError(''); }
@@ -72,11 +73,12 @@ export function SupportTicketsPanel({ language }: { language: Language }) {
       <h3 className="text-sm font-semibold text-[#F4F5F7]">{ar ? 'التذاكر والدعم المباشر' : 'Support tickets'}</h3>
       <button type="button" onClick={() => void refresh()} className="text-xs text-[#AAB6D0]">{ar ? 'تحديث' : 'Refresh'}</button>
     </div>
-    <div className="rounded-xl border border-white/10 bg-[#0B0D12] p-3 space-y-2">
+    {!ticketFormOpen ? <button type="button" onClick={() => setTicketFormOpen(true)} className="w-full rounded-xl bg-[#B91C32] text-white py-3 text-sm font-semibold">{ar ? 'فتح تذكرة' : 'Open ticket'}</button> : <div className="rounded-xl border border-white/10 bg-[#0B0D12] p-3 space-y-2">
       <input value={subject} onChange={(e) => setSubject(e.target.value.slice(0,120))} maxLength={120} placeholder={ar ? 'عنوان التذكرة' : 'Ticket subject'} className="w-full rounded-lg bg-[#141821] border border-white/10 p-3 text-sm text-white" />
       <textarea value={message} onChange={(e) => setMessage(e.target.value.slice(0,3000))} maxLength={3000} rows={3} placeholder={ar ? 'اكتب رسالتك للإدارة…' : 'Write your message to the team…'} className="w-full rounded-lg bg-[#141821] border border-white/10 p-3 text-sm text-white" />
-      <input type="file" accept="image/png,image/jpeg,image/webp" multiple onChange={(e) => setImages(Array.from(e.target.files || []).slice(0,3))} className="w-full text-xs text-[#AAB1BE]" />
-      <button type="button" disabled={busy || subject.trim().length < 3 || !message.trim()} onClick={() => void createTicket()} className="w-full rounded-xl bg-[#B91C32] text-white py-3 text-sm font-semibold disabled:opacity-40">{ar ? 'فتح تذكرة جديدة' : 'Open ticket'}</button>
+      <label className="inline-flex cursor-pointer items-center justify-center rounded-lg border border-white/15 bg-[#141821] px-4 py-2 text-xs text-white">{ar ? 'إرفاق صور' : 'Attach images'}<input type="file" accept="image/png,image/jpeg,image/webp" multiple onChange={(e) => setImages(Array.from(e.target.files || []).slice(0,3))} className="hidden" /></label>
+      {images.length > 0 && <span className="ms-2 text-[11px] text-[#AAB1BE]">{ar ? `تم إرفاق ${images.length} صور` : `${images.length} images attached`}</span>}
+      <div className="flex gap-2"><button type="button" disabled={busy || subject.trim().length < 3 || !message.trim()} onClick={() => void createTicket()} className="flex-1 rounded-xl bg-[#B91C32] text-white py-3 text-sm font-semibold disabled:opacity-40">{ar ? 'إرسال التذكرة' : 'Submit ticket'}</button><button type="button" onClick={() => {setTicketFormOpen(false);setSubject('');setMessage('');setImages([]);}} className="rounded-xl bg-[#252B36] px-4 text-sm text-white">{ar ? 'إلغاء' : 'Cancel'}</button></div>
     </div>
     {error && <p className="text-xs text-rose-300">{error}</p>}
     {tickets.length === 0 ? <p className="text-xs text-[#9299A6]">{ar ? 'لا توجد لديك تذاكر بعد.' : 'You have no tickets yet.'}</p> : tickets.map((ticket) => <article key={ticket.id} className="rounded-xl border border-white/10 bg-[#0B0D12] p-3 space-y-3">
@@ -89,7 +91,7 @@ export function SupportTicketsPanel({ language }: { language: Language }) {
       </div>)}</div>
       {ticket.status !== 'closed' && <div className="flex gap-2">
         <input value={replyById[ticket.id] || ''} onChange={(e) => setReplyById((old) => ({...old,[ticket.id]:e.target.value.slice(0,3000)}))} placeholder={ar ? 'اكتب ردك…' : 'Write a reply…'} className="min-w-0 flex-1 rounded-lg bg-[#141821] border border-white/10 px-3 text-sm text-white" />
-        <input type="file" accept="image/png,image/jpeg,image/webp" multiple onChange={(e) => setReplyImages((old) => ({...old,[ticket.id]:Array.from(e.target.files || []).slice(0,3)}))} className="max-w-24 text-[10px] text-[#AAB1BE]" />
+        <label className="shrink-0 cursor-pointer rounded-lg border border-white/15 bg-[#141821] px-3 py-2 text-[10px] text-white">{ar ? 'إرفاق صور' : 'Attach images'}<input type="file" accept="image/png,image/jpeg,image/webp" multiple onChange={(e) => setReplyImages((old) => ({...old,[ticket.id]:Array.from(e.target.files || []).slice(0,3)}))} className="hidden" /></label>
         <button type="button" disabled={busy || !(replyById[ticket.id] || '').trim()} onClick={() => void sendReply(ticket)} className="rounded-lg bg-[#B91C32] px-4 text-white text-xs font-semibold disabled:opacity-40">{ar ? 'إرسال' : 'Send'}</button>
       </div>}
     </article>)}
