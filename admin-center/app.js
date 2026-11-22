@@ -9,7 +9,11 @@ const REASON_LABELS = { harassment: "مضايقة", spam: "رسائل مزعجة
 const ACTION_LABELS = {
  admin_account_created: "إنشاء حساب مشرف",
  admin_account_deleted: "حذف حساب مشرف",
- admin_report_status_changed: "تحديث حالة بلاغ لاعب"
+ admin_report_status_changed: "تحديث حالة بلاغ لاعب",
+ admin_report_notification_sent: "إرسال إشعار لصاحب البلاغ",
+ admin_ticket_claimed: "استلام تذكرة دعم",
+ admin_ticket_message_sent: "الرد على تذكرة دعم",
+ admin_ticket_closed: "إغلاق تذكرة دعم"
 };
 function saveSession(session) {
  accessToken = session.access_token;
@@ -70,10 +74,11 @@ function dateLabel(value) {
 function switchView(name) {
  document.querySelectorAll(".view").forEach(view => view.classList.toggle("active", view.id === "view-" + name));
  document.querySelectorAll("[data-view]").forEach(button => button.classList.toggle("active", button.dataset.view === name));
- const titles = { overview: "نظرة عامة", reports: "بلاغات اللاعبين", players: "إدارة اللاعبين", activity: "سجل الإجراءات", admins: "حسابات المشرفين" };
+ const titles = { overview: "نظرة عامة", reports: "بلاغات اللاعبين", tickets: "التذاكر", players: "إدارة اللاعبين", activity: "سجل الإجراءات", admins: "حسابات المشرفين" };
  $("#page-title").textContent = titles[name] || "مركز الإدارة";
  if (name === "overview") loadOverview();
  if (name === "reports") loadReports();
+ if (name === "tickets") loadTickets();
  if (name === "activity") loadActivity();
 }
 function show(session) {
@@ -109,12 +114,12 @@ async function loadReports() {
    const isSuggestion = isFeedback && report.kind === "suggestion";
    const card = node("article", "report-card");
    const head = node("div", "report-head");
-   const titleText = isFeedback ? (isSuggestion ? "اقتراح من " : "بلاغ من ") + report.reporter_name : report.reporter_name + " أبلغ عن " + report.target_name;
+   const titleText = isFeedback ? (isSuggestion ? "اقتراح من " : "بلاغ من ") + (report.reporter_name || "لاعب غير معروف") : "بلاغ من " + (report.reporter_name || "لاعب غير معروف") + " على " + (report.target_name || "لاعب غير معروف");
    head.append(node("strong", "", titleText), node("span", "status-badge status-" + report.status, STATUS_LABELS[report.status] || report.status));
-   const meta = node("p", "report-meta", (isFeedback ? (isSuggestion ? "اقتراح لاعب" : "بلاغ لاعب") : (REASON_LABELS[report.reason] || report.reason)) + " · " + dateLabel(report.created_at));
-   const ids = node("p", "report-ids", "صاحب الرسالة: " + report.reporter_uid + (isFeedback ? "" : " · اللاعب المبلّغ عنه: " + report.target_uid));
+   const meta = node("p", "report-meta", (isFeedback ? (isSuggestion ? "اقتراح لاعب" : "بلاغ لاعب") : "بلاغ على لاعب") + " · " + dateLabel(report.created_at));
+   const ids = node("p", "report-ids", "صاحب الرسالة: " + (report.reporter_uid || "—") + (isFeedback ? "" : " · اللاعب المبلّغ عنه: " + (report.target_uid || "—")));
    const controls = node("div", "report-controls");
-   const statuses = isFeedback ? ["new", "reviewing", "resolved", "dismissed"] : ["open", "reviewing", "closed"];
+   const statuses = ["open", "reviewing", "closed"];
    const status = node("select", "status-select");
    for (const value of statuses) { const option = node("option", "", STATUS_LABELS[value]); option.value = value; status.append(option); }
    status.value = report.status;
@@ -129,15 +134,64 @@ async function loadReports() {
     } catch (error) { message(error.message, true); save.disabled = false; }
    });
    controls.append(status, reason, save);
-   if (isFeedback) {
-    const content = node("p", "report-message", report.message || "—");
-    content.style.whiteSpace = "pre-wrap"; content.style.overflowWrap = "anywhere";
-    card.append(head, meta, content, ids, controls);
-   } else card.append(head, meta, ids, controls);
+   const content = node("p", "report-message", report.message || report.reason || "لم يكتب اللاعب سببًا للبلاغ.");
+   content.style.whiteSpace = "pre-wrap"; content.style.overflowWrap = "anywhere";
+   card.append(head, meta, content, ids);
+   for (const url of report.attachments || []) {
+    const image = node("img", "report-attachment"); image.src = url; image.alt = "مرفق من اللاعب";
+    image.addEventListener("click", () => window.open(url, "_blank", "noopener")); card.append(image);
+   }
+   const notify = node("button", "small-button secondary", "إرسال إشعار للاعب");
+   notify.addEventListener("click", async () => {
+    const text = window.prompt("اكتب رسالة للاعب");
+    if (!text || text.trim().length < 3) return;
+    try { await api("send_player_report_notification", { report_id: report.id, source: isFeedback ? "player_feedback" : "player_report", message: text.trim() }); message("تم إرسال الإشعار للاعب."); }
+    catch (error) { message(error.message, true); }
+   });
+   controls.append(notify);
+   card.append(controls);
    list.append(card);
   }
  } catch (error) { list.replaceChildren(node("p", "error-state", error.message)); message(error.message, true); }
 }
+
+async function loadTickets() {
+ const list = $("#tickets-list");
+ list.replaceChildren(node("p", "muted", "جارٍ تحميل التذاكر…"));
+ try {
+  const result = await api("list_support_tickets");
+  const tickets = result.tickets || [];
+  list.replaceChildren();
+  if (!tickets.length) { list.append(node("p", "empty-state", "لا توجد تذاكر حالياً.")); return; }
+  for (const ticket of tickets) {
+   const card = node("article", "ticket-card");
+   card.append(node("strong", "", ticket.subject + " · " + (ticket.player_name || "لاعب غير معروف")));
+   card.append(node("p", "report-ids", "اللاعب: " + ticket.user_id + " · " + dateLabel(ticket.created_at)));
+   for (const item of ticket.messages || []) {
+    const bubble = node("div", "ticket-message");
+    bubble.append(node("strong", "", item.sender_type === "admin" ? "الإدارة" : "اللاعب"));
+    bubble.append(node("p", "", item.message));
+    card.append(bubble);
+    for (const url of item.attachments || []) { const img = node("img", "report-attachment"); img.src = url; img.alt = "مرفق"; card.append(img); }
+   }
+   if (ticket.status === "open") {
+    const claim = node("button", "small-button", "استلام التذكرة");
+    claim.addEventListener("click", async () => { try { await api("claim_support_ticket", {ticket_id:ticket.id}); message("تم استلام التذكرة."); await loadTickets(); } catch(error) { message(error.message,true); } });
+    card.append(claim);
+   }
+   if (ticket.status === "claimed") {
+    const input = node("textarea", "reason-input"); input.placeholder = "اكتب ردك للاعب";
+    const send = node("button", "small-button", "إرسال الرد");
+    send.addEventListener("click", async () => { if(!input.value.trim()) return; try { await api("send_support_ticket_message",{ticket_id:ticket.id,message:input.value.trim()}); message("تم إرسال الرد."); await loadTickets(); } catch(error) { message(error.message,true); } });
+    const close = node("button", "small-button danger", "إغلاق التذكرة");
+    close.addEventListener("click", async () => { try { await api("close_support_ticket",{ticket_id:ticket.id}); message("تم إغلاق التذكرة."); await loadTickets(); } catch(error) { message(error.message,true); } });
+    card.append(input,send,close);
+   }
+   list.append(card);
+  }
+ } catch(error) { list.replaceChildren(node("p","error-state",error.message)); }
+}
+
 async function loadPlayers(query) {
  const requestId = ++playerSearchRequest;
  const list = $("#players-list");
@@ -261,6 +315,7 @@ $("#create-admin-form").addEventListener("submit", async event => {
 });
 $("#refresh-admins").addEventListener("click", loadAdmins);
 $("#refresh-reports").addEventListener("click", loadReports);
+$("#refresh-tickets").addEventListener("click", loadTickets);
 $("#refresh-activity").addEventListener("click", loadActivity);
 const playerSearchForm = $("#player-search-form");
 const playerSearchInput = playerSearchForm.elements.query;

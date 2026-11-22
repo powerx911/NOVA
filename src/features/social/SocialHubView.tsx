@@ -56,7 +56,8 @@ export function SocialHubView({ profile, myOrgMember, organizations, language, o
   const [orgChatReadAt, setOrgChatReadAt] = useState(() => { try { return Number(window.localStorage.getItem(`nova:org-chat-read:${profile.uid}:${profile.orgId || 'none'}`) || 0); } catch { return 0; } });
   const [invites, setInvites] = useState<OrgInvite[]>([]);
   const [blockedUids, setBlockedUids] = useState<string[]>([]);
-  const [reportReason, setReportReason] = useState<'harassment' | 'spam' | 'inappropriate' | 'impersonation' | 'other'>('other');
+  const [reportReason, setReportReason] = useState('');
+  const [reportImages, setReportImages] = useState<File[]>([]);
   const [draft, setDraft] = useState('');
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState('');
@@ -339,7 +340,10 @@ export function SocialHubView({ profile, myOrgMember, organizations, language, o
     setBusy('report');
     setError('');
     try {
-      await submitPlayerReport(player.uid, reportReason);
+      if (reportReason.trim().length < 10) throw new Error('INVALID_REPORT');
+      const images = await Promise.all(reportImages.slice(0, 3).map((file) => new Promise<string>((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve(String(reader.result)); reader.onerror = () => reject(new Error('ATTACHMENT_READ_FAILED')); reader.readAsDataURL(file); })));
+      await submitPlayerReport(player.uid, reportReason.trim(), images);
+      setReportReason(''); setReportImages([]);
       setError(ar ? 'تم إرسال البلاغ للمراجعة.' : 'Report submitted for review.');
     } catch (error) {
       setError(socialErrorMessage(error, ar ? 'تعذر إرسال البلاغ الآن. حاول لاحقاً.' : 'Could not submit report right now. Try again later.'));
@@ -467,21 +471,15 @@ export function SocialHubView({ profile, myOrgMember, organizations, language, o
                 </button>
                 <label className="block text-[11px] text-[#9299A6]">
                   {ar ? 'سبب الإبلاغ' : 'Report reason'}
-                  <select value={reportReason} onChange={(event) => setReportReason(event.target.value as typeof reportReason)}
-                    className="mt-1 w-full min-h-[40px] rounded-lg bg-[#0B0D12] border border-white/10 px-3 text-xs text-[#F4F5F7]">
-                    <option value="harassment">{ar ? 'مضايقة أو إساءة' : 'Harassment'}</option>
-                    <option value="spam">{ar ? 'رسائل مزعجة' : 'Spam'}</option>
-                    <option value="inappropriate">{ar ? 'محتوى غير مناسب' : 'Inappropriate content'}</option>
-                    <option value="impersonation">{ar ? 'انتحال شخصية' : 'Impersonation'}</option>
-                    <option value="other">{ar ? 'سبب آخر' : 'Other'}</option>
-                  </select>
+                  <textarea value={reportReason} onChange={(event) => setReportReason(event.target.value.slice(0, 3000))} rows={3} maxLength={3000} placeholder={ar ? 'اكتب سبب البلاغ بالتفصيل (10 أحرف على الأقل)' : 'Describe the report (at least 10 characters)'} className="mt-1 w-full rounded-lg bg-[#0B0D12] border border-white/10 p-3 text-xs text-[#F4F5F7]" />
+                  <input type="file" accept="image/png,image/jpeg,image/webp" multiple onChange={(event) => setReportImages(Array.from(event.target.files || []).slice(0, 3))} className="mt-2 w-full text-xs" />
                 </label>
                 <div className="grid grid-cols-2 gap-2">
                   <button type="button" disabled={busy === 'block'} onClick={() => void togglePlayerBlock(selectedPlayer)}
                     className="min-h-[42px] rounded-xl bg-[#252B36] border border-white/10 text-xs font-semibold flex items-center justify-center gap-2">
                     <Ban className="w-4 h-4" />{blockedUids.includes(selectedPlayer.uid) ? (ar ? 'إلغاء الحظر' : 'Unblock') : (ar ? 'حظر اللاعب' : 'Block player')}
                   </button>
-                  <button type="button" disabled={busy === 'report'} onClick={() => void reportPlayer(selectedPlayer)}
+                  <button type="button" disabled={busy === 'report' || reportReason.trim().length < 10} onClick={() => void reportPlayer(selectedPlayer)}
                     className="min-h-[42px] rounded-xl bg-[#252B36] border border-white/10 text-xs font-semibold flex items-center justify-center gap-2">
                     <Flag className="w-4 h-4" />{ar ? 'إبلاغ' : 'Report'}
                   </button>

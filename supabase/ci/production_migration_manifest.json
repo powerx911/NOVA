@@ -3,7 +3,7 @@
   "captured_at": "2026-11-22",
   "repository": "powerx911/NOVA",
   "production_project_id": "hmrprnjhyzyefocdmnxf",
-  "production_ledger_records": 94,
+  "production_ledger_records": 96,
   "tracked_migration_files": 90,
   "recovered_history_sql_files": 55,
   "production_schema_inventory": {
@@ -16,7 +16,7 @@
     "active_cron_jobs": 8
   },
   "matching_summary": {
-    "records_with_source": 94,
+    "records_with_source": 96,
     "records_missing_source": 0,
     "records_recovered_only": 21,
     "records_with_additional_variants": 21,
@@ -878,6 +878,22 @@
       "source_status": "tracked",
       "canonical_source": "supabase/migrations/20261122143000_create_player_feedback.sql",
       "canonical_git_blob_sha": "e84134b54516663c50b25987a7c5e20754e2b01a",
+      "additional_variants": []
+    },
+    {
+      "version": "20261122142628",
+      "name": "nova_support_tickets_and_player_reports",
+      "source_status": "tracked",
+      "canonical_source": "supabase/migrations/20261122160000_nova_support_tickets_and_player_reports.sql",
+      "canonical_git_blob_sha": "261585fceea229da20ec6b5e20d6c3ebdbf1f4ba",
+      "additional_variants": []
+    },
+    {
+      "version": "20261122142810",
+      "name": "nova_unify_player_feedback_statuses",
+      "source_status": "tracked",
+      "canonical_source": "supabase/migrations/20261122161000_nova_unify_player_feedback_statuses.sql",
+      "canonical_git_blob_sha": "dbbdb7988197ca6cbb1ad96eafea9138d3d56df5",
       "additional_variants": []
     }
   ],

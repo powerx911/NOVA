@@ -23,6 +23,7 @@
   <nav aria-label="أقسام مركز الإدارة">
    <button class="nav-item active" data-view="overview"><span>⌂</span>نظرة عامة</button>
    <button class="nav-item" data-view="reports"><span>⚑</span>بلاغات اللاعبين</button>
+   <button class="nav-item" data-view="tickets"><span>✉</span>التذاكر</button>
    <button class="nav-item" data-view="players"><span>♙</span>إدارة اللاعبين</button>
    <button class="nav-item" data-view="activity"><span>▤</span>سجل الإجراءات</button>
    <button class="nav-item owner-nav" data-view="admins" hidden><span>⚙</span>حسابات المشرفين</button>
@@ -55,6 +56,13 @@
     <div class="panel-head"><div><p class="eyebrow">المراجعة والإشراف</p><h2>بلاغات اللاعبين</h2></div><button class="secondary" id="refresh-reports" type="button">تحديث</button></div>
     <p class="muted">بلاغات اللاعبين المرسلة من داخل اللعبة. اختر البلاغ لمراجعة التفاصيل وتغيير حالته مع تسجيل سبب الإجراء.</p>
     <div id="reports-list" class="data-list" aria-live="polite"><p class="muted">جارٍ التحميل…</p></div>
+   </div>
+  </section>
+  <section class="view" id="view-tickets">
+   <div class="panel">
+    <div class="panel-head"><div><p class="eyebrow">الدعم المباشر</p><h2>تذاكر اللاعبين</h2></div><button class="secondary" id="refresh-tickets" type="button">تحديث</button></div>
+    <p class="muted">استلم التذكرة أولاً لتصبح مسؤولاً عنها، ثم تابع المحادثة مع اللاعب وأغلقها عند الانتهاء.</p>
+    <div id="tickets-list" class="data-list" aria-live="polite"><p class="muted">جارٍ التحميل…</p></div>
    </div>
   </section>
   <section class="view" id="view-players">
