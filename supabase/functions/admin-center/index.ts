@@ -384,12 +384,16 @@ Deno.serve(async req=>{
     auditLogged=false;
     console.error("Player account deletion audit failed after gameplay cleanup",{message:String(auditError)});
    }
-   const {error:authDeleteError}=await db.auth.admin.deleteUser(targetId);
-   if(authDeleteError) {
-    console.error("Player auth deletion failed after gameplay cleanup",{code:authDeleteError.code,message:authDeleteError.message,audit_logged:auditLogged});
-    return reply({ok:true,auth_deleted:false,audit_logged:auditLogged},200,origin);
+   // Firebase-style game IDs are not Supabase Auth UUIDs. Only attempt Auth deletion
+   // for UUID-backed accounts; gameplay cleanup above already handles the game identity.
+   if(isAuthUuid) {
+    const {error:authDeleteError}=await db.auth.admin.deleteUser(targetId);
+    if(authDeleteError) {
+     console.error("Player auth deletion failed after gameplay cleanup",{code:authDeleteError.code,message:authDeleteError.message,audit_logged:auditLogged});
+     return reply({ok:true,auth_deleted:false,audit_logged:auditLogged},200,origin);
+    }
    }
-   return reply({ok:true,auth_deleted:true,audit_logged:auditLogged},200,origin);
+   return reply({ok:true,auth_deleted:isAuthUuid,audit_logged:auditLogged},200,origin);
   }
   if(body.action==="search_players") {
    const query=typeof body.query==="string"?body.query.trim().slice(0,128):"";
