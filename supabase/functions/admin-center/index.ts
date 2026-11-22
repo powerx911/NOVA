@@ -136,13 +136,14 @@ Deno.serve(async req=>{
    if(clean.length<1) return reply({error:"PLAYER_SEARCH_TOO_SHORT"},400,origin);
    const profileQuery=()=>db.schema("nexora").from("player_profiles")
     .select("user_id,username,username_lower,level,xp,reputation,influence,org_id,created_at");
-   const [byId,byName]=await Promise.all([
+   const [byId,byPrefix,byName]=await Promise.all([
     profileQuery().eq("user_id",query).limit(1),
+    profileQuery().ilike("username",clean+"%").order("username_lower",{ascending:true}).limit(100),
     profileQuery().ilike("username","%"+clean+"%").order("username_lower",{ascending:true}).limit(100)
    ]);
-   if(byId.error||byName.error) return reply({error:"PLAYER_SEARCH_FAILED"},500,origin);
+   if(byId.error||byPrefix.error||byName.error) return reply({error:"PLAYER_SEARCH_FAILED"},500,origin);
    const uniqueProfiles=new Map<string,any>();
-   for(const profile of [...(byId.data??[]),...(byName.data??[])]) uniqueProfiles.set(profile.user_id,profile);
+   for(const profile of [...(byId.data??[]),...(byPrefix.data??[]),...(byName.data??[])]) uniqueProfiles.set(profile.user_id,profile);
    const normalized=clean.toLocaleLowerCase();
    const profiles=[...uniqueProfiles.values()].sort((a:any,b:any)=>{
     const rank=(profile:any)=>{
@@ -153,7 +154,7 @@ Deno.serve(async req=>{
      return position>=0?2+position/100:10;
     };
     return rank(a)-rank(b)||String(a.username).localeCompare(String(b.username));
-   }).slice(0,50);
+   }).slice(0,100);
    const ids=profiles.map((p:any)=>p.user_id);
    const {data:wallets}=ids.length
     ?await db.schema("nexora").from("wallets").select("user_id,balance").in("user_id",ids)
