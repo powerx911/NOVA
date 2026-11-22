@@ -22,6 +22,7 @@ const ACTION_LABELS = {
  admin_account_renamed: "تغيير اسم مشرف",
  admin_player_wallet_adjusted: "تعديل رصيد لاعب",
  admin_player_banned: "تبنيد حساب لاعب",
+ admin_player_unbanned: "فك حظر حساب لاعب",
  admin_player_message_sent: "إرسال رسالة من إدارة اللعبة"
 };
 function saveSession(session) {
