@@ -25,6 +25,7 @@ export function SupportTicketsPanel({ language }: { language: Language }) {
   const [message, setMessage] = useState('');
   const [images, setImages] = useState<File[]>([]);
   const [replyById, setReplyById] = useState<Record<string, string>>({});
+  const [replyImages, setReplyImages] = useState<Record<string, File[]>>({});
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
 
@@ -55,8 +56,10 @@ export function SupportTicketsPanel({ language }: { language: Language }) {
     if (!text || ticket.status === 'closed') return;
     setBusy(true);
     try {
-      await nexoraApi('send_support_ticket_message', { ticketId: ticket.id, message: text });
+      const encoded = await encodeImages(replyImages[ticket.id] || []);
+      await nexoraApi('send_support_ticket_message', { ticketId: ticket.id, message: text, images: encoded });
       setReplyById((old) => ({ ...old, [ticket.id]: '' }));
+      setReplyImages((old) => ({ ...old, [ticket.id]: [] }));
       await refresh();
     } catch { setError(ar ? 'تعذر إرسال الرسالة.' : 'Could not send message.'); }
     finally { setBusy(false); }
@@ -86,6 +89,7 @@ export function SupportTicketsPanel({ language }: { language: Language }) {
       </div>)}</div>
       {ticket.status !== 'closed' && <div className="flex gap-2">
         <input value={replyById[ticket.id] || ''} onChange={(e) => setReplyById((old) => ({...old,[ticket.id]:e.target.value.slice(0,3000)}))} placeholder={ar ? 'اكتب ردك…' : 'Write a reply…'} className="min-w-0 flex-1 rounded-lg bg-[#141821] border border-white/10 px-3 text-sm text-white" />
+        <input type="file" accept="image/png,image/jpeg,image/webp" multiple onChange={(e) => setReplyImages((old) => ({...old,[ticket.id]:Array.from(e.target.files || []).slice(0,3)}))} className="max-w-24 text-[10px] text-[#AAB1BE]" />
         <button type="button" disabled={busy || !(replyById[ticket.id] || '').trim()} onClick={() => void sendReply(ticket)} className="rounded-lg bg-[#B91C32] px-4 text-white text-xs font-semibold disabled:opacity-40">{ar ? 'إرسال' : 'Send'}</button>
       </div>}
     </article>)}
