@@ -21,7 +21,12 @@ function explain(code) {
 async function api(action, data = {}) {
  const response = await fetch(API_URL, { method:"POST", headers:{"Content-Type":"application/json", ...(accessToken ? {Authorization:`Bearer ${accessToken}`} : {})}, body:JSON.stringify({action,...data}) });
  const result = await response.json().catch(()=>({}));
- if (!response.ok) throw new Error(explain(result.error));
+ if (!response.ok) {
+  const error = new Error(explain(result.error));
+  error.status = response.status;
+  error.code = result.error || "REQUEST_FAILED";
+  throw error;
+ }
  return result;
 }
 function show(session) {
@@ -58,9 +63,38 @@ async function loadAdmins() {
  } catch(err){list.replaceChildren();const error=document.createElement("p");error.className="muted";error.textContent=err.message;list.append(error);}
 }
 async function restoreSession() {
- const saved=localStorage.getItem(SESSION_KEY); if(!saved) return;
- try { const parsed=JSON.parse(saved); const result=await api("refresh_session",{refresh_token:parsed.refresh_token}); show(result.session); message(""); }
- catch { clearSession(); $("#app-panel").hidden=true; $("#login-panel").hidden=false; }
+ if(!localStorage.getItem(SESSION_KEY)) return;
+ const restore = async () => {
+  // Read the token only after acquiring the cross-tab lock; another tab may have rotated it.
+  const saved=localStorage.getItem(SESSION_KEY);
+  if(!saved) return;
+  const parsed=JSON.parse(saved);
+  if(!parsed.refresh_token) {
+   const error=new Error("بيانات الجلسة غير مكتملة.");
+   error.status=401;
+   throw error;
+  }
+  const result=await api("refresh_session",{refresh_token:parsed.refresh_token});
+  if(!result.session?.access_token || !result.session?.refresh_token) throw new Error("استجابة استعادة الجلسة غير مكتملة.");
+  show(result.session);
+  message("");
+ };
+ try {
+  if(navigator.locks?.request) await navigator.locks.request("nova-admin-session-refresh",restore);
+  else await restore();
+ } catch(err) {
+  if(err.status===401 || err.status===403) {
+   clearSession();
+   $("#app-panel").hidden=true;
+   $("#login-panel").hidden=false;
+   message("انتهت صلاحية الجلسة أو لم تعد صلاحية الحساب مفعّلة. سجّل الدخول مجددًا.",true);
+  } else {
+   // Keep the refresh token after transient network/server failures instead of silently logging out.
+   $("#app-panel").hidden=true;
+   $("#login-panel").hidden=false;
+   message("تعذر التحقق من الجلسة بسبب مشكلة اتصال. لم نحذف جلسة الدخول؛ حدّث الصفحة للمحاولة مجددًا.",true);
+  }
+ }
 }
 $("#login-form").addEventListener("submit", async e => {
  e.preventDefault(); const f = new FormData(e.currentTarget);
