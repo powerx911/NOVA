@@ -359,9 +359,14 @@ Deno.serve(async req=>{
    if(actor.role!=="owner") return reply({error:"OWNER_REQUIRED"},403,origin);
    const targetId=typeof body.user_id==="string"?body.user_id.trim():"";
    if(!targetId||targetId.length>128||targetId===userData.user.id) return reply({error:"INVALID_PLAYER_TARGET"},400,origin);
-   const {data:targetAdmin,error:adminLookupError}=await db.from("admin_accounts").select("user_id").eq("user_id",targetId).maybeSingle();
-   if(adminLookupError) return reply({error:"PLAYER_ACCOUNT_DELETE_FAILED"},500,origin);
-   if(targetAdmin) return reply({error:"INVALID_PLAYER_TARGET"},400,origin);
+   // Admin account IDs are UUIDs, while game player IDs may be Firebase-style strings.
+   // Only query the UUID-backed admin_accounts table when the target ID is a UUID.
+   const isAuthUuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(targetId);
+   if(isAuthUuid) {
+    const {data:targetAdmin,error:adminLookupError}=await db.from("admin_accounts").select("user_id").eq("user_id",targetId).maybeSingle();
+    if(adminLookupError) return reply({error:"PLAYER_ACCOUNT_DELETE_FAILED"},500,origin);
+    if(targetAdmin) return reply({error:"INVALID_PLAYER_TARGET"},400,origin);
+   }
    const {data:profile,error:profileError}=await db.schema("nexora").from("player_profiles").select("user_id,username").eq("user_id",targetId).maybeSingle();
    if(profileError||!profile) return reply({error:"PLAYER_NOT_FOUND"},404,origin);
    const {data:deleted,error:cleanupError}=await db.schema("nexora").rpc("delete_player_account",{p_uid:targetId});
