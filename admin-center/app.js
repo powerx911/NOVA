@@ -19,7 +19,10 @@ const ACTION_LABELS = {
  admin_ticket_closed: "إغلاق تذكرة دعم",
  admin_ticket_deleted: "حذف تذكرة دعم",
  admin_report_deleted: "حذف بلاغ لاعب",
- admin_account_renamed: "تغيير اسم مشرف"
+ admin_account_renamed: "تغيير اسم مشرف",
+ admin_player_wallet_adjusted: "تعديل رصيد لاعب",
+ admin_player_banned: "تبنيد حساب لاعب",
+ admin_player_message_sent: "إرسال رسالة من إدارة اللعبة"
 };
 function saveSession(session) {
  accessToken = session.access_token;
@@ -50,6 +53,15 @@ function explain(code) {
   PLAYER_SEARCH_TOO_SHORT: "اكتب حرفين على الأقل للبحث.",
   PLAYER_SEARCH_FAILED: "تعذر البحث عن اللاعبين.",
   ADMIN_ACTIVITY_FAILED: "تعذر تحميل سجل الإجراءات.",
+  INVALID_ADMIN_WALLET_ADJUSTMENT: "تحقق من المبلغ ونوع العملية.",
+  PLAYER_WALLET_NOT_FOUND: "لم يتم العثور على محفظة اللاعب.",
+  INSUFFICIENT_PLAYER_BALANCE: "رصيد اللاعب أقل من المبلغ المطلوب خصمه.",
+  INVALID_PLAYER_BAN: "تحقق من مدة الحظر والسبب.",
+  PLAYER_NOT_FOUND: "لم يتم العثور على اللاعب.",
+  PLAYER_MESSAGE_FAILED: "تعذر إرسال رسالة إدارة اللعبة.",
+  INVALID_PLAYER_MESSAGE: "اكتب رسالة صحيحة لا تتجاوز 1000 حرف.",
+  WALLET_ADJUSTMENT_FAILED: "تعذر تعديل رصيد اللاعب.",
+  PLAYER_BAN_FAILED: "تعذر تبنيد حساب اللاعب.",
   AUDIT_LOG_WRITE_FAILED: "تعذر حفظ سجل التدقيق؛ لم يكتمل الإجراء."
  };
  return messages[code] || code || "تعذر إكمال الطلب.";
@@ -320,6 +332,53 @@ async function loadPlayers(query) {
     node("span", "", "النفوذ: " + Number(player.influence || 0).toLocaleString("ar"))
    );
    card.append(heading, uid, stats);
+   if (player.is_banned) {
+    card.append(node("p", "owner-ban-status", (player.ban_expires_at ? "الحساب محظور حتى " + dateLabel(player.ban_expires_at) : "الحساب محظور بشكل دائم") + " · " + (player.ban_reason || "")));
+   }
+   if (isOwnerSession()) {
+    const controls = node("div", "owner-player-controls");
+    controls.append(node("strong", "owner-controls-title", "إدارة رصيد اللاعب"));
+    const amount = node("input", "reason-input"); amount.type = "number"; amount.min = "1"; amount.step = "1"; amount.placeholder = "المبلغ";
+    const walletReason = node("input", "reason-input"); walletReason.maxLength = 500; walletReason.placeholder = "سبب تعديل الرصيد (اختياري)";
+    const walletRow = node("div", "owner-control-row");
+    const add = node("button", "small-button", "إضافة أموال");
+    const remove = node("button", "small-button danger", "إزالة أموال");
+    const adjust = async (operation, button) => {
+     const value = Number(amount.value);
+     if (!Number.isSafeInteger(value) || value < 1) { message("أدخل مبلغًا صحيحًا أكبر من صفر.", true); return; }
+     button.disabled = true;
+     try { const result = await api("adjust_player_wallet", { user_id: player.user_id, amount: value, operation, reason: walletReason.value.trim() }); message("تم تعديل الرصيد. الرصيد الجديد: " + Number(result.balance).toLocaleString("ar")); await loadPlayers(query); await loadActivity(); }
+     catch (error) { message(error.message, true); button.disabled = false; }
+    };
+    add.addEventListener("click", () => void adjust("add", add));
+    remove.addEventListener("click", () => void adjust("remove", remove));
+    walletRow.append(amount, walletReason, add, remove);
+    controls.append(walletRow);
+    controls.append(node("strong", "owner-controls-title", "تبنيد الحساب"));
+    const duration = node("select", "reason-input");
+    [["1","ساعة واحدة"],["24","يوم واحد"],["72","3 أيام"],["168","7 أيام"],["720","30 يومًا"],["8760","سنة واحدة"],["0","دائم"]].forEach(([value,label]) => { const option=node("option","",label); option.value=value; duration.append(option); });
+    const banReason = node("textarea", "reason-input"); banReason.maxLength = 500; banReason.placeholder = "سبب التبنيد (إلزامي)";
+    const banButton = node("button", "small-button danger", player.is_banned ? "تحديث الحظر" : "تبنيد الحساب");
+    banButton.addEventListener("click", async () => {
+     if (banReason.value.trim().length < 3) { message("اكتب سببًا واضحًا للتبنيد (3 أحرف على الأقل).", true); return; }
+     if (!window.confirm("تأكيد تبنيد اللاعب " + player.username + "؟")) return;
+     banButton.disabled = true;
+     try { await api("ban_player_account", { user_id: player.user_id, duration_hours: Number(duration.value), reason: banReason.value.trim() }); message("تم تبنيد الحساب."); await loadPlayers(query); await loadActivity(); }
+     catch (error) { message(error.message, true); banButton.disabled = false; }
+    });
+    controls.append(duration, banReason, banButton);
+    controls.append(node("strong", "owner-controls-title", "رسالة إدارة اللعبة"));
+    const messageInput = node("textarea", "reason-input"); messageInput.maxLength = 1000; messageInput.placeholder = "اكتب رسالة تظهر للاعب في صفحة التواصل";
+    const sendMessage = node("button", "small-button", "إرسال رسالة للاعب");
+    sendMessage.addEventListener("click", async () => {
+     if (!messageInput.value.trim()) { message("اكتب الرسالة أولاً.", true); return; }
+     sendMessage.disabled = true;
+     try { await api("send_player_admin_message", { user_id: player.user_id, message: messageInput.value.trim() }); message("تم إرسال الرسالة إلى التواصل."); messageInput.value = ""; sendMessage.disabled = false; await loadActivity(); }
+     catch (error) { message(error.message, true); sendMessage.disabled = false; }
+    });
+    controls.append(messageInput, sendMessage);
+    card.append(controls);
+   }
    list.append(card);
   }
  } catch (error) {

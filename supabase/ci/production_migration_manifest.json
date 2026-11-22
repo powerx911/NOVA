@@ -3,24 +3,24 @@
   "captured_at": "2026-11-22",
   "repository": "powerx911/NOVA",
   "production_project_id": "hmrprnjhyzyefocdmnxf",
-  "production_ledger_records": 96,
+  "production_ledger_records": 100,
   "tracked_migration_files": 91,
   "recovered_history_sql_files": 55,
   "production_schema_inventory": {
-    "tables": 46,
-    "functions": 153,
-    "security_definer_functions": 140,
+    "tables": 51,
+    "functions": 155,
+    "security_definer_functions": 141,
     "triggers": 41,
-    "indexes": 102,
-    "constraints": 169,
+    "indexes": 114,
+    "constraints": 186,
     "active_cron_jobs": 8
   },
   "matching_summary": {
-    "records_with_source": 96,
+    "records_with_source": 100,
     "records_missing_source": 0,
     "records_recovered_only": 21,
     "records_with_additional_variants": 21,
-    "local_migration_files_not_mapped_to_applied_record": 21
+    "local_migration_files_not_mapped_to_applied_record": 18
   },
   "entries": [
     {
@@ -817,6 +817,14 @@
       "additional_variants": []
     },
     {
+      "version": "20261121090622",
+      "name": "nexora_daily_sale_quantity_limit",
+      "source_status": "tracked",
+      "canonical_source": "supabase/migrations/20261121100000_nexora_daily_sale_quantity_limit.sql",
+      "canonical_git_blob_sha": "bf37b4a8bada5c21d95b6c64d84460e55e182e33",
+      "additional_variants": []
+    },
+    {
       "version": "20261121115325",
       "name": "nova_org_contract_claim_serialization",
       "source_status": "tracked",
@@ -895,9 +903,33 @@
       "canonical_source": "supabase/migrations/20261122161000_nova_unify_player_feedback_statuses.sql",
       "canonical_git_blob_sha": "dbbdb7988197ca6cbb1ad96eafea9138d3d56df5",
       "additional_variants": []
+    },
+    {
+      "version": "20261122150735",
+      "name": "nova_admin_display_names_and_feedback_status_default",
+      "source_status": "tracked",
+      "canonical_source": "supabase/migrations/20261122170000_nova_admin_display_names_and_feedback_status_default.sql",
+      "canonical_git_blob_sha": "8f31c89d9e17fd3d033f91b770d95ce70cfcaadf",
+      "additional_variants": []
+    },
+    {
+      "version": "20261122152157",
+      "name": "nova_reports_tickets_service_role_access",
+      "source_status": "tracked",
+      "canonical_source": "supabase/migrations/20261122180000_nova_reports_tickets_service_role_access.sql",
+      "canonical_git_blob_sha": "2959cac264d7a686582967f5fed818a7ccc7e966",
+      "additional_variants": []
+    },
+    {
+      "version": "20261122154855",
+      "name": "nova_owner_player_controls",
+      "source_status": "tracked",
+      "canonical_source": "supabase/migrations/20261122154855_nova_owner_player_controls.sql",
+      "canonical_git_blob_sha": "a21060c37964d8c8ba8244c551dcfe0219d1b1a5",
+      "additional_variants": []
     }
   ],
-  "tracked_migration_files_on_branch": 90,
+  "tracked_migration_files_on_branch": 91,
   "tracked_migration_files_on_main": 80,
   "unmapped_local_migration_files_by_name": [
     "supabase/migrations/20261118180000_nexora_economy_rpcs.sql",
@@ -918,7 +950,6 @@
     "supabase/migrations/20261120231000_nova_company_upgrade_cost_rebalance.sql",
     "supabase/migrations/20261120232000_nova_company_upgrade_anchor_rebalance.sql",
     "supabase/migrations/20261120233000_nova_company_upgrade_charge_reconciliation.sql",
-    "supabase/migrations/20261121100000_nexora_daily_sale_quantity_limit.sql",
     "supabase/migrations/20261121110000_nova_org_contract_claim_serialization.sql",
     "supabase/migrations/20261121111500_nova_org_contract_claim_conflict_error.sql",
     "supabase/migrations/20261121113000_nova_company_revenue_reward_abuse_fix.sql",

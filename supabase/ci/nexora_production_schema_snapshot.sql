@@ -7418,3 +7418,210 @@ $function$;
 
 REVOKE ALL ON FUNCTION nexora.sell_to_nexora_idempotent(text, text, integer, text) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION nexora.sell_to_nexora_idempotent(text, text, integer, text) TO service_role;
+
+-- Owner-only player controls: bans and atomic wallet adjustments.
+create table if not exists nexora.player_account_bans (
+  user_id text primary key,
+  reason text not null check (char_length(reason) between 3 and 500),
+  expires_at timestamptz,
+  banned_by uuid not null references auth.users(id),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+create index if not exists player_account_bans_expires_at_idx on nexora.player_account_bans (expires_at);
+alter table nexora.player_account_bans enable row level security;
+revoke all on nexora.player_account_bans from public, anon, authenticated;
+grant select, insert, update, delete on nexora.player_account_bans to service_role;
+create or replace function nexora.admin_adjust_player_wallet(p_user_id text,p_amount bigint,p_operation text,p_reason text default '')
+returns jsonb language plpgsql set search_path=nexora,pg_temp as $$
+declare v_balance bigint; v_new_balance bigint; v_tx_id text := 'admin-wallet-' || gen_random_uuid()::text; v_description text;
+begin
+ if p_user_id is null or length(trim(p_user_id))=0 or p_amount is null or p_amount<=0 or p_operation not in ('add','remove') or coalesce(length(trim(p_reason)),0)>500 then raise exception 'INVALID_ADMIN_WALLET_ADJUSTMENT'; end if;
+ select balance into v_balance from wallets where user_id=p_user_id for update;
+ if not found then raise exception 'PLAYER_WALLET_NOT_FOUND'; end if;
+ if p_operation='remove' and v_balance<p_amount then raise exception 'INSUFFICIENT_PLAYER_BALANCE'; end if;
+ v_new_balance:=case when p_operation='add' then v_balance+p_amount else v_balance-p_amount end;
+ if v_new_balance<0 or v_new_balance>9000000000000000 then raise exception 'PLAYER_BALANCE_OUT_OF_RANGE'; end if;
+ update wallets set balance=v_new_balance,last_tx_id=v_tx_id,updated_at=now() where user_id=p_user_id;
+ v_description:=case when p_operation='add' then 'إضافة رصيد بواسطة إدارة اللعبة' else 'خصم رصيد بواسطة إدارة اللعبة' end;
+ if coalesce(trim(p_reason),'')<>'' then v_description:=v_description || ' — ' || trim(p_reason); end if;
+ insert into transactions(id,from_uid,to_uid,amount,fee,net_amount,type,reference_id,description,status,created_at)
+ values(v_tx_id,case when p_operation='remove' then p_user_id else null end,case when p_operation='add' then p_user_id else null end,p_amount,0,p_amount,'admin_adjustment',v_tx_id,v_description,'completed',now());
+ return jsonb_build_object('balance',v_new_balance,'transaction_id',v_tx_id);
+end; $$;
+revoke all on function nexora.admin_adjust_player_wallet(text,bigint,text,text) from public,anon,authenticated;
+grant execute on function nexora.admin_adjust_player_wallet(text,bigint,text,text) to service_role;
+
+-- Reconstruct applied production tables added by the recent NEXORA support and merchant migrations.
+
+-- Source: supabase/migrations/20261121081916_nexora_merchant_daily_sales.sql
+create table nexora.nexora_daily_sales (
+  user_id text not null,
+  sale_date date not null default (now() at time zone 'utc')::date,
+  amount bigint not null default 0 check (amount >= 0),
+  updated_at timestamptz not null default now(),
+  primary key (user_id, sale_date)
+);
+
+create or replace function nexora.sell_to_nexora(p_uid text, p_item_id text, p_qty integer)
+returns jsonb
+language plpgsql
+security definer
+set search_path to ''
+as $function$
+declare
+  v_base bigint;
+  v_price bigint;
+  v_total bigint;
+  v_sold bigint;
+  v_inventory bigint;
+  v_tx text := 'tx_' || gen_random_uuid()::text;
+  v_day date := (now() at time zone 'utc')::date;
+begin
+  if p_qty is null or p_qty < 1 then raise exception 'INVALID_QUANTITY'; end if;
+  v_base := case p_item_id
+    when 'silicon_ore' then 35 when 'copper_wire' then 28 when 'energy_cells' then 45
+    when 'crude_alloy' then 40 when 'carbon_fiber' then 55 when 'rare_minerals' then 70
+    when 'titanium_ore' then 85 when 'polymer_resin' then 95 when 'biotech_gel' then 120
+    when 'quantum_dust' then 160 when 'microchips' then 145 when 'precision_frame' then 175
+    when 'synth_polymer' then 190 when 'quantum_server' then 560 when 'logistics_drone' then 620
+    when 'bio_module' then 0 else null end;
+  if v_base is null then raise exception 'INVALID_ITEM'; end if;
+  perform pg_advisory_xact_lock(hashtextextended(p_uid || ':nexora_daily_sale:' || v_day::text, 0));
+  select quantity into v_inventory from nexora.inventory where user_id = p_uid and item_id = p_item_id for update;
+  if coalesce(v_inventory, 0) < p_qty then raise exception 'INSUFFICIENT_INVENTORY'; end if;
+  insert into nexora.nexora_daily_sales(user_id, sale_date, amount) values (p_uid, v_day, 0) on conflict do nothing;
+  select amount into v_sold from nexora.nexora_daily_sales where user_id = p_uid and sale_date = v_day for update;
+  v_price := greatest(1, round(v_base * 0.60)::bigint);
+  v_total := v_price * p_qty;
+  if v_sold + v_total > 1500 then raise exception 'DAILY_SALE_LIMIT'; end if;
+  perform 1 from nexora.wallets where user_id = p_uid for update;
+  if not found then raise exception 'ACCOUNT_NOT_FOUND'; end if;
+  update nexora.inventory set quantity = quantity - p_qty, updated_at = now() where user_id = p_uid and item_id = p_item_id;
+  update nexora.wallets set balance = balance + v_total, total_earned = total_earned + v_total, last_tx_id = v_tx, updated_at = now() where user_id = p_uid;
+  update nexora.nexora_daily_sales set amount = amount + v_total, updated_at = now() where user_id = p_uid and sale_date = v_day;
+  insert into nexora.transactions(id, from_uid, to_uid, amount, fee, net_amount, type, reference_id, description, status)
+  values (v_tx, 'NEXORA', p_uid, v_total, 0, v_total, 'nexora_sale', p_item_id, 'NEXORA purchase: ' || p_qty || 'x ' || p_item_id, 'completed');
+  return jsonb_build_object('ok', true, 'quantity', p_qty, 'unit_price', v_price, 'total', v_total, 'daily_sold', v_sold + v_total, 'daily_remaining', 1500 - (v_sold + v_total));
+end
+$function$;
+
+revoke all on function nexora.sell_to_nexora(text, text, integer) from public, anon, authenticated;
+grant execute on function nexora.sell_to_nexora(text, text, integer) to service_role;
+
+-- Source: supabase/migrations/20261121100000_nexora_daily_sale_quantity_limit.sql
+alter table nexora.nexora_daily_sales add column if not exists quantity_sold integer not null default 0 check (quantity_sold >= 0);
+
+create or replace function nexora.sell_to_nexora(p_uid text, p_item_id text, p_qty integer)
+returns jsonb
+language plpgsql
+security definer
+set search_path to ''
+as $function$
+declare
+  v_base bigint;
+  v_price bigint;
+  v_total bigint;
+  v_sold bigint;
+  v_sold_qty integer;
+  v_inventory bigint;
+  v_tx text := 'tx_' || gen_random_uuid()::text;
+  v_day date := (now() at time zone 'utc')::date;
+begin
+  if p_qty is null or p_qty < 1 then raise exception 'INVALID_QUANTITY'; end if;
+  v_base := case p_item_id
+    when 'silicon_ore' then 35 when 'copper_wire' then 28 when 'energy_cells' then 45
+    when 'crude_alloy' then 40 when 'carbon_fiber' then 55 when 'rare_minerals' then 70
+    when 'titanium_ore' then 85 when 'polymer_resin' then 95 when 'biotech_gel' then 120
+    when 'quantum_dust' then 160 when 'microchips' then 145 when 'precision_frame' then 175
+    when 'synth_polymer' then 190 when 'quantum_server' then 560 when 'logistics_drone' then 620
+    when 'bio_module' then 680 else null end;
+  if v_base is null then raise exception 'INVALID_ITEM'; end if;
+  perform pg_advisory_xact_lock(hashtextextended(p_uid || ':nexora_daily_sale:' || v_day::text, 0));
+  select quantity into v_inventory from nexora.inventory where user_id = p_uid and item_id = p_item_id for update;
+  if coalesce(v_inventory, 0) < p_qty then raise exception 'INSUFFICIENT_INVENTORY'; end if;
+  insert into nexora.nexora_daily_sales(user_id, sale_date, amount) values (p_uid, v_day, 0) on conflict do nothing;
+  select amount, quantity_sold into v_sold, v_sold_qty from nexora.nexora_daily_sales where user_id = p_uid and sale_date = v_day for update;
+  v_price := greatest(1, round(v_base * 0.60)::bigint);
+  v_total := v_price * p_qty;
+  if v_sold_qty + p_qty > 1500 then raise exception 'DAILY_SALE_LIMIT'; end if;
+  perform 1 from nexora.wallets where user_id = p_uid for update;
+  if not found then raise exception 'ACCOUNT_NOT_FOUND'; end if;
+  update nexora.inventory set quantity = quantity - p_qty, updated_at = now() where user_id = p_uid and item_id = p_item_id;
+  update nexora.wallets set balance = balance + v_total, total_earned = total_earned + v_total, last_tx_id = v_tx, updated_at = now() where user_id = p_uid;
+  update nexora.nexora_daily_sales set amount = amount + v_total, quantity_sold = quantity_sold + p_qty, updated_at = now() where user_id = p_uid and sale_date = v_day;
+  insert into nexora.transactions(id, from_uid, to_uid, amount, fee, net_amount, type, reference_id, description, status)
+  values (v_tx, 'NEXORA', p_uid, v_total, 0, v_total, 'nexora_sale', p_item_id, 'NEXORA purchase: ' || p_qty || 'x ' || p_item_id, 'completed');
+  return jsonb_build_object('ok', true, 'quantity', p_qty, 'unit_price', v_price, 'total', v_total, 'daily_sold', v_sold_qty + p_qty, 'daily_remaining', 1500 - (v_sold_qty + p_qty));
+end
+$function$;
+
+revoke all on function nexora.sell_to_nexora(text, text, integer) from public, anon, authenticated;
+grant execute on function nexora.sell_to_nexora(text, text, integer) to service_role;
+
+-- Source: supabase/migrations/20261122143000_create_player_feedback.sql
+-- Store authenticated in-game issue reports and suggestions.
+create table if not exists nexora.player_feedback (
+  id uuid primary key default gen_random_uuid(),
+  user_id text not null,
+  feedback_type text not null check (feedback_type in ('issue', 'suggestion')),
+  message text not null check (char_length(btrim(message)) between 10 and 3000),
+  status text not null default 'new' check (status in ('new', 'reviewing', 'resolved', 'dismissed')),
+  created_at timestamptz not null default now()
+);
+create index if not exists player_feedback_created_at_idx
+  on nexora.player_feedback (created_at desc);
+create index if not exists player_feedback_user_id_idx
+  on nexora.player_feedback (user_id, created_at desc);
+alter table nexora.player_feedback enable row level security;
+revoke all on table nexora.player_feedback from anon, authenticated;
+grant insert, select on table nexora.player_feedback to service_role;
+
+
+-- Source: supabase/migrations/20261122160000_nova_support_tickets_and_player_reports.sql
+-- Support tickets, free-form player reports, and private image attachments (private-only object paths).
+alter table nexora.player_reports drop constraint if exists player_reports_reason_check;
+alter table nexora.player_reports add column if not exists message text;
+alter table nexora.player_reports add column if not exists attachment_paths text[] not null default '{}';
+alter table nexora.player_feedback add column if not exists attachment_paths text[] not null default '{}';
+
+create table if not exists nexora.support_tickets (
+  id uuid primary key default gen_random_uuid(),
+  user_id text not null,
+  subject text not null check (char_length(btrim(subject)) between 3 and 120),
+  status text not null default 'open' check (status in ('open','claimed','closed')),
+  claimed_by uuid references auth.users(id) on delete set null,
+  claimed_at timestamptz,
+  closed_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+create index if not exists support_tickets_user_created_idx on nexora.support_tickets(user_id, created_at desc);
+create index if not exists support_tickets_status_updated_idx on nexora.support_tickets(status, updated_at desc);
+
+create table if not exists nexora.support_ticket_messages (
+  id uuid primary key default gen_random_uuid(),
+  ticket_id uuid not null references nexora.support_tickets(id) on delete cascade,
+  sender_type text not null check (sender_type in ('player','admin')),
+  sender_id text not null,
+  message text not null check (char_length(btrim(message)) between 1 and 3000),
+  attachment_paths text[] not null default '{}',
+  created_at timestamptz not null default now()
+);
+create index if not exists support_ticket_messages_ticket_created_idx on nexora.support_ticket_messages(ticket_id, created_at asc);
+
+alter table nexora.support_tickets enable row level security;
+alter table nexora.support_ticket_messages enable row level security;
+revoke all on nexora.support_tickets, nexora.support_ticket_messages from public, anon, authenticated;
+grant select, insert, update, delete on nexora.support_tickets, nexora.support_ticket_messages to service_role;
+
+
+
+-- Source: supabase/migrations/20261122161000_nova_unify_player_feedback_statuses.sql
+alter table nexora.player_feedback drop constraint if exists player_feedback_status_check;
+update nexora.player_feedback set status=case status when 'new' then 'open' when 'resolved' then 'closed' when 'dismissed' then 'closed' else status end;
+alter table nexora.player_feedback add constraint player_feedback_status_check check (status in ('open','reviewing','closed'));
+
+
+-- Production uniqueness guard for active market listings.
+CREATE UNIQUE INDEX IF NOT EXISTS market_listings_one_active_per_seller_item ON nexora.market_listings USING btree (seller_uid, item_id) WHERE ((status = 'active'::text) AND (seller_uid <> 'SYSTEM'::text));

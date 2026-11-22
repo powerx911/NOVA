@@ -86,6 +86,14 @@ BEGIN
     RAISE EXCEPTION 'Resource-specific factory progression curves are missing from the production snapshot';
   END IF;
 
+  IF to_regprocedure('nexora.admin_adjust_player_wallet(text,bigint,text,text)') IS NULL
+     OR has_function_privilege('anon', 'nexora.admin_adjust_player_wallet(text,bigint,text,text)', 'EXECUTE')
+     OR has_function_privilege('authenticated', 'nexora.admin_adjust_player_wallet(text,bigint,text,text)', 'EXECUTE')
+     OR NOT has_function_privilege('service_role', 'nexora.admin_adjust_player_wallet(text,bigint,text,text)', 'EXECUTE')
+     OR NOT (SELECT relrowsecurity FROM pg_class WHERE oid='nexora.player_account_bans'::regclass) THEN
+    RAISE EXCEPTION 'Owner-only wallet or ban table access controls are missing';
+  END IF;
+
   IF to_regprocedure('nexora.sell_to_nexora_idempotent(text,text,integer,text)') IS NULL
      OR has_function_privilege('anon', 'nexora.sell_to_nexora_idempotent(text,text,integer,text)', 'EXECUTE')
      OR has_function_privilege('authenticated', 'nexora.sell_to_nexora_idempotent(text,text,integer,text)', 'EXECUTE')
@@ -93,14 +101,14 @@ BEGIN
     RAISE EXCEPTION 'NEXORA merchant sale idempotency RPC or its access controls are missing';
   END IF;
 
-  IF v_tables <> 46
-     OR v_functions <> 153
-     OR v_security_definer <> 140
+  IF v_tables <> 51
+     OR v_functions <> 155
+     OR v_security_definer <> 141
      OR v_triggers <> 41
-     OR v_indexes <> 102
-     OR v_constraints <> 169
-     OR v_rls_enabled <> 46
-     OR v_rls_disabled <> 0 THEN
+     OR v_indexes <> 114
+     OR v_constraints <> 186
+     OR v_rls_enabled <> 50
+     OR v_rls_disabled <> 1 THEN
     RAISE EXCEPTION
       'Production schema snapshot mismatch: tables %, functions %, SECURITY DEFINER %, triggers %, indexes %, constraints %, RLS enabled %, RLS disabled %',
       v_tables, v_functions, v_security_definer, v_triggers, v_indexes, v_constraints, v_rls_enabled, v_rls_disabled;
