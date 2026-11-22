@@ -133,12 +133,16 @@ Deno.serve(async (req: Request) => {
     }
 
     if (body.action === "list_my_support_tickets") {
-      const { data: tickets, error } = await db.from("support_tickets").select("id,user_id,subject,status,claimed_at,created_at,updated_at").eq("user_id", identity.uid).order("updated_at", { ascending: false }).limit(50);
+      const { data: tickets, error } = await db.from("support_tickets").select("id,user_id,subject,status,claimed_at,closed_at,created_at,updated_at").eq("user_id", identity.uid).order("updated_at", { ascending: false }).limit(50);
       if (error) throw error;
-      const ids = (tickets ?? []).map((ticket: any) => ticket.id);
+      const visibleTickets = (tickets ?? []).filter((ticket: any) => {
+        if (ticket.status !== "closed" || !ticket.closed_at) return true;
+        return new Date(ticket.closed_at).getTime() + 5 * 60 * 1000 > Date.now();
+      });
+      const ids = visibleTickets.map((ticket: any) => ticket.id);
       const { data: messages, error: messagesError } = ids.length ? await db.from("support_ticket_messages").select("id,ticket_id,sender_type,sender_id,message,attachment_paths,created_at").in("ticket_id", ids).order("created_at", { ascending: true }) : { data: [], error: null };
       if (messagesError) throw messagesError;
-      const result = await Promise.all((tickets ?? []).map(async (ticket: any) => ({
+      const result = await Promise.all(visibleTickets.map(async (ticket: any) => ({
         ...ticket,
         messages: await Promise.all((messages ?? []).filter((message: any) => message.ticket_id === ticket.id).map(async (message: any) => ({ ...message, attachments: await signedImages(message.attachment_paths) }))),
       })));

@@ -147,3 +147,37 @@
 
 .admin-edit{display:flex;align-items:center;gap:8px;min-width:220px}.admin-edit input{min-width:0;flex:1}.admin-row{flex-wrap:wrap}
 @media(max-width:760px){.admin-edit{width:100%;min-width:0}.admin-edit button{white-space:nowrap}}
+
+
+/* Support ticket list and full-screen conversation */
+.ticket-summary{width:100%;display:flex;align-items:center;justify-content:space-between;gap:16px;text-align:right;background:#0c1424;border:1px solid #26334b;border-radius:12px;padding:15px 16px;color:#e8edf7;cursor:pointer;transition:border-color .15s,background .15s}
+.ticket-summary:hover{border-color:#60759a;background:#111d32}
+.ticket-summary-main{min-width:0;display:grid;gap:5px}
+.ticket-summary-main strong{font-size:14px;overflow-wrap:anywhere}
+.ticket-summary-preview{color:#9aa9c2;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:min(70vw,720px)}
+.ticket-summary-side{display:grid;justify-items:end;gap:7px;flex-shrink:0}
+.ticket-summary-count{font-size:10px;color:#8998b3}
+.ticket-detail-overlay{position:fixed;inset:0;z-index:10000;background:rgba(3,7,14,.92);display:flex;align-items:stretch;justify-content:center;padding:18px;overflow:auto}
+.ticket-detail-panel{width:min(100%,1050px);min-height:calc(100vh - 36px);background:#0a1221;border:1px solid #26334b;border-radius:18px;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 25px 90px rgba(0,0,0,.55)}
+.ticket-detail-header{display:flex;align-items:center;gap:14px;padding:18px 20px;border-bottom:1px solid #26334b;background:#0d1729;position:sticky;top:0;z-index:1}
+.ticket-back{white-space:nowrap;flex-shrink:0}
+.ticket-detail-heading{min-width:0;flex:1}
+.ticket-detail-heading h2{font-size:18px;font-weight:750;overflow-wrap:anywhere}
+.ticket-detail-heading p{margin-top:4px}
+.ticket-detail-messages{padding:20px;display:grid;align-content:start;gap:12px;flex:1}
+.ticket-detail-message-head{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:8px}
+.ticket-detail-controls{position:sticky;bottom:0;padding:16px 20px;background:#0d1729;border-top:1px solid #26334b;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.ticket-detail-controls textarea{flex:1 1 100%;min-height:90px}
+.ticket-detail-controls .small-button{min-height:40px}
+@media(max-width:640px){
+ .ticket-detail-overlay{padding:0}
+ .ticket-detail-panel{width:100%;min-height:100dvh;border:0;border-radius:0}
+ .ticket-detail-header{padding:12px;gap:9px;flex-wrap:wrap}
+ .ticket-back{font-size:12px;padding:9px 10px}
+ .ticket-detail-heading h2{font-size:15px}
+ .ticket-detail-header>.status-badge{margin-inline-start:auto}
+ .ticket-detail-messages{padding:12px}
+ .ticket-detail-controls{padding:12px}
+ .ticket-summary{padding:12px;gap:9px}
+ .ticket-summary-preview{max-width:55vw}
+}
