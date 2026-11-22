@@ -109,12 +109,12 @@ async function loadReports() {
    const isSuggestion = isFeedback && report.kind === "suggestion";
    const card = node("article", "report-card");
    const head = node("div", "report-head");
-   const titleText = isFeedback ? (isSuggestion ? "اقتراح من " : "بلاغ من ") + report.reporter_name : report.reporter_name + " أبلغ عن " + report.target_name;
+   const titleText = isFeedback ? (isSuggestion ? "اقتراح من " : "بلاغ من ") + (report.reporter_name || "لاعب غير معروف") : "بلاغ من " + (report.reporter_name || "لاعب غير معروف") + " على " + (report.target_name || "لاعب غير معروف");
    head.append(node("strong", "", titleText), node("span", "status-badge status-" + report.status, STATUS_LABELS[report.status] || report.status));
    const meta = node("p", "report-meta", (isFeedback ? (isSuggestion ? "اقتراح لاعب" : "بلاغ لاعب") : (REASON_LABELS[report.reason] || report.reason)) + " · " + dateLabel(report.created_at));
    const ids = node("p", "report-ids", "صاحب الرسالة: " + report.reporter_uid + (isFeedback ? "" : " · اللاعب المبلّغ عنه: " + report.target_uid));
    const controls = node("div", "report-controls");
-   const statuses = isFeedback ? ["new", "reviewing", "resolved", "dismissed"] : ["open", "reviewing", "closed"];
+   const statuses = ["open", "reviewing", "closed"];
    const status = node("select", "status-select");
    for (const value of statuses) { const option = node("option", "", STATUS_LABELS[value]); option.value = value; status.append(option); }
    status.value = report.status;
