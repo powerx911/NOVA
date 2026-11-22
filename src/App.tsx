@@ -67,6 +67,7 @@ function NovaAppContent() {
     const remaining = game.accountBan.expiresAt ? Math.max(0, Math.ceil((game.accountBan.expiresAt - banClock) / 1000)) : null;
     const durationHours = game.accountBan.expiresAt && game.accountBan.createdAt ? Math.max(1, Math.round((game.accountBan.expiresAt - game.accountBan.createdAt) / 3600000)) : null;
     const durationLabel = durationHours === null ? 'دائم' : durationHours < 24 ? durationHours + ' ساعة' : durationHours % 24 === 0 ? (durationHours / 24) + ' يوم' : durationHours + ' ساعة';
+    const durationPhrase = durationHours === null ? 'بشكل دائم' : 'لمدة ' + durationLabel;
     const days = remaining === null ? 0 : Math.floor(remaining / 86400);
     const hours = remaining === null ? 0 : Math.floor((remaining % 86400) / 3600);
     const minutes = remaining === null ? 0 : Math.floor((remaining % 3600) / 60);
@@ -77,9 +78,9 @@ function NovaAppContent() {
         <div className="w-full max-w-md rounded-2xl border border-red-500/30 bg-[#141821] p-7 space-y-5 text-center">
           <div className="mx-auto h-14 w-14 rounded-full bg-red-500/10 flex items-center justify-center text-red-300 text-2xl">!</div>
           <h1 className="text-xl font-bold">تم تبنيد حسابك</h1>
-          <p className="text-sm leading-7 text-[#AAB1BE]">تم تبنيد حسابك لمدة {durationLabel} بسبب:</p>
+          <p className="text-sm leading-7 text-[#AAB1BE]">تم تبنيد حسابك {durationPhrase} بسبب:</p>
           <p className="rounded-xl bg-[#0B0D12] p-4 text-sm leading-7 text-red-200 whitespace-pre-wrap">{game.accountBan.reason}</p>
-          <p className="text-sm text-[#F4C66A]">{remainingLabel === 'انتهت مدة الحظر' ? 'انتهت مدة الحظر، يمكنك إعادة التحقق للدخول.' : 'المتبقي لفك الحظر: ' + remainingLabel}</p>
+          <p className="text-sm text-[#F4C66A]">{remaining === null ? 'هذا الحظر دائم ولا ينتهي تلقائيًا.' : remainingLabel === 'انتهت مدة الحظر' ? 'انتهت مدة الحظر، يمكنك إعادة التحقق للدخول.' : 'المتبقي لفك الحظر: ' + remainingLabel}</p>
           <button type="button" onClick={game.retryProfileLoad} className="w-full min-h-[46px] rounded-xl bg-[#B91C32] text-white text-sm font-semibold">إعادة التحقق من حالة الحساب</button>
           <button type="button" onClick={() => void game.logout()} className="w-full min-h-[42px] rounded-xl bg-[#252B36] text-[#F4F5F7] text-sm">تسجيل الخروج</button>
         </div>
