@@ -96,6 +96,7 @@ export function ProfileHubView({
   const [feedbackText, setFeedbackText] = useState('');
   const [feedbackImages, setFeedbackImages] = useState<File[]>([]);
   const [feedbackBusy, setFeedbackBusy] = useState(false);
+  const [feedbackFormType, setFeedbackFormType] = useState<'issue' | 'suggestion' | null>(null);
   const [musicVolume, setMusicVolume] = useState(() => {
     try { const stored = window.localStorage.getItem('nexora-music-volume'); return stored === null ? 22 : Math.round(Math.max(0, Math.min(1, Number(stored))) * 100); } catch { return 22; }
   });
@@ -308,7 +309,7 @@ export function ProfileHubView({
     try {
       const images = await Promise.all(feedbackImages.slice(0, 3).map((file) => new Promise<string>((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve(String(reader.result)); reader.onerror = () => reject(new Error('ATTACHMENT_READ_FAILED')); reader.readAsDataURL(file); })));
       await nexoraApi<{ id: string; createdAt: string }>('submit_game_feedback', { type, message, images });
-      setFeedbackText(''); setFeedbackImages([]);
+      setFeedbackText(''); setFeedbackImages([]); setFeedbackFormType(null);
       showToast(language === 'ar' ? 'تم إرسال رسالتك بنجاح. شكراً لمساعدتنا في تحسين NOVA.' : 'Your message was sent. Thank you for helping improve NOVA.', 'success');
     } catch {
       showToast(language === 'ar' ? 'تعذر إرسال الرسالة حالياً. حاول لاحقاً.' : 'Could not send your message right now. Try again later.', 'error');
@@ -924,25 +925,21 @@ export function ProfileHubView({
           <section className="space-y-3 border-b border-white/8 pb-4">
             <div className="flex items-center gap-2.5">
               <MessageSquareWarning className="w-4 h-4 text-[#E04455]" />
-              <h3 className="text-sm font-semibold text-[#F4F5F7]">{language === 'ar' ? 'إبلاغ عن مشكلة أو تقديم اقتراح' : 'Report an issue or send a suggestion'}</h3>
+              <h3 className="text-sm font-semibold text-[#F4F5F7]">{language === 'ar' ? 'التواصل مع الإدارة' : 'Contact administration'}</h3>
             </div>
-            <input type="file" accept="image/png,image/jpeg,image/webp" multiple onChange={(event) => setFeedbackImages(Array.from(event.target.files || []).slice(0, 3))} className="w-full text-xs text-[#9299A6]" />
-            <textarea
-              value={feedbackText}
-              onChange={(event) => setFeedbackText(event.target.value.slice(0, 3000))}
-              rows={4}
-              maxLength={3000}
-              placeholder={language === 'ar' ? 'اكتب التفاصيل هنا (10 أحرف على الأقل)...' : 'Describe it here (at least 10 characters)...'}
-              className="w-full resize-y rounded-xl border border-white/10 bg-[#0B0D12] p-3 text-sm text-[#F4F5F7] placeholder:text-[#9299A6]/60 focus:outline-none focus:border-[#E04455]"
-            />
-            <div className="flex flex-wrap gap-2">
-              <button type="button" disabled={feedbackBusy || feedbackText.trim().length < 10} onClick={() => handleFeedbackSubmit('issue')} className="flex min-h-[40px] flex-1 items-center justify-center gap-2 rounded-xl bg-[#1B2230] px-3 text-xs font-semibold text-[#F4F5F7] hover:bg-[#232C3E] disabled:opacity-40">
-                <MessageSquareWarning className="h-4 w-4" />{language === 'ar' ? 'إرسال بلاغ' : 'Send issue'}
-              </button>
-              <button type="button" disabled={feedbackBusy || feedbackText.trim().length < 10} onClick={() => handleFeedbackSubmit('suggestion')} className="flex min-h-[40px] flex-1 items-center justify-center gap-2 rounded-xl bg-[#B91C32] px-3 text-xs font-semibold text-white hover:bg-[#E04455] disabled:opacity-40">
-                <Lightbulb className="h-4 w-4" />{language === 'ar' ? 'إرسال اقتراح' : 'Send suggestion'}
-              </button>
-            </div>
+            {!feedbackFormType ? <div className="grid grid-cols-2 gap-2">
+              <button type="button" onClick={() => setFeedbackFormType('issue')} className="min-h-[42px] rounded-xl bg-[#1B2230] px-3 text-xs font-semibold text-[#F4F5F7]">{language === 'ar' ? 'إبلاغ عن مشكلة' : 'Report an issue'}</button>
+              <button type="button" onClick={() => setFeedbackFormType('suggestion')} className="min-h-[42px] rounded-xl bg-[#B91C32] px-3 text-xs font-semibold text-white">{language === 'ar' ? 'تقديم اقتراح' : 'Send a suggestion'}</button>
+            </div> : <>
+              <p className="text-xs text-[#AAB1BE]">{feedbackFormType === 'issue' ? (language === 'ar' ? 'إبلاغ عن مشكلة' : 'Report an issue') : (language === 'ar' ? 'تقديم اقتراح' : 'Send a suggestion')}</p>
+              <textarea value={feedbackText} onChange={(event) => setFeedbackText(event.target.value.slice(0, 3000))} rows={4} maxLength={3000} placeholder={language === 'ar' ? 'اكتب التفاصيل هنا (10 أحرف على الأقل)...' : 'Describe it here (at least 10 characters)...'} className="w-full resize-y rounded-xl border border-white/10 bg-[#0B0D12] p-3 text-sm text-[#F4F5F7] placeholder:text-[#9299A6]/60 focus:outline-none focus:border-[#E04455]" />
+              <label className="inline-flex cursor-pointer items-center justify-center rounded-lg border border-white/15 bg-[#141821] px-4 py-2 text-xs text-white">{language === 'ar' ? 'إرفاق صور' : 'Attach images'}<input type="file" accept="image/png,image/jpeg,image/webp" multiple onChange={(event) => setFeedbackImages(Array.from(event.target.files || []).slice(0, 3))} className="hidden" /></label>
+              {feedbackImages.length > 0 && <span className="ms-2 text-[11px] text-[#AAB1BE]">{language === 'ar' ? `تم إرفاق ${feedbackImages.length} صور` : `${feedbackImages.length} images attached`}</span>}
+              <div className="flex gap-2">
+                <button type="button" disabled={feedbackBusy || feedbackText.trim().length < 10} onClick={() => handleFeedbackSubmit(feedbackFormType)} className="flex-1 min-h-[42px] rounded-xl bg-[#B91C32] px-3 text-xs font-semibold text-white disabled:opacity-40">{language === 'ar' ? 'إرسال' : 'Send'}</button>
+                <button type="button" onClick={() => {setFeedbackFormType(null);setFeedbackText('');setFeedbackImages([]);}} className="min-h-[42px] rounded-xl bg-[#252B36] px-4 text-xs text-white">{language === 'ar' ? 'إلغاء' : 'Cancel'}</button>
+              </div>
+            </>}
           </section>
 
           <div className="flex items-center justify-between gap-3 border-b border-white/8 py-3">
