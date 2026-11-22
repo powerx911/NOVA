@@ -134,7 +134,9 @@ jobs:
             supabase/migrations/20261120184839_nova_financial_idempotency_market_history.sql \
             supabase/migrations/20261120191611_nova_live_player_skill_effects.sql \
             supabase/migrations/20261120192229_nova_org_contract_negotiation_bonus.sql \
-            supabase/migrations/20261121123000_nova_nexora_sale_idempotency.sql
+            supabase/migrations/20261121123000_nova_nexora_sale_idempotency.sql \
+            supabase/migrations/20261122124652_create_admin_accounts.sql \
+            supabase/migrations/20261122134726_grant_admin_player_report_access.sql
           do
             if [ "$migration" = "supabase/migrations/20261120135718_nova_production_economy_parity_repair.sql" ]; then
               psql "$DB_URL" -v ON_ERROR_STOP=1 -f supabase/ci/replay_patches/prepare_factory_upgrade_parity.sql
