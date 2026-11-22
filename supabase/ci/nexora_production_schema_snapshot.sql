@@ -7622,3 +7622,6 @@ alter table nexora.player_feedback drop constraint if exists player_feedback_sta
 update nexora.player_feedback set status=case status when 'new' then 'open' when 'resolved' then 'closed' when 'dismissed' then 'closed' else status end;
 alter table nexora.player_feedback add constraint player_feedback_status_check check (status in ('open','reviewing','closed'));
 
+
+-- Production uniqueness guard for active market listings.
+CREATE UNIQUE INDEX IF NOT EXISTS market_listings_one_active_per_seller_item ON nexora.market_listings USING btree (seller_uid, item_id) WHERE ((status = 'active'::text) AND (seller_uid <> 'SYSTEM'::text));
