@@ -7,12 +7,12 @@
   "tracked_migration_files": 91,
   "recovered_history_sql_files": 55,
   "production_schema_inventory": {
-    "tables": 47,
-    "functions": 154,
-    "security_definer_functions": 140,
+    "tables": 51,
+    "functions": 155,
+    "security_definer_functions": 141,
     "triggers": 41,
-    "indexes": 104,
-    "constraints": 172,
+    "indexes": 114,
+    "constraints": 186,
     "active_cron_jobs": 8
   },
   "matching_summary": {
