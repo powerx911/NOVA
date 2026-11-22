@@ -1,19 +1,36 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react';
 
 type Props = { children: ReactNode };
-type State = { hasError: boolean };
+type State = { hasError: boolean; details: string; copied: boolean };
 
 export class AppErrorBoundary extends Component<Props, State> {
-  state: State = { hasError: false };
+  state: State = { hasError: false, details: '', copied: false };
 
-  static getDerivedStateFromError(): State {
-    return { hasError: true };
+  static getDerivedStateFromError(error: Error): Partial<State> {
+    return { hasError: true, details: `${error?.name ?? 'Error'}: ${error?.message ?? ''}`.slice(0, 400) };
   }
 
   componentDidCatch(error: Error, info: ErrorInfo) {
     // Keep the fallback independent of diagnostics/network services.
     console.error('Unexpected application render error', error, info.componentStack);
+    const componentStack = (info.componentStack || '').split('\n').filter(Boolean).slice(0, 6).join('\n');
+    const details = [
+      `${error?.name ?? 'Error'}: ${error?.message ?? ''}`.slice(0, 400),
+      componentStack,
+      `Time: ${new Date().toISOString()}`,
+      `UA: ${typeof navigator === 'undefined' ? 'unknown' : navigator.userAgent}`,
+    ].filter(Boolean).join('\n');
+    this.setState({ details });
   }
+
+  private copyDetails = async () => {
+    try {
+      await navigator.clipboard.writeText(this.state.details);
+      this.setState({ copied: true });
+    } catch {
+      // Clipboard can be blocked in in-app browsers; the details stay visible to copy manually.
+    }
+  };
 
   render() {
     if (this.state.hasError) {
@@ -32,6 +49,19 @@ export class AppErrorBoundary extends Component<Props, State> {
             >
               إعادة تحميل اللعبة
             </button>
+            {this.state.details && (
+              <details className="text-start">
+                <summary className="cursor-pointer text-xs text-[#9299A6]">تفاصيل تقنية للمطوّر</summary>
+                <pre dir="ltr" className="mt-2 max-h-40 overflow-auto whitespace-pre-wrap break-words rounded-lg bg-[#0B0D12] p-3 text-left text-[11px] leading-5 text-[#AAB1BE]">{this.state.details}</pre>
+                <button
+                  type="button"
+                  onClick={() => void this.copyDetails()}
+                  className="mt-2 w-full min-h-[40px] rounded-xl bg-[#252B36] text-xs text-[#F4F5F7]"
+                >
+                  {this.state.copied ? 'تم النسخ' : 'نسخ تفاصيل الخطأ'}
+                </button>
+              </details>
+            )}
           </section>
         </main>
       );
