@@ -70,10 +70,11 @@ function dateLabel(value) {
 function switchView(name) {
  document.querySelectorAll(".view").forEach(view => view.classList.toggle("active", view.id === "view-" + name));
  document.querySelectorAll("[data-view]").forEach(button => button.classList.toggle("active", button.dataset.view === name));
- const titles = { overview: "نظرة عامة", reports: "بلاغات اللاعبين", players: "إدارة اللاعبين", activity: "سجل الإجراءات", admins: "حسابات المشرفين" };
+ const titles = { overview: "نظرة عامة", reports: "بلاغات اللاعبين", tickets: "التذاكر", players: "إدارة اللاعبين", activity: "سجل الإجراءات", admins: "حسابات المشرفين" };
  $("#page-title").textContent = titles[name] || "مركز الإدارة";
  if (name === "overview") loadOverview();
  if (name === "reports") loadReports();
+ if (name === "tickets") loadTickets();
  if (name === "activity") loadActivity();
 }
 function show(session) {
@@ -138,6 +139,44 @@ async function loadReports() {
   }
  } catch (error) { list.replaceChildren(node("p", "error-state", error.message)); message(error.message, true); }
 }
+
+async function loadTickets() {
+ const list = $("#tickets-list");
+ list.replaceChildren(node("p", "muted", "جارٍ تحميل التذاكر…"));
+ try {
+  const result = await api("list_support_tickets");
+  const tickets = result.tickets || [];
+  list.replaceChildren();
+  if (!tickets.length) { list.append(node("p", "empty-state", "لا توجد تذاكر حالياً.")); return; }
+  for (const ticket of tickets) {
+   const card = node("article", "ticket-card");
+   card.append(node("strong", "", ticket.subject + " · " + (ticket.player_name || "لاعب غير معروف")));
+   card.append(node("p", "report-ids", "اللاعب: " + ticket.user_id + " · " + dateLabel(ticket.created_at)));
+   for (const item of ticket.messages || []) {
+    const bubble = node("div", "ticket-message");
+    bubble.append(node("strong", "", item.sender_type === "admin" ? "الإدارة" : "اللاعب"));
+    bubble.append(node("p", "", item.message));
+    card.append(bubble);
+    for (const url of item.attachments || []) { const img = node("img", "report-attachment"); img.src = url; img.alt = "مرفق"; card.append(img); }
+   }
+   if (ticket.status === "open") {
+    const claim = node("button", "small-button", "استلام التذكرة");
+    claim.addEventListener("click", async () => { try { await api("claim_support_ticket", {ticket_id:ticket.id}); message("تم استلام التذكرة."); await loadTickets(); } catch(error) { message(error.message,true); } });
+    card.append(claim);
+   }
+   if (ticket.status !== "closed") {
+    const input = node("textarea", "reason-input"); input.placeholder = "اكتب ردك للاعب";
+    const send = node("button", "small-button", "إرسال الرد");
+    send.addEventListener("click", async () => { if(!input.value.trim()) return; try { await api("send_support_ticket_message",{ticket_id:ticket.id,message:input.value.trim()}); message("تم إرسال الرد."); await loadTickets(); } catch(error) { message(error.message,true); } });
+    const close = node("button", "small-button danger", "إغلاق التذكرة");
+    close.addEventListener("click", async () => { try { await api("close_support_ticket",{ticket_id:ticket.id}); message("تم إغلاق التذكرة."); await loadTickets(); } catch(error) { message(error.message,true); } });
+    card.append(input,send,close);
+   }
+   list.append(card);
+  }
+ } catch(error) { list.replaceChildren(node("p","error-state",error.message)); }
+}
+
 async function loadPlayers(query) {
  const requestId = ++playerSearchRequest;
  const list = $("#players-list");
@@ -261,6 +300,7 @@ $("#create-admin-form").addEventListener("submit", async event => {
 });
 $("#refresh-admins").addEventListener("click", loadAdmins);
 $("#refresh-reports").addEventListener("click", loadReports);
+$("#refresh-tickets").addEventListener("click", loadTickets);
 $("#refresh-activity").addEventListener("click", loadActivity);
 const playerSearchForm = $("#player-search-form");
 const playerSearchInput = playerSearchForm.elements.query;
