@@ -472,7 +472,8 @@ export function SocialHubView({ profile, myOrgMember, organizations, language, o
                 <label className="block text-[11px] text-[#9299A6]">
                   {ar ? 'سبب الإبلاغ' : 'Report reason'}
                   <textarea value={reportReason} onChange={(event) => setReportReason(event.target.value.slice(0, 3000))} rows={3} maxLength={3000} placeholder={ar ? 'اكتب سبب البلاغ بالتفصيل (10 أحرف على الأقل)' : 'Describe the report (at least 10 characters)'} className="mt-1 w-full rounded-lg bg-[#0B0D12] border border-white/10 p-3 text-xs text-[#F4F5F7]" />
-                  <input type="file" accept="image/png,image/jpeg,image/webp" multiple onChange={(event) => setReportImages(Array.from(event.target.files || []).slice(0, 3))} className="mt-2 w-full text-xs" />
+                  <label className="mt-2 inline-flex cursor-pointer items-center justify-center rounded-lg border border-white/15 bg-[#141821] px-4 py-2 text-xs text-white">{ar ? 'إرفاق صور' : 'Attach images'}<input type="file" accept="image/png,image/jpeg,image/webp" multiple onChange={(event) => setReportImages(Array.from(event.target.files || []).slice(0, 3))} className="hidden" /></label>
+                  {reportImages.length > 0 && <span className="ms-2 text-[11px] text-[#AAB1BE]">{ar ? `تم إرفاق ${reportImages.length} صور` : `${reportImages.length} images attached`}</span>}
                 </label>
                 <div className="grid grid-cols-2 gap-2">
                   <button type="button" disabled={busy === 'block'} onClick={() => void togglePlayerBlock(selectedPlayer)}
