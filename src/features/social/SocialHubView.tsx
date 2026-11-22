@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { ArrowLeft, Ban, Flag, Globe2, MessageCircle, Search, Send, ShieldCheck, Users, UserRound } from 'lucide-react';
-import { AVATARS } from '../../data/catalog';
+import { AVATARS, BRAND_ASSETS } from '../../data/catalog';
 import { timestampToMs } from '../../lib/economy';
 import type { Language, Organization, OrganizationMember, PlayerProfile } from '../../types/game';
 import {
@@ -121,7 +121,7 @@ export function SocialHubView({ profile, myOrgMember, organizations, language, o
   };
 
   const avatarUrl = (avatarId: string | undefined) =>
-    AVATARS.find((avatar) => avatar.id === avatarId)?.src || AVATARS[0]?.src || '';
+    avatarId === 'system' ? BRAND_ASSETS.emblem : AVATARS.find((avatar) => avatar.id === avatarId)?.src || AVATARS[0]?.src || '';
 
   async function openPlayerProfile(targetUid: string) {
     try {
@@ -140,6 +140,7 @@ export function SocialHubView({ profile, myOrgMember, organizations, language, o
   ));
 
   const selectedConversationData = conversations.find((item) => item.id === selectedConversation) || null;
+  const isAdminConversation = Boolean(selectedConversation?.startsWith("admin:"));
   const unreadConversations = conversations.filter((item) => item.lastSenderUid !== profile.uid && (!dismissedUnread[item.id] || timestampToMs(item.lastMessageAt, 0) > dismissedUnread[item.id]));
   useEffect(() => { try { window.localStorage.setItem(`nova:dm-read:${profile.uid}`, JSON.stringify(dismissedUnread)); } catch { /* Keep the current-session unread state if storage is unavailable. */ } }, [dismissedUnread, profile.uid]);
   const unreadOrganizationMessages = organizationMessages.filter((message) => message.senderUid !== profile.uid && timestampToMs(message.createdAt, 0) > orgChatReadAt);
@@ -527,10 +528,8 @@ export function SocialHubView({ profile, myOrgMember, organizations, language, o
               <>
                 <div className="flex items-center gap-2 border-b border-white/8 pb-3">
                   <button type="button" onClick={() => setSelectedConversation(null)} className="lg:hidden min-h-[38px] min-w-[38px] rounded-lg bg-[#252B36] flex items-center justify-center"><ArrowLeft className="w-4 h-4" /></button>
-                  <div className="flex-1 min-w-0"><div className="flex items-center gap-2"><img src={avatarUrl(selectedConversationData?.participantAvatars?.[targetUid])} alt="" className="h-9 w-9 rounded-lg object-cover bg-[#252B36]" /><h2 className="text-sm font-semibold truncate">{selectedConversationData?.participantNames?.[targetUid] || (ar ? 'المحادثة' : 'Conversation')}</h2></div><p className="mt-1 ms-11 flex items-center gap-1.5 text-[10px] text-[#9299A6]"><span className={'h-2 w-2 rounded-full ' + (presenceByUid[targetUid]?.isOnline ? 'bg-emerald-400' : 'bg-[#667085]')} />{presenceLabel(targetUid)}</p></div>
-                  <button type="button" onClick={() => void openPlayerProfile(targetUid)} className="min-h-[36px] px-3 rounded-lg bg-[#252B36] text-[11px] text-[#F4F5F7]">
-                    {ar ? 'الملف الشخصي' : 'Profile'}
-                  </button>
+                  <div className="flex-1 min-w-0"><div className="flex items-center gap-2"><img src={avatarUrl(selectedConversationData?.participantAvatars?.[targetUid])} alt="" className="h-9 w-9 rounded-lg object-cover bg-[#252B36]" /><h2 className="text-sm font-semibold truncate">{selectedConversationData?.participantNames?.[targetUid] || (ar ? 'المحادثة' : 'Conversation')}</h2></div>{!isAdminConversation && <p className="mt-1 ms-11 flex items-center gap-1.5 text-[10px] text-[#9299A6]"><span className={'h-2 w-2 rounded-full ' + (presenceByUid[targetUid]?.isOnline ? 'bg-emerald-400' : 'bg-[#667085]')} />{presenceLabel(targetUid)}</p>}</div>
+                  {!isAdminConversation && <button type="button" onClick={() => void openPlayerProfile(targetUid)} className="min-h-[36px] px-3 rounded-lg bg-[#252B36] text-[11px] text-[#F4F5F7]">{ar ? 'الملف الشخصي' : 'Profile'}</button>}
                 </div>
                 <div className="flex-1 min-h-[280px] max-h-[55vh] overflow-y-auto py-3 space-y-2">
                   {directMessages.map((message) => (
@@ -540,11 +539,11 @@ export function SocialHubView({ profile, myOrgMember, organizations, language, o
                     </div>
                   ))}
                 </div>
-                <div className="flex gap-2 pt-3 border-t border-white/8">
+                {!isAdminConversation ? <div className="flex gap-2 pt-3 border-t border-white/8">
                   <input value={draft} onChange={(event) => setDraft(event.target.value)} maxLength={1000} onKeyDown={(event) => { if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); void sendDirect(); } }}
                     placeholder={ar ? 'اكتب رسالة...' : 'Write a message...'} className="flex-1 min-w-0 min-h-[44px] rounded-xl bg-[#0B0D12] border border-white/10 px-3 text-sm" />
                   <button type="button" disabled={!draft.trim() || busy === 'send_dm'} onClick={() => void sendDirect()} className="min-w-[44px] rounded-xl bg-[#B91C32] flex items-center justify-center disabled:opacity-40"><Send className="w-4 h-4" /></button>
-                </div>
+                </div> : <p className="pt-3 border-t border-white/8 text-center text-[11px] text-[#9299A6]">{ar ? 'رسائل رسمية من إدارة اللعبة' : 'Official messages from game administration'}</p>}
               </>
             ) : (
               <div className="flex-1 flex flex-col items-center justify-center text-center text-[#9299A6] gap-2"><MessageCircle className="w-8 h-8 opacity-50" /><p className="text-xs">{ar ? 'اختر محادثة من القائمة.' : 'Choose a conversation from the list.'}</p></div>
