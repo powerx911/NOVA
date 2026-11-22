@@ -11,7 +11,7 @@
     "functions": 154,
     "security_definer_functions": 140,
     "triggers": 41,
-    "indexes": 103,
+    "indexes": 104,
     "constraints": 172,
     "active_cron_jobs": 8
   },
