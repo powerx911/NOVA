@@ -302,17 +302,30 @@ Deno.serve(async req=>{
   if(body.action==="ban_player_account") {
    if(actor.role!=="owner") return reply({error:"OWNER_REQUIRED"},403,origin);
    const targetId=typeof body.user_id==="string"?body.user_id.trim():"";
-   const durationHours=Number(body.duration_hours);
+   const permanent=body.permanent===true;
+   const durationMinutes=Number(body.duration_minutes);
    const reason=typeof body.reason==="string"?body.reason.trim().slice(0,500):"";
-   if(!targetId||!Number.isInteger(durationHours)||durationHours<0||durationHours>8760||reason.length<3) return reply({error:"INVALID_PLAYER_BAN"},400,origin);
+   if(!targetId||(!permanent&&(!Number.isSafeInteger(durationMinutes)||durationMinutes<1||durationMinutes>525600))||reason.length<3) return reply({error:"INVALID_PLAYER_BAN"},400,origin);
    const {data:profile,error:profileError}=await db.schema("nexora").from("player_profiles").select("user_id").eq("user_id",targetId).maybeSingle();
    if(profileError||!profile) return reply({error:"PLAYER_NOT_FOUND"},404,origin);
    const now=new Date().toISOString();
-   const expiresAt=durationHours===0?null:new Date(Date.now()+durationHours*60*60*1000).toISOString();
+   const expiresAt=permanent?null:new Date(Date.now()+durationMinutes*60*1000).toISOString();
    const {error}=await db.schema("nexora").from("player_account_bans").upsert({user_id:targetId,reason,expires_at:expiresAt,banned_by:userData.user.id,created_at:now,updated_at:now},{onConflict:"user_id"});
    if(error) return reply({error:"PLAYER_BAN_FAILED"},500,origin);
-   await writeAudit(db,userData.user.id,"admin_player_banned","player",targetId,{duration_hours:durationHours,expires_at:expiresAt,reason});
+   await writeAudit(db,userData.user.id,"admin_player_banned","player",targetId,{duration_minutes:permanent?null:durationMinutes,permanent,expires_at:expiresAt,reason});
    return reply({ok:true,expires_at:expiresAt},200,origin);
+  }
+  if(body.action==="unban_player_account") {
+   if(actor.role!=="owner") return reply({error:"OWNER_REQUIRED"},403,origin);
+   const targetId=typeof body.user_id==="string"?body.user_id.trim():"";
+   if(!targetId) return reply({error:"PLAYER_NOT_FOUND"},400,origin);
+   const {data:ban,error:readError}=await db.schema("nexora").from("player_account_bans").select("user_id").eq("user_id",targetId).maybeSingle();
+   if(readError) return reply({error:"PLAYER_UNBAN_FAILED"},500,origin);
+   if(!ban) return reply({error:"PLAYER_NOT_FOUND"},404,origin);
+   const {error}=await db.schema("nexora").from("player_account_bans").delete().eq("user_id",targetId);
+   if(error) return reply({error:"PLAYER_UNBAN_FAILED"},500,origin);
+   await writeAudit(db,userData.user.id,"admin_player_unbanned","player",targetId,{});
+   return reply({ok:true},200,origin);
   }
   if(body.action==="send_player_admin_message") {
    if(actor.role!=="owner") return reply({error:"OWNER_REQUIRED"},403,origin);
