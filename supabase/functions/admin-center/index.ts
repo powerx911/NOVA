@@ -205,9 +205,13 @@ Deno.serve(async req=>{
    if(ticket.status==="closed") return reply({error:"TICKET_CLOSED"},409,origin);
    if(ticket.claimed_by&&ticket.claimed_by!==userData.user.id) return reply({error:"TICKET_ALREADY_CLAIMED"},409,origin);
    const now=new Date().toISOString();
+   const firstClaim=!(ticket.status==="claimed"&&ticket.claimed_by===userData.user.id);
    const {error:updateError}=await db.schema("nexora").from("support_tickets").update({status:"claimed",claimed_by:userData.user.id,claimed_at:ticket.claimed_at??now,updated_at:now}).eq("id",ticketId);
    if(updateError) return reply({error:"TICKET_UPDATE_FAILED"},500,origin);
-   await db.schema("nexora").from("notifications").insert({id:`ticket-claimed-${crypto.randomUUID()}`,user_id:ticket.user_id,title:"تم استلام تذكرتك",body:"تم استلام التذكرة من أحد الإداريين، ويمكنك متابعة المحادثة من صفحة التذاكر.",type:"system",is_read:false,event_key:`ticket-claimed:${ticketId}`});
+   if(firstClaim) {
+    const {error:notifyError}=await db.schema("nexora").from("notifications").insert({id:`ticket-claimed-${crypto.randomUUID()}`,user_id:ticket.user_id,title:"تم استلام تذكرتك",body:"تم استلام تذكرتك من الإدارة. يمكنك متابعة التحديثات من صفحة التذاكر.",type:"system",is_read:false,event_key:`ticket-claimed:${ticketId}`});
+    if(notifyError) console.error("Ticket claim notification failed",{ticketId,message:notifyError.message});
+   }
    await writeAudit(db,userData.user.id,"admin_ticket_claimed","support_ticket",ticketId,{});
    return reply({ok:true},200,origin);
   }
@@ -222,19 +226,23 @@ Deno.serve(async req=>{
    const {error:insertError}=await db.schema("nexora").from("support_ticket_messages").insert({ticket_id:ticketId,sender_type:"admin",sender_id:userData.user.id,message});
    if(insertError) return reply({error:"TICKET_MESSAGE_FAILED"},500,origin);
    await db.schema("nexora").from("support_tickets").update({updated_at:new Date().toISOString()}).eq("id",ticketId);
-   await db.schema("nexora").from("notifications").insert({id:`ticket-message-${crypto.randomUUID()}`,user_id:ticket.user_id,title:"رسالة من الإدارة",body:message,type:"system",is_read:false,event_key:`ticket-message:${ticketId}:${crypto.randomUUID()}`});
+   const {error:notifyError}=await db.schema("nexora").from("notifications").insert({id:`ticket-message-${crypto.randomUUID()}`,user_id:ticket.user_id,title:"رد جديد على تذكرتك",body:"يوجد رد جديد على تذكرتك. افتح صفحة التذاكر لقراءة الرد.",type:"system",is_read:false,event_key:`ticket-message:${ticketId}:${crypto.randomUUID()}`});
+   if(notifyError) console.error("Ticket reply notification failed",{ticketId,message:notifyError.message});
    await writeAudit(db,userData.user.id,"admin_ticket_message_sent","support_ticket",ticketId,{message});
    return reply({ok:true},200,origin);
   }
   if(body.action==="close_support_ticket") {
    const ticketId=typeof body.ticket_id==="string"?body.ticket_id:"";
    if(!ticketId) return reply({error:"INVALID_TICKET"},400,origin);
-   const {data:ticket,error:ticketError}=await db.schema("nexora").from("support_tickets").select("id,status,claimed_by").eq("id",ticketId).maybeSingle();
+   const {data:ticket,error:ticketError}=await db.schema("nexora").from("support_tickets").select("id,user_id,status,claimed_by").eq("id",ticketId).maybeSingle();
    if(ticketError||!ticket) return reply({error:"TICKET_NOT_FOUND"},404,origin);
    if(ticket.claimed_by&&ticket.claimed_by!==userData.user.id) return reply({error:"TICKET_OWNED_BY_OTHER_ADMIN"},403,origin);
+   if(ticket.status==="closed") return reply({ok:true,alreadyClosed:true},200,origin);
    const now=new Date().toISOString();
    const {error}=await db.schema("nexora").from("support_tickets").update({status:"closed",closed_at:now,updated_at:now}).eq("id",ticketId);
    if(error) return reply({error:"TICKET_UPDATE_FAILED"},500,origin);
+   const {error:notifyError}=await db.schema("nexora").from("notifications").insert({id:`ticket-closed-${crypto.randomUUID()}`,user_id:ticket.user_id,title:"تم إغلاق تذكرتك",body:"تم إغلاق تذكرتك من الإدارة. ستختفي من قائمة تذاكرك بعد 5 دقائق.",type:"system",is_read:false,event_key:`ticket-closed:${ticketId}`});
+   if(notifyError) console.error("Ticket close notification failed",{ticketId,message:notifyError.message});
    await writeAudit(db,userData.user.id,"admin_ticket_closed","support_ticket",ticketId,{});
    return reply({ok:true},200,origin);
   }
