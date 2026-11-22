@@ -39,7 +39,7 @@ Deno.serve(async req=>{
    if(actor.role!=="owner") return reply({error:"OWNER_REQUIRED"},403,origin);
    const email=typeof body.email==="string"?body.email.trim().toLowerCase():"";
    const password=typeof body.password==="string"?body.password:"";
-   if(!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email)||password.length<12||password.length>128) return reply({error:"INVALID_ADMIN_CREDENTIALS"},400,origin);
+   if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)||password.length<12||password.length>128) return reply({error:"INVALID_ADMIN_CREDENTIALS"},400,origin);
    const {data:created,error:createError}=await db.auth.admin.createUser({email,password,email_confirm:true});
    if(createError||!created.user) {
     console.error("Admin account creation failed", {code:createError?.code,status:createError?.status,message:createError?.message});
@@ -68,10 +68,18 @@ Deno.serve(async req=>{
    if(actor.role!=="owner") return reply({error:"OWNER_REQUIRED"},403,origin);
    const targetId=typeof body.user_id==="string"?body.user_id:"";
    if(!targetId||targetId===userData.user.id) return reply({error:"INVALID_ADMIN_TARGET"},400,origin);
-   const {data:target,error:targetError}=await db.from("admin_accounts").select("role").eq("user_id",targetId).maybeSingle();
+   const {data:target,error:targetError}=await db.from("admin_accounts").select("user_id,role,enabled,created_by,created_at").eq("user_id",targetId).maybeSingle();
    if(targetError||!target||target.role!=="admin") return reply({error:"ADMIN_NOT_FOUND"},404,origin);
+   // admin_accounts references auth.users with ON DELETE RESTRICT, so remove the role row first.
+   const {error:removeRoleError}=await db.from("admin_accounts").delete().eq("user_id",targetId);
+   if(removeRoleError) return reply({error:"ADMIN_DELETE_FAILED"},500,origin);
    const {error:deleteError}=await db.auth.admin.deleteUser(targetId);
-   if(deleteError) {console.error("Admin account deletion failed",{code:deleteError.code,message:deleteError.message});return reply({error:"ADMIN_DELETE_FAILED"},500,origin);}
+   if(deleteError) {
+    console.error("Admin account deletion failed",{code:deleteError.code,message:deleteError.message});
+    const {error:restoreError}=await db.from("admin_accounts").insert(target);
+    if(restoreError) console.error("Failed to restore admin role after deletion error",restoreError);
+    return reply({error:"ADMIN_DELETE_FAILED"},500,origin);
+   }
    return reply({ok:true},200,origin);
   }
   return reply({error:"UNKNOWN_ACTION"},400,origin);
