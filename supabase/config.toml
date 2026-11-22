@@ -3,5 +3,8 @@ project_id = "hmrprnjhyzyefocdmnxf"
 [functions.nexora-api]
 verify_jwt = false
 
+[functions.admin-center]
+verify_jwt = false
+
 [functions.nova-control]
 verify_jwt = true
