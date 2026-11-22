@@ -77,6 +77,7 @@ export interface Wallet {
 
 export type TransactionType =
   | 'transfer'
+  | 'admin_adjustment'
   | 'market_buy'
   | 'mission_reward'
   | 'daily_stipend'
@@ -115,6 +116,7 @@ export interface TransactionRecord {
   type: TransactionType;
   referenceId: string;
   description: string;
+  counterpartyName?: string | null;
   status: 'completed';
   createdAt: unknown;
 }
