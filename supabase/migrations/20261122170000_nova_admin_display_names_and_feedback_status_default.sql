@@ -22,3 +22,6 @@ alter table nexora.player_feedback
 update nexora.player_feedback
 set status = 'open'
 where status = 'new';
+
+-- Admin Center updates player feedback statuses through the service-role Edge Function.
+grant select, update on nexora.player_feedback to service_role;
