@@ -6,6 +6,7 @@ let playerSearchTimer = null;
 let playerSearchRequest = 0;
 let ticketSnapshot = "";
 let ticketLoadRequest = 0;
+let selectedAdminTicketId = null;
 const STATUS_LABELS = { open: "مفتوح", new: "جديد", reviewing: "قيد المراجعة", closed: "مغلق", resolved: "تمت المعالجة", dismissed: "مستبعد" };
 const REASON_LABELS = { harassment: "مضايقة", spam: "رسائل مزعجة", inappropriate: "محتوى غير مناسب", impersonation: "انتحال شخصية", other: "سبب آخر" };
 const ACTION_LABELS = {
@@ -173,6 +174,88 @@ async function loadReports() {
  } catch (error) { list.replaceChildren(node("p", "error-state", error.message)); message(error.message, true); }
 }
 
+function closeTicketDetail() {
+ document.querySelector(".ticket-detail-overlay")?.remove();
+ selectedAdminTicketId = null;
+}
+function ticketStatusLabel(status) {
+ return status === "claimed" ? "تم استلامها" : status === "closed" ? "مغلقة" : "مفتوحة";
+}
+function renderTicketDetail(ticket) {
+ let overlay = document.querySelector(".ticket-detail-overlay");
+ if (!overlay) {
+  overlay = node("div", "ticket-detail-overlay");
+  overlay.setAttribute("role", "dialog");
+  overlay.setAttribute("aria-modal", "true");
+  overlay.setAttribute("aria-label", "تفاصيل تذكرة الدعم");
+  document.body.append(overlay);
+ }
+ overlay.replaceChildren();
+ const panel = node("section", "ticket-detail-panel");
+ const header = node("header", "ticket-detail-header");
+ const back = node("button", "secondary ticket-back", "رجوع إلى التذاكر");
+ back.type = "button"; back.addEventListener("click", closeTicketDetail);
+ const heading = node("div", "ticket-detail-heading");
+ heading.append(node("h2", "", ticket.subject), node("p", "report-meta", (ticket.player_name || "لاعب غير معروف") + " · " + dateLabel(ticket.created_at)));
+ const status = node("span", "status-badge status-" + (ticket.status === "closed" ? "closed" : ticket.status === "claimed" ? "reviewing" : "open"), ticketStatusLabel(ticket.status));
+ header.append(back, heading, status);
+ const messages = node("div", "ticket-detail-messages");
+ for (const item of ticket.messages || []) {
+  const bubble = node("article", "ticket-message");
+  const top = node("div", "ticket-detail-message-head");
+  top.append(node("strong", "", item.sender_type === "admin" ? "الإدارة" : "اللاعب"), node("small", "", dateLabel(item.created_at)));
+  bubble.append(top, node("p", "", item.message));
+  for (const url of item.attachments || []) {
+   const img = node("img", "report-attachment"); img.src = url; img.alt = "مرفق";
+   img.addEventListener("click", () => window.open(url, "_blank", "noopener"));
+   bubble.append(img);
+  }
+  messages.append(bubble);
+ }
+ if (!(ticket.messages || []).length) messages.append(node("p", "empty-state", "لا توجد رسائل في هذه التذكرة."));
+ panel.append(header, messages);
+ const controls = node("footer", "ticket-detail-controls");
+ if (ticket.status === "open") {
+  const claim = node("button", "small-button", "استلام التذكرة");
+  claim.addEventListener("click", async () => {
+   claim.disabled = true;
+   try { await api("claim_support_ticket", {ticket_id:ticket.id}); message("تم استلام التذكرة وإشعار اللاعب."); ticketSnapshot = ""; await loadTickets(); }
+   catch(error) { message(error.message,true); claim.disabled = false; }
+  });
+  controls.append(claim);
+ }
+ if (ticket.status === "claimed") {
+  const input = node("textarea", "reason-input"); input.placeholder = "اكتب ردك للاعب";
+  const send = node("button", "small-button", "إرسال الرد");
+  send.addEventListener("click", async () => {
+   if(!input.value.trim()) return;
+   send.disabled = true;
+   try { await api("send_support_ticket_message",{ticket_id:ticket.id,message:input.value.trim()}); message("تم إرسال الرد وإشعار اللاعب."); ticketSnapshot = ""; await loadTickets(); }
+   catch(error) { message(error.message,true); send.disabled = false; }
+  });
+  const close = node("button", "small-button danger", "إغلاق التذكرة");
+  close.addEventListener("click", async () => {
+   if (!window.confirm("سيتم إغلاق التذكرة وإشعار اللاعب. هل تريد المتابعة؟")) return;
+   close.disabled = true;
+   try { await api("close_support_ticket",{ticket_id:ticket.id}); message("تم إغلاق التذكرة وإشعار اللاعب."); ticketSnapshot = ""; await loadTickets(); }
+   catch(error) { message(error.message,true); close.disabled = false; }
+  });
+  controls.append(input,send,close);
+ }
+ if (ticket.status === "closed") controls.append(node("p", "muted", "هذه التذكرة مغلقة."));
+ if (isOwnerSession()) {
+  const remove = node("button", "small-button danger", "حذف التذكرة نهائيًا");
+  remove.addEventListener("click", async () => {
+   if (!window.confirm("سيتم حذف التذكرة وجميع رسائلها نهائيًا. هل تريد المتابعة؟")) return;
+   remove.disabled = true;
+   try { await api("delete_support_ticket", {ticket_id:ticket.id}); message("تم حذف التذكرة ورسائلها."); ticketSnapshot = ""; closeTicketDetail(); await loadTickets(); await loadOverview(); }
+   catch(error) { message(error.message,true); remove.disabled = false; }
+  });
+  controls.append(remove);
+ }
+ if (controls.childElementCount) panel.append(controls);
+ overlay.append(panel);
+}
 async function loadTickets() {
  const requestId = ++ticketLoadRequest;
  const list = $("#tickets-list");
@@ -182,46 +265,31 @@ async function loadTickets() {
   if (requestId !== ticketLoadRequest) return;
   const tickets = result.tickets || [];
   const snapshot = JSON.stringify(tickets.map(ticket => [ticket.id, ticket.status, ticket.updated_at, (ticket.messages || []).at(-1)?.id]));
-  if (snapshot === ticketSnapshot && list.childElementCount) return;
-  ticketSnapshot = snapshot;
-  list.replaceChildren();
-  if (!tickets.length) { list.append(node("p", "empty-state", "لا توجد تذاكر حالياً.")); return; }
-  for (const ticket of tickets) {
-   const card = node("article", "ticket-card");
-   card.append(node("strong", "", ticket.subject + " · " + (ticket.player_name || "لاعب غير معروف")));
-   card.append(node("p", "report-ids", "اللاعب: " + (ticket.player_name || "لاعب غير معروف") + " · " + dateLabel(ticket.created_at)));
-   card.append(node("p", "report-meta", "الحالة: " + (ticket.status === "claimed" ? "تم استلامها" : ticket.status === "closed" ? "مغلقة" : "مفتوحة")));
-   for (const item of ticket.messages || []) {
-    const bubble = node("div", "ticket-message");
-    bubble.append(node("strong", "", item.sender_type === "admin" ? "الإدارة" : "اللاعب"));
-    bubble.append(node("p", "", item.message));
-    card.append(bubble);
-    for (const url of item.attachments || []) { const img = node("img", "report-attachment"); img.src = url; img.alt = "مرفق"; card.append(img); }
+  if (snapshot !== ticketSnapshot || !list.childElementCount) {
+   ticketSnapshot = snapshot;
+   list.replaceChildren();
+   if (!tickets.length) list.append(node("p", "empty-state", "لا توجد تذاكر حالياً."));
+   for (const ticket of tickets) {
+    const card = node("button", "ticket-summary", "");
+    card.type = "button";
+    const main = node("div", "ticket-summary-main");
+    const title = node("strong", "", ticket.subject);
+    const meta = node("p", "report-meta", (ticket.player_name || "لاعب غير معروف") + " · " + dateLabel(ticket.created_at));
+    const last = (ticket.messages || []).at(-1);
+    const preview = node("p", "ticket-summary-preview", last ? (last.sender_type === "admin" ? "الإدارة: " : "اللاعب: ") + last.message : "لا توجد رسائل");
+    main.append(title,meta,preview);
+    const side = node("div", "ticket-summary-side");
+    side.append(node("span", "status-badge status-" + (ticket.status === "closed" ? "closed" : ticket.status === "claimed" ? "reviewing" : "open"), ticketStatusLabel(ticket.status)));
+    side.append(node("span", "ticket-summary-count", (ticket.messages || []).length + " رسائل"));
+    card.append(main,side);
+    card.addEventListener("click", () => { selectedAdminTicketId = ticket.id; renderTicketDetail(ticket); });
+    list.append(card);
    }
-   if (ticket.status === "open") {
-    const claim = node("button", "small-button", "استلام التذكرة");
-    claim.addEventListener("click", async () => { try { await api("claim_support_ticket", {ticket_id:ticket.id}); message("تم استلام التذكرة."); await loadTickets(); } catch(error) { message(error.message,true); } });
-    card.append(claim);
-   }
-   if (ticket.status === "claimed") {
-    const input = node("textarea", "reason-input"); input.placeholder = "اكتب ردك للاعب";
-    const send = node("button", "small-button", "إرسال الرد");
-    send.addEventListener("click", async () => { if(!input.value.trim()) return; try { await api("send_support_ticket_message",{ticket_id:ticket.id,message:input.value.trim()}); message("تم إرسال الرد."); await loadTickets(); } catch(error) { message(error.message,true); } });
-    const close = node("button", "small-button danger", "إغلاق التذكرة");
-    close.addEventListener("click", async () => { try { await api("close_support_ticket",{ticket_id:ticket.id}); message("تم إغلاق التذكرة."); await loadTickets(); } catch(error) { message(error.message,true); } });
-    card.append(input,send,close);
-   }
-   if (isOwnerSession()) {
-    const remove = node("button", "small-button danger", "حذف التذكرة");
-    remove.addEventListener("click", async () => {
-     if (!window.confirm("سيتم حذف التذكرة وجميع رسائلها نهائيًا. هل تريد المتابعة؟")) return;
-     remove.disabled = true;
-     try { await api("delete_support_ticket", { ticket_id: ticket.id }); message("تم حذف التذكرة ورسائلها."); ticketSnapshot = ""; await loadTickets(); await loadOverview(); }
-     catch (error) { message(error.message, true); remove.disabled = false; }
-    });
-    card.append(remove);
-   }
-   list.append(card);
+  }
+  if (selectedAdminTicketId) {
+   const selected = tickets.find(ticket => ticket.id === selectedAdminTicketId);
+   if (selected) renderTicketDetail(selected);
+   else closeTicketDetail();
   }
  } catch(error) {
   if (requestId !== ticketLoadRequest) return;
