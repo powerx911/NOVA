@@ -130,11 +130,22 @@ async function loadReports() {
     } catch (error) { message(error.message, true); save.disabled = false; }
    });
    controls.append(status, reason, save);
-   if (isFeedback) {
-    const content = node("p", "report-message", report.message || "—");
-    content.style.whiteSpace = "pre-wrap"; content.style.overflowWrap = "anywhere";
-    card.append(head, meta, content, ids, controls);
-   } else card.append(head, meta, ids, controls);
+   const content = node("p", "report-message", report.message || report.reason || "لم يكتب اللاعب سببًا للبلاغ.");
+   content.style.whiteSpace = "pre-wrap"; content.style.overflowWrap = "anywhere";
+   card.append(head, meta, content, ids);
+   for (const url of report.attachments || []) {
+    const image = node("img", "report-attachment"); image.src = url; image.alt = "مرفق من اللاعب";
+    image.addEventListener("click", () => window.open(url, "_blank", "noopener")); card.append(image);
+   }
+   const notify = node("button", "small-button secondary", "إرسال إشعار للاعب");
+   notify.addEventListener("click", async () => {
+    const text = window.prompt("اكتب رسالة للاعب");
+    if (!text || text.trim().length < 3) return;
+    try { await api("send_player_report_notification", { report_id: report.id, source: isFeedback ? "player_feedback" : "player_report", message: text.trim() }); message("تم إرسال الإشعار للاعب."); }
+    catch (error) { message(error.message, true); }
+   });
+   controls.append(notify);
+   card.append(controls);
    list.append(card);
   }
  } catch (error) { list.replaceChildren(node("p", "error-state", error.message)); message(error.message, true); }
