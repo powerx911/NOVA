@@ -1,5 +1,8 @@
 const API_URL = "https://hmrprnjhyzyefocdmnxf.supabase.co/functions/v1/admin-center";
-let accessToken = "";\nconst SESSION_KEY = "nova_admin_session";\nfunction saveSession(session) { accessToken=session.access_token; localStorage.setItem(SESSION_KEY,JSON.stringify({refresh_token:session.refresh_token,email:session.email,role:session.role})); }\nfunction clearSession() { accessToken=""; localStorage.removeItem(SESSION_KEY); }
+let accessToken = "";
+const SESSION_KEY = "nova_admin_session";
+function saveSession(session) { accessToken=session.access_token; localStorage.setItem(SESSION_KEY,JSON.stringify({refresh_token:session.refresh_token,email:session.email,role:session.role})); }
+function clearSession() { accessToken=""; localStorage.removeItem(SESSION_KEY); }
 const $ = (selector) => document.querySelector(selector);
 function message(text, error = false) { $("#feedback").textContent = text; $("#feedback").dataset.error = String(error); }
 function explain(code) {
@@ -54,7 +57,12 @@ async function loadAdmins() {
   }
  } catch(err){list.replaceChildren();const error=document.createElement("p");error.className="muted";error.textContent=err.message;list.append(error);}
 }
-async function restoreSession() {\n const saved=localStorage.getItem(SESSION_KEY); if(!saved) return;\n try { const parsed=JSON.parse(saved); const result=await api("refresh_session",{refresh_token:parsed.refresh_token}); show(result.session); message(""); }\n catch { clearSession(); $("#app-panel").hidden=true; $("#login-panel").hidden=false; }\n}\n$("#login-form").addEventListener("submit", async e => {
+async function restoreSession() {
+ const saved=localStorage.getItem(SESSION_KEY); if(!saved) return;
+ try { const parsed=JSON.parse(saved); const result=await api("refresh_session",{refresh_token:parsed.refresh_token}); show(result.session); message(""); }
+ catch { clearSession(); $("#app-panel").hidden=true; $("#login-panel").hidden=false; }
+}
+$("#login-form").addEventListener("submit", async e => {
  e.preventDefault(); const f = new FormData(e.currentTarget);
  try { show((await api("login",{email:f.get("email"),password:f.get("password")})).session); message(""); }
  catch(err) { message(err.message,true); }
@@ -68,4 +76,5 @@ $("#create-admin-form").addEventListener("submit", async e => {
 });
 $("#refresh-admins").addEventListener("click",loadAdmins);
 $("#logout-button").addEventListener("click",()=>{clearSession();$("#app-panel").hidden=true;$("#login-panel").hidden=false;$("#owner-panel").hidden=true;message("تم تسجيل الخروج.");});
-\nrestoreSession();\n
+
+restoreSession();
