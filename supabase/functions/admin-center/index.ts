@@ -150,11 +150,16 @@ Deno.serve(async req=>{
    const source=body.source==="player_feedback"?"player_feedback":"player_report";
    const message=typeof body.message==="string"?body.message.trim():"";
    if(!reportId||message.length<3||message.length>2000) return reply({error:"INVALID_NOTIFICATION"},400,origin);
-   const table=source==="player_feedback"?"player_feedback":"player_reports";
-   const key=source==="player_feedback"?"id":"id";
-   const {data:report,error:reportError}=await db.schema("nexora").from(table).select(source==="player_feedback"?"user_id":"reporter_uid").eq(key,reportId).maybeSingle();
-   const targetUid=source==="player_feedback"?report?.user_id:report?.reporter_uid;
-   if(reportError||!targetUid) return reply({error:"REPORT_NOT_FOUND"},404,origin);
+   let targetUid="";
+   if(source==="player_feedback") {
+    const {data:report,error}=await db.schema("nexora").from("player_feedback").select("user_id").eq("id",reportId).maybeSingle();
+    if(error||!report?.user_id) return reply({error:"REPORT_NOT_FOUND"},404,origin);
+    targetUid=report.user_id;
+   } else {
+    const {data:report,error}=await db.schema("nexora").from("player_reports").select("reporter_uid").eq("id",reportId).maybeSingle();
+    if(error||!report?.reporter_uid) return reply({error:"REPORT_NOT_FOUND"},404,origin);
+    targetUid=report.reporter_uid;
+   }
    const {error:notifyError}=await db.schema("nexora").from("notifications").insert({id:`admin-report-${crypto.randomUUID()}`,user_id:targetUid,title:"رسالة من الإدارة",body:message,type:"system",is_read:false,event_key:`admin-report:${reportId}:${crypto.randomUUID()}`});
    if(notifyError) return reply({error:"PLAYER_NOTIFICATION_FAILED"},500,origin);
    await writeAudit(db,userData.user.id,"admin_report_notification_sent",source,reportId,{message});
@@ -178,7 +183,7 @@ Deno.serve(async req=>{
   if(body.action==="claim_support_ticket") {
    const ticketId=typeof body.ticket_id==="string"?body.ticket_id:"";
    if(!ticketId) return reply({error:"INVALID_TICKET"},400,origin);
-   const {data:ticket,error:readError}=await db.schema("nexora").from("support_tickets").select("id,user_id,status,claimed_by").eq("id",ticketId).maybeSingle();
+   const {data:ticket,error:readError}=await db.schema("nexora").from("support_tickets").select("id,user_id,status,claimed_by,claimed_at").eq("id",ticketId).maybeSingle();
    if(readError||!ticket) return reply({error:"TICKET_NOT_FOUND"},404,origin);
    if(ticket.status==="closed") return reply({error:"TICKET_CLOSED"},409,origin);
    if(ticket.claimed_by&&ticket.claimed_by!==userData.user.id) return reply({error:"TICKET_ALREADY_CLAIMED"},409,origin);
