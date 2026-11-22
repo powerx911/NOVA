@@ -57,6 +57,10 @@ Deno.serve(async req=>{
   if(userError||!userData.user) return reply({error:"UNAUTHENTICATED"},401,origin);
   const {data:actor,error:actorError}=await db.from("admin_accounts").select("role,enabled,display_name").eq("user_id",userData.user.id).maybeSingle();
   if(actorError||!actor||!actor.enabled) return reply({error:"ADMIN_ACCESS_DENIED"},403,origin);
+  if(body.action==="authorize_firebase_auth_delete") {
+   if(actor.role!=="owner") return reply({error:"OWNER_REQUIRED"},403,origin);
+   return reply({ok:true,authorized:true},200,origin);
+  }
   if(body.action==="create_admin") {
    if(actor.role!=="owner") return reply({error:"OWNER_REQUIRED"},403,origin);
    const email=typeof body.email==="string"?body.email.trim().toLowerCase():"";
@@ -384,16 +388,36 @@ Deno.serve(async req=>{
     auditLogged=false;
     console.error("Player account deletion audit failed after gameplay cleanup",{message:String(auditError)});
    }
-   // Firebase-style game IDs are not Supabase Auth UUIDs. Only attempt Auth deletion
-   // for UUID-backed accounts; gameplay cleanup above already handles the game identity.
    if(isAuthUuid) {
     const {error:authDeleteError}=await db.auth.admin.deleteUser(targetId);
     if(authDeleteError) {
      console.error("Player auth deletion failed after gameplay cleanup",{code:authDeleteError.code,message:authDeleteError.message,audit_logged:auditLogged});
-     return reply({ok:true,auth_deleted:false,audit_logged:auditLogged},200,origin);
+     return reply({ok:true,gameplay_deleted:true,auth_deleted:false,auth_provider:"supabase",audit_logged:auditLogged},200,origin);
     }
+    return reply({ok:true,gameplay_deleted:true,auth_deleted:true,auth_provider:"supabase",audit_logged:auditLogged},200,origin);
    }
-   return reply({ok:true,auth_deleted:isAuthUuid,audit_logged:auditLogged},200,origin);
+   try {
+    const firebaseResponse=await fetch("https://us-central1-gen-lang-client-0074900177.cloudfunctions.net/deleteFirebasePlayerAuth",{
+     method:"POST",
+     headers:{"Authorization":`Bearer ${token}`,"Content-Type":"application/json"},
+     body:JSON.stringify({uid:targetId})
+    });
+    const firebaseResult=await firebaseResponse.json().catch(()=>null);
+    if(!firebaseResponse.ok||firebaseResult?.auth_deleted!==true) {
+     console.error("Firebase Auth deletion failed after gameplay cleanup",{status:firebaseResponse.status,code:firebaseResult?.error??"INVALID_RESPONSE",audit_logged:auditLogged});
+     return reply({ok:true,gameplay_deleted:true,auth_deleted:false,auth_provider:"firebase",audit_logged:auditLogged},200,origin);
+    }
+    try {
+     await writeAudit(db,userData.user.id,"admin_player_firebase_auth_deleted","firebase_auth_user",targetId,{username:profile.username});
+    } catch(firebaseAuditError) {
+     auditLogged=false;
+     console.error("Firebase Auth deletion audit failed",{message:String(firebaseAuditError)});
+    }
+    return reply({ok:true,gameplay_deleted:true,auth_deleted:true,auth_provider:"firebase",audit_logged:auditLogged},200,origin);
+   } catch(firebaseError) {
+    console.error("Firebase Auth deletion request failed after gameplay cleanup",{message:String(firebaseError),audit_logged:auditLogged});
+    return reply({ok:true,gameplay_deleted:true,auth_deleted:false,auth_provider:"firebase",audit_logged:auditLogged},200,origin);
+   }
   }
   if(body.action==="search_players") {
    const query=typeof body.query==="string"?body.query.trim().slice(0,128):"";
