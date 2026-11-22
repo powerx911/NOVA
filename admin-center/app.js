@@ -1,5 +1,5 @@
 const API_URL = "https://hmrprnjhyzyefocdmnxf.supabase.co/functions/v1/admin-center";
-let accessToken = "";
+let accessToken = "";\nconst SESSION_KEY = "nova_admin_session";\nfunction saveSession(session) { accessToken=session.access_token; localStorage.setItem(SESSION_KEY,JSON.stringify({refresh_token:session.refresh_token,email:session.email,role:session.role})); }\nfunction clearSession() { accessToken=""; localStorage.removeItem(SESSION_KEY); }
 const $ = (selector) => document.querySelector(selector);
 function message(text, error = false) { $("#feedback").textContent = text; $("#feedback").dataset.error = String(error); }
 function explain(code) {
@@ -22,7 +22,7 @@ async function api(action, data = {}) {
  return result;
 }
 function show(session) {
- accessToken = session.access_token;
+ saveSession(session);
  $("#login-panel").hidden = true; $("#app-panel").hidden = false;
  $("#owner-panel").hidden = session.role !== "owner";
  $("#session-label").textContent = `${session.email} · ${session.role === "owner" ? "Owner" : "Admin"}`;
@@ -54,7 +54,7 @@ async function loadAdmins() {
   }
  } catch(err){list.replaceChildren();const error=document.createElement("p");error.className="muted";error.textContent=err.message;list.append(error);}
 }
-$("#login-form").addEventListener("submit", async e => {
+async function restoreSession() {\n const saved=localStorage.getItem(SESSION_KEY); if(!saved) return;\n try { const parsed=JSON.parse(saved); const result=await api("refresh_session",{refresh_token:parsed.refresh_token}); show(result.session); message(""); }\n catch { clearSession(); $("#app-panel").hidden=true; $("#login-panel").hidden=false; }\n}\n$("#login-form").addEventListener("submit", async e => {
  e.preventDefault(); const f = new FormData(e.currentTarget);
  try { show((await api("login",{email:f.get("email"),password:f.get("password")})).session); message(""); }
  catch(err) { message(err.message,true); }
@@ -67,4 +67,5 @@ $("#create-admin-form").addEventListener("submit", async e => {
  catch(err) { message(err.message,true); }
 });
 $("#refresh-admins").addEventListener("click",loadAdmins);
-$("#logout-button").addEventListener("click",()=>{accessToken="";$("#app-panel").hidden=true;$("#login-panel").hidden=false;$("#owner-panel").hidden=true;message("تم تسجيل الخروج.");});
+$("#logout-button").addEventListener("click",()=>{clearSession();$("#app-panel").hidden=true;$("#login-panel").hidden=false;$("#owner-panel").hidden=true;message("تم تسجيل الخروج.");});
+\nrestoreSession();\n
