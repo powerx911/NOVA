@@ -238,7 +238,8 @@ async function loadActivity() {
    const card = node("article", "activity-card");
    const heading = node("div", "report-head");
    heading.append(node("strong", "", ACTION_LABELS[event.action] || event.action), node("span", "report-meta", dateLabel(event.created_at)));
-   const target = node("p", "report-meta", (event.entity_type || "—") + " · " + (event.entity_id || "—"));
+   const entityLabels = { player_feedback: "بلاغ أو اقتراح من داخل اللعبة", player_report: "بلاغ لاعب على لاعب", support_ticket: "تذكرة دعم", admin_account: "حساب مشرف" };
+   const target = node("p", "report-meta", entityLabels[event.entity_type] || "إجراء إداري");
    const actor = node("p", "report-ids", "المشرف: " + (event.actor_name || "مشرف"));
    card.append(heading, target, actor);
    if (event.details?.reason) card.append(node("p", "report-meta", "السبب: " + event.details.reason));
