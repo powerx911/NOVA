@@ -86,6 +86,8 @@ Deno.serve(async req=>{
    if(!targetId||targetId===userData.user.id) return reply({error:"INVALID_ADMIN_TARGET"},400,origin);
    const {data:target,error:targetError}=await db.from("admin_accounts").select("user_id,role,enabled,created_by,created_at").eq("user_id",targetId).maybeSingle();
    if(targetError||!target||target.role!=="admin") return reply({error:"ADMIN_NOT_FOUND"},404,origin);
+   const {data:targetAuth}=await db.auth.admin.getUserById(targetId);
+   const targetEmail=targetAuth?.user?.email??null;
    // admin_accounts references auth.users with ON DELETE RESTRICT, so remove the role row first.
    const {error:removeRoleError}=await db.from("admin_accounts").delete().eq("user_id",targetId);
    if(removeRoleError) return reply({error:"ADMIN_DELETE_FAILED"},500,origin);
@@ -96,6 +98,7 @@ Deno.serve(async req=>{
     if(restoreError) console.error("Failed to restore admin role after deletion error",restoreError);
     return reply({error:"ADMIN_DELETE_FAILED"},500,origin);
    }
+   await writeAudit(db,userData.user.id,"admin_account_deleted","admin_account",targetId,{email:targetEmail});
    return reply({ok:true},200,origin);
   }
 
