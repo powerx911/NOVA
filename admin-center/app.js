@@ -4,6 +4,7 @@ const SESSION_KEY = "nova_admin_session";
 const $ = (selector) => document.querySelector(selector);
 let playerSearchTimer = null;
 let playerSearchRequest = 0;
+let ticketSnapshot = "";
 const STATUS_LABELS = { open: "مفتوح", new: "جديد", reviewing: "قيد المراجعة", closed: "مغلق", resolved: "تمت المعالجة", dismissed: "مستبعد" };
 const REASON_LABELS = { harassment: "مضايقة", spam: "رسائل مزعجة", inappropriate: "محتوى غير مناسب", impersonation: "انتحال شخصية", other: "سبب آخر" };
 const ACTION_LABELS = {
@@ -161,6 +162,9 @@ async function loadTickets() {
  try {
   const result = await api("list_support_tickets");
   const tickets = result.tickets || [];
+  const snapshot = JSON.stringify(tickets.map(ticket => [ticket.id, ticket.status, ticket.updated_at, (ticket.messages || []).at(-1)?.id]));
+  if (snapshot === ticketSnapshot && list.childElementCount) return;
+  ticketSnapshot = snapshot;
   list.replaceChildren();
   if (!tickets.length) { list.append(node("p", "empty-state", "لا توجد تذاكر حالياً.")); return; }
   for (const ticket of tickets) {
@@ -342,4 +346,9 @@ $("#logout-button").addEventListener("click", () => {
  document.querySelectorAll(".owner-nav").forEach(item => item.hidden = true);
  message("تم تسجيل الخروج.");
 });
+window.setInterval(() => {
+ const view = $("#view-tickets");
+ const list = $("#tickets-list");
+ if (view?.classList.contains("active") && list && !list.contains(document.activeElement)) void loadTickets();
+}, 5000);
 restoreSession();
