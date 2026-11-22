@@ -116,8 +116,8 @@ async function loadReports() {
    const head = node("div", "report-head");
    const titleText = isFeedback ? (isSuggestion ? "اقتراح من " : "بلاغ من ") + (report.reporter_name || "لاعب غير معروف") : "بلاغ من " + (report.reporter_name || "لاعب غير معروف") + " على " + (report.target_name || "لاعب غير معروف");
    head.append(node("strong", "", titleText), node("span", "status-badge status-" + report.status, STATUS_LABELS[report.status] || report.status));
-   const meta = node("p", "report-meta", (isFeedback ? (isSuggestion ? "اقتراح لاعب" : "بلاغ لاعب") : (REASON_LABELS[report.reason] || report.reason)) + " · " + dateLabel(report.created_at));
-   const ids = node("p", "report-ids", "صاحب الرسالة: " + report.reporter_uid + (isFeedback ? "" : " · اللاعب المبلّغ عنه: " + report.target_uid));
+   const meta = node("p", "report-meta", (isFeedback ? (isSuggestion ? "اقتراح لاعب" : "بلاغ لاعب") : "بلاغ على لاعب") + " · " + dateLabel(report.created_at));
+   const ids = node("p", "report-ids", "صاحب الرسالة: " + (report.reporter_uid || "—") + (isFeedback ? "" : " · اللاعب المبلّغ عنه: " + (report.target_uid || "—")));
    const controls = node("div", "report-controls");
    const statuses = ["open", "reviewing", "closed"];
    const status = node("select", "status-select");
