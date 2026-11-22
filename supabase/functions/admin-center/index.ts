@@ -103,15 +103,17 @@ Deno.serve(async req=>{
   }
 
   if(body.action==="list_player_reports") {
-   const {data:reports,error}=await db.schema("nexora").from("player_reports")
-    .select("id,reporter_uid,target_uid,reason,status,created_at").order("created_at",{ascending:false}).limit(100);
-   if(error) return reply({error:"REPORT_LIST_FAILED"},500,origin);
-   const ids=[...new Set((reports??[]).flatMap((r:any)=>[r.reporter_uid,r.target_uid]))];
-   const {data:profiles}=ids.length
-    ?await db.schema("nexora").from("player_profiles").select("user_id,username").in("user_id",ids)
-    :{data:[]};
+   const [{data:reports,error:reportsError},{data:feedback,error:feedbackError}]=await Promise.all([
+    db.schema("nexora").from("player_reports").select("id,reporter_uid,target_uid,reason,status,created_at").order("created_at",{ascending:false}).limit(100),
+    db.schema("nexora").from("player_feedback").select("id,user_id,feedback_type,message,status,created_at").order("created_at",{ascending:false}).limit(100)
+   ]);
+   if(reportsError||feedbackError) return reply({error:"REPORT_LIST_FAILED"},500,origin);
+   const ids=[...new Set([...(reports??[]).flatMap((r:any)=>[r.reporter_uid,r.target_uid]),...(feedback??[]).map((f:any)=>f.user_id)])];
+   const {data:profiles}=ids.length?await db.schema("nexora").from("player_profiles").select("user_id,username").in("user_id",ids):{data:[]};
    const names=new Map((profiles??[]).map((p:any)=>[p.user_id,p.username]));
-   return reply({reports:(reports??[]).map((r:any)=>({...r,reporter_name:names.get(r.reporter_uid)??"لاعب غير معروف",target_name:names.get(r.target_uid)??"لاعب غير معروف"}))},200,origin);
+   const playerReports=(reports??[]).map((r:any)=>({...r,source:"player_report",kind:"player_report",reporter_name:names.get(r.reporter_uid)??"لاعب غير معروف",target_name:names.get(r.target_uid)??"لاعب غير معروف"}));
+   const playerFeedback=(feedback??[]).map((f:any)=>({id:f.id,source:"player_feedback",kind:f.feedback_type,user_id:f.user_id,reporter_uid:f.user_id,reporter_name:names.get(f.user_id)??"لاعب غير معروف",message:f.message,reason:f.feedback_type,status:f.status,created_at:f.created_at}));
+   return reply({reports:[...playerReports,...playerFeedback].sort((a:any,b:any)=>new Date(b.created_at).getTime()-new Date(a.created_at).getTime()).slice(0,150)},200,origin);
   }
   if(body.action==="update_player_report") {
    const reportId=typeof body.report_id==="string"?body.report_id.trim():"";
