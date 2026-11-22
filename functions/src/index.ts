@@ -1,7 +1,8 @@
 import { randomUUID } from 'node:crypto';
 import { getApps, initializeApp } from 'firebase-admin/app';
+import { getAuth } from 'firebase-admin/auth';
 import { FieldValue, getFirestore, Timestamp, type DocumentData } from 'firebase-admin/firestore';
-import { HttpsError, onCall } from 'firebase-functions/v2/https';
+import { HttpsError, onCall, onRequest } from 'firebase-functions/v2/https';
 import { onSchedule } from 'firebase-functions/v2/scheduler';
 import {
   ALLOWED_DIAGNOSTIC_COLLECTIONS,
@@ -749,3 +750,58 @@ export const rotateWorldEvents = onSchedule(
   }
 );
 
+/**
+ * Deletes a Firebase Authentication identity only after the Supabase Admin Center
+ * confirms that the supplied bearer token belongs to an enabled owner account.
+ * The Supabase JWT is never logged or persisted.
+ */
+export const deleteFirebasePlayerAuth = onRequest(
+  { region: 'us-central1', maxInstances: 5, timeoutSeconds: 30, memory: '256MiB' },
+  async (req, res) => {
+    if (req.method !== 'POST') {
+      res.status(405).json({ error: 'METHOD_NOT_ALLOWED' });
+      return;
+    }
+
+    const authorization = req.get('authorization') ?? '';
+    const uid = typeof req.body?.uid === 'string' ? req.body.uid.trim() : '';
+    if (!authorization.startsWith('Bearer ') || !uid || uid.length > 128 || /[\\/\\s]/.test(uid)) {
+      res.status(400).json({ error: 'INVALID_REQUEST' });
+      return;
+    }
+
+    try {
+      const ownerCheck = await fetch(
+        'https://hmrprnjhyzyefocdmnxf.supabase.co/functions/v1/admin-center',
+        {
+          method: 'POST',
+          headers: { Authorization: authorization, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'authorize_firebase_auth_delete' }),
+        }
+      );
+      if (!ownerCheck.ok) {
+        res.status(ownerCheck.status === 401 ? 401 : 403).json({ error: 'OWNER_REQUIRED' });
+        return;
+      }
+
+      const auth = getAuth(adminApp);
+      const target = await auth.getUser(uid);
+      const claims = target.customClaims ?? {};
+      if (claims.diagnosticsOwner === true || claims.owner === true || claims.admin === true) {
+        res.status(409).json({ error: 'PROTECTED_AUTH_ACCOUNT' });
+        return;
+      }
+
+      await auth.deleteUser(uid);
+      res.status(200).json({ ok: true, auth_deleted: true });
+    } catch (error) {
+      const code = typeof error === 'object' && error !== null && 'code' in error
+        ? String((error as { code?: unknown }).code)
+        : 'FIREBASE_AUTH_DELETE_FAILED';
+      console.error('Firebase player Auth deletion failed', { uid, code });
+      res.status(code === 'auth/user-not-found' ? 404 : 500).json({
+        error: code === 'auth/user-not-found' ? 'FIREBASE_AUTH_USER_NOT_FOUND' : 'FIREBASE_AUTH_DELETE_FAILED',
+      });
+    }
+  }
+);
