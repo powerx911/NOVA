@@ -4,7 +4,7 @@ import { nexoraApi } from '../../lib/nexoraApi';
 import type { Language } from '../../types/game';
 
 type TicketMessage = { id: string; sender_type: 'player' | 'admin'; message: string; created_at: string; attachments?: string[] };
-type Ticket = { id: string; subject: string; status: 'open' | 'claimed' | 'closed'; claimed_at: string | null; created_at: string; messages: TicketMessage[] };
+type Ticket = { id: string; subject: string; status: 'open' | 'claimed' | 'closed'; claimed_at: string | null; closed_at: string | null; created_at: string; messages: TicketMessage[] };
 
 async function encodeImages(files: File[]): Promise<string[]> {
   return Promise.all(files.slice(0, 3).map((file) => new Promise<string>((resolve, reject) => {
@@ -96,6 +96,7 @@ export function SupportTicketsPanel({ language }: { language: Language }) {
           <div className="min-w-0 flex-1"><h2 className="truncate text-base font-bold">{selectedTicket.subject}</h2><p className="mt-1 text-xs text-[#AAB1BE]">{statusLabel(selectedTicket.status)}</p></div>
         </header>
         {selectedTicket.status === 'claimed' && <p className="mb-3 rounded-xl border border-emerald-400/20 bg-emerald-400/5 p-3 text-xs text-emerald-300">{ar ? 'تم استلام التذكرة من أحد الإداريين. يمكنك متابعة المحادثة هنا.' : 'An administrator has taken your ticket. Continue the conversation here.'}</p>}
+        {selectedTicket.status === 'closed' && <p className="mb-3 rounded-xl border border-amber-400/20 bg-amber-400/5 p-3 text-xs text-amber-200">{ar ? 'تم إغلاق هذه التذكرة. ستختفي من قائمة تذاكرك تلقائيًا بعد 5 دقائق من وقت الإغلاق.' : 'This ticket is closed. It will automatically disappear from your ticket list 5 minutes after it was closed.'}</p>}
         <div className="flex-1 space-y-3 pb-4">{(selectedTicket.messages || []).map((item) => <article key={item.id} className={`max-w-[92%] rounded-2xl p-3 ${item.sender_type === 'admin' ? 'me-auto bg-[#1B2633]' : 'ms-auto bg-[#27202A]'}`}>
           <p className="mb-1 text-[11px] text-[#AAB1BE]">{item.sender_type === 'admin' ? (ar ? 'الإدارة' : 'Administration') : (ar ? 'أنت' : 'You')}</p>
           <p className="whitespace-pre-wrap break-words text-sm">{item.message}</p>
