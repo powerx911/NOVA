@@ -16,11 +16,11 @@
     "active_cron_jobs": 8
   },
   "matching_summary": {
-    "records_with_source": 93,
+    "records_with_source": 94,
     "records_missing_source": 0,
     "records_recovered_only": 21,
     "records_with_additional_variants": 21,
-    "local_migration_files_not_mapped_to_applied_record": 19
+    "local_migration_files_not_mapped_to_applied_record": 18
   },
   "entries": [
     {
@@ -873,7 +873,7 @@
       "additional_variants": []
     },
     {
-      "version": "20261122143000",
+      "version": "20261122135847",
       "name": "create_player_feedback",
       "source_status": "tracked",
       "canonical_source": "supabase/migrations/20261122143000_create_player_feedback.sql",
@@ -881,7 +881,7 @@
       "additional_variants": []
     }
   ],
-  "tracked_migration_files_on_branch": 88,
+  "tracked_migration_files_on_branch": 89,
   "tracked_migration_files_on_main": 80,
   "unmapped_local_migration_files_by_name": [
     "supabase/migrations/20261118180000_nexora_economy_rpcs.sql",
