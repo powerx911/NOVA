@@ -261,6 +261,19 @@ async function loadAdmins() {
    const row = node("div", "admin-row");
    const info = node("div", "admin-info");
    info.append(node("strong", "", admin.display_name || "مشرف"), node("span", "", admin.email + " · " + (admin.enabled ? "مفعّل" : "معطّل")));
+   const edit = node("div", "admin-edit");
+   const nameInput = node("input", "reason-input");
+   nameInput.type = "text"; nameInput.maxLength = 40; nameInput.minLength = 2; nameInput.value = admin.display_name || "";
+   nameInput.setAttribute("aria-label", "الاسم الظاهر للاعبين");
+   const saveName = node("button", "small-button", "حفظ الاسم");
+   saveName.type = "button";
+   saveName.addEventListener("click", async () => {
+    if (nameInput.value.trim().length < 2) { message("الاسم يجب أن يكون حرفين على الأقل.", true); return; }
+    saveName.disabled = true;
+    try { await api("update_admin_display_name", { user_id: admin.user_id, display_name: nameInput.value.trim() }); message("تم تحديث اسم المشرف."); await loadAdmins(); }
+    catch (error) { message(error.message, true); saveName.disabled = false; }
+   });
+   edit.append(nameInput, saveName);
    const remove = node("button", "danger", "حذف");
    remove.type = "button";
    remove.addEventListener("click", async () => {
@@ -269,7 +282,7 @@ async function loadAdmins() {
     try { await api("delete_admin", { user_id: admin.user_id }); message("تم حذف حساب الأدمن."); await loadAdmins(); await loadActivity(); }
     catch (error) { message(error.message, true); remove.disabled = false; }
    });
-   row.append(info, remove);
+   row.append(info, edit, remove);
    list.append(row);
   }
  } catch (error) { list.replaceChildren(node("p", "error-state", error.message)); }
