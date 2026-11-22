@@ -61,7 +61,8 @@ Deno.serve(async req=>{
    if(actor.role!=="owner") return reply({error:"OWNER_REQUIRED"},403,origin);
    const email=typeof body.email==="string"?body.email.trim().toLowerCase():"";
    const password=typeof body.password==="string"?body.password:"";
-   if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)||password.length<12||password.length>128) return reply({error:"INVALID_ADMIN_CREDENTIALS"},400,origin);
+   const displayName=typeof body.display_name==="string"?body.display_name.trim().slice(0,40):"";
+   if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)||password.length<12||password.length>128||displayName.length<2) return reply({error:"INVALID_ADMIN_CREDENTIALS"},400,origin);
    const {data:created,error:createError}=await db.auth.admin.createUser({email,password,email_confirm:true});
    if(createError||!created.user) {
     console.error("Admin account creation failed", {code:createError?.code,status:createError?.status,message:createError?.message});
@@ -87,11 +88,23 @@ Deno.serve(async req=>{
    }
    return reply({admins:users},200,origin);
   }
+  if(body.action==="update_admin_display_name") {
+   if(actor.role!=="owner") return reply({error:"OWNER_REQUIRED"},403,origin);
+   const targetId=typeof body.user_id==="string"?body.user_id:"";
+   const displayName=typeof body.display_name==="string"?body.display_name.trim():"";
+   if(!targetId||displayName.length<2||displayName.length>40) return reply({error:"INVALID_ADMIN_DISPLAY_NAME"},400,origin);
+   const {data:target,error:targetError}=await db.from("admin_accounts").select("user_id,role").eq("user_id",targetId).maybeSingle();
+   if(targetError||!target||target.role!=="admin") return reply({error:"ADMIN_NOT_FOUND"},404,origin);
+   const {error:updateError}=await db.from("admin_accounts").update({display_name:displayName}).eq("user_id",targetId);
+   if(updateError) { console.error("Admin display name update failed",updateError); return reply({error:"ADMIN_NAME_UPDATE_FAILED"},500,origin); }
+   await writeAudit(db,userData.user.id,"admin_account_renamed","admin_account",targetId,{display_name:displayName});
+   return reply({ok:true},200,origin);
+  }
   if(body.action==="delete_admin") {
    if(actor.role!=="owner") return reply({error:"OWNER_REQUIRED"},403,origin);
    const targetId=typeof body.user_id==="string"?body.user_id:"";
    if(!targetId||targetId===userData.user.id) return reply({error:"INVALID_ADMIN_TARGET"},400,origin);
-   const {data:target,error:targetError}=await db.from("admin_accounts").select("user_id,role,enabled,created_by,created_at").eq("user_id",targetId).maybeSingle();
+   const {data:target,error:targetError}=await db.from("admin_accounts").select("user_id,role,enabled,display_name,created_by,created_at").eq("user_id",targetId).maybeSingle();
    if(targetError||!target||target.role!=="admin") return reply({error:"ADMIN_NOT_FOUND"},404,origin);
    const {data:targetAuth}=await db.auth.admin.getUserById(targetId);
    const targetEmail=targetAuth?.user?.email??null;
