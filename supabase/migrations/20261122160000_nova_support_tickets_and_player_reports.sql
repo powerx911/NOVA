@@ -34,14 +34,3 @@ alter table nexora.support_ticket_messages enable row level security;
 revoke all on nexora.support_tickets, nexora.support_ticket_messages from public, anon, authenticated;
 grant select, insert, update, delete on nexora.support_tickets, nexora.support_ticket_messages to service_role;
 
-create schema if not exists storage;
-create table if not exists storage.buckets (
-  id text primary key,
-  name text not null,
-  public boolean not null default false,
-  file_size_limit bigint,
-  allowed_mime_types text[]
-);
-insert into storage.buckets(id,name,public,file_size_limit,allowed_mime_types)
-values ('player-support-attachments','player-support-attachments',false,3145728,array['image/jpeg','image/png','image/webp'])
-on conflict (id) do update set public=false,file_size_limit=3145728,allowed_mime_types=array['image/jpeg','image/png','image/webp'];
