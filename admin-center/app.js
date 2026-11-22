@@ -42,7 +42,7 @@ function explain(code) {
 async function api(action, data = {}) {
  const response = await fetch(API_URL, {
   method: "POST",
-  headers: { "Content-Type": "application/json", ...(accessToken ? { Authorization: \`Bearer \${accessToken}\` } : {}) },
+  headers: { "Content-Type": "application/json", ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}) },
   body: JSON.stringify({ action, ...data })
  });
  const result = await response.json().catch(() => ({}));
@@ -66,7 +66,7 @@ function dateLabel(value) {
  return Number.isNaN(date.getTime()) ? "—" : date.toLocaleString("ar", { dateStyle: "medium", timeStyle: "short" });
 }
 function switchView(name) {
- document.querySelectorAll(".view").forEach(view => view.classList.toggle("active", view.id === \`view-\${name}\`));
+ document.querySelectorAll(".view").forEach(view => view.classList.toggle("active", view.id === `view-${name}`));
  document.querySelectorAll("[data-view]").forEach(button => button.classList.toggle("active", button.dataset.view === name));
  const titles = { overview: "نظرة عامة", reports: "بلاغات اللاعبين", players: "إدارة اللاعبين", activity: "سجل الإجراءات", admins: "حسابات المشرفين" };
  $("#page-title").textContent = titles[name] || "مركز الإدارة";
@@ -79,7 +79,7 @@ function show(session) {
  $("#login-panel").hidden = true;
  $("#app-panel").hidden = false;
  document.querySelectorAll(".owner-nav").forEach(item => item.hidden = session.role !== "owner");
- $("#session-label").textContent = \`\${session.email} · \${session.role === "owner" ? "Owner" : "Admin"}\`;
+ $("#session-label").textContent = `${session.email} · ${session.role === "owner" ? "Owner" : "Admin"}`;
  $("#notice").hidden = false;
  $("#notice").textContent = "تم التحقق من صلاحية الحساب على الخادم.";
  switchView("overview");
@@ -108,11 +108,11 @@ async function loadReports() {
   for (const report of reports) {
    const card = node("article", "report-card");
    const head = node("div", "report-head");
-   const title = node("strong", "", \`\${report.reporter_name} أبلغ عن \${report.target_name}\`);
-   const badge = node("span", \`status-badge status-\${report.status}\`, STATUS_LABELS[report.status] || report.status);
+   const title = node("strong", "", `${report.reporter_name} أبلغ عن ${report.target_name}`);
+   const badge = node("span", `status-badge status-${report.status}`, STATUS_LABELS[report.status] || report.status);
    head.append(title, badge);
-   const meta = node("p", "report-meta", \`\${REASON_LABELS[report.reason] || report.reason} · \${dateLabel(report.created_at)}\`);
-   const ids = node("p", "report-ids", \`المبلّغ: \${report.reporter_uid} · اللاعب المبلّغ عنه: \${report.target_uid}\`);
+   const meta = node("p", "report-meta", `${REASON_LABELS[report.reason] || report.reason} · ${dateLabel(report.created_at)}`);
+   const ids = node("p", "report-ids", `المبلّغ: ${report.reporter_uid} · اللاعب المبلّغ عنه: ${report.target_uid}`);
    const controls = node("div", "report-controls");
    const status = node("select", "status-select");
    for (const value of ["open", "reviewing", "closed"]) {
@@ -155,14 +155,14 @@ async function loadPlayers(query) {
   for (const player of players) {
    const card = node("article", "player-card");
    const heading = node("div", "player-heading");
-   heading.append(node("strong", "", player.username), node("span", "pill", \`المستوى \${player.level}\`));
-   const uid = node("p", "report-ids", \`معرّف الحساب: \${player.user_id}\`);
+   heading.append(node("strong", "", player.username), node("span", "pill", `المستوى ${player.level}`));
+   const uid = node("p", "report-ids", `معرّف الحساب: ${player.user_id}`);
    const stats = node("div", "player-stats");
    stats.append(
-    node("span", "", \`الرصيد: \${Number(player.wallet_balance || 0).toLocaleString("ar")}\`),
-    node("span", "", \`الخبرة: \${Number(player.xp || 0).toLocaleString("ar")}\`),
-    node("span", "", \`السمعة: \${Number(player.reputation || 0).toLocaleString("ar")}\`),
-    node("span", "", \`النفوذ: \${Number(player.influence || 0).toLocaleString("ar")}\`)
+    node("span", "", `الرصيد: ${Number(player.wallet_balance || 0).toLocaleString("ar")}`),
+    node("span", "", `الخبرة: ${Number(player.xp || 0).toLocaleString("ar")}`),
+    node("span", "", `السمعة: ${Number(player.reputation || 0).toLocaleString("ar")}`),
+    node("span", "", `النفوذ: ${Number(player.influence || 0).toLocaleString("ar")}`)
    );
    card.append(heading, uid, stats);
    list.append(card);
@@ -183,11 +183,11 @@ async function loadActivity() {
    const card = node("article", "activity-card");
    const heading = node("div", "report-head");
    heading.append(node("strong", "", ACTION_LABELS[event.action] || event.action), node("span", "report-meta", dateLabel(event.created_at)));
-   const target = node("p", "report-meta", \`\${event.entity_type || "—"} · \${event.entity_id || "—"}\`);
-   const actor = node("p", "report-ids", \`المشرف: \${event.user_id || "—"}\`);
+   const target = node("p", "report-meta", `${event.entity_type || "—"} · ${event.entity_id || "—"}`);
+   const actor = node("p", "report-ids", `المشرف: ${event.user_id || "—"}`);
    card.append(heading, target, actor);
-   if (event.details?.reason) card.append(node("p", "report-meta", \`السبب: \${event.details.reason}\`));
-   if (event.details?.new_status) card.append(node("p", "report-meta", \`الحالة الجديدة: \${STATUS_LABELS[event.details.new_status] || event.details.new_status}\`));
+   if (event.details?.reason) card.append(node("p", "report-meta", `السبب: ${event.details.reason}`));
+   if (event.details?.new_status) card.append(node("p", "report-meta", `الحالة الجديدة: ${STATUS_LABELS[event.details.new_status] || event.details.new_status}`));
    list.append(card);
   }
  } catch (error) {
@@ -210,7 +210,7 @@ async function loadAdmins() {
    const remove = node("button", "danger", "حذف");
    remove.type = "button";
    remove.addEventListener("click", async () => {
-    if (!window.confirm(\`تأكيد حذف حساب الأدمن \${admin.email}؟ لا يمكن التراجع عن الحذف.\`)) return;
+    if (!window.confirm(`تأكيد حذف حساب الأدمن ${admin.email}؟ لا يمكن التراجع عن الحذف.`)) return;
     remove.disabled = true;
     try { await api("delete_admin", { user_id: admin.user_id }); message("تم حذف حساب الأدمن."); await loadAdmins(); await loadActivity(); }
     catch (error) { message(error.message, true); remove.disabled = false; }
