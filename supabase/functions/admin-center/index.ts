@@ -103,30 +103,39 @@ Deno.serve(async req=>{
   }
 
   if(body.action==="list_player_reports") {
-   const {data:reports,error}=await db.schema("nexora").from("player_reports")
-    .select("id,reporter_uid,target_uid,reason,status,created_at").order("created_at",{ascending:false}).limit(100);
-   if(error) return reply({error:"REPORT_LIST_FAILED"},500,origin);
-   const ids=[...new Set((reports??[]).flatMap((r:any)=>[r.reporter_uid,r.target_uid]))];
-   const {data:profiles}=ids.length
-    ?await db.schema("nexora").from("player_profiles").select("user_id,username").in("user_id",ids)
-    :{data:[]};
+   const [{data:reports,error:reportsError},{data:feedback,error:feedbackError}]=await Promise.all([
+    db.schema("nexora").from("player_reports").select("id,reporter_uid,target_uid,reason,status,created_at").order("created_at",{ascending:false}).limit(100),
+    db.schema("nexora").from("player_feedback").select("id,user_id,feedback_type,message,status,created_at").order("created_at",{ascending:false}).limit(100)
+   ]);
+   if(reportsError||feedbackError) return reply({error:"REPORT_LIST_FAILED"},500,origin);
+   const ids=[...new Set([...(reports??[]).flatMap((r:any)=>[r.reporter_uid,r.target_uid]),...(feedback??[]).map((f:any)=>f.user_id)])];
+   const {data:profiles}=ids.length?await db.schema("nexora").from("player_profiles").select("user_id,username").in("user_id",ids):{data:[]};
    const names=new Map((profiles??[]).map((p:any)=>[p.user_id,p.username]));
-   return reply({reports:(reports??[]).map((r:any)=>({...r,reporter_name:names.get(r.reporter_uid)??"لاعب غير معروف",target_name:names.get(r.target_uid)??"لاعب غير معروف"}))},200,origin);
+   const playerReports=(reports??[]).map((r:any)=>({...r,source:"player_report",kind:"player_report",reporter_name:names.get(r.reporter_uid)??"لاعب غير معروف",target_name:names.get(r.target_uid)??"لاعب غير معروف"}));
+   const playerFeedback=(feedback??[]).map((f:any)=>({id:f.id,source:"player_feedback",kind:f.feedback_type,user_id:f.user_id,reporter_uid:f.user_id,reporter_name:names.get(f.user_id)??"لاعب غير معروف",message:f.message,reason:f.feedback_type,status:f.status,created_at:f.created_at}));
+   return reply({reports:[...playerReports,...playerFeedback].sort((a:any,b:any)=>new Date(b.created_at).getTime()-new Date(a.created_at).getTime()).slice(0,150)},200,origin);
   }
   if(body.action==="update_player_report") {
    const reportId=typeof body.report_id==="string"?body.report_id.trim():"";
    const status=typeof body.status==="string"?body.status:"";
+   const source=body.source==="player_feedback"?"player_feedback":"player_report";
    const reason=typeof body.reason==="string"?body.reason.trim():"";
-   if(!reportId||reportId.length>180||!["open","reviewing","closed"].includes(status)||reason.length<8||reason.length>500)
+   const validStatuses=source==="player_feedback"?["new","reviewing","resolved","dismissed"]:["open","reviewing","closed"];
+   if(!reportId||reportId.length>180||!validStatuses.includes(status)||reason.length<8||reason.length>500)
     return reply({error:"INVALID_REPORT_UPDATE"},400,origin);
-   const {data:before,error:readError}=await db.schema("nexora").from("player_reports")
-    .select("id,status,reporter_uid,target_uid").eq("id",reportId).maybeSingle();
+   if(source==="player_feedback") {
+    const {data:before,error:readError}=await db.schema("nexora").from("player_feedback").select("id,status,user_id").eq("id",reportId).maybeSingle();
+    if(readError||!before) return reply({error:"REPORT_NOT_FOUND"},404,origin);
+    const {data:updated,error:updateError}=await db.schema("nexora").from("player_feedback").update({status}).eq("id",reportId).select("id,status").maybeSingle();
+    if(updateError||!updated) return reply({error:"REPORT_UPDATE_FAILED"},500,origin);
+    await writeAudit(db,userData.user.id,"admin_report_status_changed","player_feedback",reportId,{previous_status:before.status,new_status:status,reason});
+    return reply({ok:true,report:updated},200,origin);
+   }
+   const {data:before,error:readError}=await db.schema("nexora").from("player_reports").select("id,status,reporter_uid,target_uid").eq("id",reportId).maybeSingle();
    if(readError||!before) return reply({error:"REPORT_NOT_FOUND"},404,origin);
-   const {data:updated,error:updateError}=await db.schema("nexora").from("player_reports")
-    .update({status}).eq("id",reportId).select("id,status").maybeSingle();
+   const {data:updated,error:updateError}=await db.schema("nexora").from("player_reports").update({status}).eq("id",reportId).select("id,status").maybeSingle();
    if(updateError||!updated) return reply({error:"REPORT_UPDATE_FAILED"},500,origin);
-   await writeAudit(db,userData.user.id,"admin_report_status_changed","player_report",reportId,
-    {previous_status:before.status,new_status:status,reason});
+   await writeAudit(db,userData.user.id,"admin_report_status_changed","player_report",reportId,{previous_status:before.status,new_status:status,reason});
    return reply({ok:true,report:updated},200,origin);
   }
   if(body.action==="search_players") {

@@ -48,6 +48,10 @@
 .status-open{border-color:#745333;color:#edc58a}
 .status-reviewing{border-color:#425b87;color:#b9ceff}
 .status-closed{border-color:#32664f;color:#a6dfc2}
+.status-new{border-color:#745333;color:#edc58a}
+.status-resolved{border-color:#32664f;color:#a6dfc2}
+.status-dismissed{border-color:#5b6475;color:#aab4c5}
+.report-message{white-space:pre-wrap;overflow-wrap:anywhere;background:#111b2e;border:1px solid #26334b;border-radius:9px;padding:12px;color:#e2e9f5;font-size:13px;line-height:1.8;margin:12px 0}
 .report-controls{display:grid;grid-template-columns:minmax(120px,170px) minmax(160px,1fr) auto;gap:9px;margin-top:14px}
 .status-select,.reason-input,.search-form input{min-width:0;width:100%;background:#111b2e;border:1px solid #34415b;border-radius:9px;padding:10px 12px;color:#e8edf7;font:inherit;font-size:12px}
 .small-button{padding:9px 14px;font-size:11px;white-space:nowrap}
