@@ -14,11 +14,12 @@ const ACTION_LABELS = {
  admin_report_notification_sent: "إرسال إشعار لصاحب البلاغ",
  admin_ticket_claimed: "استلام تذكرة دعم",
  admin_ticket_message_sent: "الرد على تذكرة دعم",
- admin_ticket_closed: "إغلاق تذكرة دعم"
+ admin_ticket_closed: "إغلاق تذكرة دعم",
+ admin_account_renamed: "تغيير اسم مشرف"
 };
 function saveSession(session) {
  accessToken = session.access_token;
- localStorage.setItem(SESSION_KEY, JSON.stringify({ refresh_token: session.refresh_token, email: session.email, role: session.role }));
+ localStorage.setItem(SESSION_KEY, JSON.stringify({ refresh_token: session.refresh_token, email: session.email, role: session.role, display_name: session.display_name }));
 }
 function clearSession() { accessToken = ""; localStorage.removeItem(SESSION_KEY); }
 function message(text, error = false) {
@@ -36,7 +37,7 @@ function explain(code) {
   ADMIN_NOT_FOUND: "حساب الأدمن غير موجود.",
   OWNER_REQUIRED: "هذه العملية متاحة للأونر فقط.",
   REPORT_LIST_FAILED: "تعذر تحميل البلاغات.",
-  INVALID_REPORT_UPDATE: "أدخل سببًا واضحًا للإجراء (8 أحرف على الأقل) واختر حالة صحيحة.",
+  INVALID_REPORT_UPDATE: "اختر حالة صحيحة للبلاغ.",
   REPORT_NOT_FOUND: "البلاغ غير موجود أو تم حذفه.",
   REPORT_UPDATE_FAILED: "تعذر تحديث حالة البلاغ.",
   PLAYER_SEARCH_TOO_SHORT: "اكتب حرفين على الأقل للبحث.",
@@ -87,7 +88,7 @@ function show(session) {
  $("#login-panel").hidden = true;
  $("#app-panel").hidden = false;
  document.querySelectorAll(".owner-nav").forEach(item => item.hidden = session.role !== "owner");
- $("#session-label").textContent = session.email + " · " + (session.role === "owner" ? "Owner" : "Admin");
+ $("#session-label").textContent = (session.display_name || (session.role === "owner" ? "MJNON" : "مشرف")) + " · " + (session.role === "owner" ? "Owner" : "Admin");
  $("#notice").hidden = false;
  $("#notice").textContent = "تم التحقق من صلاحية الحساب على الخادم.";
  switchView("overview");
@@ -118,14 +119,14 @@ async function loadReports() {
    const titleText = isFeedback ? (isSuggestion ? "اقتراح من " : "بلاغ من ") + (report.reporter_name || "لاعب غير معروف") : "بلاغ من " + (report.reporter_name || "لاعب غير معروف") + " على " + (report.target_name || "لاعب غير معروف");
    head.append(node("strong", "", titleText), node("span", "status-badge status-" + report.status, STATUS_LABELS[report.status] || report.status));
    const meta = node("p", "report-meta", (isFeedback ? (isSuggestion ? "اقتراح لاعب" : "بلاغ لاعب") : "بلاغ على لاعب") + " · " + dateLabel(report.created_at));
-   const ids = node("p", "report-ids", "صاحب الرسالة: " + (report.reporter_uid || "—") + (isFeedback ? "" : " · اللاعب المبلّغ عنه: " + (report.target_uid || "—")));
+   const ids = node("p", "report-ids", "صاحب البلاغ: " + (report.reporter_name || "لاعب غير معروف") + (isFeedback ? "" : " · المبلّغ عنه: " + (report.target_name || "لاعب غير معروف")));
    const controls = node("div", "report-controls");
    const statuses = ["open", "reviewing", "closed"];
    const status = node("select", "status-select");
    for (const value of statuses) { const option = node("option", "", STATUS_LABELS[value]); option.value = value; status.append(option); }
    status.value = report.status;
    const reason = node("input", "reason-input"); reason.type = "text"; reason.maxLength = 500;
-   reason.placeholder = "سبب تحديث الحالة (8 أحرف على الأقل)";
+   reason.placeholder = "ملاحظة إدارية (اختياري)";
    const save = node("button", "small-button", "حفظ الإجراء"); save.type = "button";
    save.addEventListener("click", async () => {
     save.disabled = true;
@@ -170,7 +171,7 @@ async function loadTickets() {
   for (const ticket of tickets) {
    const card = node("article", "ticket-card");
    card.append(node("strong", "", ticket.subject + " · " + (ticket.player_name || "لاعب غير معروف")));
-   card.append(node("p", "report-ids", "اللاعب: " + ticket.user_id + " · " + dateLabel(ticket.created_at)));
+   card.append(node("p", "report-ids", "اللاعب: " + (ticket.player_name || "لاعب غير معروف") + " · " + dateLabel(ticket.created_at)));
    for (const item of ticket.messages || []) {
     const bubble = node("div", "ticket-message");
     bubble.append(node("strong", "", item.sender_type === "admin" ? "الإدارة" : "اللاعب"));
@@ -237,8 +238,9 @@ async function loadActivity() {
    const card = node("article", "activity-card");
    const heading = node("div", "report-head");
    heading.append(node("strong", "", ACTION_LABELS[event.action] || event.action), node("span", "report-meta", dateLabel(event.created_at)));
-   const target = node("p", "report-meta", (event.entity_type || "—") + " · " + (event.entity_id || "—"));
-   const actor = node("p", "report-ids", "المشرف: " + (event.user_id || "—"));
+   const entityLabels = { player_feedback: "بلاغ أو اقتراح من داخل اللعبة", player_report: "بلاغ لاعب على لاعب", support_ticket: "تذكرة دعم", admin_account: "حساب مشرف" };
+   const target = node("p", "report-meta", entityLabels[event.entity_type] || "إجراء إداري");
+   const actor = node("p", "report-ids", "المشرف: " + (event.actor_name || "مشرف"));
    card.append(heading, target, actor);
    if (event.details?.reason) card.append(node("p", "report-meta", "السبب: " + event.details.reason));
    if (event.details?.new_status) card.append(node("p", "report-meta", "الحالة الجديدة: " + (STATUS_LABELS[event.details.new_status] || event.details.new_status)));
@@ -260,7 +262,20 @@ async function loadAdmins() {
   for (const admin of admins) {
    const row = node("div", "admin-row");
    const info = node("div", "admin-info");
-   info.append(node("strong", "", admin.email), node("span", "", admin.enabled ? "مفعّل" : "معطّل"));
+   info.append(node("strong", "", admin.display_name || "مشرف"), node("span", "", admin.email + " · " + (admin.enabled ? "مفعّل" : "معطّل")));
+   const edit = node("div", "admin-edit");
+   const nameInput = node("input", "reason-input");
+   nameInput.type = "text"; nameInput.maxLength = 40; nameInput.minLength = 2; nameInput.value = admin.display_name || "";
+   nameInput.setAttribute("aria-label", "الاسم الظاهر للاعبين");
+   const saveName = node("button", "small-button", "حفظ الاسم");
+   saveName.type = "button";
+   saveName.addEventListener("click", async () => {
+    if (nameInput.value.trim().length < 2) { message("الاسم يجب أن يكون حرفين على الأقل.", true); return; }
+    saveName.disabled = true;
+    try { await api("update_admin_display_name", { user_id: admin.user_id, display_name: nameInput.value.trim() }); message("تم تحديث اسم المشرف."); await loadAdmins(); }
+    catch (error) { message(error.message, true); saveName.disabled = false; }
+   });
+   edit.append(nameInput, saveName);
    const remove = node("button", "danger", "حذف");
    remove.type = "button";
    remove.addEventListener("click", async () => {
@@ -269,7 +284,7 @@ async function loadAdmins() {
     try { await api("delete_admin", { user_id: admin.user_id }); message("تم حذف حساب الأدمن."); await loadAdmins(); await loadActivity(); }
     catch (error) { message(error.message, true); remove.disabled = false; }
    });
-   row.append(info, remove);
+   row.append(info, edit, remove);
    list.append(row);
   }
  } catch (error) { list.replaceChildren(node("p", "error-state", error.message)); }
@@ -314,7 +329,7 @@ $("#create-admin-form").addEventListener("submit", async event => {
  const form = event.currentTarget;
  if (!accessToken || $("#owner-panel").hidden) return;
  const values = new FormData(form);
- try { await api("create_admin", { email: values.get("email"), password: values.get("password") }); form.reset(); message("تم إنشاء حساب Admin."); await loadAdmins(); await loadActivity(); }
+ try { await api("create_admin", { email: values.get("email"), password: values.get("password"), display_name: values.get("display_name") }); form.reset(); message("تم إنشاء حساب Admin."); await loadAdmins(); await loadActivity(); }
  catch (error) { message(error.message, true); }
 });
 $("#refresh-admins").addEventListener("click", loadAdmins);
