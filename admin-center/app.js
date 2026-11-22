@@ -179,7 +179,7 @@ async function loadTickets() {
     claim.addEventListener("click", async () => { try { await api("claim_support_ticket", {ticket_id:ticket.id}); message("تم استلام التذكرة."); await loadTickets(); } catch(error) { message(error.message,true); } });
     card.append(claim);
    }
-   if (ticket.status !== "closed") {
+   if (ticket.status === "claimed") {
     const input = node("textarea", "reason-input"); input.placeholder = "اكتب ردك للاعب";
     const send = node("button", "small-button", "إرسال الرد");
     send.addEventListener("click", async () => { if(!input.value.trim()) return; try { await api("send_support_ticket_message",{ticket_id:ticket.id,message:input.value.trim()}); message("تم إرسال الرد."); await loadTickets(); } catch(error) { message(error.message,true); } });
