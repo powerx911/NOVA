@@ -65,7 +65,8 @@ Deno.serve(async req=>{
    }
    const {error:roleError}=await db.from("admin_accounts").insert({user_id:created.user.id,role:"admin",enabled:true,created_by:userData.user.id});
    if(roleError){await db.auth.admin.deleteUser(created.user.id);return reply({error:"ADMIN_ROLE_ASSIGNMENT_FAILED"},500,origin);}
-   await writeAudit(db,userData.user.id,"admin_account_created","admin_account",created.user.id,{email,role:"admin"});\n   return reply({ok:true},201,origin);
+   await writeAudit(db,userData.user.id,"admin_account_created","admin_account",created.user.id,{email,role:"admin"});
+   return reply({ok:true},201,origin);
   }
   if(body.action==="list_admins") {
    if(actor.role!=="owner") return reply({error:"OWNER_REQUIRED"},403,origin);
