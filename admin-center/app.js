@@ -1,4 +1,4 @@
-const API_URL = "/functions/v1/admin-center";
+const API_URL = "https://hmrprnjhyzyefocdmnxf.supabase.co/functions/v1/admin-center";
 let accessToken = "";
 const $ = (selector) => document.querySelector(selector);
 function message(text, error = false) { $("#feedback").textContent = text; $("#feedback").dataset.error = String(error); }
