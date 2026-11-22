@@ -26,6 +26,15 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Verify Firebase deployment credential is configured
+        env:
+          FIREBASE_SERVICE_ACCOUNT_NOVA: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_NOVA }}
+        run: |
+          if [ -z "$FIREBASE_SERVICE_ACCOUNT_NOVA" ]; then
+            echo "::error::Add the FIREBASE_SERVICE_ACCOUNT_NOVA repository secret before deploying Firebase Functions."
+            exit 1
+          fi
+
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v2
         with:
