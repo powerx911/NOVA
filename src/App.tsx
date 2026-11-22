@@ -67,7 +67,7 @@ function NovaAppContent() {
     const remaining = game.accountBan.expiresAt ? Math.max(0, Math.ceil((game.accountBan.expiresAt - banClock) / 1000)) : null;
     const durationMinutes = game.accountBan.expiresAt && game.accountBan.createdAt ? Math.max(1, Math.round((game.accountBan.expiresAt - game.accountBan.createdAt) / 60000)) : null;
     const durationLabel = durationMinutes === null ? 'دائم' : durationMinutes === 1440 ? '24 ساعة' : durationMinutes < 60 ? durationMinutes + ' دقيقة' : durationMinutes < 1440 ? (Math.floor(durationMinutes / 60) + ' ساعة' + (durationMinutes % 60 ? ' و' + durationMinutes % 60 + ' دقيقة' : '')) : (Math.floor(durationMinutes / 1440) + ' يوم' + (Math.floor((durationMinutes % 1440) / 60) ? ' و' + Math.floor((durationMinutes % 1440) / 60) + ' ساعة' : '') + (durationMinutes % 60 ? ' و' + durationMinutes % 60 + ' دقيقة' : ''));
-    const durationPhrase = durationHours === null ? 'بشكل دائم' : 'لمدة ' + durationLabel;
+    const durationPhrase = durationMinutes === null ? 'بشكل دائم' : 'لمدة ' + durationLabel;
     const days = remaining === null ? 0 : Math.floor(remaining / 86400);
     const hours = remaining === null ? 0 : Math.floor((remaining % 86400) / 3600);
     const minutes = remaining === null ? 0 : Math.floor((remaining % 3600) / 60);
