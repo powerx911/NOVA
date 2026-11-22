@@ -3,6 +3,7 @@ import { lazy, Suspense, useCallback, useEffect, useState } from 'react';
 import { EmailAuthProvider, reauthenticateWithCredential, reauthenticateWithPopup } from 'firebase/auth';
 import { auth, googleAuthProvider } from '../../lib/firebase';
 import { nexoraApi } from '../../lib/nexoraApi';
+import { SupportTicketsPanel } from './SupportTicketsPanel';
 import { useToast } from '../../components/ui/ToastProvider';
 import { ACHIEVEMENTS, AVATARS, MISSIONS, SKILL_DEFINITIONS } from '../../data/catalog';
 import { formatMissionCategory, useTranslations } from '../../i18n/translations';
@@ -93,6 +94,7 @@ export function ProfileHubView({
   const [deletePassword, setDeletePassword] = useState('');
   const [deleteBusy, setDeleteBusy] = useState(false);
   const [feedbackText, setFeedbackText] = useState('');
+  const [feedbackImages, setFeedbackImages] = useState<File[]>([]);
   const [feedbackBusy, setFeedbackBusy] = useState(false);
   const [musicVolume, setMusicVolume] = useState(() => {
     try { const stored = window.localStorage.getItem('nexora-music-volume'); return stored === null ? 22 : Math.round(Math.max(0, Math.min(1, Number(stored))) * 100); } catch { return 22; }
@@ -304,8 +306,9 @@ export function ProfileHubView({
     }
     setFeedbackBusy(true);
     try {
-      await nexoraApi<{ id: string; createdAt: string }>('submit_game_feedback', { type, message });
-      setFeedbackText('');
+      const images = await Promise.all(feedbackImages.slice(0, 3).map((file) => new Promise<string>((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve(String(reader.result)); reader.onerror = () => reject(new Error('ATTACHMENT_READ_FAILED')); reader.readAsDataURL(file); })));
+      await nexoraApi<{ id: string; createdAt: string }>('submit_game_feedback', { type, message, images });
+      setFeedbackText(''); setFeedbackImages([]);
       showToast(language === 'ar' ? 'تم إرسال رسالتك بنجاح. شكراً لمساعدتنا في تحسين NOVA.' : 'Your message was sent. Thank you for helping improve NOVA.', 'success');
     } catch {
       showToast(language === 'ar' ? 'تعذر إرسال الرسالة حالياً. حاول لاحقاً.' : 'Could not send your message right now. Try again later.', 'error');
@@ -916,11 +919,14 @@ export function ProfileHubView({
             </p>
           </div>
 
+          <SupportTicketsPanel language={language} />
+
           <section className="space-y-3 border-b border-white/8 pb-4">
             <div className="flex items-center gap-2.5">
               <MessageSquareWarning className="w-4 h-4 text-[#E04455]" />
               <h3 className="text-sm font-semibold text-[#F4F5F7]">{language === 'ar' ? 'إبلاغ عن مشكلة أو تقديم اقتراح' : 'Report an issue or send a suggestion'}</h3>
             </div>
+            <input type="file" accept="image/png,image/jpeg,image/webp" multiple onChange={(event) => setFeedbackImages(Array.from(event.target.files || []).slice(0, 3))} className="w-full text-xs text-[#9299A6]" />
             <textarea
               value={feedbackText}
               onChange={(event) => setFeedbackText(event.target.value.slice(0, 3000))}
