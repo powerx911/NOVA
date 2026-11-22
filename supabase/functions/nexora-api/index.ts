@@ -53,7 +53,7 @@ Deno.serve(async (req: Request) => {
     const admin = getAdminClient();
     const db = admin.schema("nexora");
     const { data: storedBan, error: banLookupError } = await db.from("player_account_bans")
-      .select("reason,expires_at").eq("user_id", identity.uid).maybeSingle();
+      .select("reason,expires_at,created_at").eq("user_id", identity.uid).maybeSingle();
     if (banLookupError) throw banLookupError;
     const activeBan = storedBan && (!storedBan.expires_at || new Date(storedBan.expires_at).getTime() > Date.now()) ? storedBan : null;
     if (body.action === "check_account_ban") {
