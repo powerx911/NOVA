@@ -281,6 +281,63 @@ Deno.serve(async req=>{
    await writeAudit(db,userData.user.id,"admin_ticket_deleted","support_ticket",ticketId,{message_count:messages?.length??0});
    return reply({ok:true},200,origin);
   }
+
+  if(body.action==="adjust_player_wallet") {
+   if(actor.role!=="owner") return reply({error:"OWNER_REQUIRED"},403,origin);
+   const targetId=typeof body.user_id==="string"?body.user_id.trim():"";
+   const amount=Number(body.amount);
+   const operation=body.operation==="add"?"add":body.operation==="remove"?"remove":"";
+   const reason=typeof body.reason==="string"?body.reason.trim().slice(0,500):"";
+   if(!targetId||!Number.isSafeInteger(amount)||amount<=0||amount>9000000000000000||!operation) return reply({error:"INVALID_ADMIN_WALLET_ADJUSTMENT"},400,origin);
+   const {data:profile,error:profileError}=await db.schema("nexora").from("player_profiles").select("user_id").eq("user_id",targetId).maybeSingle();
+   if(profileError||!profile) return reply({error:"PLAYER_NOT_FOUND"},404,origin);
+   const {data,error}=await db.schema("nexora").rpc("admin_adjust_player_wallet",{p_user_id:targetId,p_amount:amount,p_operation:operation,p_reason:reason});
+   if(error) {
+    const known=["PLAYER_WALLET_NOT_FOUND","INSUFFICIENT_PLAYER_BALANCE","INVALID_ADMIN_WALLET_ADJUSTMENT","PLAYER_BALANCE_OUT_OF_RANGE"].find(code=>error.message.includes(code));
+    return reply({error:known??"WALLET_ADJUSTMENT_FAILED"},409,origin);
+   }
+   await writeAudit(db,userData.user.id,"admin_player_wallet_adjusted","player",targetId,{operation,amount,reason,balance:data?.balance??null});
+   return reply({ok:true,balance:data.balance},200,origin);
+  }
+  if(body.action==="ban_player_account") {
+   if(actor.role!=="owner") return reply({error:"OWNER_REQUIRED"},403,origin);
+   const targetId=typeof body.user_id==="string"?body.user_id.trim():"";
+   const durationHours=Number(body.duration_hours);
+   const reason=typeof body.reason==="string"?body.reason.trim().slice(0,500):"";
+   if(!targetId||!Number.isInteger(durationHours)||durationHours<0||durationHours>8760||reason.length<3) return reply({error:"INVALID_PLAYER_BAN"},400,origin);
+   const {data:profile,error:profileError}=await db.schema("nexora").from("player_profiles").select("user_id").eq("user_id",targetId).maybeSingle();
+   if(profileError||!profile) return reply({error:"PLAYER_NOT_FOUND"},404,origin);
+   const now=new Date().toISOString();
+   const expiresAt=durationHours===0?null:new Date(Date.now()+durationHours*60*60*1000).toISOString();
+   const {error}=await db.schema("nexora").from("player_account_bans").upsert({user_id:targetId,reason,expires_at:expiresAt,banned_by:userData.user.id,created_at:now,updated_at:now},{onConflict:"user_id"});
+   if(error) return reply({error:"PLAYER_BAN_FAILED"},500,origin);
+   await writeAudit(db,userData.user.id,"admin_player_banned","player",targetId,{duration_hours:durationHours,expires_at:expiresAt,reason});
+   return reply({ok:true,expires_at:expiresAt},200,origin);
+  }
+  if(body.action==="send_player_admin_message") {
+   if(actor.role!=="owner") return reply({error:"OWNER_REQUIRED"},403,origin);
+   const targetId=typeof body.user_id==="string"?body.user_id.trim():"";
+   const message=typeof body.message==="string"?body.message.trim():"";
+   if(!targetId||message.length<1||message.length>1000) return reply({error:"INVALID_PLAYER_MESSAGE"},400,origin);
+   const {data:profile,error:profileError}=await db.schema("nexora").from("player_profiles").select("user_id,username,avatar_id").eq("user_id",targetId).maybeSingle();
+   if(profileError||!profile) return reply({error:"PLAYER_NOT_FOUND"},404,origin);
+   const systemUid="NOVA_GAME_ADMIN";
+   const conversationId="admin:"+targetId;
+   const now=new Date().toISOString();
+   const {error:conversationError}=await db.schema("nexora").from("conversations").upsert({
+    id:conversationId,participants:[targetId,systemUid],
+    participant_names:{[targetId]:profile.username,[systemUid]:"إدارة اللعبة"},
+    participant_avatars:{[targetId]:profile.avatar_id,[systemUid]:"system"},
+    last_message:message,last_message_at:now,last_sender_uid:systemUid,created_at:now,updated_at:now
+   },{onConflict:"id"});
+   if(conversationError) return reply({error:"PLAYER_MESSAGE_FAILED"},500,origin);
+   const {error:messageError}=await db.schema("nexora").from("conversation_messages").insert({
+    id:"admin-message-"+crypto.randomUUID(),conversation_id:conversationId,sender_uid:systemUid,sender_name:"إدارة اللعبة",message_text:message,created_at:now
+   });
+   if(messageError) return reply({error:"PLAYER_MESSAGE_FAILED"},500,origin);
+   await writeAudit(db,userData.user.id,"admin_player_message_sent","player",targetId,{message_length:message.length});
+   return reply({ok:true},200,origin);
+  }
   if(body.action==="search_players") {
    const query=typeof body.query==="string"?body.query.trim().slice(0,128):"";
    if(query.length<1) return reply({error:"PLAYER_SEARCH_TOO_SHORT"},400,origin);
@@ -312,7 +369,10 @@ Deno.serve(async req=>{
     ?await db.schema("nexora").from("wallets").select("user_id,balance").in("user_id",ids)
     :{data:[]};
    const balances=new Map((wallets??[]).map((w:any)=>[w.user_id,w.balance]));
-   return reply({players:profiles.map((p:any)=>({...p,wallet_balance:balances.get(p.user_id)??0}))},200,origin);
+   const {data:bans,error:banError}=ids.length?await db.schema("nexora").from("player_account_bans").select("user_id,reason,expires_at").in("user_id",ids):{data:[],error:null};
+   if(banError) return reply({error:"PLAYER_SEARCH_FAILED"},500,origin);
+   const activeBans=new Map((bans??[]).filter((ban:any)=>!ban.expires_at||new Date(ban.expires_at).getTime()>Date.now()).map((ban:any)=>[ban.user_id,ban]));
+   return reply({players:profiles.map((p:any)=>{const ban:any=activeBans.get(p.user_id);return {...p,wallet_balance:balances.get(p.user_id)??0,is_banned:Boolean(ban),ban_reason:ban?.reason??null,ban_expires_at:ban?.expires_at??null};})},200,origin);
   }
   if(body.action==="list_admin_activity") {
    const {data:events,error}=await db.schema("nexora").from("audit_logs")
