@@ -98,6 +98,63 @@ Deno.serve(async req=>{
    }
    return reply({ok:true},200,origin);
   }
+
+  if(body.action==="list_player_reports") {
+   const {data:reports,error}=await db.schema("nexora").from("player_reports")
+    .select("id,reporter_uid,target_uid,reason,status,created_at").order("created_at",{ascending:false}).limit(100);
+   if(error) return reply({error:"REPORT_LIST_FAILED"},500,origin);
+   const ids=[...new Set((reports??[]).flatMap((r:any)=>[r.reporter_uid,r.target_uid]))];
+   const {data:profiles}=ids.length
+    ?await db.schema("nexora").from("player_profiles").select("user_id,username").in("user_id",ids)
+    :{data:[]};
+   const names=new Map((profiles??[]).map((p:any)=>[p.user_id,p.username]));
+   return reply({reports:(reports??[]).map((r:any)=>({...r,reporter_name:names.get(r.reporter_uid)??"لاعب غير معروف",target_name:names.get(r.target_uid)??"لاعب غير معروف"}))},200,origin);
+  }
+  if(body.action==="update_player_report") {
+   const reportId=typeof body.report_id==="string"?body.report_id.trim():"";
+   const status=typeof body.status==="string"?body.status:"";
+   const reason=typeof body.reason==="string"?body.reason.trim():"";
+   if(!reportId||reportId.length>180||!["open","reviewing","closed"].includes(status)||reason.length<8||reason.length>500)
+    return reply({error:"INVALID_REPORT_UPDATE"},400,origin);
+   const {data:before,error:readError}=await db.schema("nexora").from("player_reports")
+    .select("id,status,reporter_uid,target_uid").eq("id",reportId).maybeSingle();
+   if(readError||!before) return reply({error:"REPORT_NOT_FOUND"},404,origin);
+   const {data:updated,error:updateError}=await db.schema("nexora").from("player_reports")
+    .update({status}).eq("id",reportId).select("id,status").maybeSingle();
+   if(updateError||!updated) return reply({error:"REPORT_UPDATE_FAILED"},500,origin);
+   await writeAudit(db,userData.user.id,"admin_report_status_changed","player_report",reportId,
+    {previous_status:before.status,new_status:status,reason});
+   return reply({ok:true,report:updated},200,origin);
+  }
+  if(body.action==="search_players") {
+   const query=typeof body.query==="string"?body.query.trim().slice(0,128):"";
+   if(query.length<2) return reply({error:"PLAYER_SEARCH_TOO_SHORT"},400,origin);
+   const clean=query.replace(/[%_]/g,"").trim();
+   if(clean.length<2) return reply({error:"PLAYER_SEARCH_TOO_SHORT"},400,origin);
+   const profileQuery=()=>db.schema("nexora").from("player_profiles")
+    .select("user_id,username,level,xp,reputation,influence,org_id,created_at");
+   const [byId,byName]=await Promise.all([
+    profileQuery().eq("user_id",query).limit(1),
+    profileQuery().ilike("username","%"+clean+"%").order("username_lower",{ascending:true}).limit(25)
+   ]);
+   if(byId.error||byName.error) return reply({error:"PLAYER_SEARCH_FAILED"},500,origin);
+   const uniqueProfiles=new Map<string,any>();
+   for(const profile of [...(byId.data??[]),...(byName.data??[])]) uniqueProfiles.set(profile.user_id,profile);
+   const profiles=[...uniqueProfiles.values()];
+   const ids=profiles.map((p:any)=>p.user_id);
+   const {data:wallets}=ids.length
+    ?await db.schema("nexora").from("wallets").select("user_id,balance").in("user_id",ids)
+    :{data:[]};
+   const balances=new Map((wallets??[]).map((w:any)=>[w.user_id,w.balance]));
+   return reply({players:profiles.map((p:any)=>({...p,wallet_balance:balances.get(p.user_id)??0}))},200,origin);
+  }
+  if(body.action==="list_admin_activity") {
+   const {data:events,error}=await db.schema("nexora").from("audit_logs")
+    .select("id,user_id,action,entity_type,entity_id,details,created_at")
+    .like("action","admin_%").order("created_at",{ascending:false}).limit(100);
+   if(error) return reply({error:"ADMIN_ACTIVITY_FAILED"},500,origin);
+   return reply({events:events??[]},200,origin);
+  }
   return reply({error:"UNKNOWN_ACTION"},400,origin);
  } catch(error) { console.error("Admin center request failed",error); return reply({error:"INTERNAL_ERROR"},500,origin); }
 });
