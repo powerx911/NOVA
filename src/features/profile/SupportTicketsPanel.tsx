@@ -47,7 +47,7 @@ export function SupportTicketsPanel({ language }: { language: Language }) {
     try {
       const encoded = await encodeImages(images);
       await nexoraApi('create_support_ticket', { subject: subject.trim(), message: message.trim(), images: encoded });
-      setSubject(''); setMessage(''); setImages([]); await refresh();
+      setSubject(''); setMessage(''); setImages([]); setTicketFormOpen(false); await refresh();
     } catch (e) { setError(e instanceof Error && e.message === 'INVALID_ATTACHMENT' ? (ar ? 'الصورة غير مدعومة أو أكبر من 3 ميجابايت.' : 'Unsupported image or image exceeds 3 MB.') : (ar ? 'تعذر فتح التذكرة.' : 'Could not create ticket.')); }
     finally { setBusy(false); }
   }
