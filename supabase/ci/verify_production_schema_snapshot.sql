@@ -101,14 +101,14 @@ BEGIN
     RAISE EXCEPTION 'NEXORA merchant sale idempotency RPC or its access controls are missing';
   END IF;
 
-  IF v_tables <> 47
-     OR v_functions <> 154
-     OR v_security_definer <> 140
+  IF v_tables <> 51
+     OR v_functions <> 155
+     OR v_security_definer <> 141
      OR v_triggers <> 41
-     OR v_indexes <> 104
-     OR v_constraints <> 172
-     OR v_rls_enabled <> 47
-     OR v_rls_disabled <> 0 THEN
+     OR v_indexes <> 114
+     OR v_constraints <> 186
+     OR v_rls_enabled <> 50
+     OR v_rls_disabled <> 1 THEN
     RAISE EXCEPTION
       'Production schema snapshot mismatch: tables %, functions %, SECURITY DEFINER %, triggers %, indexes %, constraints %, RLS enabled %, RLS disabled %',
       v_tables, v_functions, v_security_definer, v_triggers, v_indexes, v_constraints, v_rls_enabled, v_rls_disabled;
