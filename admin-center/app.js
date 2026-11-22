@@ -2,6 +2,8 @@ const API_URL = "https://hmrprnjhyzyefocdmnxf.supabase.co/functions/v1/admin-cen
 let accessToken = "";
 const SESSION_KEY = "nova_admin_session";
 const $ = (selector) => document.querySelector(selector);
+let playerSearchTimer = null;
+let playerSearchRequest = 0;
 const STATUS_LABELS = { open: "مفتوح", reviewing: "قيد المراجعة", closed: "مغلق" };
 const REASON_LABELS = { harassment: "مضايقة", spam: "رسائل مزعجة", inappropriate: "محتوى غير مناسب", impersonation: "انتحال شخصية", other: "سبب آخر" };
 const ACTION_LABELS = {
@@ -146,10 +148,12 @@ async function loadReports() {
  }
 }
 async function loadPlayers(query) {
+ const requestId = ++playerSearchRequest;
  const list = $("#players-list");
  list.replaceChildren(node("p", "muted", "جارٍ البحث…"));
  try {
   const { players = [] } = await api("search_players", { query });
+  if (requestId !== playerSearchRequest) return;
   list.replaceChildren();
   if (!players.length) { list.append(node("p", "empty-state", "لم يتم العثور على لاعبين مطابقين.")); return; }
   for (const player of players) {
@@ -168,6 +172,7 @@ async function loadPlayers(query) {
    list.append(card);
   }
  } catch (error) {
+  if (requestId !== playerSearchRequest) return;
   list.replaceChildren(node("p", "error-state", error.message));
   message(error.message, true);
  }
@@ -266,10 +271,23 @@ $("#create-admin-form").addEventListener("submit", async event => {
 $("#refresh-admins").addEventListener("click", loadAdmins);
 $("#refresh-reports").addEventListener("click", loadReports);
 $("#refresh-activity").addEventListener("click", loadActivity);
-$("#player-search-form").addEventListener("submit", event => {
+const playerSearchForm = $("#player-search-form");
+const playerSearchInput = playerSearchForm.elements.query;
+playerSearchInput.addEventListener("input", () => {
+ const query = playerSearchInput.value.trim();
+ clearTimeout(playerSearchTimer);
+ if (!query) {
+  playerSearchRequest++;
+  $("#players-list").replaceChildren(node("p", "muted", "اكتب حرفًا واحدًا على الأقل لعرض الحسابات المطابقة."));
+  return;
+ }
+ playerSearchTimer = setTimeout(() => loadPlayers(query), 140);
+});
+playerSearchForm.addEventListener("submit", event => {
  event.preventDefault();
- const query = new FormData(event.currentTarget).get("query");
- loadPlayers(String(query || "").trim());
+ clearTimeout(playerSearchTimer);
+ const query = playerSearchInput.value.trim();
+ if (query) loadPlayers(query);
 });
 $("#logout-button").addEventListener("click", () => {
  clearSession();

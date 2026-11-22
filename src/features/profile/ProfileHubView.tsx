@@ -303,9 +303,15 @@ export function ProfileHubView({
     }
     setFeedbackBusy(true);
     try {
+      const user = auth.currentUser;
+      if (!user) throw new Error('UNAUTHENTICATED');
+      const idToken = await user.getIdToken();
       const response = await fetch('/api/game-feedback', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${idToken}`,
+        },
         body: JSON.stringify({ type, message }),
       });
       const result = await response.json().catch(() => ({})) as { error?: string };

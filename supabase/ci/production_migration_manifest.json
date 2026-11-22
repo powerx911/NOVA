@@ -3,8 +3,8 @@
   "captured_at": "2026-11-22",
   "repository": "powerx911/NOVA",
   "production_project_id": "hmrprnjhyzyefocdmnxf",
-  "production_ledger_records": 92,
-  "tracked_migration_files": 88,
+  "production_ledger_records": 93,
+  "tracked_migration_files": 89,
   "recovered_history_sql_files": 55,
   "production_schema_inventory": {
     "tables": 46,
@@ -16,7 +16,7 @@
     "active_cron_jobs": 8
   },
   "matching_summary": {
-    "records_with_source": 92,
+    "records_with_source": 93,
     "records_missing_source": 0,
     "records_recovered_only": 21,
     "records_with_additional_variants": 21,
@@ -863,9 +863,17 @@
       "canonical_source": "supabase/migrations/20261122124652_create_admin_accounts.sql",
       "canonical_git_blob_sha": "57b4c840c8fa7eb7deda4dcdda22eb8bf58b3598",
       "additional_variants": []
+    },
+    {
+      "version": "20261122134726",
+      "name": "grant_admin_player_report_access",
+      "source_status": "tracked",
+      "canonical_source": "supabase/migrations/20261122134726_grant_admin_player_report_access.sql",
+      "canonical_git_blob_sha": "a2b5393bdce2dded4f05337de2be4316c3d5e05d",
+      "additional_variants": []
     }
   ],
-  "tracked_migration_files_on_branch": 87,
+  "tracked_migration_files_on_branch": 88,
   "tracked_migration_files_on_main": 80,
   "unmapped_local_migration_files_by_name": [
     "supabase/migrations/20261118180000_nexora_economy_rpcs.sql",
