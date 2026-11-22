@@ -52,9 +52,16 @@ Deno.serve(async (req: Request) => {
     if (!body || typeof body.action !== "string") return json({ error: "INVALID_REQUEST" }, 400, origin);
     const admin = getAdminClient();
     const db = admin.schema("nexora");
+    const ensureAttachmentBucket = async () => {
+      const { data, error } = await admin.storage.getBucket("player-support-attachments");
+      if (data && !error) return;
+      const { error: createError } = await admin.storage.createBucket("player-support-attachments", { public: false, fileSizeLimit: 3145728, allowedMimeTypes: ["image/jpeg", "image/png", "image/webp"] });
+      if (createError && !createError.message.toLowerCase().includes("already exists")) throw new Error("ATTACHMENT_BUCKET_UNAVAILABLE");
+    };
     const uploadImages = async (rawImages: unknown, ownerUid: string, scope: string): Promise<string[]> => {
       if (rawImages === undefined || rawImages === null) return [];
       if (!Array.isArray(rawImages) || rawImages.length > 3) throw new Error("INVALID_ATTACHMENTS");
+      await ensureAttachmentBucket();
       const paths: string[] = [];
       for (const raw of rawImages) {
         if (typeof raw !== "string") throw new Error("INVALID_ATTACHMENTS");
