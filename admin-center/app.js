@@ -57,7 +57,9 @@ function explain(code) {
   INVALID_ADMIN_WALLET_ADJUSTMENT: "تحقق من المبلغ ونوع العملية.",
   PLAYER_WALLET_NOT_FOUND: "لم يتم العثور على محفظة اللاعب.",
   INSUFFICIENT_PLAYER_BALANCE: "رصيد اللاعب أقل من المبلغ المطلوب خصمه.",
-  INVALID_PLAYER_BAN: "تحقق من مدة الحظر والسبب.",
+  INVALID_PLAYER_BAN: "تحقق من بيانات الحظر.",
+  INVALID_PLAYER_BAN_DURATION: "أدخل مدة حظر صحيحة بالدقائق، بالأرقام من 1 إلى 525600، أو اختر الحظر الدائم.",
+  INVALID_PLAYER_BAN_REASON: "اكتب سببًا واضحًا للتبنيد (3 أحرف على الأقل).",
   PLAYER_NOT_FOUND: "لم يتم العثور على اللاعب.",
   PLAYER_MESSAGE_FAILED: "تعذر إرسال رسالة إدارة اللعبة.",
   INVALID_PLAYER_MESSAGE: "اكتب رسالة صحيحة لا تتجاوز 1000 حرف.",
@@ -362,12 +364,13 @@ async function loadPlayers(query) {
     const permanent = node("input", ""); permanent.type = "checkbox";
     const permanentText = node("span", "", "حظر دائم");
     permanentLabel.append(permanent, permanentText);
-    const duration = node("input", "reason-input"); duration.type = "number"; duration.min = "1"; duration.step = "1"; duration.placeholder = "مدة الحظر بالدقائق";
+    const duration = node("input", "reason-input"); duration.type = "text"; duration.inputMode = "numeric"; duration.pattern = "[0-9٠-٩۰-۹]*"; duration.placeholder = "مدة الحظر بالدقائق";
     permanent.addEventListener("change", () => { duration.hidden = permanent.checked; duration.required = !permanent.checked; if (permanent.checked) duration.value = ""; });
     const banReason = node("textarea", "reason-input"); banReason.maxLength = 500; banReason.placeholder = "سبب التبنيد (إلزامي)";
     const banButton = node("button", "small-button danger", player.is_banned ? "تحديث الحظر" : "تبنيد الحساب");
     banButton.addEventListener("click", async () => {
-     const durationMinutes = Number(duration.value);
+     const durationText = duration.value.trim().replace(/[٠-٩۰-۹]/g, digit => { const arabic = "٠١٢٣٤٥٦٧٨٩".indexOf(digit); return String(arabic >= 0 ? arabic : "۰۱۲۳۴۵۶۷۸۹".indexOf(digit)); });
+     const durationMinutes = Number(durationText);
      if (!permanent.checked && (!Number.isSafeInteger(durationMinutes) || durationMinutes < 1 || durationMinutes > 525600)) { message("أدخل مدة صحيحة بالدقائق (من 1 إلى 525600)، أو اختر الحظر الدائم.", true); return; }
      if (banReason.value.trim().length < 3) { message("اكتب سببًا واضحًا للتبنيد (3 أحرف على الأقل).", true); return; }
      if (!window.confirm("تأكيد تبنيد اللاعب " + player.username + (permanent.checked ? " بشكل دائم؟" : " لمدة " + durationMinutes + " دقيقة؟"))) return;
