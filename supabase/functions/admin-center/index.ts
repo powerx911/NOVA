@@ -196,7 +196,7 @@ Deno.serve(async req=>{
    const {data:ticket,error:ticketError}=await db.schema("nexora").from("support_tickets").select("id,user_id,status,claimed_by").eq("id",ticketId).maybeSingle();
    if(ticketError||!ticket) return reply({error:"TICKET_NOT_FOUND"},404,origin);
    if(ticket.status==="closed") return reply({error:"TICKET_CLOSED"},409,origin);
-   if(ticket.claimed_by&&ticket.claimed_by!==userData.user.id) return reply({error:"TICKET_OWNED_BY_OTHER_ADMIN"},403,origin);
+   if(ticket.claimed_by!==userData.user.id) return reply({error:ticket.claimed_by?"TICKET_OWNED_BY_OTHER_ADMIN":"TICKET_MUST_BE_CLAIMED"},403,origin);
    const {error:insertError}=await db.schema("nexora").from("support_ticket_messages").insert({ticket_id:ticketId,sender_type:"admin",sender_id:userData.user.id,message});
    if(insertError) return reply({error:"TICKET_MESSAGE_FAILED"},500,origin);
    await db.schema("nexora").from("support_tickets").update({updated_at:new Date().toISOString()}).eq("id",ticketId);
