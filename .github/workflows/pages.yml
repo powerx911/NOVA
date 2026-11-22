@@ -38,7 +38,7 @@ jobs:
       - name: Verify admin center artifact
         run: test -s dist/admin-center/index.html && test -s dist/admin-center/app.js && test -s dist/admin-center/styles.css
       - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v5
         with:
           path: dist
   deploy:
