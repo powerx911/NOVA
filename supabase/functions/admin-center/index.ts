@@ -26,7 +26,16 @@ Deno.serve(async req=>{
    if(error||!data.user||!data.session) return reply({error:"INVALID_CREDENTIALS"},401,origin);
    const {data:account,error:lookupError}=await db.from("admin_accounts").select("role,enabled").eq("user_id",data.user.id).maybeSingle();
    if(lookupError||!account||!account.enabled||!["admin","owner"].includes(account.role)) return reply({error:"ADMIN_ACCESS_DENIED"},403,origin);
-   return reply({session:{access_token:data.session.access_token,email:data.user.email,role:account.role}},200,origin);
+   return reply({session:{access_token:data.session.access_token,refresh_token:data.session.refresh_token,email:data.user.email,role:account.role}},200,origin);
+  }
+  if(body.action==="refresh_session") {
+   const refreshToken=typeof body.refresh_token==="string"?body.refresh_token:"";
+   if(!refreshToken) return reply({error:"UNAUTHENTICATED"},401,origin);
+   const {data:refreshed,error:refreshError}=await auth().auth.refreshSession({refresh_token:refreshToken});
+   if(refreshError||!refreshed.user||!refreshed.session) return reply({error:"UNAUTHENTICATED"},401,origin);
+   const {data:account,error:accountError}=await db.from("admin_accounts").select("role,enabled").eq("user_id",refreshed.user.id).maybeSingle();
+   if(accountError||!account||!account.enabled||!["admin","owner"].includes(account.role)) return reply({error:"ADMIN_ACCESS_DENIED"},403,origin);
+   return reply({session:{access_token:refreshed.session.access_token,refresh_token:refreshed.session.refresh_token,email:refreshed.user.email,role:account.role}},200,origin);
   }
   const bearer=req.headers.get("Authorization")??"";
   const token=bearer.startsWith("Bearer ")?bearer.slice(7):"";
