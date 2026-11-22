@@ -424,7 +424,7 @@ export function useTranslations(lang: Language) {
 const TX_TYPE_LABELS: Record<Language, Record<string, string>> = {
   ar: {
     transfer: 'تحويل مالي',
-    admin_adjustment: 'تعديل رصيد من الإدارة',
+    admin_adjustment: 'إدارة اللعبة',
     market_buy: 'شراء من السوق',
     mission_reward: 'مكافأة مهمة',
     daily_stipend: 'العائد اليومي',
@@ -455,7 +455,7 @@ const TX_TYPE_LABELS: Record<Language, Record<string, string>> = {
   },
   en: {
     transfer: 'Transfer',
-    admin_adjustment: 'Admin balance adjustment',
+    admin_adjustment: 'Game Administration',
     market_buy: 'Market Purchase',
     mission_reward: 'Mission Reward',
     daily_stipend: 'Daily Stipend',
@@ -536,7 +536,13 @@ export function formatTxDescription(description: string, type: string, lang: Lan
     const direction = incoming ? (lang === 'ar' ? 'تحويل من' : 'Transfer from') : (lang === 'ar' ? 'تحويل إلى' : 'Transfer to');
     return `${direction} ${counterpartyName}${note ? ` — ${note}` : ''}`;
   }
-  if (type === 'admin_adjustment') return description || formatTxType(type, lang);
+  if (type === 'admin_adjustment') {
+    const reason = description
+      .replace(/^إضافة رصيد بواسطة إدارة اللعبة\s*[—–-]?\s*/i, '')
+      .replace(/^Admin balance adjustment\s*[—–-]?\s*/i, '')
+      .trim();
+    return reason || (lang === 'ar' ? 'لا يوجد سبب مرفق' : 'No reason provided');
+  }
   if (type === 'game_compensation') return lang === 'ar' ? 'تعويض عن مشكلة سابقة' : 'Previous issue compensation';
   if (type === 'company_upgrade_refund') return lang === 'ar' ? 'استرجاع فرق رسوم تطوير الشركة' : 'Company upgrade charge refund';
   if (type === 'company_collect') return lang === 'ar' ? 'تحصيل إيرادات الشركة' : 'Company revenue collected';

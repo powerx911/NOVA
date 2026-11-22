@@ -438,9 +438,15 @@ export function HomeDashboardView({
                       </div>
                       <div className="min-w-0">
                         <p className="text-xs font-medium text-[#F4F5F7] truncate">
-                          {formatTxDescription(tx.description, tx.type, language, tx.counterpartyName, isCredit)}
+                          {tx.type === 'admin_adjustment'
+                            ? formatTxType(tx.type, language)
+                            : formatTxDescription(tx.description, tx.type, language, tx.counterpartyName, isCredit)}
                         </p>
-                        <p className="text-[11px] text-[#9299A6] mt-0.5">{formatTxType(tx.type, language)}</p>
+                        <p className="text-[11px] text-[#9299A6] mt-0.5">
+                          {tx.type === 'admin_adjustment'
+                            ? formatTxDescription(tx.description, tx.type, language, tx.counterpartyName, isCredit)
+                            : formatTxType(tx.type, language)}
+                        </p>
                       </div>
                     </div>
                     <span
