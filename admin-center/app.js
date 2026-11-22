@@ -53,6 +53,10 @@ function explain(code) {
   TICKET_DELETE_FAILED: "تعذر حذف التذكرة.",
   PLAYER_SEARCH_TOO_SHORT: "اكتب حرفين على الأقل للبحث.",
   PLAYER_SEARCH_FAILED: "تعذر البحث عن اللاعبين.",
+  ACCOUNT_HAS_ACTIVE_AUCTION_BID: "لا يمكن حذف الحساب الآن؛ لدى اللاعب مزايدة نشطة على مزاد لاعب آخر.",
+  LEADER_MUST_TRANSFER: "يجب نقل قيادة المنظمة إلى لاعب آخر قبل حذف الحساب.",
+  INVALID_PLAYER_TARGET: "لا يمكن حذف هذا الحساب من إدارة اللاعبين.",
+  PLAYER_ACCOUNT_DELETE_FAILED: "تعذر حذف حساب اللاعب.",
   ADMIN_ACTIVITY_FAILED: "تعذر تحميل سجل الإجراءات.",
   INVALID_ADMIN_WALLET_ADJUSTMENT: "تحقق من المبلغ ونوع العملية.",
   PLAYER_WALLET_NOT_FOUND: "لم يتم العثور على محفظة اللاعب.",
@@ -345,7 +349,7 @@ async function loadPlayers(query) {
     summary.type = "button"; summary.setAttribute("aria-expanded", "false");
     const panel = node("section", "owner-player-controls"); panel.hidden = true;
     const actions = node("div", "owner-player-actions");
-    const defs = [["wallet","تعديل الأموال"],["ban",player.is_banned?"تحديث الحظر":"حظر اللاعب"],...(player.is_banned?[["unban","إلغاء الحظر"]]:[]),["message","إرسال رسالة"]];
+    const defs = [["wallet","تعديل الأموال"],["ban",player.is_banned?"تحديث الحظر":"حظر اللاعب"],...(player.is_banned?[["unban","إلغاء الحظر"]]:[]),["message","إرسال رسالة"],["delete","حذف الحساب نهائيًا"]];
     const forms = new Map();
     const openForm = key => { for (const [name,form] of forms) form.hidden=name!==key; for (const button of actions.querySelectorAll("button")) button.classList.toggle("active",button.dataset.action===key); };
     for (const [key,label] of defs) { const b=node("button","small-button secondary",label); b.type="button"; b.dataset.action=key; b.addEventListener("click",()=>openForm(key)); actions.append(b); }
@@ -369,6 +373,11 @@ async function loadPlayers(query) {
     ban.append(permanentLabel,duration,banReason,banButton);forms.set("ban",ban);panel.append(ban);
     if(player.is_banned){const unban=node("div","owner-action-form");unban.hidden=true;const unbanButton=node("button","small-button danger","تأكيد إلغاء الحظر");unbanButton.type="button";unbanButton.addEventListener("click",async()=>{if(!window.confirm("تأكيد فك الحظر عن اللاعب "+player.username+"؟"))return;unbanButton.disabled=true;try{await api("unban_player_account",{user_id:player.user_id});message("تم فك الحظر عن الحساب.");await loadPlayers(query);await loadActivity();}catch(error){message(error.message,true);unbanButton.disabled=false;}});unban.append(unbanButton);forms.set("unban",unban);panel.append(unban);}
     const msg=node("div","owner-action-form");msg.hidden=true;const messageInput=node("textarea","reason-input");messageInput.maxLength=1000;messageInput.placeholder="اكتب رسالة تظهر للاعب في صفحة التواصل";const send=node("button","small-button","إرسال الرسالة");send.type="button";send.addEventListener("click",async()=>{if(!messageInput.value.trim()){message("اكتب الرسالة أولاً.",true);return;}send.disabled=true;try{await api("send_player_admin_message",{user_id:player.user_id,message:messageInput.value.trim()});message("تم إرسال الرسالة إلى التواصل.");messageInput.value="";send.disabled=false;await loadActivity();}catch(error){message(error.message,true);send.disabled=false;}});msg.append(messageInput,send);forms.set("message",msg);panel.append(msg);
+    const deletion=node("div","owner-action-form");deletion.hidden=true;
+    deletion.append(node("p","owner-ban-status","سيؤدي هذا الإجراء إلى حذف بيانات اللاعب وإزالة حساب تسجيل الدخول نهائيًا. لا يمكن التراجع عنه."));
+    const deleteButton=node("button","small-button danger","حذف الحساب نهائيًا");deleteButton.type="button";
+    deleteButton.addEventListener("click",async()=>{if(!window.confirm("تأكيد الحذف النهائي لحساب "+player.username+"؟ سيتم حذف بيانات اللعب وإغلاق الحساب، وقد يتعذر الحذف إذا كان اللاعب قائد منظمة أو لديه مزايدة نشطة."))return;deleteButton.disabled=true;try{const result=await api("delete_player_account",{user_id:player.user_id});message(result.auth_deleted?"تم حذف الحساب نهائيًا.":"تم حذف بيانات اللعب لكن تعذر حذف تسجيل الدخول؛ راجع سجل الإدارة.",!result.auth_deleted);await loadPlayers(query);await loadActivity();}catch(error){message(error.message,true);deleteButton.disabled=false;}});
+    deletion.append(deleteButton);forms.set("delete",deletion);panel.append(deletion);
     card.append(summary,panel);
    }
    list.append(card);
