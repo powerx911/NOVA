@@ -49,8 +49,8 @@ export const blockPlayer = (targetUid: string) =>
   nexoraApi<{ok:boolean}>('block_player', { targetUid });
 export const unblockPlayer = (targetUid: string) =>
   nexoraApi<{ok:boolean}>('unblock_player', { targetUid });
-export const reportPlayer = (targetUid: string, reason: string) =>
-  nexoraApi<{ok:boolean}>('submit_player_report', { targetUid, reason, requestId: crypto.randomUUID() });
+export const reportPlayer = (targetUid: string, message: string, images: string[] = []) =>
+  nexoraApi<{id:string}>('submit_player_report', { targetUid, message, images });
 export const invitePlayerToOrganization = (targetUid: string) =>
   nexoraApi<{ok:boolean}>('invite_player_to_organization', { targetUid });
 export const respondOrganizationInvite = (inviteId: string, response: 'accept'|'decline') =>
