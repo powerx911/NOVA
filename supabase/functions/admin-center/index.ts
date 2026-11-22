@@ -303,9 +303,13 @@ Deno.serve(async req=>{
    if(actor.role!=="owner") return reply({error:"OWNER_REQUIRED"},403,origin);
    const targetId=typeof body.user_id==="string"?body.user_id.trim():"";
    const permanent=body.permanent===true;
-   const durationMinutes=Number(body.duration_minutes);
+   const rawDuration=typeof body.duration_minutes==="string"?body.duration_minutes.trim():body.duration_minutes;
+   const normalizedDuration=typeof rawDuration==="string"?rawDuration.replace(/[٠-٩۰-۹]/g,(digit:string)=>{const arabic="٠١٢٣٤٥٦٧٨٩".indexOf(digit);return String(arabic>=0?arabic:"۰۱۲۳۴۵۶۷۸۹".indexOf(digit));}):rawDuration;
+   const durationMinutes=Number(normalizedDuration);
    const reason=typeof body.reason==="string"?body.reason.trim().slice(0,500):"";
-   if(!targetId||(!permanent&&(!Number.isSafeInteger(durationMinutes)||durationMinutes<1||durationMinutes>525600))||reason.length<3) return reply({error:"INVALID_PLAYER_BAN"},400,origin);
+   if(!targetId) return reply({error:"INVALID_PLAYER_BAN"},400,origin);
+   if(!permanent&&(!Number.isSafeInteger(durationMinutes)||durationMinutes<1||durationMinutes>525600)) return reply({error:"INVALID_PLAYER_BAN_DURATION"},400,origin);
+   if(reason.length<3) return reply({error:"INVALID_PLAYER_BAN_REASON"},400,origin);
    const {data:profile,error:profileError}=await db.schema("nexora").from("player_profiles").select("user_id").eq("user_id",targetId).maybeSingle();
    if(profileError||!profile) return reply({error:"PLAYER_NOT_FOUND"},404,origin);
    const now=new Date().toISOString();
