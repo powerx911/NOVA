@@ -70,6 +70,9 @@ jobs:
       - name: "Typecheck NOVA Supabase API (legacy function name: nexora-api)"
         run: deno check supabase/functions/nexora-api/index.ts
 
+      - name: Typecheck Admin Center Edge Function
+        run: deno check supabase/functions/admin-center/index.ts
+
       - name: Test Firebase recent-auth deletion policy
         run: deno test supabase/functions/nexora-api/_shared/auth_policy.deno.ts
 
