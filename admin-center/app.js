@@ -21,9 +21,10 @@ $("#login-form").addEventListener("submit", async e => {
  catch(err) { message(err.message,true); }
 });
 $("#create-admin-form").addEventListener("submit", async e => {
- e.preventDefault(); if (!accessToken || $("#owner-panel").hidden) return;
- const f = new FormData(e.currentTarget);
- try { await api("create_admin",{email:f.get("email"),password:f.get("password")}); e.currentTarget.reset(); message("تم إنشاء حساب Admin."); }
+ e.preventDefault(); const form = e.currentTarget;
+ if (!accessToken || $("#owner-panel").hidden) return;
+ const f = new FormData(form);
+ try { await api("create_admin",{email:f.get("email"),password:f.get("password")}); form.reset(); message("تم إنشاء حساب Admin."); }
  catch(err) { message(err.message,true); }
 });
 $("#logout-button").addEventListener("click",()=>{accessToken="";$("#app-panel").hidden=true;$("#login-panel").hidden=false;$("#owner-panel").hidden=true;message("تم تسجيل الخروج.");});
