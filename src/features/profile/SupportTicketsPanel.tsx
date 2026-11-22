@@ -79,7 +79,7 @@ export function SupportTicketsPanel({ language }: { language: Language }) {
       <label className="inline-flex cursor-pointer items-center justify-center rounded-lg border border-white/15 bg-[#141821] px-4 py-2 text-xs text-white">{ar ? 'إرفاق صور' : 'Attach images'}<input type="file" accept="image/png,image/jpeg,image/webp" multiple onChange={(e) => setImages(Array.from(e.target.files || []).slice(0,3))} className="hidden" /></label>
       {images.length > 0 && <span className="ms-2 text-[11px] text-[#AAB1BE]">{ar ? `تم إرفاق ${images.length} صور` : `${images.length} images attached`}</span>}
       <div className="flex gap-2"><button type="button" disabled={busy || subject.trim().length < 3 || !message.trim()} onClick={() => void createTicket()} className="flex-1 rounded-xl bg-[#B91C32] text-white py-3 text-sm font-semibold disabled:opacity-40">{ar ? 'إرسال التذكرة' : 'Submit ticket'}</button><button type="button" onClick={() => {setTicketFormOpen(false);setSubject('');setMessage('');setImages([]);}} className="rounded-xl bg-[#252B36] px-4 text-sm text-white">{ar ? 'إلغاء' : 'Cancel'}</button></div>
-    </div>
+    </div>}
     {error && <p className="text-xs text-rose-300">{error}</p>}
     {tickets.length === 0 ? <p className="text-xs text-[#9299A6]">{ar ? 'لا توجد لديك تذاكر بعد.' : 'You have no tickets yet.'}</p> : tickets.map((ticket) => <article key={ticket.id} className="rounded-xl border border-white/10 bg-[#0B0D12] p-3 space-y-3">
       <div className="flex items-center justify-between gap-2"><strong className="text-sm text-white">{ticket.subject}</strong><span className="text-[11px] text-[#AAB1BE]">{statusLabel(ticket.status)}</span></div>
