@@ -238,6 +238,41 @@ Deno.serve(async req=>{
    await writeAudit(db,userData.user.id,"admin_ticket_closed","support_ticket",ticketId,{});
    return reply({ok:true},200,origin);
   }
+  if(body.action==="delete_player_report") {
+   if(actor.role!=="owner") return reply({error:"OWNER_REQUIRED"},403,origin);
+   const reportId=typeof body.report_id==="string"?body.report_id.trim():"";
+   const source=body.source==="player_feedback"?"player_feedback":"player_report";
+   if(!reportId||reportId.length>180) return reply({error:"INVALID_REPORT_DELETE"},400,origin);
+   const tableName=source==="player_feedback"?"player_feedback":"player_reports";
+   const {data:report,error:readError}=await db.schema("nexora").from(tableName).select("id,attachment_paths").eq("id",reportId).maybeSingle();
+   if(readError||!report) return reply({error:"REPORT_NOT_FOUND"},404,origin);
+   const {error:deleteError}=await db.schema("nexora").from(tableName).delete().eq("id",reportId);
+   if(deleteError) { console.error("Owner report deletion failed",{source,code:deleteError.code,message:deleteError.message}); return reply({error:"REPORT_DELETE_FAILED"},500,origin); }
+   if((report.attachment_paths??[]).length) {
+    const {error:storageError}=await db.storage.from("player-support-attachments").remove(report.attachment_paths);
+    if(storageError) console.error("Report attachment cleanup failed",{source,reportId,message:storageError.message});
+   }
+   await writeAudit(db,userData.user.id,"admin_report_deleted",source,reportId,{});
+   return reply({ok:true},200,origin);
+  }
+  if(body.action==="delete_support_ticket") {
+   if(actor.role!=="owner") return reply({error:"OWNER_REQUIRED"},403,origin);
+   const ticketId=typeof body.ticket_id==="string"?body.ticket_id.trim():"";
+   if(!ticketId) return reply({error:"INVALID_TICKET"},400,origin);
+   const {data:ticket,error:ticketError}=await db.schema("nexora").from("support_tickets").select("id").eq("id",ticketId).maybeSingle();
+   if(ticketError||!ticket) return reply({error:"TICKET_NOT_FOUND"},404,origin);
+   const {data:messages,error:messagesError}=await db.schema("nexora").from("support_ticket_messages").select("attachment_paths").eq("ticket_id",ticketId);
+   if(messagesError) return reply({error:"TICKET_DELETE_FAILED"},500,origin);
+   const paths=(messages??[]).flatMap((item:any)=>item.attachment_paths??[]);
+   const {error:deleteError}=await db.schema("nexora").from("support_tickets").delete().eq("id",ticketId);
+   if(deleteError) { console.error("Owner ticket deletion failed",{code:deleteError.code,message:deleteError.message}); return reply({error:"TICKET_DELETE_FAILED"},500,origin); }
+   if(paths.length) {
+    const {error:storageError}=await db.storage.from("player-support-attachments").remove(paths);
+    if(storageError) console.error("Ticket attachment cleanup failed",{ticketId,message:storageError.message});
+   }
+   await writeAudit(db,userData.user.id,"admin_ticket_deleted","support_ticket",ticketId,{message_count:messages?.length??0});
+   return reply({ok:true},200,origin);
+  }
   if(body.action==="search_players") {
    const query=typeof body.query==="string"?body.query.trim().slice(0,128):"";
    if(query.length<1) return reply({error:"PLAYER_SEARCH_TOO_SHORT"},400,origin);
