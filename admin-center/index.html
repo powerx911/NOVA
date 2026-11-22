@@ -1,9 +1,92 @@
 <!doctype html>
 <html lang="ar" dir="rtl">
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>NOVA | مركز الإدارة</title><link rel="stylesheet" href="./styles.css"></head>
-<body><main class="auth-shell">
-<section class="auth-card" id="login-panel"><div class="brand-mark">N</div><p class="eyebrow">NOVA · مركز الإدارة</p><h1>تسجيل دخول الموظفين</h1><p class="muted">الدخول للحسابات المخوّلة فقط.</p><form id="login-form"><label>البريد الإلكتروني<input name="email" type="email" autocomplete="username" required></label><label>كلمة المرور<input name="password" type="password" autocomplete="current-password" required></label><button type="submit">تسجيل الدخول</button></form></section>
-<section class="app-shell" id="app-panel" hidden><header class="topbar"><div><p class="eyebrow">NOVA · مركز الإدارة</p><h1>لوحة الإدارة</h1></div><div class="user-tools"><span id="session-label"></span><button class="secondary" id="logout-button" type="button">تسجيل الخروج</button></div></header><p class="notice" id="notice" role="status" hidden></p>
-<section class="panel" id="owner-panel" hidden><div class="panel-head"><div><p class="eyebrow">إدارة الوصول</p><h2>إنشاء حساب Admin</h2></div><span class="pill">Owner فقط</span></div><p class="muted">لن تظهر هذه الأدوات لحسابات Admin. كلمات المرور تُدار عبر Supabase Auth.</p><form id="create-admin-form"><label>البريد الإلكتروني<input name="email" type="email" autocomplete="off" required></label><label>كلمة مرور مؤقتة<input name="password" type="password" autocomplete="new-password" required minlength="12"></label><button type="submit">إنشاء حساب Admin</button></form>
-<div class="panel-head admin-list-head"><h2>حسابات الأدمن</h2><button class="secondary" id="refresh-admins" type="button">تحديث القائمة</button></div><div id="admin-list" class="admin-list" aria-live="polite"><p class="muted">سجّل الدخول كأونر لعرض الحسابات.</p></div>
-</section><section class="panel"><h2>مركز الإدارة</h2><p class="muted">تم التحقق من صلاحية الحساب على الخادم. أدوات اللعبة ستُربط بعد استكمال واجهاتها الإدارية.</p></section></section><p class="feedback" id="feedback" role="status"></p></main><script type="module" src="./app.js"></script></body></html>
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow"><title>NOVA | مركز الإدارة</title>
+<link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+<main class="auth-shell">
+<section class="auth-card" id="login-panel">
+ <div class="brand-mark">N</div><p class="eyebrow">NOVA · مركز الإدارة</p>
+ <h1>تسجيل دخول الموظفين</h1><p class="muted">الدخول للحسابات المخوّلة فقط.</p>
+ <form id="login-form">
+  <label>البريد الإلكتروني<input name="email" type="email" autocomplete="username" required></label>
+  <label>كلمة المرور<input name="password" type="password" autocomplete="current-password" required></label>
+  <button type="submit">تسجيل الدخول</button>
+ </form>
+</section>
+<section class="app-shell" id="app-panel" hidden>
+ <aside class="sidebar">
+  <a class="brand" href="#"><span class="brand-mark">N</span><span>NOVA<small>مركز الإدارة</small></span></a>
+  <p class="nav-label">القائمة الرئيسية</p>
+  <nav aria-label="أقسام مركز الإدارة">
+   <button class="nav-item active" data-view="overview"><span>⌂</span>نظرة عامة</button>
+   <button class="nav-item" data-view="reports"><span>⚑</span>بلاغات اللاعبين</button>
+   <button class="nav-item" data-view="players"><span>♙</span>إدارة اللاعبين</button>
+   <button class="nav-item" data-view="activity"><span>▤</span>سجل الإجراءات</button>
+   <button class="nav-item owner-nav" data-view="admins" hidden><span>⚙</span>حسابات المشرفين</button>
+  </nav>
+  <div class="sidebar-foot"><span class="status-dot"></span>اتصال الإدارة محمي</div>
+ </aside>
+ <div class="workspace">
+  <header class="topbar">
+   <div><p class="eyebrow">NOVA · مركز الإدارة</p><h1 id="page-title">نظرة عامة</h1></div>
+   <div class="user-tools"><span id="session-label"></span><button class="secondary" id="logout-button" type="button">تسجيل الخروج</button></div>
+  </header>
+  <p class="notice" id="notice" role="status" hidden></p>
+  <section class="view active" id="view-overview">
+   <div class="welcome panel"><div><p class="eyebrow">لوحة المتابعة</p><h2>مرحبًا بك في مركز إدارة NOVA</h2><p class="muted">تابع البلاغات، ابحث عن اللاعبين، وراجع الإجراءات الإدارية من مكان واحد.</p></div><span class="welcome-mark">N</span></div>
+   <div class="stats">
+    <article class="stat"><span>البلاغات المفتوحة</span><strong id="stat-open">—</strong><small>تحتاج إلى مراجعة</small></article>
+    <article class="stat"><span>بلاغات قيد المراجعة</span><strong id="stat-reviewing">—</strong><small>يتابعها فريق الإدارة</small></article>
+    <article class="stat"><span>إجراءات إدارية مسجلة</span><strong id="stat-activity">—</strong><small>آخر 100 إجراء</small></article>
+   </div>
+   <div class="panel"><div class="panel-head"><div><p class="eyebrow">الوصول السريع</p><h2>أدوات الإدارة</h2></div></div>
+    <div class="quick-grid">
+     <button class="quick-link" data-view="reports"><span>⚑</span><strong>مراجعة البلاغات</strong><small>عرض البلاغات وتحديث حالتها</small></button>
+     <button class="quick-link" data-view="players"><span>♙</span><strong>البحث عن لاعب</strong><small>عرض بيانات اللاعب الأساسية</small></button>
+     <button class="quick-link" data-view="activity"><span>▤</span><strong>سجل الإجراءات</strong><small>مراجعة العمليات الإدارية</small></button>
+    </div>
+   </div>
+  </section>
+  <section class="view" id="view-reports">
+   <div class="panel">
+    <div class="panel-head"><div><p class="eyebrow">المراجعة والإشراف</p><h2>بلاغات اللاعبين</h2></div><button class="secondary" id="refresh-reports" type="button">تحديث</button></div>
+    <p class="muted">بلاغات اللاعبين المرسلة من داخل اللعبة. اختر البلاغ لمراجعة التفاصيل وتغيير حالته مع تسجيل سبب الإجراء.</p>
+    <div id="reports-list" class="data-list" aria-live="polite"><p class="muted">جارٍ التحميل…</p></div>
+   </div>
+  </section>
+  <section class="view" id="view-players">
+   <div class="panel">
+    <div class="panel-head"><div><p class="eyebrow">قاعدة بيانات اللاعبين</p><h2>إدارة اللاعبين</h2></div></div>
+    <form id="player-search-form" class="search-form"><input name="query" type="search" placeholder="ابحث باسم اللاعب أو معرّف الحساب" minlength="2" required><button type="submit">بحث</button></form>
+    <div id="players-list" class="data-list" aria-live="polite"><p class="muted">اكتب اسم اللاعب أو معرّف حسابه للبحث.</p></div>
+    <p class="muted security-note">هذه المرحلة تعرض البيانات الأساسية فقط. إجراءات الحظر وتعديل الأرصدة ستُضاف بعد ربطها بضوابط الخادم وسجل التدقيق.</p>
+   </div>
+  </section>
+  <section class="view" id="view-activity">
+   <div class="panel">
+    <div class="panel-head"><div><p class="eyebrow">الشفافية والمساءلة</p><h2>سجل الإجراءات الإدارية</h2></div><button class="secondary" id="refresh-activity" type="button">تحديث</button></div>
+    <div id="activity-list" class="data-list" aria-live="polite"><p class="muted">جارٍ التحميل…</p></div>
+   </div>
+  </section>
+  <section class="view" id="view-admins">
+   <div class="panel" id="owner-panel">
+    <div class="panel-head"><div><p class="eyebrow">إدارة الوصول</p><h2>حسابات المشرفين</h2></div><span class="pill">Owner فقط</span></div>
+    <p class="muted">إنشاء حسابات Admin وإدارتها متاح لحساب Owner فقط. لا تظهر هذه الصفحة لحسابات Admin.</p>
+    <form id="create-admin-form">
+     <label>البريد الإلكتروني<input name="email" type="email" autocomplete="off" required></label>
+     <label>كلمة مرور مؤقتة<input name="password" type="password" autocomplete="new-password" required minlength="12"></label>
+     <button type="submit">إنشاء حساب Admin</button>
+    </form>
+    <div class="panel-head admin-list-head"><h2>حسابات الأدمن</h2><button class="secondary" id="refresh-admins" type="button">تحديث القائمة</button></div>
+    <div id="admin-list" class="admin-list" aria-live="polite"><p class="muted">جارٍ تحميل الحسابات…</p></div>
+   </div>
+  </section>
+  <p class="feedback" id="feedback" role="status"></p>
+ </div>
+</section>
+</main>
+<script type="module" src="./app.js"></script>
+</body></html>
