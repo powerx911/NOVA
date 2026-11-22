@@ -53,6 +53,19 @@ Deno.serve(async (req: Request) => {
     const admin = getAdminClient();
     const db = admin.schema("nexora");
 
+    if (body.action === "submit_game_feedback") {
+      const type = body.type === "issue" ? "issue" : body.type === "suggestion" ? "suggestion" : "";
+      const message = typeof body.message === "string" ? body.message.trim() : "";
+      if (!type || message.length < 10 || message.length > 3000) return json({ error: "INVALID_FEEDBACK" }, 400, origin);
+      const windowStart = new Date(Date.now() - 30 * 60 * 1000).toISOString();
+      const { count, error: rateLimitError } = await db.from("player_feedback").select("id", { count: "exact", head: true }).eq("user_id", identity.uid).gte("created_at", windowStart);
+      if (rateLimitError) throw rateLimitError;
+      if ((count ?? 0) >= 5) return json({ error: "FEEDBACK_RATE_LIMIT" }, 429, origin);
+      const { data, error } = await db.from("player_feedback").insert({ user_id: identity.uid, feedback_type: type, message }).select("id,created_at").single();
+      if (error) throw error;
+      return json({ ok: true, data: { id: data.id, createdAt: data.created_at } }, 200, origin);
+    }
+
     if (body.action === "delete_account") {
       // Enforce the same recent-login requirement on the server. Client-side
       // reauthentication alone can be bypassed by calling this action directly.
