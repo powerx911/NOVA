@@ -4,7 +4,7 @@ const SESSION_KEY = "nova_admin_session";
 const $ = (selector) => document.querySelector(selector);
 let playerSearchTimer = null;
 let playerSearchRequest = 0;
-const STATUS_LABELS = { open: "مفتوح", reviewing: "قيد المراجعة", closed: "مغلق" };
+const STATUS_LABELS = { open: "مفتوح", new: "جديد", reviewing: "قيد المراجعة", closed: "مغلق", resolved: "تمت المعالجة", dismissed: "مستبعد" };
 const REASON_LABELS = { harassment: "مضايقة", spam: "رسائل مزعجة", inappropriate: "محتوى غير مناسب", impersonation: "انتحال شخصية", other: "سبب آخر" };
 const ACTION_LABELS = {
  admin_account_created: "إنشاء حساب مشرف",
@@ -99,53 +99,44 @@ async function loadOverview() {
 }
 async function loadReports() {
  const list = $("#reports-list");
- list.replaceChildren(node("p", "muted", "جارٍ تحميل البلاغات…"));
+ list.replaceChildren(node("p", "muted", "جارٍ تحميل البلاغات والاقتراحات…"));
  try {
   const { reports = [] } = await api("list_player_reports");
   list.replaceChildren();
-  if (!reports.length) {
-   list.append(node("p", "empty-state", "لا توجد بلاغات لاعبين حاليًا."));
-   return;
-  }
+  if (!reports.length) { list.append(node("p", "empty-state", "لا توجد بلاغات أو اقتراحات حاليًا.")); return; }
   for (const report of reports) {
+   const isFeedback = report.source === "player_feedback";
+   const isSuggestion = isFeedback && report.kind === "suggestion";
    const card = node("article", "report-card");
    const head = node("div", "report-head");
-   const title = node("strong", "", report.reporter_name + " أبلغ عن " + report.target_name);
-   const badge = node("span", "status-badge status-" + report.status, STATUS_LABELS[report.status] || report.status);
-   head.append(title, badge);
-   const meta = node("p", "report-meta", (REASON_LABELS[report.reason] || report.reason) + " · " + dateLabel(report.created_at));
-   const ids = node("p", "report-ids", "المبلّغ: " + report.reporter_uid + " · اللاعب المبلّغ عنه: " + report.target_uid);
+   const titleText = isFeedback ? (isSuggestion ? "اقتراح من " : "بلاغ من ") + report.reporter_name : report.reporter_name + " أبلغ عن " + report.target_name;
+   head.append(node("strong", "", titleText), node("span", "status-badge status-" + report.status, STATUS_LABELS[report.status] || report.status));
+   const meta = node("p", "report-meta", (isFeedback ? (isSuggestion ? "اقتراح لاعب" : "بلاغ لاعب") : (REASON_LABELS[report.reason] || report.reason)) + " · " + dateLabel(report.created_at));
+   const ids = node("p", "report-ids", "صاحب الرسالة: " + report.reporter_uid + (isFeedback ? "" : " · اللاعب المبلّغ عنه: " + report.target_uid));
    const controls = node("div", "report-controls");
+   const statuses = isFeedback ? ["new", "reviewing", "resolved", "dismissed"] : ["open", "reviewing", "closed"];
    const status = node("select", "status-select");
-   for (const value of ["open", "reviewing", "closed"]) {
-    const option = node("option", "", STATUS_LABELS[value]);
-    option.value = value;
-    status.append(option);
-   }
+   for (const value of statuses) { const option = node("option", "", STATUS_LABELS[value]); option.value = value; status.append(option); }
    status.value = report.status;
-   const reason = node("input", "reason-input");
-   reason.type = "text";
-   reason.maxLength = 500;
-   reason.placeholder = "سبب تحديث حالة البلاغ (إلزامي)";
-   const save = node("button", "small-button", "حفظ الإجراء");
-   save.type = "button";
+   const reason = node("input", "reason-input"); reason.type = "text"; reason.maxLength = 500;
+   reason.placeholder = "سبب تحديث الحالة (8 أحرف على الأقل)";
+   const save = node("button", "small-button", "حفظ الإجراء"); save.type = "button";
    save.addEventListener("click", async () => {
     save.disabled = true;
     try {
-     await api("update_player_report", { report_id: report.id, status: status.value, reason: reason.value });
-     message("تم تحديث البلاغ وتسجيل الإجراء.");
-     await loadReports();
-     await loadOverview();
+     await api("update_player_report", { report_id: report.id, source: isFeedback ? "player_feedback" : "player_report", status: status.value, reason: reason.value });
+     message("تم تحديث الرسالة وتسجيل الإجراء."); await loadReports(); await loadOverview();
     } catch (error) { message(error.message, true); save.disabled = false; }
    });
    controls.append(status, reason, save);
-   card.append(head, meta, ids, controls);
+   if (isFeedback) {
+    const content = node("p", "report-message", report.message || "—");
+    content.style.whiteSpace = "pre-wrap"; content.style.overflowWrap = "anywhere";
+    card.append(head, meta, content, ids, controls);
+   } else card.append(head, meta, ids, controls);
    list.append(card);
   }
- } catch (error) {
-  list.replaceChildren(node("p", "error-state", error.message));
-  message(error.message, true);
- }
+ } catch (error) { list.replaceChildren(node("p", "error-state", error.message)); message(error.message, true); }
 }
 async function loadPlayers(query) {
  const requestId = ++playerSearchRequest;
