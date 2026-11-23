@@ -14,21 +14,17 @@ begin
     return;
   end if;
 
-  if v_definition !~ 'v_factory\.skill_level[[:space:]]*\*[[:space:]]*0\.02' then
+  -- The active production curve already applies a 4% output bonus per level.
+  if v_definition !~ 'v_factory\.skill_level[[:space:]]*\*[[:space:]]*0\.04' then
     raise exception 'FACTORY_SKILL_OUTPUT_ANCHOR_NOT_FOUND';
   end if;
-  if v_definition !~ 'v_factory\.skill_level[[:space:]]*\*[[:space:]]*0\.015' then
+  if v_definition !~ 'v_factory\.skill_level[[:space:]]*\*[[:space:]]*0\.03' then
     raise exception 'FACTORY_SKILL_OPERATING_COST_ANCHOR_NOT_FOUND';
   end if;
 
   v_definition := regexp_replace(
     v_definition,
-    '\(1[[:space:]]*\+[[:space:]]*v_factory\.skill_level[[:space:]]*\*[[:space:]]*0\.02\)',
-    '(1 + v_factory.skill_level * 0.04)'
-  );
-  v_definition := regexp_replace(
-    v_definition,
-    '\(1[[:space:]]*- [[:space:]]*v_factory\.skill_level[[:space:]]*\*[[:space:]]*0\.015\)',
+    '\(1[[:space:]]*-[[:space:]]*v_factory\.skill_level[[:space:]]*\*[[:space:]]*0\.03\)',
     '(1 - v_factory.skill_level * 0.025)'
   );
 
