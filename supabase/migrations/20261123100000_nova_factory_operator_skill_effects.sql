@@ -8,28 +8,28 @@ begin
   select pg_get_functiondef('nexora.sync_factory_production(text,text)'::regprocedure)
     into v_definition;
 
-  if v_definition ~ 'v_factory[.]skill_level[[:space:]]*\*[[:space:]]*0[.]04'
-     and v_definition ~ 'v_factory[.]skill_level[[:space:]]*\*[[:space:]]*0[.]025' then
+  if position('v_factory.skill_level * 0.04' in v_definition) > 0
+     and position('v_factory.skill_level * 0.025' in v_definition) > 0 then
     raise notice 'Factory operator skill effects already updated';
     return;
   end if;
 
   -- The active production curve already applies a 4% output bonus per level.
-  if v_definition !~ 'v_factory[.]skill_level[[:space:]]*\*[[:space:]]*0[.]04' then
+  if position('v_factory.skill_level * 0.04' in v_definition) = 0 then
     raise exception 'FACTORY_SKILL_OUTPUT_ANCHOR_NOT_FOUND';
   end if;
-  if v_definition !~ 'v_factory[.]skill_level[[:space:]]*\*[[:space:]]*0[.]03' then
+  if position('v_factory.skill_level * 0.03' in v_definition) = 0 then
     raise exception 'FACTORY_SKILL_OPERATING_COST_ANCHOR_NOT_FOUND';
   end if;
 
-  v_definition := regexp_replace(
+  v_definition := replace(
     v_definition,
-    '\(1[[:space:]]*-[[:space:]]*v_factory[.]skill_level[[:space:]]*\*[[:space:]]*0[.]03\)',
+    '(1 - v_factory.skill_level * 0.03)',
     '(1 - v_factory.skill_level * 0.025)'
   );
 
-  if v_definition !~ 'v_factory[.]skill_level[[:space:]]*\*[[:space:]]*0[.]04'
-     or v_definition !~ 'v_factory[.]skill_level[[:space:]]*\*[[:space:]]*0[.]025' then
+  if position('v_factory.skill_level * 0.04' in v_definition) = 0
+     or position('v_factory.skill_level * 0.025' in v_definition) = 0 then
     raise exception 'FACTORY_SKILL_EFFECT_PATCH_VALIDATION_FAILED';
   end if;
 
