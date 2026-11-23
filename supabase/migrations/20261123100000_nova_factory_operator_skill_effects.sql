@@ -28,7 +28,7 @@ begin
   );
   v_definition := regexp_replace(
     v_definition,
-    '\(1[[:space:]]*-[[:space:]]*v_factory\.skill_level[[:space:]]*\*[[:space:]]*0\.015\)',
+    '\(1[[:space:]]*- [[:space:]]*v_factory\.skill_level[[:space:]]*\*[[:space:]]*0\.015\)',
     '(1 - v_factory.skill_level * 0.025)'
   );
 
