@@ -36,10 +36,10 @@ export function FactoriesPanel({ factories, inventory, profile, wallet, language
   const selectedWarehouseUpgradeEnd = selected?.warehouseUpgradeEndsAt ? timestampToMs(selected.warehouseUpgradeEndsAt) : 0;
   const resourceItem = selected ? ITEM_MAP[selected.resourceId] : null;
   const productionRate = selected && selectedResource
-    ? selectedResource.productionPerHour * factoryOutputMultiplier(selected.resourceId, selected.level) * (1 + selected.skillLevel * 0.01)
+    ? selectedResource.productionPerHour * factoryOutputMultiplier(selected.resourceId, selected.level) * (1 + selected.skillLevel * 0.04)
     : 0;
   const operatingCost = selected && selectedResource
-    ? selectedResource.operatingCostPerHour * factoryOperatingCostMultiplier(selected.level) * (1 - selected.skillLevel * 0.005)
+    ? selectedResource.operatingCostPerHour * factoryOperatingCostMultiplier(selected.level) * (1 - selected.skillLevel * 0.025)
     : 0;
   const warehouseLevel = Math.max(1, selected?.warehouseLevel ?? 1);
   const warehouseValueCaps = [3500, 7000, 14000, 25000, 40000];
@@ -228,7 +228,8 @@ export function FactoriesPanel({ factories, inventory, profile, wallet, language
             </div>
             <p className="text-[11px] text-[#77808F]">{isAr ? 'يعمل المصنع تلقائيًا، وتتم مزامنة الإنتاج ومصاريفه دوريًا. عند نفاد رصيد التشغيل يتوقف مؤقتًا ويستأنف وحده عند توفر الرصيد.' : 'The factory runs automatically and synchronizes production and operating costs periodically. It pauses when funds run out and resumes automatically when funds are available.'}</p>
             <p className="text-[11px] text-[#77808F]">{isAr ? `ترقية المصنع تستهلك ${upgradeMaterials} من ${selectedResource.nameAr}. وتطوير المهارة يستهلك ${skillMaterials} من المورد نفسه.` : `Factory upgrade consumes ${upgradeMaterials} units of ${selectedResource.nameEn}; skill training consumes ${skillMaterials}.`}</p>
-            <p className="text-[11px] text-[#77808F]">{isAr ? `كل مستوى في مهارة التشغيل يزيد الإنتاج 1% ويخفض مصاريف التشغيل 0.5%. المتوفر لديك: ${selectedResourceOwned} وحدة.` : `Each operator skill level increases output by 1% and reduces operating costs by 0.5%. You own ${selectedResourceOwned} units.`}</p>
+            <p className="text-[11px] text-[#77808F]">{isAr ? `كل مستوى في مهارة التشغيل يزيد الإنتاج 4% ويخفض مصاريف التشغيل 2.5%. المتوفر لديك: ${selectedResourceOwned} وحدة.` : `Each operator skill level increases output by 4% and reduces operating costs by 2.5%. You own ${selectedResourceOwned} units.`}</p>
+            <p className="text-[11px] text-[#77808F]">{selected.skillLevel >= 10 ? (isAr ? 'وصلت المهارة إلى المستوى الأقصى (10).' : 'Operator skill is at the maximum level (10).') : (wallet?.balance ?? 0) < skillCost ? (isAr ? `تحتاج ${skillCost.toLocaleString()} رصيدًا للترقية التالية.` : `You need ${skillCost.toLocaleString()} credits for the next skill level.`) : selectedResourceOwned < skillMaterials ? (isAr ? `تحتاج ${skillMaterials} وحدة إضافية من ${selectedResource.nameAr} للترقية التالية.` : `You need ${skillMaterials} ${selectedResource.nameEn} units for the next skill level.`) : (isAr ? `متطلبات الترقية التالية: ${skillCost.toLocaleString()} رصيد و${skillMaterials} وحدة من المورد.` : `Next upgrade requires ${skillCost.toLocaleString()} credits and ${skillMaterials} resource units.`)}</p>
             <div className="flex flex-wrap items-end gap-2 border-t border-white/8 pt-3">
               <label className="min-w-0 flex-1 space-y-1"><span className="text-[11px] text-[#9299A6]">{isAr ? 'سحب من المستودع إلى حقيبتك' : 'Withdraw to inventory'}</span><input type="number" min="1" max={selected.warehouseQty} value={withdrawAmount} onChange={(event) => setWithdrawAmount(Math.max(1, Math.min(1_000_000, Number(event.target.value) || 1)))} className="w-full min-h-[40px] rounded-lg border border-white/10 bg-[#141821] px-3 text-sm text-[#F4F5F7]" /></label>
               <button type="button" disabled={selected.warehouseQty < 1 || withdrawAmount > selected.warehouseQty || busyKey === `withdraw_${selected.id}`} onClick={() => void runAction(`withdraw_${selected.id}`, () => withdrawFactoryWarehouse(selected.id, withdrawAmount), isAr ? 'تم نقل الموارد إلى حقيبتك.' : 'Resources moved to your inventory.')} className="min-h-[40px] rounded-lg bg-[#1B2230] px-4 text-xs font-semibold text-[#F4F5F7] disabled:opacity-40"><Package className="me-1 inline h-4 w-4" />{isAr ? 'سحب الموارد' : 'Withdraw'}</button>
