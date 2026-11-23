@@ -175,7 +175,8 @@ jobs:
             supabase/migrations/20261122161000_nova_unify_player_feedback_statuses.sql \
             supabase/migrations/20261122170000_nova_admin_display_names_and_feedback_status_default.sql \
             supabase/migrations/20261122180000_nova_reports_tickets_service_role_access.sql \
-            supabase/migrations/20261122154855_nova_owner_player_controls.sql
+            supabase/migrations/20261122154855_nova_owner_player_controls.sql \
+            supabase/migrations/20261123100000_nova_factory_operator_skill_effects.sql
           do
             if [ "$migration" = "supabase/migrations/20261120135718_nova_production_economy_parity_repair.sql" ]; then
               psql "$DB_URL" -v ON_ERROR_STOP=1 -f supabase/ci/replay_patches/prepare_factory_upgrade_parity.sql
